@@ -1,0 +1,248 @@
+// schema.prisma — Proxi (NestJS + Prisma ORM)
+// Versão sem PostGIS (usa lat/lng e Json para área)
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+// ---------- Enums ----------
+
+enum UserType {
+  CLIENTE
+  PRESTADOR
+  ADMIN
+}
+
+enum ServiceStatus {
+  ATIVO
+  INATIVO
+}
+
+enum OrderStatus {
+  PENDENTE
+  CONFIRMADO
+  EM_ANDAMENTO
+  CONCLUIDO
+  CANCELADO
+}
+
+enum PaymentMethod {
+  PIX
+  CARTAO
+  OUTRO
+}
+
+enum PaymentStatus {
+  PENDENTE
+  PAGO
+  FALHOU
+}
+
+enum ServiceAreaMode {
+  RADIUS
+  POLYGON
+}
+
+// ---------- Models ----------
+
+model User {
+  id           BigInt      @id @default(autoincrement())
+  name         String       @map("nome")
+  email        String       @unique
+  passwordHash String       @map("senha_hash")
+  phone        String?      @map("telefone")
+  type         UserType     @map("tipo")
+  photoUrl     String?      @map("foto_url")
+  createdAt    DateTime     @default(now()) @map("created_at")
+  updatedAt    DateTime     @updatedAt @map("updated_at")
+
+  // Relations
+  provider     Provider?
+  addresses    Address[]
+  orders       Order[]      @relation("UserOrders")
+  reviews      Avaliacao[]  @relation("UserReviews")
+
+  @@map("usuarios")
+}
+
+model Provider {
+  id             BigInt     @id
+  // 1:1 with User (same PK)
+  user           User       @relation(fields: [id], references: [id], onDelete: Cascade)
+  bio            String?
+  ratingAvg      Decimal?   @default(0) @map("nota_media")
+  ratingCount    Int        @default(0) @map("qtd_avaliacoes")
+  verified       Boolean    @default(false) @map("verificado")
+  createdAt      DateTime   @default(now()) @map("created_at")
+  updatedAt      DateTime   @updatedAt @map("updated_at")
+
+  services       Service[]
+  serviceAreas   ProviderServiceArea[]
+  locations      ProviderLocation[]
+  reviews        Avaliacao[]
+
+  @@map("prestadores")
+}
+
+model Service {
+  id            BigInt        @id @default(autoincrement())
+  providerId    BigInt        @map("prestador_id")
+  title         String        @map("titulo")
+  description   String?       @map("descricao")
+  category      String        @map("categoria")
+  basePrice     Decimal       @map("preco_base")
+  availability  Json?         @map("disponibilidade")
+  status        ServiceStatus @default(ATIVO)
+  createdAt     DateTime      @default(now()) @map("created_at")
+  updatedAt     DateTime      @updatedAt @map("updated_at")
+
+  provider      Provider      @relation(fields: [providerId], references: [id], onDelete: Cascade)
+  orders        Order[]
+
+  @@index([providerId])
+  @@index([category])
+  @@map("servicos")
+}
+
+model Order {
+  id            BigInt      @id @default(autoincrement())
+  clientId      BigInt      @map("cliente_id")
+  serviceId     BigInt      @map("servico_id")
+  status        OrderStatus
+  finalPrice    Decimal?    @map("preco_final")
+  requestedAt   DateTime    @default(now()) @map("solicitado_em")
+  scheduledFor  DateTime?   @map("executar_em")
+
+  // Relations
+  client        User        @relation("UserOrders", fields: [clientId], references: [id])
+  service       Service     @relation(fields: [serviceId], references: [id])
+  payment       Payment?
+  review        Avaliacao?
+  addressSnap   OrderAddress?
+
+  @@index([clientId])
+  @@index([serviceId])
+  @@map("pedidos")
+}
+
+model Payment {
+  id         BigInt         @id @default(autoincrement())
+  orderId    BigInt         @unique @map("pedido_id")
+  method     PaymentMethod  @map("metodo")
+  status     PaymentStatus  @map("status")
+  amount     Decimal        @map("valor")
+  paidAt     DateTime?      @map("pago_em")
+
+  order      Order          @relation(fields: [orderId], references: [id], onDelete: Cascade)
+
+  @@map("pagamentos")
+}
+
+model Avaliacao {
+  id           BigInt    @id @default(autoincrement())
+  orderId      BigInt    @unique @map("pedido_id")
+  clientId     BigInt    @map("cliente_id")
+  providerId   BigInt    @map("prestador_id")
+  rating       Int       @map("nota")
+  comment      String?   @map("comentario")
+  reviewedAt   DateTime  @default(now()) @map("avaliado_em")
+
+  order        Order     @relation(fields: [orderId], references: [id], onDelete: Cascade)
+  client       User      @relation("UserReviews", fields: [clientId], references: [id])
+  provider     Provider  @relation(fields: [providerId], references: [id])
+
+  @@index([providerId])
+  @@map("avaliacoes")
+}
+
+model Address {
+  id           BigInt      @id @default(autoincrement())
+  userId       BigInt?     @map("user_id")
+  label        String?
+  street       String?
+  number       String?
+  complement   String?
+  neighborhood String?
+  city         String?
+  state        String?
+  country      String?     @default("BR")
+  cep          String?
+  // Substitui geography(Point,4326)
+  lat          Float?      @db.DoublePrecision
+  lng          Float?      @db.DoublePrecision
+  placeId      String?     @map("place_id")
+  isDefault    Boolean     @default(false) @map("is_default")
+  active       Boolean     @default(true)
+  createdAt    DateTime    @default(now()) @map("created_at")
+  updatedAt    DateTime    @updatedAt @map("updated_at")
+
+  user         User?       @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@index([cep])
+  @@index([lat, lng])
+  @@map("addresses")
+}
+
+model OrderAddress {
+  id           BigInt      @id @default(autoincrement())
+  orderId      BigInt      @unique @map("order_id")
+  street       String?
+  number       String?
+  complement   String?
+  neighborhood String?
+  city         String?
+  state        String?
+  country      String?     @default("BR")
+  cep          String?
+  // Substitui geography(Point,4326)
+  lat          Float?      @db.DoublePrecision
+  lng          Float?      @db.DoublePrecision
+  createdAt    DateTime    @default(now()) @map("created_at")
+
+  order        Order       @relation(fields: [orderId], references: [id], onDelete: Cascade)
+
+  @@index([lat, lng])
+  @@map("order_addresses")
+}
+
+model ProviderServiceArea {
+  id          BigInt      @id @default(autoincrement())
+  providerId  BigInt      @map("provider_id")
+  mode        ServiceAreaMode
+  // Substitui center geography(Point,4326)
+  centerLat   Float?      @db.DoublePrecision
+  centerLng   Float?      @db.DoublePrecision
+  radiusKm    Decimal?    @map("radius_km")
+  // Substitui polygon geography(Polygon,4326) -> GeoJSON
+  polygon     Json?
+  active      Boolean     @default(true)
+  createdAt   DateTime    @default(now()) @map("created_at")
+
+  provider    Provider    @relation(fields: [providerId], references: [id], onDelete: Cascade)
+
+  @@index([providerId])
+  @@index([centerLat, centerLng])
+  @@map("provider_service_areas")
+}
+
+model ProviderLocation {
+  id          BigInt      @id @default(autoincrement())
+  providerId  BigInt      @map("provider_id")
+  // Substitui geography(Point,4326)
+  lat         Float       @db.DoublePrecision
+  lng         Float       @db.DoublePrecision
+  capturedAt  DateTime    @default(now()) @map("captured_at")
+
+  provider    Provider    @relation(fields: [providerId], references: [id], onDelete: Cascade)
+
+  @@index([providerId])
+  @@index([capturedAt])
+  @@index([lat, lng])
+  @@map("provider_locations")
+}

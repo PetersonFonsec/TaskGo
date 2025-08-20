@@ -1,0 +1,59 @@
+version: "3.9"
+
+services:
+  db:
+    image: postgres:14-alpine
+    container_name: proxi_db
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: ${POSTGRES_DB:-proxi}
+      POSTGRES_USER: ${POSTGRES_USER:-postgres}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-postgres}
+    ports:
+      - "${DB_PORT:-5432}:5432"
+    volumes:
+      - db_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-postgres} -d ${POSTGRES_DB:-proxi}"]
+      interval: 5s
+      timeout: 3s
+      retries: 10
+
+  api:
+    # Usa a imagem do Node para DEV (sem Dockerfile por enquanto)
+    image: node:20-alpine
+    container_name: proxi_api
+    working_dir: /app
+    depends_on:
+      db:
+        condition: service_healthy
+    environment:
+      # Ajuste a URL conforme seu ORM (Prisma, TypeORM etc.)
+      DATABASE_URL: "postgresql://${POSTGRES_USER:-postgres}:${POSTGRES_PASSWORD:-postgres}@db:5432/${POSTGRES_DB:-proxi}?schema=public"
+      NODE_ENV: development
+      PORT: ${API_PORT:-3000}
+    ports:
+      - "${API_PORT:-3000}:3000"
+    volumes:
+      - ./backend:/app            # sua pasta do NestJS
+      - /app/node_modules         # para não sobrescrever node_modules dentro do container
+    command: sh -c "npm install && npm run start:dev"
+    # Se usar PNPM/Yarn, troque o comando acima:
+    # command: sh -c "npm i -g pnpm && pnpm install && pnpm run start:dev"
+
+  # Opcional: GUI para o Postgres
+  pgadmin:
+    image: dpage/pgadmin4:8.6
+    container_name: proxi_pgadmin
+    profiles: ["tools"]  # só sobe com: docker compose --profile tools up
+    environment:
+      PGADMIN_DEFAULT_EMAIL: ${PGADMIN_EMAIL:-admin@local}
+      PGADMIN_DEFAULT_PASSWORD: ${PGADMIN_PASSWORD:-admin}
+    ports:
+      - "${PGADMIN_PORT:-5050}:80"
+    depends_on:
+      db:
+        condition: service_healthy
+
+volumes:
+  db_data:
