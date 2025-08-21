@@ -1,0 +1,6 @@
+[submodule "plataforma_ead_backend"]
+	path = plataforma_ead_backend
+	url = git@github.com:PetersonFonsec/plataforma_ead_backend.git
+[submodule "plataforma_ead_frontend_director"]
+	path = plataforma_ead_frontend_director
+	url = git@github.com:PetersonFonsec/plataforma_ead_frontend_director.git
