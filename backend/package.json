@@ -23,7 +23,7 @@
     "test:e2e": "dotenv -e .env.test  --  jest --config ./test/jest-e2e.json",
     "pretest:e2e": "dotenv -e .env.test -- prisma migrate reset",
     "posttest:e2e": "dotenv -e .env.test -- prisma migrate reset",
-    "prisma:seed": "ts-node prisma/seeds/seeds.ts",
+    "prisma:seed": "ts-node ./prisma/seeds.ts",
     "prisma:migrate": "prisma migrate dev",
     "prisma:reset": "prisma migrate reset"
   },
