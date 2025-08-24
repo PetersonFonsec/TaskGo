@@ -246,3 +246,40 @@ model ProviderLocation {
   @@index([lat, lng])
   @@map("provider_locations")
 }
+
+model Category {
+  id          BigInt        @id @default(autoincrement())
+  name        String
+  slug        String        @unique
+  description String?
+  icon        String?
+  sortOrder   Int           @default(0)
+  isActive    Boolean       @default(true)
+  createdAt   DateTime      @default(now())
+  updatedAt   DateTime      @updatedAt
+
+  subcategories Subcategory[]
+
+  @@map("categories")
+  @@index([isActive])
+}
+
+model Subcategory {
+  id          BigInt      @id @default(autoincrement())
+  categoryId  BigInt
+  name        String
+  slug        String
+  description String?
+  icon        String?
+  sortOrder   Int         @default(0)
+  isActive    Boolean     @default(true)
+  createdAt   DateTime    @default(now())
+  updatedAt   DateTime    @updatedAt
+
+  category    Category    @relation(fields: [categoryId], references: [id], onDelete: Cascade)
+
+  @@unique([categoryId, slug], name: "categoryId_slug")
+  @@index([categoryId])
+  @@index([isActive])
+  @@map("subcategories")
+}

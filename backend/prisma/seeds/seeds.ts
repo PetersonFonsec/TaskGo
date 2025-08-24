@@ -1,4 +1,5 @@
 import { PrismaClient, UserType, ServiceStatus, OrderStatus, PaymentMethod, PaymentStatus } from '@prisma/client';
+import { CategorySeeds } from './category.seed';
 import * as bcrypt from 'bcrypt';
 
 const prisma = new PrismaClient();
@@ -107,6 +108,7 @@ async function main() {
     });
   }
 
+  await CategorySeeds(prisma);
   console.log('✅ Seeds inseridos com sucesso!');
 }
 
