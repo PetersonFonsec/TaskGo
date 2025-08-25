@@ -41,6 +41,7 @@ enum PaymentStatus {
   PENDENTE
   PAGO
   FALHOU
+  CANCELADO
 }
 
 enum ServiceAreaMode {
@@ -81,6 +82,8 @@ model Provider {
   createdAt      DateTime   @default(now()) @map("created_at")
   updatedAt      DateTime   @updatedAt @map("updated_at")
 
+  pagarmeRecipientId String? @unique @map("pagarme_recipient_id")
+
   services       Service[]
   serviceAreas   ProviderServiceArea[]
   locations      ProviderLocation[]
@@ -100,6 +103,8 @@ model Service {
   status        ServiceStatus @default(ATIVO)
   createdAt     DateTime      @default(now()) @map("created_at")
   updatedAt     DateTime      @updatedAt @map("updated_at")
+
+  platformFeePct Decimal?     @map("platform_fee_pct")
 
   provider      Provider      @relation(fields: [providerId], references: [id], onDelete: Cascade)
   orders        Order[]
@@ -138,8 +143,19 @@ model Payment {
   amount     Decimal        @map("valor")
   paidAt     DateTime?      @map("pago_em")
 
-  order      Order          @relation(fields: [orderId], references: [id], onDelete: Cascade)
+  provider           String   @default("PAGARME")
+  providerOrderId    String?  @unique @map("provider_order_id")
+  providerChargeId   String?  @unique @map("provider_charge_id")
+  pixQrCode          String?  @map("pix_qrcode")
+  pixQrCodeBase64    String?  @map("pix_qrcode_base64")
+  pixExpiresAt       DateTime? @map("pix_expires_at")
 
+  // NEW: split amounts (em moeda, não centavos)
+  platformAmount     Decimal? @map("platform_amount")
+  providerAmount     Decimal? @map("provider_amount")
+  feePct             Decimal? @map("fee_pct") // 0.12 = 12%
+
+  order      Order          @relation(fields: [orderId], references: [id], onDelete: Cascade)
   @@map("pagamentos")
 }
 
@@ -257,6 +273,8 @@ model Category {
   isActive    Boolean       @default(true)
   createdAt   DateTime      @default(now())
   updatedAt   DateTime      @updatedAt
+
+  platformFeePct Decimal?     @map("platform_fee_pct")
 
   subcategories Subcategory[]
 
