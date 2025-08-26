@@ -14,6 +14,7 @@ async function main() {
           email: `cliente${i + 1}@teste.com`,
           passwordHash: await bcrypt.hash('123456', 10),
           type: UserType.CLIENTE,
+          cpf: `123.456.78${(10 + i).toString().padStart(2, '0')}-90`,
           phone: `+55 11 9${Math.floor(10000000 + Math.random() * 89999999)}`,
           addresses: {
             create: {
@@ -40,6 +41,7 @@ async function main() {
         data: {
           user: {
             create: {
+              cpf: `123.456.78${(20 + i).toString().padStart(2, '0')}-90`,
               name: `Prestador ${i + 1}`,
               email: `prestador${i + 1}@teste.com`,
               passwordHash: await bcrypt.hash('123456', 10),
