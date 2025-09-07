@@ -14,8 +14,13 @@ export class AuthController {
     return this.authService.login(body)
   }
 
-  @Post("register")
-  async register(@Body() body: AuthRegisterDTO) {
+  @Post("register-consumer")
+  async registerConsumer(@Body() body: AuthRegisterDTO) {
+    return this.authService.register(body);
+  }
+
+  @Post("register-provider")
+  async registerProvider(@Body() body: AuthRegisterDTO) {
     return this.authService.register(body);
   }
 

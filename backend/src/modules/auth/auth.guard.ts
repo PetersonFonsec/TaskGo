@@ -1,6 +1,6 @@
 import { Injectable, CanActivate, ExecutionContext } from '@nestjs/common';
 import { Observable } from 'rxjs';
-import { AuthService } from "../auth/auth.service";
+
 import { AuthTokenService } from './auth-token.service';
 
 export const TOKEN_KEY = "token";

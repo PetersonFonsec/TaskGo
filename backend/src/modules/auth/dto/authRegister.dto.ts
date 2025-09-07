@@ -1,4 +1,4 @@
-import { IsEmail, IsNotEmpty, IsString, IsStrongPassword } from "class-validator";
+import { IsEmail, IsNotEmpty, IsString } from "class-validator";
 import { CreateUserDto } from "src/modules/user/dto/create-user.dto";
 
 

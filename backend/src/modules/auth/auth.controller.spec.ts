@@ -3,11 +3,9 @@ import { JwtService } from "@nestjs/jwt";
 
 import { AuthController } from "./auth.controller";
 import { UserService } from "../user/user.service";
-import { Roles } from "../shared/enums/role.enum";
-import Mediator from "../shared/events/mediator";
+import Mediator from "@shared/events/mediator";
 import { AuthService } from "./auth.service";
 import { AuthGuard } from "./auth.guard";
-import { USER } from "../user/user.mock";
 
 describe("Auth Controller", () => {
   let authControler: AuthController;
@@ -16,6 +14,8 @@ describe("Auth Controller", () => {
   let jwtServiceMock;
 
   beforeEach(async () => {
+    const USER = () => ({});
+
     userServiceMock = {
       updatePassword: jest.fn(() => USER()),
       deleteUser: jest.fn(() => USER()),
@@ -50,29 +50,5 @@ describe("Auth Controller", () => {
   it("Smoke test", () => {
     expect(authControler).toBeDefined()
     expect(authService).toBeDefined()
-  });
-
-  it(`Should set role ${Roles.DIRECTOR} in payload when call registerDirector`, async () => {
-    const result = await authControler.registerDirector(USER());
-
-    expect(result.email).toEqual(USER().email);
-    expect(result.access_token).toBeDefined();
-    expect(result.role).toEqual(Roles.DIRECTOR);
-  });
-
-  it(`Should set role ${Roles.STUDENT} in payload when call registerStudent`, async () => {
-    const result = await authControler.registerStudent(USER());
-
-    expect(result.email).toEqual(USER().email);
-    expect(result.access_token).toBeDefined();
-    expect(result.role).toEqual(Roles.STUDENT);
-  });
-
-  it(`Should set role ${Roles.TEACHER} in payload when call registerTeacher`, async () => {
-    const result = await authControler.registerTeacher(USER());
-
-    expect(result.email).toEqual(USER().email);
-    expect(result.access_token).toBeDefined();
-    expect(result.role).toEqual(Roles.TEACHER);
   });
 });

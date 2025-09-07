@@ -5,12 +5,14 @@ import { AppController } from './app.controller';
 import { PrismaModule } from 'prisma/prisma.module';
 import { UserModule } from './modules/user/user.module';
 import { AuthModule } from './modules/auth/auth.module';
+import { OrderModule } from './modules/order/order.module';
 
 @Module({
   imports: [
     PrismaModule,
     UserModule,
-    AuthModule
+    AuthModule,
+    OrderModule
   ],
   controllers: [AppController],
   providers: [AppService],
