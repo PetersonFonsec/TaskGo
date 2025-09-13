@@ -3,19 +3,22 @@ import { Injectable } from "@nestjs/common";
 import Mediator from "src/shared/events/mediator";
 import { Events } from "src/shared/events/events";
 
+import { AuthRegisterConsumerDTO } from "./dto/auth-register-consumer.dto";
+import { AuthRegisterProviderDTO } from "./dto/auth-register-provider.dto";
 import { UserValidateService } from "../user/user-validate.service";
-import { AuthRegisterDTO } from "./dto/authRegister.dto";
 import { AuthTokenService } from "./auth-token.service";
 import { AuthForgetDTO } from "./dto/authForget.dto";
 import { UserService } from "../user/user.service";
 import { AuthLoginDTO } from "./dto/authLogin.dto";
+import { AddressService } from "../address/address.service";
 
 @Injectable()
 export class AuthService {
   constructor(
     private readonly userValidateService: UserValidateService,
-    private readonly userService: UserService,
     private readonly authTokenService: AuthTokenService,
+    private readonly addressService: AddressService,
+    private readonly userService: UserService,
     private readonly mediator: Mediator
   ) { }
 
@@ -26,7 +29,16 @@ export class AuthService {
     return { user, ...all, access_token };
   }
 
-  async register(payload: AuthRegisterDTO) {
+  async registerConsumer(payload: AuthRegisterConsumerDTO) {
+    const user = await this.userService.create(payload.user);
+
+    if(payload.address) await this.addressService.create(payload.address);
+
+    const { access_token } = await this.authTokenService.createToken(user);
+    return { user, access_token };
+  }
+
+  async registerProvider(payload: AuthRegisterProviderDTO) {
     const user = await this.userService.create(payload.user);
     const { access_token } = await this.authTokenService.createToken(user);
     const all = await this.userService.findOne(user.id);

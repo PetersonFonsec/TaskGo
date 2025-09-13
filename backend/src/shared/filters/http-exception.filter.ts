@@ -17,18 +17,16 @@ export class CustomExceptionFilter implements ExceptionFilter {
     const response = ctx.getResponse<Response>();
     const request = ctx.getRequest<Request>();
 
-    let message = [];
+    let statusCode = exception.status ?? HttpStatus.BAD_REQUEST;
+    let message = [exception.message];
+
     if(exception instanceof HttpException){
-      message = (exception.getResponse() as any).message;
+      message = (exception as any).getResponse().message;
+      status = (exception as any).getStatus();
     }
 
-    const status =
-      exception instanceof HttpException
-        ? exception.getStatus()
-        : HttpStatus.INTERNAL_SERVER_ERROR;
-
-    response.status(status).json({
-      statusCode: 420,
+    response.status(statusCode).json({
+      statusCode,
       message,
       errorCode: exception.errorCode,
       errorTitle: exception.errorTitle,

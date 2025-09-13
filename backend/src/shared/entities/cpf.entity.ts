@@ -37,9 +37,8 @@ export class Cpf implements ValueObject<Cpf> {
     return cleaned.replace(/(\d{3})(\d{3})(\d{3})(\d{2})/, '$1.$2.$3-$4');
   }
 
-
   public getValue(): string {
-    return this.value;
+    return this.value.replace(/\D/g, '');
   }
 
   public equals(other: Cpf): boolean {

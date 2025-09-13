@@ -10,7 +10,7 @@ export class Phone implements ValueObject<Phone> {
   }
 
   static removeMask(value: string): string {
-    return value.replace(/\D/g, '');
+    return value.replace(/\D/g, '').replace(' ', '');
   }
 
   static isValid(value: string): boolean {
@@ -32,6 +32,6 @@ export class Phone implements ValueObject<Phone> {
   }
 
   getValue(): string {
-    return this.value;
+    return Phone.removeMask(this.value);
   }
 }
