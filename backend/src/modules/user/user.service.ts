@@ -1,16 +1,16 @@
 import { Injectable } from '@nestjs/common';
+import { PrismaService } from 'prisma/prisma.service';
 import { CreateUserDto } from './dto/create-user.dto';
 import { UpdateUserDto } from './dto/update-user.dto';
-import { PrismaService } from 'prisma/prisma.service';
-import { User } from 'src/shared/entities/user.entity';
+import { User } from '@shared/entities/user.entity';
 
 @Injectable()
 export class UserService {
   constructor(private readonly prisma: PrismaService) { }
 
-  async create(createUserDto: CreateUserDto) {
-    const user = new User(createUserDto);
-    if (!user.validate()) throw new Error('Invalid user data');
+  async create(payload: CreateUserDto) {
+    const user = new User(payload as any);
+    user.validate();
 
     return await this.prisma.user.create({
       data: {
@@ -53,6 +53,4 @@ export class UserService {
       where: { id },
     });
   }
-
-
 }

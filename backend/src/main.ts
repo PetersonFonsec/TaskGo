@@ -7,6 +7,7 @@ import helmet from 'helmet';
 // import * as compression from 'compression';
 
 import { AppModule } from './app.module';
+import { CustomExceptionFilter } from "@shared/filters/http-exception.filter";
 
 async function bootstrap() {
   await otelSDK.start();
@@ -15,6 +16,7 @@ async function bootstrap() {
   app.enableCors();
   app.useGlobalPipes(new ValidationPipe());
   app.use(helmet());
+  app.useGlobalFilters(new CustomExceptionFilter());
   // app.use(compression());
 
   const config = new DocumentBuilder()
@@ -30,4 +32,3 @@ async function bootstrap() {
 }
 
 bootstrap();
- 

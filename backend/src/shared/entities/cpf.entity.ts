@@ -1,12 +1,11 @@
+import { CPFException } from "@shared/exceptions/cpf.exception";
 import { ValueObject } from "./value-object.interface";
 
 export class Cpf implements ValueObject<Cpf> {
   private readonly value: string;
 
   constructor(value: string) {
-    if (!Cpf.isValid(value)) {
-      throw new Error('CPF inválido');
-    }
+    if (!Cpf.isValid(value)) throw new CPFException();
     this.value = Cpf.format(value);
   }
 

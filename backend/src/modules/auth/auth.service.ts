@@ -27,7 +27,7 @@ export class AuthService {
   }
 
   async register(payload: AuthRegisterDTO) {
-    const user = await this.userService.create(payload);
+    const user = await this.userService.create(payload.user);
     const { access_token } = await this.authTokenService.createToken(user);
     const all = await this.userService.findOne(user.id);
     return { user, ...all, access_token }

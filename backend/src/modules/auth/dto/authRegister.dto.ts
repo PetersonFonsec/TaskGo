@@ -1,20 +1,13 @@
-import { IsEmail, IsNotEmpty, IsString } from "class-validator";
+import { IsNotEmpty } from "class-validator";
+
+import { CreateAddressDto } from "src/modules/address/dto/create-address.dto";
 import { CreateUserDto } from "src/modules/user/dto/create-user.dto";
 
 
-export class AuthRegisterDTO extends CreateUserDto {
+export class AuthRegisterDTO  {
   @IsNotEmpty()
-  name: string;
+  user: CreateUserDto;
 
-  @IsEmail()
-  email: string;
-
-  @IsString()
-  documentNumber: string;
-
-  // @IsStrongPassword(rulesPassword)
-  password: string;
-
-  // @IsStrongPassword(rulesPassword)
-  confirm_password: string;
+  @IsNotEmpty()
+  address: CreateAddressDto;
 }

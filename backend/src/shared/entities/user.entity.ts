@@ -3,6 +3,8 @@ import { Cpf } from "./cpf.entity";
 import { Email } from "./email.entity";
 import { Phone } from "./phone.entity";
 import { ValueObject } from "./value-object.interface";
+import { UserException } from "@shared/exceptions/user.exception";
+import { CustomException } from "@shared/exceptions/custom.exception";
 
 export class User implements ValueObject<User> {
   id: string;
@@ -18,7 +20,6 @@ export class User implements ValueObject<User> {
 
   constructor(init?: Partial<User>) {
     this.validateFields(init);
-
   }
 
   equals(other: User): boolean {
@@ -51,7 +52,11 @@ export class User implements ValueObject<User> {
   }
 
   validate(): boolean {
-    return this.email.validate() && !!this.phone?.validate() && this.cpf.validate();
+    try {
+      return !!this.email?.validate() && !!this.phone?.validate() && !!this.cpf?.validate();
+    } catch (error: CustomException | any) {
+      throw new UserException();
+    }
   }
 
   getValue(): User {
@@ -59,6 +64,6 @@ export class User implements ValueObject<User> {
   }
 
   toString(): string {
-    return `User: ${this.id}, Name: ${this.name}, Email: ${this.email.toString()}`;
+    return `User: ${this.id}, Name: ${this.name}, Email: ${this.email?.toString()}`;
   }
 }

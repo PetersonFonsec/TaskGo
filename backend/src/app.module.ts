@@ -6,13 +6,15 @@ import { PrismaModule } from 'prisma/prisma.module';
 import { UserModule } from './modules/user/user.module';
 import { AuthModule } from './modules/auth/auth.module';
 import { OrderModule } from './modules/order/order.module';
+import { AddressModule } from './modules/address/address.module';
 
 @Module({
   imports: [
     PrismaModule,
     UserModule,
     AuthModule,
-    OrderModule
+    OrderModule,
+    AddressModule
   ],
   controllers: [AppController],
   providers: [AppService],
