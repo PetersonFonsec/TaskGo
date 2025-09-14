@@ -10,11 +10,16 @@ import { UpdateUserDto } from './dto/update-user.dto';
 import { PaginationQuery, PaginationResponse } from '@shared/services/pagination/pagination.interface';
 import { PaginationService } from '@shared/services/pagination/pagination.service';
 import { UserExistException } from '@shared/exceptions/user-exist.exception';
+import { AddressService } from '../address/address.service';
+import { Address } from '../address/entities/address.entity';
 
 @Injectable()
 export class UserService extends PaginationService<User> {
 
-  constructor(public prisma: PrismaService) {
+  constructor(
+    public prisma: PrismaService,
+    private readonly addressService: AddressService,
+  ) {
     super(prisma);
     this.modelName = this.prisma.user;
   }
@@ -22,13 +27,14 @@ export class UserService extends PaginationService<User> {
   async create(payload: CreateUserDto): Promise<User> {
     const user = new User(payload as any);
     user.validate();
+
     user.password = bcrypt.hashSync(user.password, 8);
 
     return await this.prisma.$transaction(async (prisma) => {
       const existingUser = await this.findByUserByKeys(user.cpf.getValue(), user.email.getValue());
       if (existingUser) throw new UserExistException();
 
-      return await prisma.user.create({
+      const newUser = await prisma.user.create({
         data: {
           name: user.name,
           email: user.email.getValue(),
@@ -39,6 +45,19 @@ export class UserService extends PaginationService<User> {
           type: user.type,
         },
       }) as any as User;
+
+      if (!payload.address) return newUser;
+
+      const address = new Address(payload.address);
+      address.validate();
+
+      await prisma.address.create({
+        data: {
+          ...address.getValue(),
+          user: { connect: { id: newUser.id } }
+        }
+      });
+      return newUser;
     });
   }
 
@@ -61,6 +80,12 @@ export class UserService extends PaginationService<User> {
   async findOne(id: bigint) {
     return await this.prisma.user.findUnique({
       where: { id },
+      include: {
+        addresses: true,
+        orders: true,
+        reviews: true,
+        provider: true
+      },
     });
   }
 

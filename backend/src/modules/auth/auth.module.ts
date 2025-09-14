@@ -10,6 +10,8 @@ import { AuthTokenService } from "./auth-token.service";
 import { AuthController } from "./auth.controller";
 import { UserModule } from "../user/user.module";
 import { AuthService } from "./auth.service";
+import { ServicesModule } from "../services/services.module";
+import { ProviderModule } from "../provider/provider.module";
 
 @Module({
   controllers: [
@@ -23,7 +25,7 @@ import { AuthService } from "./auth.service";
   imports: [
     forwardRef(() => UserModule),
     forwardRef(() => AddressModule),
-    forwardRef(() => CategoriesModule),
+    forwardRef(() => ProviderModule),
     PrismaModule,
     JwtModule.register({
       secret: process.env.JWT_SECRET

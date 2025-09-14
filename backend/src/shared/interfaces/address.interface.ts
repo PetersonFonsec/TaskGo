@@ -4,7 +4,7 @@ export interface Address {
   number: string;
   city: string;
   state: string;
-  cep: string;
   lat: number;
   lng: number;
+  cep: string;
 }

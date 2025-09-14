@@ -1,10 +1,12 @@
 import { Injectable } from '@nestjs/common';
-import { CreateAddressDto } from './dto/create-address.dto';
-import { UpdateAddressDto } from './dto/update-address.dto';
 import { PrismaService } from '@prisma/prisma.service';
 import { Address } from '@prisma/client';
+
 import { PaginationQuery, PaginationResponse } from '@shared/services/pagination/pagination.interface';
 import { PaginationService } from '@shared/services/pagination/pagination.service';
+import { Address as AddressEntity } from './entities/address.entity';
+import { CreateAddressDto } from './dto/create-address.dto';
+import { UpdateAddressDto } from './dto/update-address.dto';
 
 @Injectable()
 export class AddressService extends PaginationService<Address> {
@@ -13,8 +15,11 @@ export class AddressService extends PaginationService<Address> {
     this.modelName = this.prisma.address;
   }
 
-  create(createAddressDto: CreateAddressDto) {
-    return this.prisma.address.create({ data: createAddressDto });
+  create(payload: CreateAddressDto) {
+    const address = new AddressEntity(payload);
+    address.validate();
+
+    return this.prisma.address.create({ data: address.getValue() });
   }
 
   async findAll(query: PaginationQuery): Promise<PaginationResponse<Address>> {

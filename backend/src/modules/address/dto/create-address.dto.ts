@@ -1,5 +1,5 @@
+import { Address } from "@shared/interfaces/address.interface";
 import { IsLatitude, IsLongitude, IsString } from "class-validator";
-import { Address } from "../entities/address.entity";
 
 export class CreateAddressDto implements Address {
   @IsString() label: string;

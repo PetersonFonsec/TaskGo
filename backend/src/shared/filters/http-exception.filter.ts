@@ -22,7 +22,6 @@ export class CustomExceptionFilter implements ExceptionFilter {
 
     if(exception instanceof HttpException){
       message = (exception as any).getResponse().message;
-      status = (exception as any).getStatus();
     }
 
     response.status(statusCode).json({

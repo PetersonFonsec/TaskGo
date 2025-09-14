@@ -9,6 +9,7 @@ import { OrderModule } from './modules/order/order.module';
 import { AddressModule } from './modules/address/address.module';
 import { ServicesModule } from './modules/services/services.module';
 import { CategoriesModule } from './modules/categories/categories.module';
+import { ProviderModule } from './modules/provider/provider.module';
 
 @Module({
   imports: [
@@ -18,7 +19,8 @@ import { CategoriesModule } from './modules/categories/categories.module';
     OrderModule,
     AddressModule,
     ServicesModule,
-    CategoriesModule
+    CategoriesModule,
+    ProviderModule
   ],
   controllers: [AppController],
   providers: [AppService],
