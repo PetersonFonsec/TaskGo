@@ -1,8 +1,10 @@
-import { Controller, Get, Post, Body, Patch, Param, Delete } from '@nestjs/common';
+import { Controller, Get, Post, Body, Patch, Param, Delete, Query } from '@nestjs/common';
+
 import { CategoriesService } from './categories.service';
-import { CreateCategoryDto } from './dto/create-category.dto';
 import { UpdateCategoryDto } from './dto/update-category.dto';
 import { CreateFullCategoryDto } from './dto/create-full-category.dto';
+
+import { PaginationQuery } from '@shared/services/pagination/pagination.interface';
 
 @Controller('categories')
 export class CategoriesController {
@@ -14,8 +16,8 @@ export class CategoriesController {
   }
 
   @Get()
-  findAll() {
-    return this.categoriesService.findAll();
+  findAll(@Query() query: PaginationQuery) {
+    return this.categoriesService.findAll(query);
   }
 
   @Get(':id')

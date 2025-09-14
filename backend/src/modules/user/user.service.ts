@@ -6,18 +6,25 @@ import { User } from '@shared/entities/user.entity';
 import { PrismaService } from 'prisma/prisma.service';
 import { CreateUserDto } from './dto/create-user.dto';
 import { UpdateUserDto } from './dto/update-user.dto';
+
+import { PaginationQuery, PaginationResponse } from '@shared/services/pagination/pagination.interface';
+import { PaginationService } from '@shared/services/pagination/pagination.service';
 import { UserExistException } from '@shared/exceptions/user-exist.exception';
 
 @Injectable()
-export class UserService {
-  constructor(private readonly prisma: PrismaService) { }
+export class UserService extends PaginationService<User> {
 
-  async create(payload: CreateUserDto): Promise<any> {
+  constructor(public prisma: PrismaService) {
+    super(prisma);
+    this.modelName = this.prisma.user;
+  }
+
+  async create(payload: CreateUserDto): Promise<User> {
     const user = new User(payload as any);
     user.validate();
     user.password = bcrypt.hashSync(user.password, 8);
 
-    await this.prisma.$transaction(async (prisma) => {
+    return await this.prisma.$transaction(async (prisma) => {
       const existingUser = await this.findByUserByKeys(user.cpf.getValue(), user.email.getValue());
       if (existingUser) throw new UserExistException();
 
@@ -31,7 +38,7 @@ export class UserService {
           cpf: user.cpf.getValue(),
           type: user.type,
         },
-      });
+      }) as any as User;
     });
   }
 
@@ -46,8 +53,9 @@ export class UserService {
     });
   }
 
-  async findAll() {
-    return await this.prisma.user.findMany();
+  async findAll(query: PaginationQuery): Promise<PaginationResponse<User>> {
+    const queryDefault: PaginationQuery = { page: 1, limit: 10, sortBy: 'id', order: 'desc', search: '' };
+    return await this.listPaginated(Object.assign(queryDefault, query));
   }
 
   async findOne(id: bigint) {

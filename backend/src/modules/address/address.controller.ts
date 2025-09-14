@@ -1,7 +1,8 @@
-import { Controller, Get, Post, Body, Patch, Param, Delete } from '@nestjs/common';
+import { Controller, Get, Post, Body, Patch, Param, Delete, Query } from '@nestjs/common';
 import { AddressService } from './address.service';
 import { CreateAddressDto } from './dto/create-address.dto';
 import { UpdateAddressDto } from './dto/update-address.dto';
+import { PaginationQuery } from '@shared/services/pagination/pagination.interface';
 
 @Controller('address')
 export class AddressController {
@@ -13,8 +14,8 @@ export class AddressController {
   }
 
   @Get()
-  findAll() {
-    return this.addressService.findAll();
+  findAll(@Query() query: PaginationQuery) {
+    return this.addressService.findAll(query);
   }
 
   @Get(':id')

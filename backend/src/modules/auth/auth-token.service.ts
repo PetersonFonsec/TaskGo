@@ -7,15 +7,18 @@ export class AuthTokenService {
     private readonly jwtService: JwtService,
   ) { }
 
-  async createToken(user) {
-    delete user.password;
+  async createToken(id: bigint) {
+    const idString = id.toString();
 
-    const access_token = this.jwtService.sign(user, {
-      expiresIn: process.env.EXPIRES_IN,
-      subject: user.id.toString()
-    });
+    const access_token = this.jwtService.sign(
+      { id: idString },
+      {
+        expiresIn: process.env.EXPIRES_IN,
+        subject: idString,
+      }
+    );
 
-    return { access_token }
+    return { access_token };
   }
 
   checkToken(token: string) {

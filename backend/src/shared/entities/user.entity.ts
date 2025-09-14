@@ -7,7 +7,7 @@ import { UserException } from "@shared/exceptions/user.exception";
 import { CustomException } from "@shared/exceptions/custom.exception";
 
 export class User implements ValueObject<User> {
-  id: string;
+  id: bigint;
   name: string;
   email: Email;
   password: string;

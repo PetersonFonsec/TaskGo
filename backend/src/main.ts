@@ -8,14 +8,16 @@ import helmet from 'helmet';
 
 import { AppModule } from './app.module';
 import { CustomExceptionFilter } from "@shared/filters/http-exception.filter";
+import { BigIntInterceptor } from "@shared/interceptors/bigint.interceptor";
 
 async function bootstrap() {
   await otelSDK.start();
   const app = await NestFactory.create(AppModule);
 
   app.enableCors();
-  app.useGlobalPipes(new ValidationPipe());
   app.use(helmet());
+  app.useGlobalPipes(new ValidationPipe());
+  app.useGlobalInterceptors(new BigIntInterceptor());
   app.useGlobalFilters(new CustomExceptionFilter());
   // app.use(compression());
 
@@ -25,6 +27,7 @@ async function bootstrap() {
     .setVersion('1.0')
     .addTag('TaskGo')
     .build();
+
   const document = SwaggerModule.createDocument(app, config);
   SwaggerModule.setup('api', app, document);
 
