@@ -15,7 +15,7 @@ export class AddressService extends PaginationService<Address> {
     this.modelName = this.prisma.address;
   }
 
-  create(payload: CreateAddressDto) {
+  async create(payload: CreateAddressDto) {
     const address = new AddressEntity(payload);
     address.validate();
 
@@ -27,15 +27,18 @@ export class AddressService extends PaginationService<Address> {
     return await this.listPaginated(Object.assign(queryDefault, query));
   }
 
-  findOne(id: number) {
+  async findOne(id: bigint) {
     return this.prisma.address.findUnique({ where: { id } });
   }
 
-  update(id: number, updateAddressDto: UpdateAddressDto) {
-    return `This action updates a #${id} address`;
+  async update(id: bigint, updateAddressDto: UpdateAddressDto) {
+    return this.prisma.address.update({
+      where: {id},
+      data: updateAddressDto
+    });
   }
 
-  remove(id: number) {
-    return `This action removes a #${id} address`;
+  async remove(id: bigint) {
+    return this.prisma.address.delete({ where: { id }});
   }
 }

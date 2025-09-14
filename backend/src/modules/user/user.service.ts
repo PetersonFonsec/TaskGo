@@ -7,11 +7,12 @@ import { PrismaService } from 'prisma/prisma.service';
 import { CreateUserDto } from './dto/create-user.dto';
 import { UpdateUserDto } from './dto/update-user.dto';
 
+import { AddressService } from '../address/address.service';
+import { Address } from '../address/entities/address.entity';
+
 import { PaginationQuery, PaginationResponse } from '@shared/services/pagination/pagination.interface';
 import { PaginationService } from '@shared/services/pagination/pagination.service';
 import { UserExistException } from '@shared/exceptions/user-exist.exception';
-import { AddressService } from '../address/address.service';
-import { Address } from '../address/entities/address.entity';
 
 @Injectable()
 export class UserService extends PaginationService<User> {

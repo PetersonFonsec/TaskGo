@@ -61,6 +61,8 @@ export class CategoriesService extends PaginationService<Category> {
   }
 
   remove(id: number) {
-    return `This action removes a #${id} category`;
+    return this.prismaService.category.delete({
+      where: { id },
+    });
   }
 }
