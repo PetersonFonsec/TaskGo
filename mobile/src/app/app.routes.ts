@@ -17,21 +17,17 @@ import { CustomerRoutes } from './modules/customer/customer.routes';
 import { ProviderRoutes } from './modules/provider/provider.routes';
 
 export const routes: Routes = [
-  { path: '', redirectTo: '/authenticate', pathMatch: 'full' },
-  {
-    path: 'folder/:id',
-    loadComponent: () => import('./folder/folder.page').then((m) => m.FolderPage),
-  },
+  { path: '', redirectTo: UrlBase.AUTHENTICATE, pathMatch: 'full' },
   {
     path: UrlBase.AUTHENTICATE,
     component: AuthIndexPage,
-    canActivate: [userLoggedGuard],
+    // canActivate: [userLoggedGuard],
     children: AuthRoutes
   },
   {
     path: UrlBase.REGISTER,
     component: RegisterIndexPage,
-    canActivate: [userLoggedGuard],
+    // canActivate: [userLoggedGuard],
     children: RegisterRoutes
   },
   {

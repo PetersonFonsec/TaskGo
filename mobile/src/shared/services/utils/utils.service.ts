@@ -1,3 +1,6 @@
+import { Roles } from "@shared/enums/roles.enum";
+import { UrlBase } from "@shared/enums/url-base.enum";
+
 export class Utils {
   static readonly byteValue = 1048576;
 
@@ -18,9 +21,12 @@ export class Utils {
   }
 
   static getRouteByRole(role: string): string {
-    const urlBaseByRoles: any = { ADMIN: '/backoffice', DIRECTOR: '/backoffice', TEACHER: '/backoffice', STUDENT: '/student' };
+    const urlBaseByRoles: any = { };
 
-    return urlBaseByRoles[role] || "/authenticate";
+    urlBaseByRoles[Roles.CUSTOMER] = UrlBase.CUSTOMER;
+    urlBaseByRoles[Roles.PROVIDER] = UrlBase.PROVIDER;
+
+    return urlBaseByRoles[role] || UrlBase.AUTHENTICATE;
   }
 
   static subtractDays(date: Date, days: number) {

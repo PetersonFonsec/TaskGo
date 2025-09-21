@@ -1,6 +1,6 @@
 export enum UrlBase {
+  AUTHENTICATE='area-deslogada',
   PROVIDER='prestador',
   CUSTOMER='cliente',
-  AUTHENTICATE='area-deslogada',
   REGISTER='cadastro'
 }
