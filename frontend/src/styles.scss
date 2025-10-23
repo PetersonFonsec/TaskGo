@@ -1,1 +1,106 @@
 /* You can add global styles to this file, and also import other style files */
+:root {
+  --color-primary: #000000;
+  --color-primary-rgb: 0, 102, 0;
+  --color-primary-contrast: #fff;
+  --color-primary-contrast-rgb: 255, 255, 255;
+
+  --color-secondary: #006600;
+  --color-secondary-rgb: 0, 102, 0;
+  --color-secondary-contrast: #ffffff;
+  --color-secondary-contrast-rgb: 255, 255, 255;
+  --color-secondary-shade: #005a00;
+  --color-secondary-tint: #1a751a;
+
+  --color-secondary: #006600;
+  --color-secondary-rgb: 0, 102, 0;
+  --color-secondary-contrast: #ffffff;
+  --color-secondary-contrast-rgb: 255, 255, 255;
+  --color-secondary-shade: #005a00;
+  --color-secondary-tint: #1a751a;
+
+  --color-provider: #7353C0;
+  --color-provider-rgb: 115, 83, 192;
+  --color-provider-contrast: #ffffff;
+  --color-provider-contrast-rgb: 255, 255, 255;
+  --color-provider-shade: #6549a9;
+  --color-provider-tint: #8164c6;
+
+  --color-customer: #3280E3;
+  --color-customer-rgb: 50, 128, 227;
+  --color-customer-contrast: #000000;
+  --color-customer-contrast-rgb: 0, 0, 0;
+  --color-customer-shade: #2c71c8;
+  --color-customer-tint: #478de6;
+
+  --background-color: #fff !important;
+  --background-color-rgb: 255, 255, 255;
+  --text-color: #ffffff;
+  --text-color-rgb: 255, 255, 255;
+
+  --primary-font-family: "Inter", sans-serif;
+  --secondary-font-family: Arial, sans-serif;
+
+  --font-weight-regular: 400;
+  --font-weight-medium: 600;
+  --font-weight-bold: 700;
+
+  --transition: 0.3s linear all;
+
+  --font-color-dark: #000000;
+  --font-color-light: #b0b0b0;
+
+  --border-radius-1: 16px;
+  --border: 16px;
+
+  --text: var(--font-size-3) var(--font-weight-regular) normal
+    var(--primary-font-family);
+
+  --title: var(--font-size-5) var(--font-weight-bold) normal
+    var(--primary-font-family);
+
+  --title-secondary: var(--font-size-4) var(--font-weight-bold) normal
+    var(--primary-font-family);
+
+  --space-1: 4px;
+  --space-2: 6px;
+  --space-3: 8px;
+  --space-4: 12px;
+  --space-5: 14px;
+  --space-6: 16px;
+  --space-7: 18px;
+  --space-8: 20px;
+  --space-9: 22px;
+  --space-10: 24px;
+  --space-11: 32px;
+  --space-12: 34px;
+  --space-13: 38px;
+  --space-14: 40px;
+  --space-15: 44px;
+  --space-18: 48px;
+  --space-19: 62px;
+
+  --container-size: 1448px;
+  --container-size-small: 612px;
+}
+
+.scroll-style {
+  &::-webkit-scrollbar {
+    display: none;
+  }
+}
+
+* {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+}
+
+body,
+html {
+  margin: 0;
+  padding: 0;
+  overflow-x: hidden;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
