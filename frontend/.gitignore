@@ -44,3 +44,9 @@ Thumbs.db
 
 *storybook.log
 storybook-static
+
+/cypress/videos
+/cypress/screenshots
+/cypress/results
+/cypress/fixtures/videos
+/cypress/downloads
