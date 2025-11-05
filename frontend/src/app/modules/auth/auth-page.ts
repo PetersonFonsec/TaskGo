@@ -12,12 +12,17 @@ import { Roles } from '@shared/enums/roles.enum';
 })
 export class AuthPage {
   userType = signal(Roles.CUSTOMER);
+  showAsideForm = signal(false);
 
   goToCreateAccountForm() {
-    alert('teste');
+    this.showAsideForm.set(true);
   }
 
   goToLoging() {
-    alert('teste');
+    this.showAsideForm.set(true);
+  }
+  onActivate(event: any) {
+    console.log('rota ativada');
+    console.log(event);
   }
 }

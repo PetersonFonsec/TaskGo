@@ -14,7 +14,7 @@
     </app-layout-slider-item>
   </app-layout-slider>
 
-  <!-- <div id="auth-page_forms">
-    <router-outlet></router-outlet>
-  </div> -->
+  <aside id="auth-page_forms">
+    <router-outlet (activate)='onActivate($event)'></router-outlet>
+  </aside>
 </main>

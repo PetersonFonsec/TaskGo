@@ -4,11 +4,8 @@
 @use "../../../../scss/mixins/grid" as grid;
 
 .layout-slider {
-  height: 100dvh;
-  width: 100dvw;
-
   &_container {
-    @include grid.container(100dvw);
+    // @include grid.container(100dvw);
     @include position.flexCenter();
 
     flex: 0 0 100%;
