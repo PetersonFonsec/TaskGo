@@ -9,9 +9,9 @@
   width: 100%;
 
   //Color
-  &--primary {
-    background: var(--primary-color-2);
-    color: var(--neutral-color-3);
+  &--customer {
+    background: var(--color-provider);
+    color: var(--font-color-light);
 
     &:active,
     &:hover {
@@ -19,14 +19,25 @@
     }
   }
 
-  &--secundary {
+  &--provider {
     background: var(--secundary-color-4);
     color: var(--secundary-color-1);
 
     &:active,
     &:hover {
       background-color: var(--secundary-color-1);
-      color: var(--neutral-color-3);
+      color: var(--font-color-light);
+    }
+  }
+
+  &--light {
+    background: var(--secundary-color-4);
+    color: var(--font-color-dark);
+
+    &:active,
+    &:hover {
+      background-color: var(--secundary-color-1);
+      color: var(--font-color-dark);
     }
   }
 

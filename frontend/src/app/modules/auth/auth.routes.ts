@@ -9,15 +9,15 @@ export const AuthRoutes: Routes = [
     data: { animation: 'home' },
   },
   {
-    path: 'profile',
-    title: `Perfil `,
+    path: 'login',
+    title: `Login `,
     loadComponent: () => import('@modules/auth/login/login').then(c => c.Login),
-    data: { animation: 'profile' }
+    data: { animation: 'login' }
   },
   {
-    path: 'create-college',
-    title: `Cadastro de Universidade `,
+    path: 'register',
+    title: `Cadastro de Cliente `,
     loadComponent: () => import('@modules/auth/register/register').then(c => c.Register),
-    data: { animation: 'create-college' }
+    data: { animation: 'create-customer' }
   },
 ];

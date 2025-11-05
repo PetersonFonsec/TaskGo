@@ -48,19 +48,22 @@
   --transition: 0.3s linear all;
 
   --font-color-dark: #000000;
-  --font-color-light: #b0b0b0;
+  --font-color-light: #FFFFFF;
 
   --border-radius-1: 16px;
   --border: 16px;
 
-  --text: var(--font-size-3) var(--font-weight-regular) normal
-    var(--primary-font-family);
+  --font-size-1: 14px;
+  --font-size-2: 16px;
+  --font-size-3: 18px;
+  --font-size-4: 22px;
+  --font-size-5: 28px;
 
-  --title: var(--font-size-5) var(--font-weight-bold) normal
-    var(--primary-font-family);
+  --text: var(--font-size-3) var(--font-weight-regular) normal var(--primary-font-family);
 
-  --title-secondary: var(--font-size-4) var(--font-weight-bold) normal
-    var(--primary-font-family);
+  --title: var(--font-size-4) var(--font-weight-bold) normal var(--primary-font-family);
+
+  --title-secondary: var(--font-size-4) var(--font-weight-bold) normal var(--primary-font-family);
 
   --space-1: 4px;
   --space-2: 6px;
@@ -103,4 +106,27 @@ html {
   overflow-x: hidden;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
+}
+
+.main-title {
+  color: var(--font-color-dark);
+  font-size: var(--font-size-4);
+  font-weight: var(--font-weight-bold);
+  font-family: var(--primary-font-family);
+}
+
+.subtitle {
+  font: var(--title-secondary);
+  color: var(--font-color-dark);
+}
+
+.text {
+  color: var(--font-color-light);
+  font-size: var(--font-size-3);
+  font-weight: var(--font-weight-regular);
+  font-family: var(--primary-font-family);
+}
+
+.color-light {
+  color: var(--font-color-light);
 }

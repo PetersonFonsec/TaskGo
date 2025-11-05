@@ -16,12 +16,12 @@ import { CustomerRoutes } from '@modules/customer/customer.routes';
 
 
 export const routes: Routes = [
-  { path: '', redirectTo: '/authenticate', pathMatch: 'full' },
+  { path: '', redirectTo: UrlBase.AUTHENTICATE, pathMatch: 'full' },
   {
     path: UrlBase.AUTHENTICATE,
     component: AuthPage,
-    canActivate: [userLoggedGuard],
     children: AuthRoutes
+    // canActivate: [userLoggedGuard],
   },
   {
     path: UrlBase.INSTITUTIONAL,

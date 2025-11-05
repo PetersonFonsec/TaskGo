@@ -1,0 +1,11 @@
+@use "../../scss/mixins/position" as position;
+
+#auth-page {
+  @include position.flexCenter();
+  height: 100dvh;
+  width: 100dvw;
+
+  &_container {
+    position: relative;
+  }
+}

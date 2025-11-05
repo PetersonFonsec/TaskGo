@@ -7,15 +7,26 @@ import { environment } from '@environments/environment';
 export class TokenService {
   #keyLocalStorage = environment.token;
 
+  private get hasLocalStorage(): boolean {
+    return typeof window !== 'undefined' && !!window.localStorage;
+  }
+
   set token(token: string) {
-    localStorage.setItem(this.#keyLocalStorage, token);
+    if (this.hasLocalStorage) {
+      localStorage.setItem(this.#keyLocalStorage, token);
+    }
   }
 
   get token(): string {
-    return localStorage.getItem(this.#keyLocalStorage) ?? '';
+    if (this.hasLocalStorage) {
+      return localStorage.getItem(this.#keyLocalStorage) ?? '';
+    }
+    return '';
   }
 
   clearToken() {
-    localStorage.removeItem(this.#keyLocalStorage)
+    if (this.hasLocalStorage) {
+      localStorage.removeItem(this.#keyLocalStorage);
+    }
   }
 }
