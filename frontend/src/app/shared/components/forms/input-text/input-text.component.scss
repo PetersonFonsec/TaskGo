@@ -16,14 +16,14 @@
 
   input {
     appearance: none;
-    background: var(--background-color-1);
-    border: 1px solid var(--neutral-color-1);
+    background: var(--background-color);
+    border: 1px solid var(--color-neutral-1);
     border-radius: var(--border-radius-1);
     box-sizing: border-box;
-    padding: var(--space-7);
+    padding: var(--space-6);
     transition: var(--transition);
     width: 100%;
-    color: var(--primary-color-1);
+    color: var(--primary-color);
     font-size: var(--font-size-3);
     font-family: var(--primary-font-family);
     font-style: normal;
@@ -33,10 +33,10 @@
     appearance: none;
 
     &::placeholder {
-      color: var(--font-color-ligth);
+      color: var(--color-neutral-1);
       font-size: var(--font-size-3);
       font-style: normal;
-      font-weight: var(--font-weight-bold);
+      font-weight: var(--font-weight-regular);
       font-family: var(--primary-font-family);
       line-height: normal;
     }
@@ -44,15 +44,16 @@
     &:active,
     &:focus-visible,
     &:focus {
-      border: 1px solid var(--info-color-1);
+      border: 1px solid var(--color-info-1);
       box-shadow: 0px 0px 2px 2px rgba(115, 205, 255, 1);
     }
   }
 
   label {
+    display: block;
     font-weight: var(--font-weight-bold);
     font-family: var(--primary-font-family);
-    margin-bottom: var(--space-4);
+    margin-bottom: var(--space-2);
     color: var(--font-color-dark);
     font-size: var(--font-size-3);
     font-style: normal;
@@ -62,11 +63,11 @@
   &.has-error {
     input::placeholder,
     label {
-      color: var(--error-color-1);
+      color: var(--color-error-1);
     }
 
     input {
-      border-color: var(--error-color-1);
+      border-color: var(--color-error-1);
 
       &:active,
       &:focus-visible,
@@ -79,11 +80,11 @@
   &.success {
     input::placeholder,
     label {
-      color: var(--success-color-1);
+      color: var(--color-success-1);
     }
 
     input {
-      border-color: var(--success-color-1);
+      border-color: var(--color-success-1);
 
       &:active,
       &:focus-visible,

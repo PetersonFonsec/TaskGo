@@ -28,10 +28,30 @@
 
   --color-customer: #3280E3;
   --color-customer-rgb: 50, 128, 227;
-  --color-customer-contrast: #000000;
+  --color-customer-contrast: #ffffff;
   --color-customer-contrast-rgb: 0, 0, 0;
   --color-customer-shade: #2c71c8;
   --color-customer-tint: #478de6;
+
+  --color-success-1: #1be417;
+  --color-success-2: #3cf138;
+  --color-success-3: #59fb56;
+  --color-success-4: #7bff78;
+  --color-success-5: #bdffbc;
+
+  --color-error-1: #ff1616;
+  --color-error-2: #ff3333;
+  --color-error-3: #ff5151;
+  --color-error-4: #ff6a6a;
+  --color-error-5: #ffb5b5;
+
+  --color-info-1: #16abff;
+  --color-info-2: #35b6ff;
+  --color-info-3: #52c1ff;
+  --color-info-4: #73cdff;
+  --color-info-5: #b9e6ff;
+
+  --color-neutral-1: #afafaf;
 
   --background-color: #fff !important;
   --background-color-rgb: 255, 255, 255;
@@ -49,8 +69,9 @@
 
   --font-color-dark: #000000;
   --font-color-light: #FFFFFF;
+  --font-color-neutral: #afafaf;
 
-  --border-radius-1: 16px;
+  --border-radius-1: 12px;
   --border: 16px;
 
   --font-size-1: 14px;
@@ -99,6 +120,11 @@
   padding: 0;
 }
 
+a {
+  text-decoration: none;
+  color: inherit;
+}
+
 body,
 html {
   margin: 0;
@@ -109,6 +135,7 @@ html {
 }
 
 .main-title {
+  display: block;
   color: var(--font-color-dark);
   font-size: var(--font-size-4);
   font-weight: var(--font-weight-bold);
@@ -116,17 +143,42 @@ html {
 }
 
 .subtitle {
+  display: block;
   font: var(--title-secondary);
   color: var(--font-color-dark);
 }
 
 .text {
-  color: var(--font-color-light);
+  display: block;
+  color: var(--font-color-dark);
   font-size: var(--font-size-3);
   font-weight: var(--font-weight-regular);
   font-family: var(--primary-font-family);
+
+  strong {
+    display: inline-block;
+    font-weight: var(--font-weight-bold);
+  }
 }
 
 .color-light {
   color: var(--font-color-light);
+}
+
+.color-neutral {
+  color: var(--font-color-neutral);
+}
+
+app-button,
+app-input-text {
+  display: block;
+  width: 100%;
+}
+
+app-login {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  height: 100%;
+  width: 100%;
 }

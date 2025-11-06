@@ -1,4 +1,4 @@
-<div class="layout-slider-item {{color()}}">
+<div class="layout-slider-item {{userType()}}">
   <div class="layout-slider-item_container">
     <div class="layout-slider-item_image">
       <ng-content slot="ilustration"></ng-content>
@@ -14,9 +14,11 @@
       </h2>
     </div>
 
+    @if (!disabled()) {
     <div class="layout-slider-item_actions">
       <app-button (click)="onCreateAccount()" color="secundary">Criar uma conta</app-button>
       <app-button (click)="onLogin()" color="secundary">Já tenho uma conta</app-button>
     </div>
+    }
   </div>
 </div>

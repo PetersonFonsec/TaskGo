@@ -10,22 +10,23 @@
 
   //Color
   &--customer {
-    background: var(--color-provider);
-    color: var(--font-color-light);
+    background: var(--color-customer);
+    color: var(--color-customer-contrast);
 
     &:active,
     &:hover {
+      background-color: var(--color-customer-shade);
       background-color: var(--primary-color-1);
     }
   }
 
   &--provider {
-    background: var(--secundary-color-4);
-    color: var(--secundary-color-1);
+    background: var(--color-provider);
+    color: var(--color-provider-contrast);
 
     &:active,
     &:hover {
-      background-color: var(--secundary-color-1);
+      background-color: var(--color-provider-shade);
       color: var(--font-color-light);
     }
   }

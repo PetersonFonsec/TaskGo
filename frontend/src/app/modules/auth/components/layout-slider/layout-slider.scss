@@ -5,7 +5,6 @@
 
 .layout-slider {
   &_container {
-    // @include grid.container(100dvw);
     @include position.flexCenter();
 
     flex: 0 0 100%;
@@ -72,5 +71,9 @@
     display: block;
     width: 100%;
     margin-bottom: 20px;
+  }
+
+  &::ng-deep app-layout-slider-item {
+    flex: 0 0 100%;
   }
 }

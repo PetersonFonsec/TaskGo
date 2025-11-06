@@ -7,13 +7,13 @@
   @include position.flexCenter();
   scroll-snap-align: start;
   height: 100dvh;
-  width: 100dvw;
+  width: 100%;
 
-  &.provider {
+  &.PROVIDER {
     background-color: var(--color-provider);
   }
 
-  &.customer {
+  &.CUSTOMER {
     background-color: var(--color-customer);
   }
 

@@ -1,5 +1,5 @@
-import { Component, signal } from '@angular/core';
-import { RouterModule } from '@angular/router';
+import { Component, inject, signal } from '@angular/core';
+import { Router, RouterModule } from '@angular/router';
 
 import { LayoutSliderItem } from './components/layout-slider-item/layout-slider-item';
 import { LayoutSlider } from './components/layout-slider/layout-slider';
@@ -11,18 +11,22 @@ import { Roles } from '@shared/enums/roles.enum';
   styleUrls: ['./auth-page.scss']
 })
 export class AuthPage {
-  userType = signal(Roles.CUSTOMER);
-  showAsideForm = signal(false);
+  #router = inject(Router);
+  #currentUser = signal<Roles | null>(null);
+  disabledaActions = signal(false);
+  userType = Roles;
 
-  goToCreateAccountForm() {
-    this.showAsideForm.set(true);
+  goToCreateAccountForm(userType: Roles) {
+    this.#currentUser.set(userType);
+    this.#router.navigateByUrl('/authenticate/register');
   }
 
-  goToLoging() {
-    this.showAsideForm.set(true);
+  goToLoging(userType: Roles) {
+    this.#currentUser.set(userType);
+    this.#router.navigateByUrl('/authenticate/login');
   }
+
   onActivate(event: any) {
-    console.log('rota ativada');
-    console.log(event);
+    this.disabledaActions.set(true);
   }
 }
