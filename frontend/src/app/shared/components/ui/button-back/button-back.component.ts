@@ -1,4 +1,4 @@
-import { Component, inject, input } from '@angular/core';
+import { Component, input } from '@angular/core';
 import { faArrowLeft } from '@fortawesome/free-solid-svg-icons';
 import { FontAwesomeModule } from '@fortawesome/angular-fontawesome';
 
@@ -13,6 +13,7 @@ import { BackButtonDirective } from '@shared/directives/back-button/back-button.
   styleUrl: './button-back.component.scss'
 })
 export class ButtonBackComponent {
+  color = input("provider");
   readonly id = input("");
   icon = faArrowLeft;
 }

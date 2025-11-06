@@ -1,0 +1,13 @@
+@use "../../../../scss/mixins/grid";
+
+.steps-lines {
+  &_header {
+    margin-bottom: var(--space-6);
+  }
+
+  &_steps {
+    @include grid.directionColumn();
+    align-items: flex-start;
+    gap: var(--space-6);
+  }
+}

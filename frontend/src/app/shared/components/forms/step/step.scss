@@ -2,6 +2,7 @@
 @use "../../../../scss/mixins/position";
 
 .checkbox {
+  pointer-events: none;
   align-items: center;
   width: max-content;
   cursor: pointer;
@@ -12,6 +13,7 @@
     background-color: var(--color-neutral-2);
     border-radius: 12px;
     position: relative;
+    overflow: hidden;
 
     input {
       pointer-events: none;
@@ -20,16 +22,18 @@
   }
 
   &-bullet {
-    @include position.absoluteCenter();
-    @include geometric.circle(32px);
+    @include position.flexCenter();
     background-color: var(--color-provider);
-    pointer-events: none;
-    opacity: 0;
+    color: var(--font-color-light);
     transition: var(--transition);
-    border-radius: 12px;
+    font-size: var(--font-size-4);
+    pointer-events: none;
+    height: 100%;
+    width: 100%;
+    opacity: 0;
   }
 
-  input:checked + &-bullet {
+  input:checked+&-bullet {
     opacity: 1;
   }
 

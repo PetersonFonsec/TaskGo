@@ -1,3 +1,19 @@
-<form>
-<p>register works!</p>
+<form id="register-form">
+  <header id="register-form_header">
+    <h2 class="main-title">Seu perfil</h2>
+    <p class="text">Para maiores chances de venda preencha com carinho cada um dos passos</p>
+  </header>
+
+  <div id="register-form_content">
+    <app-steps-lines #registerSteps title="Passos para completar seu cadastro">
+      <app-step routerLink="/authenticate/profile" [complete]="true">Perfil</app-step>
+      <app-step routerLink="/authenticate/contact" [complete]="true">Contato</app-step>
+      <app-step routerLink="/authenticate/address" [complete]="true">Localização</app-step>
+      <app-step routerLink="/authenticate/service" [complete]="true">Anunciar um serviço</app-step>
+    </app-steps-lines>
+  </div>
+
+  <footer id="register-form_footer">
+    <app-button [disabled]="!registerSteps.allStepsCompletes()" color="provider">Cadastrar</app-button>
+  </footer>
 </form>

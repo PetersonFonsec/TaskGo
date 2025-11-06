@@ -1,7 +1,7 @@
-<label class="radio">
-  <div class="radio-input">
+<label class="checkbox">
+  <div class="checkbox-input">
     <input
-      type="radio"
+      type="checkbox"
       [value]="value()"
       [(ngModel)]="val"
       [name]="name()"
@@ -9,10 +9,10 @@
       [id]="id()"
     />
 
-    <div class="radio-bullet"></div>
+    <div class="checkbox-bullet"></div>
   </div>
 
-  <div class="radio-label">
+  <div class="checkbox-label">
     <ng-content></ng-content>
   </div>
 </label>

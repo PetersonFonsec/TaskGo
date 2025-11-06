@@ -52,6 +52,7 @@
   --color-info-5: #b9e6ff;
 
   --color-neutral-1: #afafaf;
+  --color-neutral-2: #D9D9D9;
 
   --background-color: #fff !important;
   --background-color-rgb: 255, 255, 255;
@@ -123,6 +124,13 @@
 a {
   text-decoration: none;
   color: inherit;
+  cursor: pointer;
+}
+
+ol,
+ul {
+  list-style: none;
+  padding: 0;
 }
 
 body,
@@ -144,8 +152,12 @@ html {
 
 .subtitle {
   display: block;
-  font: var(--title-secondary);
+
   color: var(--font-color-dark);
+  font-size: var(--font-size-4);
+  font-weight: var(--font-weight-medium);
+  font-family: var(--primary-font-family);
+  width: 100%;
 }
 
 .text {
@@ -169,6 +181,7 @@ html {
   color: var(--font-color-neutral);
 }
 
+app-step,
 app-button,
 app-input-text {
   display: block;
@@ -181,4 +194,8 @@ app-login {
   justify-content: center;
   height: 100%;
   width: 100%;
+}
+
+app-step {
+  cursor: pointer;
 }
