@@ -1,1 +1,26 @@
-<p>services works!</p>
+<form id="service-form">
+  <header id="service-form_header">
+    <h2 class="main-title">
+      Quais desses serviços você oferece?
+    </h2>
+    <p class="text">
+     Para maiores chances de venda preencha com carinho cada um dos passos
+    </p>
+  </header>
+
+  <h3 class="subtitle">Serviços</h3>
+  <div id="service-form_content">
+    @for (service of services(); track $index) {
+      <app-input-checkbox (click)="serviceSelected.set(service)" > 
+        {{ service }}
+      </app-input-checkbox>
+    }
+  </div>
+
+  <footer id="service-form_footer">
+    <app-button-back color="provider" />
+    <app-button [disabled]="!serviceSelected()" (click)="addServiceSelected()" color="provider">
+      Adicionar serviços
+    </app-button>
+  </footer>
+</form>

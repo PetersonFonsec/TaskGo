@@ -3,8 +3,11 @@
 
 #auth-page {
   @include position.flexCenter();
-  height: 100dvh;
   width: 100dvw;
+
+  @media (min-width: breakpoints.$desktop) {
+    height: 100dvh;
+  }
 
   &_container {
     position: relative;
@@ -25,7 +28,6 @@
     z-index: 1;
 
     @media (min-width: breakpoints.$desktop) {
-      min-width: 480px;
     }
   }
 
@@ -38,8 +40,9 @@
     @media (min-width: breakpoints.$desktop) {
       border-bottom-left-radius: 16px;
       border-top-left-radius: 16px;
-      flex: 0 0 25%;
       margin-left: -20px;
+      min-width: 480px;
+      flex: 0 0 25%;
     }
   }
 }

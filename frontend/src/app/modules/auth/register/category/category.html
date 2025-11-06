@@ -1,1 +1,26 @@
-<p>category works!</p>
+<form id="category-form">
+  <header id="category-form_header">
+    <h2 class="main-title">
+      Em que categoria <br>
+      seu serviço se enquadra?
+    </h2>
+    <p class="text">
+     Todos os serviços são agrupados em categorias
+    </p>
+  </header>
+
+  <div id="category-form_content">
+    @for (category of categories(); track $index) {
+      <app-card (click)="categorySelected.set(category)" [selected]="categorySelected() === category"> 
+        {{ category }}
+      </app-card>
+    }
+  </div>
+
+  <footer id="category-form_footer">
+    <app-button-back color="provider" />
+    <app-button [disabled]="!categorySelected()" (click)="selectCategory()" color="provider">
+      Selecionar categoria
+    </app-button>
+  </footer>
+</form>

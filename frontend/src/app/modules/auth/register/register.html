@@ -14,6 +14,16 @@
   </div>
 
   <footer id="register-form_footer">
-    <app-button [disabled]="!registerSteps.allStepsCompletes()" color="provider">Cadastrar</app-button>
+    <app-button [disabled]="!registerSteps.allStepsCompletes()" (click)="showModal.set(true)" color="provider">
+      Criar sua conta
+    </app-button>
   </footer>
 </form>
+
+<app-full-modal 
+
+  (closeModal)="goToHome()"
+  [showModal]="showModal()" 
+  title="Perfil Criado!!"
+  message="Seu perfil foi criado com sucesso agora é possível anunciar os seus serviços"   
+/>

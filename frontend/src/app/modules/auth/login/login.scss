@@ -3,8 +3,8 @@
 #login-form {
   @include grid.directionColumn();
   @include grid.container(400px);
-  height: 100%;
   max-height: 500px;
+  height: 100%;
 
   &_links {
     text-align: center;

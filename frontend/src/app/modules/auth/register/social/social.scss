@@ -4,6 +4,7 @@
   @include grid.directionColumn();
   @include grid.container(400px);
   height: 100%;
+  padding: var(--space-10) 0;
 
   &_links,
   &_footer,

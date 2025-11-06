@@ -26,7 +26,7 @@ export const AuthRoutes: Routes = [
     data: { animation: 'create-customer' }
   },
   {
-    path: 'service',
+    path: 'category/:categoryId/service',
     title: `Cadastro de Serviços `,
     loadComponent: () => import('@modules/auth/register/services/services').then(c => c.Services),
     data: { animation: 'create-customer' }

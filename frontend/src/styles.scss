@@ -188,6 +188,11 @@ app-input-text {
   width: 100%;
 }
 
+app-services,
+app-category,
+app-social,
+app-register,
+app-profile,
 app-login {
   display: flex;
   align-items: center;
@@ -199,3 +204,4 @@ app-login {
 app-step {
   cursor: pointer;
 }
+
