@@ -9,7 +9,7 @@
       <app-step routerLink="/authenticate/profile" [complete]="true">Perfil</app-step>
       <app-step routerLink="/authenticate/contact" [complete]="true">Contato</app-step>
       <app-step routerLink="/authenticate/address" [complete]="true">Localização</app-step>
-      <app-step routerLink="/authenticate/service" [complete]="true">Anunciar um serviço</app-step>
+      <app-step routerLink="/authenticate/category" [complete]="true">Anunciar um serviço</app-step>
     </app-steps-lines>
   </div>
 
@@ -20,10 +20,5 @@
   </footer>
 </form>
 
-<app-full-modal 
-
-  (closeModal)="goToHome()"
-  [showModal]="showModal()" 
-  title="Perfil Criado!!"
-  message="Seu perfil foi criado com sucesso agora é possível anunciar os seus serviços"   
-/>
+<app-full-modal (closeModal)="goToHome()" [showModal]="showModal()" title="Perfil Criado!!"
+  message="Seu perfil foi criado com sucesso agora é possível anunciar os seus serviços" />

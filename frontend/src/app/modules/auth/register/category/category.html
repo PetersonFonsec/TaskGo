@@ -11,8 +11,8 @@
 
   <div id="category-form_content">
     @for (category of categories(); track $index) {
-      <app-card (click)="categorySelected.set(category)" [selected]="categorySelected() === category"> 
-        {{ category }}
+      <app-card (click)="categorySelected.set(category)" [selected]="categorySelected() && categorySelected().id === category.id"> 
+        {{ category.name }}
       </app-card>
     }
   </div>
