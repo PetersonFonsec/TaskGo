@@ -1,0 +1,19 @@
+@use "../../../../scss/mixins/grid";
+
+.page {
+  @include grid.directionColumn();
+  height: 100dvh;
+  overflow: hidden;
+  width: 100dvw;
+
+  &_header,
+  &_content,
+  &_footer {
+    width: 100%;
+  }
+
+  &_content {
+    flex: 1;
+    padding: var(--space-19) var(--space-6);
+  }
+}

@@ -1,0 +1,18 @@
+.header {
+  display: flex;
+  align-items: center;
+  justify-content: flex-start;
+  padding: 24px 32px;
+  border-bottom: 1px solid #E5E7EB;
+
+  &_content {
+    flex: 1;
+  }
+
+  &_links ul {
+    display: flex;
+    align-items: center;
+    justify-content: flex-start;
+    gap: 32px;
+  }
+}
