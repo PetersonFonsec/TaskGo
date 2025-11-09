@@ -4,6 +4,8 @@
   --color-primary-rgb: 0, 102, 0;
   --color-primary-contrast: #fff;
   --color-primary-contrast-rgb: 255, 255, 255;
+  --color-customer-shade: #2c71c8;
+  --color-customer-tint: #478de6;
 
   --color-secondary: #006600;
   --color-secondary-rgb: 0, 102, 0;
@@ -11,6 +13,8 @@
   --color-secondary-contrast-rgb: 255, 255, 255;
   --color-secondary-shade: #005a00;
   --color-secondary-tint: #1a751a;
+  --color-secondary-shade: #2c71c8;
+  --color-secondary-tint: #478de6;
 
   --color-secondary: #006600;
   --color-secondary-rgb: 0, 102, 0;
@@ -29,9 +33,23 @@
   --color-customer: #3280E3;
   --color-customer-rgb: 50, 128, 227;
   --color-customer-contrast: #ffffff;
-  --color-customer-contrast-rgb: 0, 0, 0;
+  --color-customer-contrast-rgb: 255, 255, 255;
   --color-customer-shade: #2c71c8;
   --color-customer-tint: #478de6;
+
+  --color-primary: var(--color-customer);
+  --color-primary-rgb: var(--color-customer-rgb);
+  --color-primary-contrast: var(--color-customer-contrast);
+  --color-primary-contrast-rgb: var(--color-customer-contrast-rgb);
+  --color-primary-shade: var(--color-customer-shade);
+  --color-primary-tint: var(--color-customer-tint);
+
+  --color-secondary: var(--color-provider);
+  --color-secondary-rgb: var(--color-provider-rgb);
+  --color-secondary-contrast: var(--color-provider-contrast);
+  --color-secondary-contrast-rgb: var(--color-provider-contrast-rgb);
+  --color-secondary-shade: var(--color-provider-shade);
+  --color-secondary-tint: var(--color-provider-tint);
 
   --color-success-1: #1be417;
   --color-success-2: #3cf138;
@@ -207,3 +225,6 @@ app-step {
   cursor: pointer;
 }
 
+.slide-item {
+  scroll-snap-align: start;
+}

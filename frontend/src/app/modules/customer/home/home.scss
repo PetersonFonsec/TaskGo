@@ -1,4 +1,5 @@
 @use "../../../scss/mixins/grid";
+@use "../../../scss/mixins/position";
 
 #customer-home {
   @include grid.container(var(--container-size));
@@ -19,9 +20,40 @@
     }
   }
 
-  &_appointments {}
+  &_appointments {
+    margin-bottom: var(--space-19);
 
-  &_history {}
+    &_title {
+      margin-bottom: var(--space-10);
+    }
 
-  &_providers {}
+    &_list {
+      display: block;
+      margin-bottom: var(--space-10);
+    }
+
+    &_actions {
+      @include position.flexCenter();
+      width: 100%;
+
+      app-button {
+        // width: 100%;
+        max-width: 320px;
+      }
+    }
+  }
+
+  &_history {
+    margin-bottom: var(--space-19);
+
+    &_title {
+      display: block;
+      margin-bottom: var(--space-10);
+    }
+
+    &_list {
+      display: block;
+      margin-bottom: var(--space-10);
+    }
+  }
 }

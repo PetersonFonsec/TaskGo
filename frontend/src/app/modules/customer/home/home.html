@@ -30,24 +30,38 @@
   <section id="customer-home_appointments">
     <h2 id="customer-home_appointments_title" class="subtitle">Seus agendamentos</h2>
 
-    <ul id="customer-home_appointments_list">
-      <li></li>
-    </ul>
+    <app-slider [gap]="14" [perpage]="3" id="customer-home_appointments_list">
+      <app-card slide-item title="Diarista 1"></app-card>
+      <app-card slide-item title="Diarista 2"></app-card>
+      <app-card slide-item title="Diarista 3"></app-card>
+      <app-card slide-item title="Diarista 4"></app-card>
+      <app-card slide-item title="Diarista 5"></app-card>
+      <app-card slide-item title="Diarista 6"></app-card>
+      <app-card slide-item title="Diarista 7"></app-card>
+      <app-card slide-item title="Diarista 8"></app-card>
+      <app-card slide-item title="Diarista 9"></app-card>
+    </app-slider>
+
+    <div id="customer-home_appointments_actions">
+      <app-button color="customer">
+        Agedar novo serviço
+      </app-button>
+    </div>
   </section>
 
   <section id="customer-home_history">
     <h2 id="customer-home_history_title" class="subtitle">Históricos de serviços</h2>
 
-    <ul id="customer-home_history_list">
-      <li></li>
-    </ul>
-  </section>
-
-  <section id="customer-home_providers">
-    <h2 id="customer-home_providers_title" class="subtitle">Profissionais que você mais costuma chamar</h2>
-
-    <ul id="customer-home_providers_list">
-      <li></li>
-    </ul>
+    <app-slider [gap]="14" [perpage]="3" id="customer-home_history_list">
+      <app-card slide-item title="Diarista 1"></app-card>
+      <app-card slide-item title="Diarista 2"></app-card>
+      <app-card slide-item title="Diarista 3"></app-card>
+      <app-card slide-item title="Diarista 4"></app-card>
+      <app-card slide-item title="Diarista 5"></app-card>
+      <app-card slide-item title="Diarista 6"></app-card>
+      <app-card slide-item title="Diarista 7"></app-card>
+      <app-card slide-item title="Diarista 8"></app-card>
+      <app-card slide-item title="Diarista 9"></app-card>
+    </app-slider>
   </section>
 </div>

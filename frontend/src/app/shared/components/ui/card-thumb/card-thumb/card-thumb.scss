@@ -1,4 +1,5 @@
 @use "../../../../../scss/mixins/position";
+@use "../../../../../scss/mixins/image";
 @use "../../../../../scss/mixins/grid";
 
 .card-thumb {
@@ -31,6 +32,10 @@
 
   &_image {
     @include position.filledAbsolutePage();
+
+    img {
+      @include image.validSizeImage();
+    }
   }
 
   &_title {
