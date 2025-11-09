@@ -1,0 +1,27 @@
+@use "../../../scss/mixins/grid";
+
+#customer-home {
+  @include grid.container(var(--container-size));
+
+  &_title {
+    margin-bottom: var(--space-19);
+  }
+
+  &_categories {
+    margin-bottom: var(--space-19);
+
+    &_title {
+      margin-bottom: var(--space-10);
+    }
+
+    &_list {
+      @include grid.grid(320px, var(--space-10));
+    }
+  }
+
+  &_appointments {}
+
+  &_history {}
+
+  &_providers {}
+}

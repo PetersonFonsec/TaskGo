@@ -4,6 +4,7 @@
   @include grid.directionColumn();
   height: 100dvh;
   overflow: hidden;
+  overflow-y: auto;
   width: 100dvw;
 
   &_header,

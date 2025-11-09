@@ -9,6 +9,12 @@
   width: 100%;
 }
 
+@mixin grid($minWidthItem, $gap){
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax($minWidthItem, 1fr));
+  gap: $gap;
+}
+
 @mixin directionColumn() {
   display: flex;
   align-items: center;
