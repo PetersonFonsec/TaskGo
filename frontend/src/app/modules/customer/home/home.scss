@@ -1,11 +1,16 @@
 @use "../../../scss/mixins/grid";
 @use "../../../scss/mixins/position";
+@use "../../../scss/variables/breakpoints";
 
 #customer-home {
   @include grid.container(var(--container-size));
 
   &_title {
-    margin-bottom: var(--space-19);
+    margin-bottom: var(--space-10);
+
+    @media (min-width: breakpoints.$tablet) {
+      margin-bottom: var(--space-19);
+    }
   }
 
   &_categories {
@@ -16,7 +21,7 @@
     }
 
     &_list {
-      @include grid.grid(320px, var(--space-10));
+      @include grid.grid(288px, var(--space-10));
     }
   }
 
