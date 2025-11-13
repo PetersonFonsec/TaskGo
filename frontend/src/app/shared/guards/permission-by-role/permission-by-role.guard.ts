@@ -8,11 +8,11 @@ export const permissionByRoleGuard = (roles: string[]) => {
     const user = inject(UserLoggedService).user().user;
     const router = inject(Router);
 
-    if (!roles.includes(user.role)) {
-      router.navigateByUrl(Utils.getRouteByRole(user.role));
+    if (!roles.includes(user.type)) {
+      router.navigateByUrl(Utils.getRouteByRole(user.type));
     }
 
-    return roles.includes(user.role);
+    return roles.includes(user.type);
   };
 
   return guard;

@@ -1,3 +1,4 @@
+import { UrlBase } from "@shared/enums/base-url.enum";
 import { Roles } from "@shared/enums/roles.enum";
 
 export class Utils {
@@ -20,7 +21,7 @@ export class Utils {
   }
 
   static getRouteByRole(role: Roles): string {
-    const urlBaseByRoles: any = { [Roles.PROVIDER]: `/${Roles.PROVIDER}`, [Roles.CUSTOMER]: `/${Roles.CUSTOMER}` };
+    const urlBaseByRoles: any = { [Roles.PROVIDER]: `/${UrlBase.PROVIDER}`, [Roles.CUSTOMER]: `/${UrlBase.CUSTOMER}` };
 
     return urlBaseByRoles[role] || "/authenticate";
   }

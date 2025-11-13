@@ -1,5 +1,6 @@
-import { Injectable, inject, signal } from '@angular/core';
+import { Injectable, inject, signal, PLATFORM_ID } from '@angular/core';
 import { Router } from '@angular/router';
+import { isPlatformBrowser } from '@angular/common';
 
 import { IUser, IUserLogged } from './user-logged.model';
 import { TokenService } from '../token/token.service';
@@ -12,8 +13,25 @@ export class UserLoggedService {
   #keyLocalStorage = environment.user;
   #tokenService = inject(TokenService);
   #router = inject(Router);
-  storageUser: string = localStorage.getItem(this.#keyLocalStorage) ?? '{}';
+  #platformId = inject(PLATFORM_ID);
+
+  // default safe values used during SSR
+  storageUser: string = '{}';
   user = signal<IUserLogged>(JSON.parse(this.storageUser));
+
+  constructor() {
+    // Only access localStorage when running in the browser
+    if (isPlatformBrowser(this.#platformId)) {
+      try {
+        this.storageUser = localStorage.getItem(this.#keyLocalStorage) ?? '{}';
+        this.user.set(JSON.parse(this.storageUser));
+      } catch (e) {
+        // If parsing or access fails, keep the default empty object
+        this.storageUser = '{}';
+        this.user.set(JSON.parse(this.storageUser));
+      }
+    }
+  }
 
   setUserLogged(user: IUserLogged) {
     this.user.set(user);
@@ -31,6 +49,7 @@ export class UserLoggedService {
   logout() {
     this.user.update(() => null as any);
     this.#tokenService.clearToken();
+
     localStorage.removeItem(this.#keyLocalStorage);
     this.#router.navigateByUrl("/");
   }

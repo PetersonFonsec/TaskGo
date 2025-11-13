@@ -22,8 +22,8 @@ export const routes: Routes = [
   {
     path: UrlBase.AUTHENTICATE,
     component: AuthPage,
-    children: AuthRoutes
-    // canActivate: [userLoggedGuard],
+    children: AuthRoutes,
+    canActivate: [userLoggedGuard],
   },
   {
     path: UrlBase.INSTITUTIONAL,
@@ -33,13 +33,13 @@ export const routes: Routes = [
   {
     path: UrlBase.PROVIDER,
     component: Provider,
-    // canActivate: [unauthorizedGuard, permissionByRoleGuard([Roles.PROVIDER])],
+    canActivate: [unauthorizedGuard, permissionByRoleGuard([Roles.PROVIDER])],
     children: ProvidersRoutes
   },
   {
     path: UrlBase.CUSTOMER,
     component: Customer,
-    // canActivate: [unauthorizedGuard, permissionByRoleGuard([Roles.CUSTOMER])],
+    canActivate: [unauthorizedGuard, permissionByRoleGuard([Roles.CUSTOMER])],
     children: CustomerRoutes
   },
   // { path: '**', component: NotFoundComponent } TODO - criar pagina 404

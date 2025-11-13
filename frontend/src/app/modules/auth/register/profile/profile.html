@@ -12,16 +12,16 @@
   <div id="profile-form_content">
     <h3 class="subtitle">Contato</h3>
 
-    <app-input-text name="email" id="email" type="email" label="Email" required
+    <app-input-text name="email" id="email" type="email" label="Email" [required]="true"
       placeholder="Informe o seu email" />
 
-    <app-input-text name="password" id="password" type="password" label="Senha" required
+    <app-input-text name="password" id="password" type="password" label="Senha" [required]="true"
       placeholder="Informe a sua senha" />
 
-    <app-input-text name="confirmPassword" id="confirmPassword" type="password" label="Confirme sua senha" required
+    <app-input-text name="confirmPassword" id="confirmPassword" type="password" label="Confirme sua senha" [required]="true"
       placeholder="Informe novamente a sua senha" />
 
-    <app-input-text name="documentNumber" id="documentNumber" type="text" label="CPF" required
+    <app-input-text name="documentNumber" id="documentNumber" type="text" label="CPF" [required]="true"
       placeholder="Informe o seu cpf" />
   </div>
 

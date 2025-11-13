@@ -33,6 +33,7 @@ export class InputTextComponent implements OnInit, ControlValueAccessor, AfterVi
   readonly type = input("text");
   readonly mask = input("");
   readonly autofocus = input(false);
+  readonly required = input(false);
   readonly describeBy = input("");
   val = '';
 

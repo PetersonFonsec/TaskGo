@@ -4,7 +4,7 @@
       Nos conte onde você atua.
     </h2>
     <p class="text">
-      Nos recomendamos profissionais e clientes 
+      Nos recomendamos profissionais e clientes
       com base na distancia entre eles.
     </p>
   </header>
@@ -12,22 +12,22 @@
   <div id="address-form_content">
     <h3 class="subtitle">Endereço</h3>
 
-    <app-input-text name="name" id="name" type="text" label="Nome" required
+    <app-input-text name="name" id="name" type="text" label="Nome" [required]="true"
       placeholder="Informe o nome que você gostaria de chamar esse endereço" />
 
-    <app-input-text name="zipcode" id="zipcode" type="tel" label="CEP" required
+    <app-input-text name="zipcode" id="zipcode" type="tel" label="CEP" [required]="true"
       placeholder="Informe o seu CEP" />
 
-    <app-input-text name="street" id="street" type="text" label="Rua" required
+    <app-input-text name="street" id="street" type="text" label="Rua" [required]="true"
       placeholder="Informe a sua Rua" />
 
-    <app-input-text name="number" id="number" type="tel" label="Número" required
+    <app-input-text name="number" id="number" type="tel" label="Número" [required]="true"
       placeholder="Informe o número da sua residência" />
 
-    <app-input-text name="neighborhood" id="neighborhood" type="text" label="Bairro" required
+    <app-input-text name="neighborhood" id="neighborhood" type="text" label="Bairro" [required]="true"
       placeholder="Informe o seu Bairro" />
 
-    <app-input-text name="complement" id="complement" type="text" label="Complemento" required
+    <app-input-text name="complement" id="complement" type="text" label="Complemento" [required]="true"
       placeholder="Informe o complemento" />
   </div>
 

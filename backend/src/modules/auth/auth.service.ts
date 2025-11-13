@@ -26,8 +26,9 @@ export class AuthService {
   async login({ password, email }: AuthLoginDTO) {
     const user = await this.userValidateService.validPassword(password, email);
     const { access_token } = await this.authTokenService.createToken(user.id);
+
     const all = await this.userService.findOne(user.id);
-    return { user, ...all, access_token };
+    return { user: all, access_token };
   }
 
   async registerConsumer(payload: AuthRegisterConsumerDTO) {
@@ -49,7 +50,6 @@ export class AuthService {
     if (!user) throw new Error('User not found');
 
     const token = this.authTokenService.createToken(user.id);
-
     return this.mediator.publish(Events.forgetPassword, token);
   }
 }

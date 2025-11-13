@@ -1,7 +1,8 @@
 import { inject } from '@angular/core';
 import { CanActivateChildFn, Router } from '@angular/router';
-import { TokenService } from '@shared/service/token/token.service';
+
 import { UserLoggedService } from '@shared/service/user-logged/user-logged.service';
+import { TokenService } from '@shared/service/token/token.service';
 import { Utils } from '@shared/service/utils/utils.service';
 
 export const userLoggedGuard: CanActivateChildFn = (childRoute, state) => {
@@ -13,7 +14,7 @@ export const userLoggedGuard: CanActivateChildFn = (childRoute, state) => {
 
   if (!user) return true;
 
-  router.navigateByUrl(Utils.getRouteByRole(user.role));
+  router.navigateByUrl(Utils.getRouteByRole(user.type));
 
   return false;
 };
