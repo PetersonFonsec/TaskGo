@@ -2,7 +2,7 @@
   <div class="header_content">
     <ng-content></ng-content>
   </div>
-  
+
   <nav class="header_links">
     <ul>
       <li>
@@ -15,7 +15,7 @@
         <a class="text" routerLink="/">Perfil</a>
       </li>
       <li>
-        <a class="text" routerLink="/">Sair</a>
+        <a class="text" (click)="logout()">Sair</a>
       </li>
     </ul>
   </nav>
