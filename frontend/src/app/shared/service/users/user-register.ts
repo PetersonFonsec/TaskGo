@@ -2,11 +2,12 @@ import { HttpClient } from '@angular/common/http';
 import { inject, Injectable } from '@angular/core';
 import { tap } from 'rxjs';
 
-import { UserLoggedService } from '../user-logged/user-logged.service';
-import { UserRegisterRequest } from './user-register.model';
-import { environment } from '@environments/environment';
-import { TokenService } from '../token/token.service';
 import { loginRequest } from '@modules/auth/services/login/login.model';
+import { environment } from '@environments/environment';
+
+import { UserLoggedService } from '../user-logged/user-logged.service';
+import { ProviderRegisterRequest } from './user-register.model';
+import { TokenService } from '../token/token.service';
 
 @Injectable({
   providedIn: 'root'
@@ -14,9 +15,7 @@ import { loginRequest } from '@modules/auth/services/login/login.model';
 export class UserRegister {
   #userService = inject(UserLoggedService);
   #tokenService = inject(TokenService);
-
-  readonly #urlBase = environment.url + '/auth/register-provider';
-  readonly #http = inject(HttpClient);
+  #http = inject(HttpClient);
 
   login(data: loginRequest) {
     return this.#http.post<any>(environment.url + '/auth/login', data).pipe(
@@ -27,7 +26,7 @@ export class UserRegister {
     );
   }
 
-  registerUser(data: UserRegisterRequest) {
+  registerUser(data: ProviderRegisterRequest) {
     return this.#http.post<any>(environment.url + '/auth/register-provider', data);
   }
 }

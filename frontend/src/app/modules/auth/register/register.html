@@ -6,15 +6,21 @@
 
   <div id="register-form_content">
     <app-steps-lines #registerSteps title="Passos para completar seu cadastro">
-      <app-step routerLink="/authenticate/profile" [complete]="true">Perfil</app-step>
-      <app-step routerLink="/authenticate/contact" [complete]="true">Contato</app-step>
-      <app-step routerLink="/authenticate/address" [complete]="true">Localização</app-step>
-      <app-step routerLink="/authenticate/category" [complete]="true">Anunciar um serviço</app-step>
+      <app-step routerLink="/authenticate/profile" [complete]="currentUser | completeSteps:'profile'">Perfil</app-step>
+      <app-step routerLink="/authenticate/contact" [complete]="currentUser | completeSteps:'contact'">Contato</app-step>
+      <app-step routerLink="/authenticate/address" [complete]="currentUser | completeSteps:'address'">Localização</app-step>
+
+      @if (userType == 'PROVIDER') {
+      <app-step routerLink="/authenticate/category" [complete]="currentUser | completeSteps:'category'"
+        [complete]="true">
+        Anunciar um serviço
+      </app-step>
+      }
     </app-steps-lines>
   </div>
 
   <footer id="register-form_footer">
-    <app-button [disabled]="!registerSteps.allStepsCompletes()" (click)="showModal.set(true)" color="provider">
+    <app-button [disabled]="!registerSteps.allStepsCompletes()" (click)="register()" color="provider">
       Criar sua conta
     </app-button>
   </footer>

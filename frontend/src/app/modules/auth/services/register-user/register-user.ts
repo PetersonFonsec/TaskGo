@@ -1,12 +1,13 @@
 import { inject, Injectable, signal } from '@angular/core';
+
+import { ProviderRegisterRequest } from '@shared/service/users/user-register.model';
 import { UserRegister } from '@shared/service/users/user-register';
-import { UserRegisterRequest } from '@shared/service/users/user-register.model';
 
 @Injectable({
   providedIn: 'root'
 })
 export class RegisterUser {
-  user = signal<UserRegisterRequest>(null!);
+  user = signal<ProviderRegisterRequest>(null!);
   #userRegister = inject(UserRegister);
 
   addAddress(address: any) {
