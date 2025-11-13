@@ -1,5 +1,5 @@
-@use "../../../../scss/mixins/grid";
-@use "../../../../scss/variables/breakpoints";
+@use "/mixins/grid";
+@use "/variables/breakpoints";
 
 .page {
   @include grid.directionColumn();

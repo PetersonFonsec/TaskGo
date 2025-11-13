@@ -6,24 +6,11 @@
       procurando</h2>
 
     <ul id="customer-home_categories_list">
-      <li>
-        <app-card-thumb title="Limpeza" />
-      </li>
-      <li>
-        <app-card-thumb title="Reparo" />
-      </li>
-      <li>
-        <app-card-thumb title="Pets" />
-      </li>
-      <li>
-        <app-card-thumb title="Cuidados Pessoais" />
-      </li>
-      <li>
-        <app-card-thumb title="Automotivos" />
-      </li>
-      <li>
-        <app-card-thumb title="Eventos e lazer" />
-      </li>
+      @for (category of categories(); track $index) {
+        <li>
+          <app-card-thumb routerLink="/customer/search" [queryParams]="{categoria: category.slug}" [title]="category.name" />
+        </li>
+      }
     </ul>
   </section>
 
@@ -31,15 +18,51 @@
     <h2 id="customer-home_appointments_title" class="subtitle">Seus agendamentos</h2>
 
     <app-slider [gap]="14" [perpage]="3" id="customer-home_appointments_list">
-      <app-card slide-item title="Diarista 1"></app-card>
-      <app-card slide-item title="Diarista 2"></app-card>
-      <app-card slide-item title="Diarista 3"></app-card>
-      <app-card slide-item title="Diarista 4"></app-card>
-      <app-card slide-item title="Diarista 5"></app-card>
-      <app-card slide-item title="Diarista 6"></app-card>
-      <app-card slide-item title="Diarista 7"></app-card>
-      <app-card slide-item title="Diarista 8"></app-card>
-      <app-card slide-item title="Diarista 9"></app-card>
+      <app-card slide-item title="Diarista 1">
+        <p class="text">Casa - Rua Teresa Barbarossa </p>
+        <p class="text">23 de Maio - 10:00 </p>
+        <p class="text">Ana Souza </p>
+      </app-card>
+      <app-card slide-item title="Diarista 2">
+        <p class="text">Casa - Rua Teresa Barbarossa </p>
+        <p class="text">23 de Maio - 10:00 </p>
+        <p class="text">Ana Souza </p>
+      </app-card>
+      <app-card slide-item title="Diarista 3">
+        <p class="text">Casa - Rua Teresa Barbarossa </p>
+        <p class="text">23 de Maio - 10:00 </p>
+        <p class="text">Ana Souza </p>
+      </app-card>
+      <app-card slide-item title="Diarista 4">
+        <p class="text">Casa - Rua Teresa Barbarossa </p>
+        <p class="text">23 de Maio - 10:00 </p>
+        <p class="text">Ana Souza </p>
+      </app-card>
+      <app-card slide-item title="Diarista 5">
+        <p class="text">Casa - Rua Teresa Barbarossa </p>
+        <p class="text">23 de Maio - 10:00 </p>
+        <p class="text">Ana Souza </p>
+      </app-card>
+      <app-card slide-item title="Diarista 6">
+        <p class="text">Casa - Rua Teresa Barbarossa </p>
+        <p class="text">23 de Maio - 10:00 </p>
+        <p class="text">Ana Souza </p>
+      </app-card>
+      <app-card slide-item title="Diarista 7">
+        <p class="text">Casa - Rua Teresa Barbarossa </p>
+        <p class="text">23 de Maio - 10:00 </p>
+        <p class="text">Ana Souza </p>
+      </app-card>
+      <app-card slide-item title="Diarista 8">
+        <p class="text">Casa - Rua Teresa Barbarossa </p>
+        <p class="text">23 de Maio - 10:00 </p>
+        <p class="text">Ana Souza </p>
+      </app-card>
+      <app-card slide-item title="Diarista 9">
+        <p class="text">Casa - Rua Teresa Barbarossa </p>
+        <p class="text">23 de Maio - 10:00 </p>
+        <p class="text">Ana Souza </p>
+      </app-card>
     </app-slider>
 
     <div id="customer-home_appointments_actions">
@@ -53,15 +76,51 @@
     <h2 id="customer-home_history_title" class="subtitle">Históricos de serviços</h2>
 
     <app-slider [gap]="14" [perpage]="3" id="customer-home_history_list">
-      <app-card slide-item title="Diarista 1"></app-card>
-      <app-card slide-item title="Diarista 2"></app-card>
-      <app-card slide-item title="Diarista 3"></app-card>
-      <app-card slide-item title="Diarista 4"></app-card>
-      <app-card slide-item title="Diarista 5"></app-card>
-      <app-card slide-item title="Diarista 6"></app-card>
-      <app-card slide-item title="Diarista 7"></app-card>
-      <app-card slide-item title="Diarista 8"></app-card>
-      <app-card slide-item title="Diarista 9"></app-card>
+      <app-card slide-item title="Diarista 1">
+        <p class="text">Casa - Rua Teresa Barbarossa </p>
+        <p class="text">23 de Maio - 10:00 </p>
+        <p class="text">Ana Souza </p>
+      </app-card>
+      <app-card slide-item title="Diarista 2">
+        <p class="text">Casa - Rua Teresa Barbarossa </p>
+        <p class="text">23 de Maio - 10:00 </p>
+        <p class="text">Ana Souza </p>
+      </app-card>
+      <app-card slide-item title="Diarista 3">
+        <p class="text">Casa - Rua Teresa Barbarossa </p>
+        <p class="text">23 de Maio - 10:00 </p>
+        <p class="text">Ana Souza </p>
+      </app-card>
+      <app-card slide-item title="Diarista 4">
+        <p class="text">Casa - Rua Teresa Barbarossa </p>
+        <p class="text">23 de Maio - 10:00 </p>
+        <p class="text">Ana Souza </p>
+      </app-card>
+      <app-card slide-item title="Diarista 5">
+        <p class="text">Casa - Rua Teresa Barbarossa </p>
+        <p class="text">23 de Maio - 10:00 </p>
+        <p class="text">Ana Souza </p>
+      </app-card>
+      <app-card slide-item title="Diarista 6">
+        <p class="text">Casa - Rua Teresa Barbarossa </p>
+        <p class="text">23 de Maio - 10:00 </p>
+        <p class="text">Ana Souza </p>
+      </app-card>
+      <app-card slide-item title="Diarista 7">
+        <p class="text">Casa - Rua Teresa Barbarossa </p>
+        <p class="text">23 de Maio - 10:00 </p>
+        <p class="text">Ana Souza </p>
+      </app-card>
+      <app-card slide-item title="Diarista 8">
+        <p class="text">Casa - Rua Teresa Barbarossa </p>
+        <p class="text">23 de Maio - 10:00 </p>
+        <p class="text">Ana Souza </p>
+      </app-card>
+      <app-card slide-item title="Diarista 9">
+        <p class="text">Casa - Rua Teresa Barbarossa </p>
+        <p class="text">23 de Maio - 10:00 </p>
+        <p class="text">Ana Souza </p>
+      </app-card>
     </app-slider>
   </section>
 </div>

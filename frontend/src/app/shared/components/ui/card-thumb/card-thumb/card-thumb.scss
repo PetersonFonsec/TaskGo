@@ -1,8 +1,10 @@
-@use "../../../../../scss/mixins/position";
-@use "../../../../../scss/mixins/image";
-@use "../../../../../scss/mixins/grid";
+@use "mixins/animations";
+@use "mixins/position";
+@use "mixins/image";
+@use "mixins/grid";
 
 .card-thumb {
+  @extend .selectable;
   display: flex;
   align-items: flex-start;
   flex-direction: column;
@@ -16,12 +18,6 @@
   padding: var(--space-10) var(--space-6);
   position: relative;
   width: 100%;
-  cursor: pointer;
-  transition: var(--transition);
-
-  &:hover {
-    transform: scale(1.05);
-  }
 
   &::before {
     @include position.filledAbsolutePage();

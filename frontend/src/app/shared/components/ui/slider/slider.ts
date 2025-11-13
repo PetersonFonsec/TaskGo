@@ -1,4 +1,5 @@
-import { AfterViewInit, Component, contentChildren, Directive, ElementRef, inject, input, Renderer2 } from '@angular/core';
+import { AfterViewInit, Component, contentChildren, Directive, ElementRef, inject, input, Renderer2, PLATFORM_ID } from '@angular/core';
+import { isPlatformBrowser } from '@angular/common';
 
 @Directive({
   standalone: true,
@@ -26,15 +27,22 @@ export class SliderItemDirective implements AfterViewInit {
 export class Slider implements AfterViewInit {
   itens = contentChildren(SliderItemDirective);
   slider = inject(ElementRef);
+  private platformId = inject(PLATFORM_ID);
 
   perpage = input(1);
   gap = input(0);
 
   ngAfterViewInit(): void {
+    // Avoid DOM measurements on the server (SSR) where `window`/`document` aren't available.
+    if (!isPlatformBrowser(this.platformId)) {
+      // Server-side: skip sizing. The client will re-run sizing after hydration if needed.
+      return;
+    }
+
     const width = this.slider.nativeElement.getBoundingClientRect().width;
 
     this.itens().forEach(sliderItem => {
-      const perpage = (width / this.perpage()) - this.gap();
+      const perpage = (width / this.perpage()) - (this.gap() / 1.5);
       sliderItem.updateWidth(`${Math.ceil(perpage)}px`);
     });
   }

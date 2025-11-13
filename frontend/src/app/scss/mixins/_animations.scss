@@ -10,3 +10,12 @@
     background-color: hsl(200, 20%, 95%);
   }
 }
+
+.selectable {
+  cursor: pointer;
+  transition: var(--transition);
+
+  &:hover {
+    transform: scale(1.05);
+  }
+}

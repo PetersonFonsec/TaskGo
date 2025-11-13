@@ -1,5 +1,5 @@
-@use "../../../../scss/mixins/grid";
-@use "../../../../scss/variables/breakpoints";
+@use "mixins/grid";
+@use "variables/breakpoints";
 
 .footer {
   @include grid.directionColumn();
@@ -9,7 +9,7 @@
 
   &_container {
     @include grid.directionColumn();
-    @include grid.container(880px);
+    @include grid.container(var(--container-size));
   }
 
   &_links {
