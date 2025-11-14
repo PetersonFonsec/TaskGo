@@ -1,1 +1,3 @@
-<p>badge works!</p>
+<span (click)="onClick.emit()" class="badge" [class.selected]="selected()">
+  <ng-content></ng-content>
+</span>

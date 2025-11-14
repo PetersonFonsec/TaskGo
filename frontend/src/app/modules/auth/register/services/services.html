@@ -11,15 +11,15 @@
   <h3 class="subtitle">Serviços</h3>
   <div id="service-form_content">
     @for (service of services(); track $index) {
-      <app-input-checkbox > 
+      <app-input-checkbox >
         {{ service.name }}
       </app-input-checkbox>
     }
   </div>
 
   <footer id="service-form_footer">
-    <app-button-back color="provider" />
-    <app-button [disabled]="!serviceSelected()" (click)="addServiceSelected()" color="provider">
+    <app-button-back color="primary" />
+    <app-button [disabled]="!serviceSelected()" (click)="addServiceSelected()" color="primary">
       Adicionar serviços
     </app-button>
   </footer>

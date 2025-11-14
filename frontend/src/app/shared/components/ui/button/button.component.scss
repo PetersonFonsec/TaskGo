@@ -9,6 +9,26 @@
   width: 100%;
 
   //Color
+  &--primary {
+    background: var(--color-primary);
+    color: var(--color-primary-contrast);
+
+    &:active,
+    &:hover {
+      background-color: var(--color-primary-shade);
+    }
+  }
+
+  &--secundary {
+    background: var(--color-secondary);
+    color: var(--color-secondary-contrast);
+
+    &:active,
+    &:hover {
+      background-color: var(--color-secondary-shade);
+    }
+  }
+
   &--customer {
     background: var(--color-customer);
     color: var(--color-customer-contrast);

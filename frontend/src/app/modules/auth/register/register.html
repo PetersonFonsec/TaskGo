@@ -1,16 +1,22 @@
 <form id="register-form">
   <header id="register-form_header">
-    <h2 class="main-title">Seu perfil</h2>
-    <p class="text">Para maiores chances de venda preencha com carinho cada um dos passos</p>
+    <h2 class="main-title">Criar a sua conta</h2>
+    <p class="text">Que tipo de conta você gostaria de criar? como profissional ou cliente?</p>
   </header>
 
   <div id="register-form_content">
+    <div class="row">
+      <app-badge [selected]="userType == roles.PROVIDER" (click)="userType = roles.PROVIDER">Profissional</app-badge>
+      <app-badge [selected]="userType == roles.CUSTOMER" (click)="userType = roles.CUSTOMER">Cliente</app-badge>
+    </div>
+
     <app-steps-lines #registerSteps title="Passos para completar seu cadastro">
       <app-step routerLink="/authenticate/profile" [complete]="currentUser | completeSteps:'profile'">Perfil</app-step>
       <app-step routerLink="/authenticate/contact" [complete]="currentUser | completeSteps:'contact'">Contato</app-step>
-      <app-step routerLink="/authenticate/address" [complete]="currentUser | completeSteps:'address'">Localização</app-step>
+      <app-step routerLink="/authenticate/address"
+        [complete]="currentUser | completeSteps:'address'">Localização</app-step>
 
-      @if (userType == 'PROVIDER') {
+      @if (userType == roles.PROVIDER) {
       <app-step routerLink="/authenticate/category" [complete]="currentUser | completeSteps:'category'"
         [complete]="true">
         Anunciar um serviço
@@ -20,7 +26,7 @@
   </div>
 
   <footer id="register-form_footer">
-    <app-button [disabled]="!registerSteps.allStepsCompletes()" (click)="register()" color="provider">
+    <app-button [disabled]="!registerSteps.allStepsCompletes()" (click)="register()" color="primary">
       Criar sua conta
     </app-button>
   </footer>

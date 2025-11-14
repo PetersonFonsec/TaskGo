@@ -1,19 +1,12 @@
-@use "../../../../scss/mixins/grid" as grid;
-@use "../../../../scss/mixins/position" as position;
+@use "mixins/grid";
+@use "mixins/position";
 
 .full-modal {
   @include position.fixedFullScreen;
   @include position.flexCenter();
+  background-color: var(--color-primary);
   padding: 16px;
   z-index: 1;
-
-  &.PROVIDER {
-    background-color: var(--color-provider);
-  }
-
-  &.CUSTOMER {
-    background-color: var(--color-customer);
-  }
 
   &_content {
     @include grid.container(722px);

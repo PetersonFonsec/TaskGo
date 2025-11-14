@@ -1,5 +1,5 @@
-@use "../../../../scss/mixins/geometric";
-@use "../../../../scss/mixins/position";
+@use "mixins/geometric";
+@use "mixins/position";
 
 .checkbox {
   align-items: center;
@@ -22,7 +22,7 @@
   &-bullet {
     @include position.absoluteCenter();
     @include geometric.circle(32px);
-    background-color: var(--color-provider);
+    background-color: var(--color-primary);
     pointer-events: none;
     opacity: 0;
     transition: var(--transition);

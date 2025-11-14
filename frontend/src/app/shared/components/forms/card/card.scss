@@ -1,9 +1,9 @@
 .card {
-  color: var(--color-provider);
+  color: var(--color-primary);
   font-size: var(--font-size-3);
   font-weight: var(--font-weight-regular);
   font-family: var(--primary-font-family);
-  border: 2px solid var(--color-provider-shade);
+  border: 2px solid var(--color-primary-shade);
   border-radius: 6px;
   padding: 20px;
   cursor: pointer;
@@ -17,7 +17,7 @@
   transition: var(--transition);
 
   &.selected {
-    color: var(--color-provider-contrast);
-    background-color: var(--color-provider-shade);
+    color: var(--color-primary-contrast);
+    background-color: var(--color-primary-shade);
   }
 }

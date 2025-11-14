@@ -1,4 +1,4 @@
-import { Component } from '@angular/core';
+import { Component, input, output } from '@angular/core';
 
 @Component({
   selector: 'app-badge',
@@ -7,5 +7,6 @@ import { Component } from '@angular/core';
   styleUrl: './badge.scss',
 })
 export class Badge {
-
+  selected = input(false)
+  onClick = output<void>();
 }

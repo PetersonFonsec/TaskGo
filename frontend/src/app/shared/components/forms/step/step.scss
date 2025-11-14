@@ -23,8 +23,8 @@
 
   &-bullet {
     @include position.flexCenter();
-    background-color: var(--color-provider);
-    color: var(--font-color-light);
+    background-color: var(--color-primary);
+    color: var(--color-primary-contrast);
     transition: var(--transition);
     font-size: var(--font-size-4);
     pointer-events: none;

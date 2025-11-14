@@ -7,7 +7,7 @@ import { CustomerRegisterRequest, ProviderRegisterRequest } from '@shared/servic
 export class CompleteStepsPipe implements PipeTransform {
 
   transform(value: CustomerRegisterRequest | ProviderRegisterRequest, step: any): boolean {
-    return true;
+    return false;
   }
 
 }

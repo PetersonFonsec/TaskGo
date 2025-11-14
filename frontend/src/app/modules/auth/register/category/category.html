@@ -11,15 +11,15 @@
 
   <div id="category-form_content">
     @for (category of categories(); track $index) {
-      <app-card (click)="categorySelected.set(category)" [selected]="categorySelected() && categorySelected().id === category.id"> 
+      <app-card (click)="categorySelected.set(category)" [selected]="categorySelected() && categorySelected().id === category.id">
         {{ category.name }}
       </app-card>
     }
   </div>
 
   <footer id="category-form_footer">
-    <app-button-back color="provider" />
-    <app-button [disabled]="!categorySelected()" (click)="selectCategory()" color="provider">
+    <app-button-back color="primary" />
+    <app-button [disabled]="!categorySelected()" (click)="selectCategory()" color="primary">
       Selecionar categoria
     </app-button>
   </footer>
