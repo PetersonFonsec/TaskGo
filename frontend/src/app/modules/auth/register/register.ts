@@ -2,6 +2,7 @@ import { Component, inject, OnInit, signal } from '@angular/core';
 import { HttpErrorResponse } from '@angular/common/http';
 import { Router, RouterLink } from "@angular/router";
 import { LiveAnnouncer } from '@angular/cdk/a11y';
+import { Subscription } from 'rxjs';
 
 import { ButtonComponent } from '@shared/components/ui/button/button.component';
 import { StepsLines } from '@shared/components/forms/steps-lines/steps-lines';
@@ -15,7 +16,6 @@ import { Roles } from '@shared/enums/roles.enum';
 
 import { RegisterUser } from '../services/register-user/register-user';
 import { CompleteStepsPipe } from '../pipes/complete-steps-pipe';
-import { Subscription } from 'rxjs';
 
 @Component({
   selector: 'app-register',
@@ -25,7 +25,6 @@ import { Subscription } from 'rxjs';
     Step,
     RouterLink,
     FullModal,
-    CompleteStepsPipe,
     Badge
   ],
   templateUrl: './register.html',
@@ -38,14 +37,17 @@ export class Register implements OnInit {
   #router = inject(Router);
   #theme = inject(Theme);
 
+  completeSteps = this.#registerUser.completeSteps();
+  currentUser = this.#userStorage.user();
   userType = this.#userStorage.type();
-  currentUser = this.getCurrentUser();
+  subsction = new Subscription();
   showModal = signal(false);
   error = signal("");
   roles = Roles;
-  subsction = new Subscription();
 
   ngOnInit(): void {
+    this.currentUser = this.#userStorage.user();
+
     this.subsction = this.#theme.change.subscribe((role) => {
       this.userType = this.#userStorage.type();
     });
@@ -58,14 +60,6 @@ export class Register implements OnInit {
   changeTheme(role: Roles) {
     this.userType = role;
     this.#theme.setTheme(role);
-  }
-
-  getCurrentUser() {
-    if (this.#userStorage.type() === Roles.CUSTOMER) {
-      return this.#userStorage.customer();
-    }
-
-    return this.#userStorage.provider();
   }
 
   register() {

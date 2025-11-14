@@ -6,7 +6,7 @@ import { loginRequest } from '@modules/auth/services/login/login.model';
 import { environment } from '@environments/environment';
 
 import { UserLoggedService } from '../user-logged/user-logged.service';
-import { ProviderRegisterRequest } from './user-register.model';
+import { UserRegisterRequest } from './user-register.model';
 import { TokenService } from '../token/token.service';
 
 @Injectable({
@@ -26,7 +26,7 @@ export class UserRegister {
     );
   }
 
-  registerUser(data: ProviderRegisterRequest) {
-    return this.#http.post<any>(environment.url + '/auth/register-provider', data);
+  registerUser(data: UserRegisterRequest) {
+    return this.#http.post<any>(environment.url + '/auth/register-provider', { user: data });
   }
 }

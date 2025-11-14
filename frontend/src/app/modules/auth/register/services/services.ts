@@ -1,12 +1,13 @@
 import { Component, inject, OnInit, signal } from '@angular/core';
 import { ActivatedRoute, Router } from '@angular/router';
+import { map, switchMap } from 'rxjs';
 
 import { InputCheckboxComponent } from '@shared/components/forms/input-checkbox/input-checkbox.component';
 import { ButtonBackComponent } from '@shared/components/ui/button-back/button-back.component';
 import { ButtonComponent } from '@shared/components/ui/button/button.component';
 import { ISubCategory } from '@shared/service/category/category.model';
 import { CategoryService } from '@shared/service/category/category';
-import { map, switchMap, tap } from 'rxjs';
+
 import { RegisterUser } from '@modules/auth/services/register-user/register-user';
 
 @Component({
@@ -31,7 +32,7 @@ export class Services implements OnInit {
         switchMap(id => this.#categoryService.getCategoryById(id)),
       )
       .subscribe({
-        next: ({subcategories}) => {
+        next: ({ subcategories }) => {
           this.services.update(() => subcategories);
         }
       });
@@ -45,8 +46,7 @@ export class Services implements OnInit {
 
   addServiceSelected() {
     if (!this.serviceSelected()) return;
-    this.#registerUser.addSubCategory(this.serviceSelected());
-    console.log(this.serviceSelected());
-    // this.#router.navigate(['authenticate', 'register']);
+    this.#registerUser.addService(this.serviceSelected());
+    this.#router.navigateByUrl('authenticate/register');
   }
 }

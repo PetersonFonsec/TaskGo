@@ -11,14 +11,12 @@
     </div>
 
     <app-steps-lines #registerSteps title="Passos para completar seu cadastro">
-      <app-step routerLink="/authenticate/profile" [complete]="currentUser | completeSteps:'profile'">Perfil</app-step>
-      <app-step routerLink="/authenticate/contact" [complete]="currentUser | completeSteps:'contact'">Contato</app-step>
-      <app-step routerLink="/authenticate/address"
-        [complete]="currentUser | completeSteps:'address'">Localização</app-step>
+      <app-step routerLink="/authenticate/profile" [complete]="completeSteps.profile">Perfil</app-step>
+      <app-step routerLink="/authenticate/contact" [complete]="completeSteps.contact">Contato</app-step>
+      <app-step routerLink="/authenticate/address" [complete]="completeSteps.category">Localização</app-step>
 
       @if (userType == roles.PROVIDER) {
-      <app-step routerLink="/authenticate/category" [complete]="currentUser | completeSteps:'category'"
-        [complete]="true">
+      <app-step routerLink="/authenticate/category" [complete]="completeSteps.service">
         Anunciar um serviço
       </app-step>
       }
