@@ -1,6 +1,6 @@
 import { inject, Injectable, signal } from '@angular/core';
 
-import { UserRegisterRequest } from '@shared/service/users/user-register.model';
+import { UserRegisterRequest, UserRegister as User } from '@shared/service/users/user-register.model';
 import { UserRegister } from '@shared/service/users/user-register';
 
 const steps = {
@@ -10,12 +10,11 @@ const steps = {
   category: false,
   service: false
 }
-
 @Injectable({
   providedIn: 'root'
 })
 export class RegisterUser {
-  user = signal<UserRegisterRequest>({} as any);
+  user = signal<UserRegisterRequest>(new User());
   #userRegister = inject(UserRegister);
   completeSteps = signal(steps);
 
@@ -60,7 +59,7 @@ export class RegisterUser {
 
   addService(services: any) {
     const currentUser = this.user();
-    Object.assign(currentUser, services);
+    currentUser.services = services;
     this.user.set(currentUser);
 
     this.completeSteps.update((steps) => {
@@ -71,9 +70,9 @@ export class RegisterUser {
     });
   }
 
-  addContact(personalInfo: any) {
+  addSocial(social: any) {
     const currentUser = this.user();
-    Object.assign(currentUser, personalInfo);
+    Object.assign(currentUser.social, social);
     this.user.set(currentUser);
 
     this.completeSteps.update((steps) => {

@@ -14,7 +14,13 @@ export interface UserRegisterRequest {
     cep: string,
     lat: number,
     lng: number
-  }
+  },
+  social: {
+    whatsapp: string,
+    instagram: string,
+    facebook: string,
+    linkdin: string
+  },
   services: any[]
 }
 
@@ -34,6 +40,7 @@ export class UserRegister implements UserRegisterRequest {
     cep: '',
     lat: 0,
     lng: 0,
-  }
-  services= []
+  };
+  social = { whatsapp: '', instagram: '', facebook: '', linkdin: '' };
+  services = []
 }
