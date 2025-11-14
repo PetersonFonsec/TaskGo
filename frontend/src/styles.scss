@@ -230,3 +230,35 @@ app-step {
 .slide-item {
   scroll-snap-align: start;
 }
+
+html[data-theme="CUSTOMER"] {
+  --color-primary: var(--color-customer);
+  --color-primary-rgb: var(--color-customer-rgb);
+  --color-primary-contrast: var(--color-customer-contrast);
+  --color-primary-contrast-rgb: var(--color-customer-contrast-rgb);
+  --color-primary-shade: var(--color-customer-shade);
+  --color-primary-tint: var(--color-customer-tint);
+
+  --color-secondary: var(--color-provider);
+  --color-secondary-rgb: var(--color-provider-rgb);
+  --color-secondary-contrast: var(--color-provider-contrast);
+  --color-secondary-contrast-rgb: var(--color-provider-contrast-rgb);
+  --color-secondary-shade: var(--color-provider-shade);
+  --color-secondary-tint: var(--color-provider-tint);
+}
+
+html[data-theme="PROVIDER"] {
+  --color-primary: var(--color-provider);
+  --color-primary-rgb: var(--color-provider-rgb);
+  --color-primary-contrast: var(--color-provider-contrast);
+  --color-primary-contrast-rgb: var(--color-provider-contrast-rgb);
+  --color-primary-shade: var(--color-provider-shade);
+  --color-primary-tint: var(--color-provider-tint);
+
+  --color-secondary: var(--color-customer);
+  --color-secondary-rgb: var(--color-customer-rgb);
+  --color-secondary-contrast: var(--color-customer-contrast);
+  --color-secondary-contrast-rgb: var(--color-customer-contrast-rgb);
+  --color-secondary-shade: var(--color-customer-shade);
+  --color-secondary-tint: var(--color-customer-tint);
+}

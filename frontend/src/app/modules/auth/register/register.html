@@ -6,8 +6,8 @@
 
   <div id="register-form_content">
     <div class="row">
-      <app-badge [selected]="userType == roles.PROVIDER" (click)="userType = roles.PROVIDER">Profissional</app-badge>
-      <app-badge [selected]="userType == roles.CUSTOMER" (click)="userType = roles.CUSTOMER">Cliente</app-badge>
+      <app-badge [selected]="userType == roles.PROVIDER" (click)="changeTheme(roles.PROVIDER)">Profissional</app-badge>
+      <app-badge [selected]="userType == roles.CUSTOMER" (click)="changeTheme(roles.CUSTOMER)">Cliente</app-badge>
     </div>
 
     <app-steps-lines #registerSteps title="Passos para completar seu cadastro">

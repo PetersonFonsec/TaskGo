@@ -43,6 +43,11 @@ export class Register {
   error = signal("");
   roles = Roles;
 
+  changeTheme(role: Roles) {
+    this.userType = role;
+    this.#theme.setTheme(role);
+  }
+
   getCurrentUser() {
     if (this.#userStorage.type() === Roles.CUSTOMER) {
       return this.#userStorage.customer();
