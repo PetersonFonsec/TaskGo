@@ -1,11 +1,12 @@
-@use "../../../../scss/mixins/geometric" as geometric;
-@use "../../../../scss/mixins/position" as position;
-@use "../../../../scss/resets/button" as button;
-@use "../../../../scss/mixins/grid" as grid;
+@use "mixins/geometric" as geometric;
+@use "mixins/position" as position;
+@use "resets/button" as button;
+@use "mixins/grid" as grid;
 
 .layout-slider {
   &_container {
     @include position.flexCenter();
+    position: relative;
 
     flex: 0 0 100%;
     scroll-snap-type: x mandatory;
@@ -13,41 +14,40 @@
     justify-content: start;
     overflow-x: auto;
 
-    &::scroll-marker-group {
-      display: flex;
-      justify-content: center;
-      gap: 12px;
-    }
-
     &::-webkit-scrollbar {
       display: none;
     }
+  }
 
-    &::scroll-button(left),
-    &::scroll-button(right) {
-      content: "";
+  .scroll-button {
+    content: "";
+    @include position.absoluteCenter();
+    @include geometric.circle(14px);
+    @extend .reset-button;
+    background-color: var(--background-color);
+    border-radius: 8px;
+    bottom: 80px;
+    cursor: pointer;
+    opacity: 1;
+    position: absolute;
+    top: unset;
+    transition: var(--transition);
+    width: 22px;
 
-      @include position.absoluteCenter();
-      @include geometric.circle(14px);
-      @extend .reset-button;
-
-      background-color: var(--background-color);
-      transition: var(--transition);
-      position: absolute;
+    &:disabled {
+      border-radius: 100%;
       opacity: 0.5;
-      bottom: 80px;
-      top: unset;
-
-      &:disabled {
-        border-radius: 8px;
-        width: 22px;
-        opacity: 1;
-      }
+      width: 14px;
     }
+  }
 
-    &::scroll-button(left) {
-      left: -48px;
-    }
+  .scroll-button.left {
+    left: -48px;
+    transform: rotate(180deg);
+  }
+
+  .scroll-button.right {
+    right: 0;
   }
 
   &_image {

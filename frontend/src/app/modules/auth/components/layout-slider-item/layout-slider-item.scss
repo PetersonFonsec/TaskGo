@@ -1,7 +1,7 @@
-@use "../../../../scss/mixins/geometric" as geometric;
-@use "../../../../scss/mixins/position" as position;
-@use "../../../../scss/resets/button" as button;
-@use "../../../../scss/mixins/grid" as grid;
+@use "mixins/geometric" as geometric;
+@use "mixins/position" as position;
+@use "resets/button" as button;
+@use "mixins/grid" as grid;
 
 .layout-slider-item {
   @include position.flexCenter();

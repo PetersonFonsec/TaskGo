@@ -10,11 +10,12 @@ import { UserStorage } from '@shared/service/users/user-storage';
 import { Utils } from '@shared/service/utils/utils.service';
 import { Badge } from '@shared/components/ui/badge/badge';
 import { Step } from '@shared/components/forms/step/step';
+import { Theme } from '@shared/service/theme/theme';
 import { Roles } from '@shared/enums/roles.enum';
 
 import { RegisterUser } from '../services/register-user/register-user';
 import { CompleteStepsPipe } from '../pipes/complete-steps-pipe';
-import { Theme } from '@shared/service/theme/theme';
+import { Subscription } from 'rxjs';
 
 @Component({
   selector: 'app-register',
@@ -30,7 +31,7 @@ import { Theme } from '@shared/service/theme/theme';
   templateUrl: './register.html',
   styleUrl: './register.scss'
 })
-export class Register {
+export class Register implements OnInit {
   #liveAnnouncer = inject(LiveAnnouncer);
   #registerUser = inject(RegisterUser);
   #userStorage = inject(UserStorage);
@@ -42,6 +43,17 @@ export class Register {
   showModal = signal(false);
   error = signal("");
   roles = Roles;
+  subsction = new Subscription();
+
+  ngOnInit(): void {
+    this.subsction = this.#theme.change.subscribe((role) => {
+      this.userType = this.#userStorage.type();
+    });
+  }
+
+  ngOnDestroy(): void {
+    this.subsction?.unsubscribe();
+  }
 
   changeTheme(role: Roles) {
     this.userType = role;
