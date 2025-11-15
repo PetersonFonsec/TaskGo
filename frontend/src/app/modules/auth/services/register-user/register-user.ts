@@ -2,6 +2,8 @@ import { inject, Injectable, signal } from '@angular/core';
 
 import { UserRegisterRequest, UserRegister as User } from '@shared/service/users/user-register.model';
 import { UserRegister } from '@shared/service/users/user-register';
+import { UserStorage } from '@shared/service/users/user-storage';
+import { RolesBack } from '@shared/enums/roles.enum';
 
 const steps = {
   profile: false,
@@ -14,8 +16,10 @@ const steps = {
   providedIn: 'root'
 })
 export class RegisterUser {
-  user = signal<UserRegisterRequest>(new User());
   #userRegister = inject(UserRegister);
+  #userStorage = inject(UserStorage);
+
+  user = signal<UserRegisterRequest>(new User());
   completeSteps = signal(steps);
 
   addAddress(address: any) {
@@ -84,6 +88,10 @@ export class RegisterUser {
   }
 
   register() {
-    return this.#userRegister.registerUser(this.user());
+    const payload = {
+      ...this.user(),
+      type: RolesBack[this.#userStorage.type()]
+    }
+    return this.#userRegister.registerUser(payload);
   }
 }

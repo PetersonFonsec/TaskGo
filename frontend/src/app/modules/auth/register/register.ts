@@ -6,16 +6,16 @@ import { Subscription } from 'rxjs';
 
 import { ButtonComponent } from '@shared/components/ui/button/button.component';
 import { StepsLines } from '@shared/components/forms/steps-lines/steps-lines';
+import { AlertComponent } from '@shared/components/ui/alert/alert.component';
 import { FullModal } from '@shared/components/ui/full-modal/full-modal';
 import { UserStorage } from '@shared/service/users/user-storage';
-import { Utils } from '@shared/service/utils/utils.service';
 import { Badge } from '@shared/components/ui/badge/badge';
 import { Step } from '@shared/components/forms/step/step';
 import { Theme } from '@shared/service/theme/theme';
 import { Roles } from '@shared/enums/roles.enum';
 
 import { RegisterUser } from '../services/register-user/register-user';
-import { CompleteStepsPipe } from '../pipes/complete-steps-pipe';
+import { Utils } from '@shared/service/utils/utils.service';
 
 @Component({
   selector: 'app-register',
@@ -25,7 +25,8 @@ import { CompleteStepsPipe } from '../pipes/complete-steps-pipe';
     Step,
     RouterLink,
     FullModal,
-    Badge
+    Badge,
+    AlertComponent
   ],
   templateUrl: './register.html',
   styleUrl: './register.scss'
@@ -66,16 +67,16 @@ export class Register implements OnInit {
     this.#registerUser.register().subscribe({
       next: ({ user }) => {
         this.#liveAnnouncer.announce("Conta criada com sucesso");
-        this.#router.navigateByUrl(Utils.getRouteByRole(user.type));
+        this.showModal.set(true);
       },
       error: (error: HttpErrorResponse) => {
         this.#liveAnnouncer.announce("Houve um erro ao criar a sua conta");
-        this.error.set(error.error.message);
+        this.error.set(error.error.message[0]);
       }
     })
   }
 
   goToHome() {
-    this.#router.navigateByUrl('/customer');
+    this.#router.navigateByUrl(Utils.getRouteByRole(this.userType));
   }
 }

@@ -27,6 +27,11 @@ export class UserRegister {
   }
 
   registerUser(data: UserRegisterRequest) {
-    return this.#http.post<any>(environment.url + '/auth/register-provider', { user: data });
+    return this.#http.post<any>(environment.url + '/auth/register', { user: data }).pipe(
+      tap(({ access_token }) => this.#tokenService.token = access_token),
+      tap(response => {
+        this.#userService.setUserLogged(response);
+      })
+    );
   }
 }

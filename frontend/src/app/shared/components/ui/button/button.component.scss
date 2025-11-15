@@ -51,12 +51,12 @@
   }
 
   &--light {
-    background: var(--secundary-color-4);
+    background: var(--background-color);
     color: var(--font-color-dark);
 
     &:active,
     &:hover {
-      background-color: var(--secundary-color-1);
+      background-color: var(--background-color);
       color: var(--font-color-dark);
     }
   }

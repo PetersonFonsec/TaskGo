@@ -9,7 +9,7 @@ import { unauthorizedGuard } from '@shared/guards/unauthorized/unauthorized.guar
 import { userLoggedGuard } from '@shared/guards/userLogged/user-logged.guard';
 
 import { UrlBase } from '@shared/enums/base-url.enum';
-import { Roles } from '@shared/enums/roles.enum';
+import { Roles, RolesBack } from '@shared/enums/roles.enum';
 import { InstitutionalPage } from '@modules/institutional/institutional-page';
 import { ProvidersRoutes } from '@modules/providers/providers.routes';
 import { CustomerRoutes } from '@modules/customer/customer.routes';
@@ -33,13 +33,15 @@ export const routes: Routes = [
   {
     path: UrlBase.PROVIDER,
     component: Provider,
-    canActivate: [unauthorizedGuard, permissionByRoleGuard([Roles.PROVIDER])],
+    canActivate: [unauthorizedGuard, permissionByRoleGuard([RolesBack.PROVIDER])],
+    // canActivate: [],
     children: ProvidersRoutes
   },
   {
     path: UrlBase.CUSTOMER,
     component: Customer,
-    canActivate: [unauthorizedGuard, permissionByRoleGuard([Roles.CUSTOMER])],
+    canActivate: [unauthorizedGuard, permissionByRoleGuard([RolesBack.CUSTOMER])],
+    // canActivate: [],
     children: CustomerRoutes
   },
   // { path: '**', component: NotFoundComponent } TODO - criar pagina 404

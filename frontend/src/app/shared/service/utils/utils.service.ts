@@ -1,5 +1,5 @@
 import { UrlBase } from "@shared/enums/base-url.enum";
-import { Roles } from "@shared/enums/roles.enum";
+import { Roles, RolesBack } from "@shared/enums/roles.enum";
 
 export class Utils {
   static readonly byteValue = 1048576;
@@ -18,6 +18,12 @@ export class Utils {
 
   static subtractMonth(date: Date, month: number) {
     return new Date(date.setMonth(date.getMonth() - month));
+  }
+
+  static getRouteByRoleBack(role: RolesBack): string {
+    const urlBaseByRoles: any = { [RolesBack.PROVIDER]: `/${UrlBase.PROVIDER}`, [RolesBack.CUSTOMER]: `/${UrlBase.CUSTOMER}` };
+
+    return urlBaseByRoles[role] || "/authenticate";
   }
 
   static getRouteByRole(role: Roles): string {

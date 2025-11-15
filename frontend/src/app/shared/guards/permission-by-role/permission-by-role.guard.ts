@@ -5,11 +5,12 @@ import { Utils } from '@shared/service/utils/utils.service';
 
 export const permissionByRoleGuard = (roles: string[]) => {
   const guard: CanActivateFn = (route, state) => {
-    const user = inject(UserLoggedService).user().user;
+    const user = inject(UserLoggedService).user().user as any;
     const router = inject(Router);
 
+    console.log(user.type);
     if (!roles.includes(user.type)) {
-      router.navigateByUrl(Utils.getRouteByRole(user.type));
+      router.navigateByUrl(Utils.getRouteByRoleBack(user.type));
     }
 
     return roles.includes(user.type);

@@ -9,12 +9,13 @@ export const userLoggedGuard: CanActivateChildFn = (childRoute, state) => {
   const tokenService = inject(TokenService);
   if (!tokenService.token) return true;
 
-  const user = inject(UserLoggedService).user().user;
+  const user = inject(UserLoggedService).user().user as any;
   const router = inject(Router);
 
   if (!user) return true;
 
-  router.navigateByUrl(Utils.getRouteByRole(user.type));
+  console.log(user.type);
+  router.navigateByUrl(Utils.getRouteByRoleBack(user.type));
 
   return false;
 };

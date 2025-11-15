@@ -31,6 +31,10 @@
   &_footer {
     display: flex;
     gap: var(--space-6);
-    margin-bottom:0;
+    margin-bottom: 0;
+  }
+
+  alert {
+    margin-bottom: var(--space-6);
   }
 }

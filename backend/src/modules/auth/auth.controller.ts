@@ -1,10 +1,11 @@
 import { Body, Controller, Post } from "@nestjs/common";
 
 import { AuthRegisterConsumerDTO } from "./dto/auth-register-consumer.dto";
+import { AuthRegisterProviderDTO } from "./dto/auth-register-provider.dto";
+import { AuthRegisterDTO } from "./dto/auth-register.dto";
 import { AuthForgetDTO } from "./dto/authForget.dto";
 import { AuthLoginDTO } from "./dto/authLogin.dto";
 import { AuthService } from "./auth.service";
-import { AuthRegisterProviderDTO } from "./dto/auth-register-provider.dto";
 
 @Controller("auth")
 export class AuthController {
@@ -13,6 +14,11 @@ export class AuthController {
   @Post("login")
   async login(@Body() body: AuthLoginDTO) {
     return this.authService.login(body)
+  }
+
+  @Post("register")
+  async register(@Body() body: AuthRegisterDTO) {
+    return this.authService.registerConsumer(body);
   }
 
   @Post("register-consumer")

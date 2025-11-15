@@ -12,6 +12,7 @@ export class ProfileForm {
   confirmPassword = '';
   password = '';
   email = '';
+  phone = '';
   name = '';
   cpf = '';
 

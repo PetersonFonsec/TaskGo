@@ -1,14 +1,4 @@
 import { Component, input } from '@angular/core';
-
-export enum ButtonColors {
-  "primary" = "primary",
-  "secundary" = "secundary"
-}
-export enum ButtonSize {
-  "small" = "small",
-  "medium" = "medium"
-}
-
 @Component({
   selector: 'app-button',
   templateUrl: './button.component.html',

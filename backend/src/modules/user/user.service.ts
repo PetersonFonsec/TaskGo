@@ -29,6 +29,7 @@ export class UserService extends PaginationService<User> {
     const user = new User(payload as any);
     user.validate();
 
+    console.log(payload);
     user.password = bcrypt.hashSync(user.password, 8);
 
     return await this.prisma.$transaction(async (prisma) => {
