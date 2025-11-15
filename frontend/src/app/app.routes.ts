@@ -34,14 +34,12 @@ export const routes: Routes = [
     path: UrlBase.PROVIDER,
     component: Provider,
     canActivate: [unauthorizedGuard, permissionByRoleGuard([RolesBack.PROVIDER])],
-    // canActivate: [],
     children: ProvidersRoutes
   },
   {
     path: UrlBase.CUSTOMER,
     component: Customer,
     canActivate: [unauthorizedGuard, permissionByRoleGuard([RolesBack.CUSTOMER])],
-    // canActivate: [],
     children: CustomerRoutes
   },
   // { path: '**', component: NotFoundComponent } TODO - criar pagina 404
