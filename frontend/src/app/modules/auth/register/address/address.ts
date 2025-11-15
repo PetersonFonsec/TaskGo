@@ -68,7 +68,6 @@ export class Address implements OnInit {
           this.error.set('CEP não encontrado: ' + this.payload.cep);
           this.#geolocalization.getCurrentPosition().subscribe({
             next: pos => {
-              console.log('coords do navegador', pos);
               this.error.set('');
             },
             error: e => {

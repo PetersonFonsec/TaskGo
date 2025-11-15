@@ -8,7 +8,6 @@ export const permissionByRoleGuard = (roles: string[]) => {
     const user = inject(UserLoggedService).user().user as any;
     const router = inject(Router);
 
-    console.log(user.type);
     if (!roles.includes(user.type)) {
       router.navigateByUrl(Utils.getRouteByRoleBack(user.type));
     }

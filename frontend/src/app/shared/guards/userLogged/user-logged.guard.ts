@@ -14,7 +14,6 @@ export const userLoggedGuard: CanActivateChildFn = (childRoute, state) => {
 
   if (!user) return true;
 
-  console.log(user.type);
   router.navigateByUrl(Utils.getRouteByRoleBack(user.type));
 
   return false;
