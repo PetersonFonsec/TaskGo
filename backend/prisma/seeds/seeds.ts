@@ -47,6 +47,7 @@ async function main() {
               passwordHash: await bcrypt.hash('123456', 10),
               type: UserType.PRESTADOR,
               phone: `+55 11 9${Math.floor(10000000 + Math.random() * 89999999)}`,
+              photoUrl: 'https://dummyimage.com/600x400/000/fff'
             },
           },
           bio: `Sou o prestador ${i + 1}, especializado em serviços gerais.`,
@@ -56,14 +57,14 @@ async function main() {
               {
                 title: `Serviço ${i + 1}A`,
                 description: `Descrição do serviço ${i + 1}A`,
-                category: 'Reparos',
+                category: 'reparo',
                 basePrice: 100 + i * 10,
                 status: ServiceStatus.ATIVO,
               },
               {
                 title: `Serviço ${i + 1}B`,
                 description: `Descrição do serviço ${i + 1}B`,
-                category: 'Limpeza',
+                category: 'limpeza',
                 basePrice: 80 + i * 5,
                 status: ServiceStatus.ATIVO,
               },

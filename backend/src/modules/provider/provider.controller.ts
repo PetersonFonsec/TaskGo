@@ -5,7 +5,7 @@ import { UpdateProviderDto } from './dto/update-provider.dto';
 
 @Controller('provider')
 export class ProviderController {
-  constructor(private readonly providerService: ProviderService) {}
+  constructor(private readonly providerService: ProviderService) { }
 
   @Post()
   create(@Body() createProviderDto: CreateProviderDto) {
@@ -20,6 +20,11 @@ export class ProviderController {
   @Get(':id')
   findOne(@Param('id') id: string) {
     return this.providerService.findOne(+id);
+  }
+
+  @Get('by-category/:slug')
+  findByCategory(@Param('slug') slug: string) {
+    return this.providerService.findProvidersByCategorySlug(slug);
   }
 
   @Patch(':id')

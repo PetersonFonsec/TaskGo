@@ -31,10 +31,43 @@ export class ProviderService {
     });
   }
 
-  findAll() {
-    return `This action returns all provider`;
+  async findAll() {
+    return this.prisma.provider.findMany({
+      include: {
+        user: true,
+        services: true,
+      }
+    });
   }
 
+
+  /**
+   * Find providers that offer at least one service belonging to the given category slug.
+   * Assumption: Service.category stores the category/subcategory slug (string).
+   *
+   * Example usage: findProvidersByCategorySlug('hidraulica')
+   */
+  async findProvidersByCategorySlug(slug: string) {
+    if (!slug) return [];
+
+    return this.prisma.provider.findMany({
+      where: {
+        services: {
+          some: {
+            category: slug,
+            status: 'ATIVO'
+          }
+        }
+      },
+      include: {
+        user: true,
+        // include only the matching services to keep payload small
+        services: {
+          where: { category: slug, status: 'ATIVO' }
+        }
+      }
+    });
+  }
   findOne(id: number) {
     return `This action returns a #${id} provider`;
   }

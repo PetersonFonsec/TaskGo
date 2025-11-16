@@ -5,11 +5,11 @@
         Categoria selecionada: Reparo
       </h1>
 
-      <div id="customer-search_filters_content">
+      <!-- <div id="customer-search_filters_content">
         <app-filters title="Distância"/>
         <app-filters title="Disponibilidade"/>
         <app-filters title="Prestadores Premiuns" [mutiples]="false"/>
-      </div>
+      </div> -->
     </header>
   </section>
 
@@ -26,60 +26,12 @@
     </header>
 
     <ul>
+      @for (provider of providers(); track $index) {
       <li>
-        <app-card-detail image="https://dummyimage.com/600x400/000/fff" title="Tonhão Chaves" legend="Distância +20 km">
-        </app-card-detail>
+        <app-card-detail [routerLink]="'/customer/'+provider?.id" [image]="provider?.user?.photoUrl"
+          [title]="provider?.user?.name" [legend]="provider?.user?.phone" />
       </li>
-
-      <li>
-        <app-card-detail image="https://dummyimage.com/600x400/000/fff" title="Tonhão Chaves" legend="Distância +20 km">
-        </app-card-detail>
-      </li>
-
-      <li>
-        <app-card-detail image="https://dummyimage.com/600x400/000/fff" title="Tonhão Chaves" legend="Distância +20 km">
-        </app-card-detail>
-      </li>
-
-      <li>
-        <app-card-detail image="https://dummyimage.com/600x400/000/fff" title="Tonhão Chaves" legend="Distância +20 km">
-        </app-card-detail>
-      </li>
-
-      <li>
-        <app-card-detail image="https://dummyimage.com/600x400/000/fff" title="Tonhão Chaves" legend="Distância +20 km">
-        </app-card-detail>
-      </li>
-
-      <li>
-        <app-card-detail image="https://dummyimage.com/600x400/000/fff" title="Tonhão Chaves" legend="Distância +20 km">
-        </app-card-detail>
-      </li>
-
-      <li>
-        <app-card-detail image="https://dummyimage.com/600x400/000/fff" title="Tonhão Chaves" legend="Distância +20 km">
-        </app-card-detail>
-      </li>
-
-      <li>
-        <app-card-detail image="https://dummyimage.com/600x400/000/fff" title="Tonhão Chaves" legend="Distância +20 km">
-        </app-card-detail>
-      </li>
-
-      <li>
-        <app-card-detail image="https://dummyimage.com/600x400/000/fff" title="Tonhão Chaves" legend="Distância +20 km">
-        </app-card-detail>
-      </li>
-
-      <li>
-        <app-card-detail image="https://dummyimage.com/600x400/000/fff" title="Tonhão Chaves" legend="Distância +20 km">
-        </app-card-detail>
-      </li>
-
-      <li>
-        <app-card-detail image="https://dummyimage.com/600x400/000/fff" title="Tonhão Chaves" legend="Distância +20 km">
-        </app-card-detail>
-      </li>
+      }
     </ul>
   </section>
 </div>
