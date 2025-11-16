@@ -35,7 +35,7 @@ export class Login {
     this.#userRegister.login(this.payload).subscribe({
       next: ({ user }) => {
         this.#liveAnnouncer.announce("Login realizado com sucesso");
-        this.#router.navigateByUrl(Utils.getRouteByRole(user.type));
+        this.#router.navigateByUrl(Utils.getRouteByRoleBack(user.type));
       },
       error: (error: HttpErrorResponse) => {
         this.#liveAnnouncer.announce("Houve um erro ao realizar login");
