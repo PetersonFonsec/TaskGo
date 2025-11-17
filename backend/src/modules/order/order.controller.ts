@@ -26,6 +26,11 @@ export class OrderController {
     return this.orderService.findOne(BigInt(id));
   }
 
+  @Get('client/:clientId')
+  findByClient(@Param('clientId') clientId: string) {
+    return this.orderService.findByClient(BigInt(clientId));
+  }
+
   @Patch(':id')
   update(@Param('id') id: string, @Body() updateOrderDto: UpdateOrderDto) {
     return this.orderService.update(BigInt(id), updateOrderDto);

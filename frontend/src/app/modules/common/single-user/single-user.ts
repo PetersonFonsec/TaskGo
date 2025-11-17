@@ -59,7 +59,7 @@ export class SingleUser implements OnInit {
   ngOnInit(): void {
     this.#activatedRoute.params.pipe(
       switchMap(({ userId }) =>
-        this.#user.getUser(userId)
+        this.#user.getProvider(userId)
       )
     ).subscribe({
       next: (provider: any) => {

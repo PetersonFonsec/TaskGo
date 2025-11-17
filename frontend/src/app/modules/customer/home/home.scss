@@ -1,6 +1,6 @@
-@use "../../../scss/mixins/grid";
-@use "../../../scss/mixins/position";
-@use "../../../scss/variables/breakpoints";
+@use "mixins/grid";
+@use "mixins/position";
+@use "variables/breakpoints";
 
 #customer-home {
   @include grid.container(var(--container-size));

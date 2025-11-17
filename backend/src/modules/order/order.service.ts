@@ -71,7 +71,6 @@ export class OrderService extends PaginationService<Order> {
       return order;
     });
 
-    console.log(created);
     return created;
   }
 
@@ -83,6 +82,25 @@ export class OrderService extends PaginationService<Order> {
   async findOne(id: bigint): Promise<any> {
     return await this.prisma.order.findUnique({
       where: { id }
+    });
+  }
+
+  async findByClient(clientId: bigint): Promise<any[]> {
+    return await this.prisma.order.findMany({
+      where: { clientId },
+      orderBy: { requestedAt: 'desc' },
+      include: {
+        service: {
+          include: {
+            provider: {
+              include: { user: true }
+            }
+          }
+        },
+        payment: true,
+        addressSnap: true,
+        review: true,
+      }
     });
   }
 

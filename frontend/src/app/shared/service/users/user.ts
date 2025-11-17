@@ -11,6 +11,10 @@ export class User {
   #urlbase = environment.url;
 
   getUser(userId: string) {
+    return this.#http.get<UserResponse>(this.#urlbase + `/user/${userId}`);
+  }
+
+  getProvider(userId: string) {
     return this.#http.get<UserResponse>(this.#urlbase + `/provider/${userId}`);
   }
 }
