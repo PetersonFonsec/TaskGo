@@ -4,7 +4,7 @@ services:
   postgres_db:
     image: postgres
     restart: always
-    ports: ["5432:5432"]
+    ports: [ "5432:5432" ]
     volumes:
       - postgres_db:/var/lib/postgresql/data
     env_file:
@@ -17,14 +17,16 @@ services:
       - "16543:80"
     depends_on:
       - postgres_db
-  # backend:
-  # depends_on:
-  #   - postgres_db
-  # build: ./plataforma_ead_backend/
-  # ports: ["3000:3000"]
-  # restart: "always"
-  # volumes:
-  #   - "./plataforma_ead_backend/:/home/node/app"
+  backend:
+    depends_on:
+      - postgres_db
+    build: ./backend/
+    ports: [ "3000:3000" ]
+    restart: "always"
+    volumes:
+      - "./backend/:/home/node/app"
+    # Run the NestJS dev server inside the container so backend responds automatically
+    command: sh -c "npm install --silent && npm run start"
   prometheus:
     image: prom/prometheus:v2.47.2
     ports:
@@ -33,44 +35,60 @@ services:
       - live_prometheus
     volumes:
       - ./config/prometheus.yaml:/etc/prometheus/prometheus.yml
-  grafana:
-    image: grafana/grafana:10.2.2
-    ports:
-      - 3300:3000
-    networks:
-      - live_prometheus
-  jaeger:
-    image: jaegertracing/all-in-one:latest
-    container_name: jaeger
-    ports:
-      - "8081:16686" # Jaeger UI
-      - "14268"
-      - "14250"
+  # grafana:
+  #   image: grafana/grafana:10.2.2
+  #   ports:
+  #     - 3300:3000
+  #   networks:
+  #     - live_prometheus
+  # jaeger:
+  #   image: jaegertracing/all-in-one:latest
+  #   container_name: jaeger
+  #   ports:
+  #     - "8081:16686" # Jaeger UI
+  #     - "14268"
+  #     - "14250"
+  #   depends_on:
+  #     - postgres_db
+  # otel-collector:
+  #   image: otel/opentelemetry-collector:latest
+  #   container_name: otel-collector
+  #   command: [ "--config=/etc/otel-collector-config.yml" ]
+  #   volumes:
+  #     - ./config/otel-collector-config.yml:/etc/otel-collector-config.yml
+  #   ports:
+  #     - "1888:1888" # pprof extension
+  #     - "13133:13133" # health_check extension
+  #     - "4317:4317" # OTLP gRPC receiver
+  #     - "4318:4318" # http gRPC receiver
+  #     - "55679:55679" # zpages extension
+  #   depends_on:
+  #     - jaeger
+  #   links:
+  #     - jaeger
+  frontend:
     depends_on:
-      - postgres_db
-  otel-collector:
-    image: otel/opentelemetry-collector:latest
-    container_name: otel-collector
-    command: ["--config=/etc/otel-collector-config.yml"]
+      - backend
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile.dev
+    ports:
+      - "4200:4200"
+    environment:
+      CHOKIDAR_USEPOLLING: "true"
+    restart: "always"
     volumes:
-      - ./config/otel-collector-config.yml:/etc/otel-collector-config.yml
-    ports:
-      - "1888:1888" # pprof extension
-      - "13133:13133" # health_check extension
-      - "4317:4317" # OTLP gRPC receiver
-      - "4318:4318" # http gRPC receiver
-      - "55679:55679" # zpages extension
-    depends_on:
-      - jaeger
-    links:
-      - jaeger
+      - "./frontend/:/app"
+      - "frontend_node_modules:/app/node_modules"
 networks:
   live_prometheus:
     driver: bridge
 volumes:
   postgres_db:
     driver: local
-  # backend:
+  backend:
+    driver: local
+  # prometheus:
   #   driver: local
-  prometheus:
+  frontend_node_modules:
     driver: local

@@ -1,0 +1,20 @@
+FROM node:20-alpine
+
+WORKDIR /app
+
+# Copy package files first to leverage Docker cache for npm install
+COPY package.json package-lock.json* ./
+
+# Prefer npm ci when lockfile exists, fall back to npm install
+RUN if [ -f package-lock.json ]; then npm ci --silent; else npm install --silent; fi
+
+# Copy rest of the source
+COPY . .
+
+# Enable polling for watchers (helps when host is Windows)
+ENV CHOKIDAR_USEPOLLING=true
+
+EXPOSE 4200
+
+# Start the Angular dev server and bind to 0.0.0.0 so it's reachable from host
+CMD ["sh", "-c", "npm run start -- --host 0.0.0.0 --port 4200"]
