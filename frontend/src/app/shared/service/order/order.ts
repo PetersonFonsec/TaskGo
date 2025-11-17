@@ -13,4 +13,20 @@ export class Order {
   getOrderByClient(clientId: string) {
     return this.#http.get<OrdersResponse>(`${this.#urlBase}/client/${clientId}`);
   }
+
+  getOrderByProvider(providerId: string) {
+    return this.#http.get<OrdersResponse>(`${this.#urlBase}/provider/${providerId}`);
+  }
+
+  getOrderSumary(orderId: string) {
+    return this.#http.get<any>(`${this.#urlBase}/${orderId}/summary`);
+  }
+
+  confirmOrder(orderId: string, providerId: string) {
+    return this.#http.post<any>(`${this.#urlBase}/${orderId}/provider/${providerId}/confirm`, {});
+  }
+
+  cancelOrder(orderId: string, providerId: string) {
+    return this.#http.post<any>(`${this.#urlBase}/${orderId}/provider/${providerId}/cancel`, {});
+  }
 }

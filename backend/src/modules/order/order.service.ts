@@ -1,4 +1,4 @@
-import { Injectable, NotFoundException, BadRequestException } from '@nestjs/common';
+import { Injectable, NotFoundException, BadRequestException, ForbiddenException } from '@nestjs/common';
 import { Order, OrderStatus } from '@prisma/client';
 
 import { CreateOrderDto } from './dto/create-order.dto';
@@ -85,11 +85,68 @@ export class OrderService extends PaginationService<Order> {
     });
   }
 
+  /**
+   * Return a lightweight summary for a given order id.
+   * Includes: id, status, finalPrice, client (basic fields) and service (basic fields).
+   */
+  async getSummary(id: bigint): Promise<any> {
+    const order = await this.prisma.order.findUnique({
+      where: { id },
+      include: {
+        client: true,
+        addressSnap: true,
+        service: true
+      }
+    });
+
+    if (!order) throw new NotFoundException('Order not found');
+
+    // shape a concise summary
+    return {
+      id: order.id,
+      status: order.status,
+      finalPrice: order.finalPrice,
+      client: order.client,
+      service: order.service,
+    };
+  }
+
   async findByClient(clientId: bigint): Promise<any[]> {
     return await this.prisma.order.findMany({
       where: { clientId },
       orderBy: { requestedAt: 'desc' },
       include: {
+        service: {
+          include: {
+            provider: {
+              include: { user: true }
+            }
+          }
+        },
+        payment: true,
+        addressSnap: true,
+        review: true,
+      }
+    });
+  }
+
+  /**
+   * Find orders where the service belongs to the given providerId.
+   * Returns the same includes as findByClient so the frontend can render provider/user info.
+   */
+  async findByProvider(providerId: bigint): Promise<any[]> {
+    return await this.prisma.order.findMany({
+      where: {
+        // filter orders by the related service's providerId
+        service: {
+          is: {
+            providerId,
+          }
+        }
+      },
+      orderBy: { requestedAt: 'desc' },
+      include: {
+        client: true,
         service: {
           include: {
             provider: {
@@ -135,6 +192,58 @@ export class OrderService extends PaginationService<Order> {
   async remove(id: bigint) {
     return await this.prisma.order.delete({
       where: { id },
+    });
+  }
+
+  /**
+   * Provider confirms they will attend the order.
+   * Only the provider that owns the service can confirm the order.
+   */
+  async confirmByProvider(id: bigint, providerId: bigint) {
+    const order = await this.prisma.order.findUnique({
+      where: { id },
+      include: { service: true },
+    });
+
+    if (!order) throw new NotFoundException('Order not found');
+
+    if (!order.service || order.service.providerId !== providerId) {
+      throw new ForbiddenException('Provider not allowed to confirm this order');
+    }
+
+    if (order.status !== OrderStatus.PENDENTE) {
+      throw new BadRequestException('Only PENDENTE orders can be confirmed');
+    }
+
+    return await this.prisma.order.update({
+      where: { id },
+      data: { status: OrderStatus.CONFIRMADO },
+    });
+  }
+
+  /**
+   * Provider cancels the order. Only the provider that owns the service can cancel.
+   */
+  async cancelByProvider(id: bigint, providerId: bigint) {
+    const order = await this.prisma.order.findUnique({
+      where: { id },
+      include: { service: true },
+    });
+
+    if (!order) throw new NotFoundException('Order not found');
+
+    if (!order.service || order.service.providerId !== providerId) {
+      throw new ForbiddenException('Provider not allowed to cancel this order');
+    }
+
+    // allow cancel from PENDENTE or CONFIRMADO
+    if (order.status !== OrderStatus.PENDENTE && order.status !== OrderStatus.CONFIRMADO) {
+      throw new BadRequestException('Only PENDENTE or CONFIRMADO orders can be cancelled by provider');
+    }
+
+    return await this.prisma.order.update({
+      where: { id },
+      data: { status: OrderStatus.CANCELADO },
     });
   }
 }

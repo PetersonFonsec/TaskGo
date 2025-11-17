@@ -100,6 +100,7 @@ export interface OrderModel {
 	finalPrice?: DecimalLike | null;
 	requestedAt?: any;
 	scheduledFor?: any | null;
+	client?: UserModel | null;
 	service?: ServiceModel | null;
 	payment?: PaymentModel | null;
 	addressSnap?: AddressSnapModel | null;
@@ -107,4 +108,5 @@ export interface OrderModel {
 }
 
 export type OrdersResponse = OrderModel[];
+
 

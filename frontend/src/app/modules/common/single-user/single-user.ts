@@ -64,7 +64,6 @@ export class SingleUser implements OnInit {
     ).subscribe({
       next: (provider: any) => {
         this.provider.set(provider);
-        console.log(provider);
       }
     });
   }

@@ -1,0 +1,18 @@
+@use "mixins/grid";
+@use "mixins/position";
+@use "variables/breakpoints";
+
+#provider-pending-approval {
+  @include grid.container(var(--container-size));
+  @include grid.directionColumn();
+  gap: var(--space-19);
+
+  .container-section {
+    @include grid.container(400px);
+  }
+
+  &_footer {
+    display: flex;
+    gap: 14px;
+  }
+}

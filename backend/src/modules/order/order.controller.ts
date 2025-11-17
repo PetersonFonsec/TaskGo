@@ -26,9 +26,19 @@ export class OrderController {
     return this.orderService.findOne(BigInt(id));
   }
 
+  @Get(':id/summary')
+  getSummary(@Param('id') id: string) {
+    return this.orderService.getSummary(BigInt(id));
+  }
+
   @Get('client/:clientId')
   findByClient(@Param('clientId') clientId: string) {
     return this.orderService.findByClient(BigInt(clientId));
+  }
+
+  @Get('provider/:providerId')
+  findByProvider(@Param('providerId') providerId: string) {
+    return this.orderService.findByProvider(BigInt(providerId));
   }
 
   @Patch(':id')
@@ -44,5 +54,15 @@ export class OrderController {
   @Post(':id/schedule')
   schedule(@Param('id') id: string, @Body() body: ScheduleOrderDto) {
     return this.orderService.schedule(BigInt(id), body);
+  }
+
+  @Post(':id/provider/:providerId/confirm')
+  confirmByProvider(@Param('id') id: string, @Param('providerId') providerId: string) {
+    return this.orderService.confirmByProvider(BigInt(id), BigInt(providerId));
+  }
+
+  @Post(':id/provider/:providerId/cancel')
+  cancelByProvider(@Param('id') id: string, @Param('providerId') providerId: string) {
+    return this.orderService.cancelByProvider(BigInt(id), BigInt(providerId));
   }
 }
