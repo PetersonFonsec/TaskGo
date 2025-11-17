@@ -1,0 +1,89 @@
+@use "variables/breakpoints";
+@use "mixins/position";
+@use "mixins/grid";
+
+#single-user {
+  @include grid.container(var(--container-size));
+
+  &_title {
+    margin-bottom: var(--space-10);
+
+    @media (min-width: breakpoints.$tablet) {
+      margin-bottom: var(--space-19);
+    }
+  }
+
+  &_profile {
+    display: flex;
+    margin-bottom: var(--space-19);
+
+    &_avatar {
+      margin-right: var(--space-18);
+    }
+
+    &_content {
+      @include grid.directionColumn();
+      align-items: flex-start;
+      gap: var(--space-4);
+      width: 300px;
+      flex: 1;
+
+      .main-title {
+        margin-bottom: var(--space-7);
+      }
+
+      &_services {
+        gap: var(--space-4);
+        flex-wrap: wrap;
+        display: flex;
+        width: 100%;
+      }
+    }
+  }
+
+  &_content {
+    @include grid.directionColumn();
+    margin-bottom: var(--space-19);
+    align-items: flex-start;
+    gap: var(--space-4);
+
+    .main-title {
+      margin-bottom: var(--space-7);
+    }
+  }
+
+  &_contratar {
+    @include grid.directionColumn();
+    @include grid.container(600px);
+    margin-bottom: var(--space-19);
+    gap: var(--space-10);
+    text-align: center;
+
+    app-button {
+      @include grid.container(300px);
+    }
+  }
+
+  &_appointments {
+    margin-bottom: var(--space-19);
+
+    &_title {
+      margin-bottom: var(--space-10);
+    }
+
+    &_list {
+      display: block;
+      margin-bottom: var(--space-10);
+    }
+
+    &_actions {
+      @include position.flexCenter();
+      width: 100%;
+
+      app-button {
+        // width: 100%;
+        max-width: 320px;
+      }
+    }
+  }
+}

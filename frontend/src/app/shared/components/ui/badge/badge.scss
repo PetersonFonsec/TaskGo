@@ -15,4 +15,10 @@
     color: var(--color-primary-contrast);
     font-weight: bold;
   }
+
+  &.provider {
+    background-color: var(--color-provider);
+    color: var(--color-provider-contrast);
+
+  }
 }

@@ -3,7 +3,7 @@ import { ActivatedRoute, RouterLink } from '@angular/router';
 
 import { CardDetail } from '@shared/components/ui/card-detail/card-detail';
 import { Provider } from '@shared/service/provider/provider';
-import { switchMap } from 'rxjs';
+import { switchMap, tap } from 'rxjs';
 
 @Component({
   selector: 'app-search',
@@ -15,16 +15,19 @@ export class Search implements OnInit {
   #router = inject(ActivatedRoute);
   #provider = inject(Provider);
   providers = signal<any>([]);
+  category = signal('');
 
   ngOnInit(): void {
     this.#router.queryParams.pipe(
+      tap(({ categoria }) =>
+        this.category.set(categoria)
+      ),
       switchMap(({ categoria }) =>
         this.#provider.findProvidersByCategorySlug(categoria)
       )
     ).subscribe({
       next: (params: any) => {
-        this.providers.set(params)
-        console.log(params)
+        this.providers.set(params);
       }
     });
   }

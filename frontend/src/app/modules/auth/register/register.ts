@@ -1,4 +1,4 @@
-import { Component, inject, OnInit, signal } from '@angular/core';
+import { Component, inject, OnDestroy, OnInit, signal } from '@angular/core';
 import { HttpErrorResponse } from '@angular/common/http';
 import { Router, RouterLink } from "@angular/router";
 import { LiveAnnouncer } from '@angular/cdk/a11y';
@@ -9,13 +9,13 @@ import { StepsLines } from '@shared/components/forms/steps-lines/steps-lines';
 import { AlertComponent } from '@shared/components/ui/alert/alert.component';
 import { FullModal } from '@shared/components/ui/full-modal/full-modal';
 import { UserStorage } from '@shared/service/users/user-storage';
+import { Utils } from '@shared/service/utils/utils.service';
 import { Badge } from '@shared/components/ui/badge/badge';
 import { Step } from '@shared/components/forms/step/step';
 import { Theme } from '@shared/service/theme/theme';
 import { Roles } from '@shared/enums/roles.enum';
 
 import { RegisterUser } from '../services/register-user/register-user';
-import { Utils } from '@shared/service/utils/utils.service';
 
 @Component({
   selector: 'app-register',
@@ -31,7 +31,7 @@ import { Utils } from '@shared/service/utils/utils.service';
   templateUrl: './register.html',
   styleUrl: './register.scss'
 })
-export class Register implements OnInit {
+export class Register implements OnInit, OnDestroy {
   #liveAnnouncer = inject(LiveAnnouncer);
   #registerUser = inject(RegisterUser);
   #userStorage = inject(UserStorage);

@@ -7,6 +7,8 @@ import { Component, input, output } from '@angular/core';
   styleUrl: './badge.scss',
 })
 export class Badge {
-  selected = input(false)
+  selected = input(false);
+  color = input('');
+
   onClick = output<void>();
 }

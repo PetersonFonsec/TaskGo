@@ -82,7 +82,7 @@ async function main() {
     const prestador = prestadores[i];
     const servico = prestador.services[0];
 
-    await prisma.order.create({
+    const order = await prisma.order.create({
       data: {
         clientId: cliente.id,
         serviceId: servico.id,
@@ -109,6 +109,22 @@ async function main() {
         },
       },
     });
+
+    // Create some reviews for a subset of orders (for realism)
+    // We'll create reviews for half of the orders (i < 5)
+    if (i < 5) {
+      const rating = Math.floor(3 + Math.random() * 3); // 3..5
+      await prisma.avaliacao.create({
+        data: {
+          orderId: order.id,
+          clientId: cliente.id,
+          providerId: prestador.id,
+          rating,
+          comment: `Avaliação automática: nota ${rating} para o prestador ${prestador.user.name}`,
+          // reviewedAt will default to now()
+        },
+      });
+    }
   }
 
   await CategorySeeds(prisma);

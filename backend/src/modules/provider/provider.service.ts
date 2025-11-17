@@ -68,8 +68,20 @@ export class ProviderService {
       }
     });
   }
+
   findOne(id: number) {
-    return `This action returns a #${id} provider`;
+    return this.prisma.provider.findUnique({
+      where: {
+        id,
+      },
+      include: {
+        user: true,
+        locations: true,
+        reviews: true,
+        serviceAreas: true,
+        services: true
+      }
+    });
   }
 
   update(id: number, updateProviderDto: UpdateProviderDto) {

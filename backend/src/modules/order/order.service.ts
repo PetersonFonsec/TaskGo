@@ -1,5 +1,5 @@
-import { Injectable } from '@nestjs/common';
-import { Order } from '@prisma/client';
+import { Injectable, NotFoundException, BadRequestException } from '@nestjs/common';
+import { Order, OrderStatus } from '@prisma/client';
 
 import { CreateOrderDto } from './dto/create-order.dto';
 import { UpdateOrderDto } from './dto/update-order.dto';
@@ -19,7 +19,60 @@ export class OrderService extends PaginationService<Order> {
   }
 
   async create(createOrderDto: CreateOrderDto): Promise<any> {
-    return 'This action adds a new order';
+    const { clientId, serviceId, scheduledFor, finalPrice, paymentMethod, address } = createOrderDto as any;
+
+    // basic validation and conversions
+    if (!clientId || !serviceId) throw new BadRequestException('clientId and serviceId are required');
+
+    const svcId = BigInt(serviceId);
+    const cliId = BigInt(clientId);
+
+    const service = await this.prisma.service.findUnique({ where: { id: svcId } });
+    if (!service) throw new NotFoundException('Service not found');
+    if (service.status !== 'ATIVO') throw new BadRequestException('Service is not available');
+
+    const price = finalPrice ?? service.basePrice;
+
+    // create order with payment and address snapshot in a transaction
+    const created = await this.prisma.$transaction(async (prisma) => {
+      const order = await prisma.order.create({
+        data: {
+          clientId: cliId,
+          serviceId: svcId,
+          status: OrderStatus.PENDENTE,
+          finalPrice: price,
+          scheduledFor: scheduledFor ? new Date(scheduledFor) : undefined,
+          payment: {
+            create: {
+              method: (paymentMethod as any) || 'PIX',
+              status: 'PENDENTE',
+              amount: price,
+            },
+          },
+          addressSnap: address
+            ? {
+                create: {
+                  street: address.street,
+                  number: address.number,
+                  complement: address.complement,
+                  neighborhood: address.neighborhood,
+                  city: address.city,
+                  state: address.state,
+                  cep: address.cep,
+                  lat: address.lat,
+                  lng: address.lng,
+                },
+              }
+            : undefined,
+        },
+        include: { payment: true, addressSnap: true },
+      });
+
+      return order;
+    });
+
+    console.log(created);
+    return created;
   }
 
   async findAll(query: PaginationQuery): Promise<PaginationResponse<Order>> {
@@ -34,9 +87,30 @@ export class OrderService extends PaginationService<Order> {
   }
 
   async update(id: bigint, updateUserDto: UpdateOrderDto) {
+    // normalize possible string ids/dates coming from DTO
+    const data: any = { ...updateUserDto };
+    if (data.clientId) data.clientId = BigInt(data.clientId);
+    if (data.serviceId) data.serviceId = BigInt(data.serviceId);
+    if (data.scheduledFor) data.scheduledFor = new Date(data.scheduledFor);
+
     return await this.prisma.order.update({
       where: { id },
-      data: updateUserDto,
+      data,
+    });
+  }
+
+  /**
+   * Schedule an order: set its scheduledFor and change status to CONFIRMADO.
+   * body may include scheduledFor as ISO string.
+   */
+  async schedule(id: bigint, body: { scheduledFor: string }) {
+    const scheduledAt = new Date(body.scheduledFor);
+    return await this.prisma.order.update({
+      where: { id },
+      data: {
+        scheduledFor: scheduledAt,
+        status: OrderStatus.CONFIRMADO,
+      }
     });
   }
 

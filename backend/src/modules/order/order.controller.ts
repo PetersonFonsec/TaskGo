@@ -1,8 +1,11 @@
 import { Controller, Get, Post, Body, Patch, Param, Delete, Query } from '@nestjs/common';
-import { OrderService } from './order.service';
+
+import { PaginationQuery } from '@shared/services/pagination/pagination.interface';
+
+import { ScheduleOrderDto } from './dto/schedule-order.dto';
 import { CreateOrderDto } from './dto/create-order.dto';
 import { UpdateOrderDto } from './dto/update-order.dto';
-import { PaginationQuery } from '@shared/services/pagination/pagination.interface';
+import { OrderService } from './order.service';
 
 @Controller('order')
 export class OrderController {
@@ -31,5 +34,10 @@ export class OrderController {
   @Delete(':id')
   remove(@Param('id') id: string) {
     return this.orderService.remove(BigInt(id));
+  }
+
+  @Post(':id/schedule')
+  schedule(@Param('id') id: string, @Body() body: ScheduleOrderDto) {
+    return this.orderService.schedule(BigInt(id), body);
   }
 }
