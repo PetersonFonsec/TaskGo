@@ -1,4 +1,4 @@
-import { PrismaService } from '@prisma/prisma.service';
+import { PrismaService } from '@PrismaDir/prisma.service';
 import { Injectable } from '@nestjs/common';
 
 import { ServicesService } from '../services/services.service';

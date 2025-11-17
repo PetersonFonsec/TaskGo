@@ -2,7 +2,7 @@ import { Injectable } from '@nestjs/common';
 
 import { PaginationQuery, PaginationResponse } from '@shared/services/pagination/pagination.interface';
 import { PaginationService } from '@shared/services/pagination/pagination.service';
-import { PrismaService } from '@prisma/prisma.service';
+import { PrismaService } from '@PrismaDir/prisma.service';
 import { Category } from '@prisma/client';
 
 import { CreateFullCategoryDto } from './dto/create-full-category.dto';

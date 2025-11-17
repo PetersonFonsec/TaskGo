@@ -6,11 +6,13 @@
   "private": true,
   "license": "UNLICENSED",
   "prisma": {
-    "seed": "ts-node prisma/seeds/seeds.ts"
+    "schema": "src/prisma/schema.prisma",
+    "seed": "node -r ts-node/register src/prisma/seeds/seeds.ts"
   },
   "scripts": {
     "build": "nest build",
     "format": "prettier --write \"src/**/*.ts\" \"test/**/*.ts\"",
+    "prestart:dev": "prisma migrate reset --force && prisma migrate deploy",
     "start": "nest start -b swc -w",
     "start:dev": "nest start --watch",
     "start:debug": "nest start --debug --watch",
@@ -23,9 +25,10 @@
     "test:e2e": "dotenv -e .env.test  --  jest --config ./test/jest-e2e.json",
     "pretest:e2e": "dotenv -e .env.test -- prisma migrate reset",
     "posttest:e2e": "dotenv -e .env.test -- prisma migrate reset",
-    "prisma:seed": "ts-node prisma/seeds/seeds.ts",
+    "prisma:seed": "ts-node node -r ts-node/register ./prisma/seeds/seeds.ts",
     "prisma:migrate": "prisma migrate dev",
-    "prisma:reset": "prisma migrate reset"
+    "prisma:reset": "prisma migrate reset --force",
+    "prisma:deploy": "prisma migrate deploy"
   },
   "dependencies": {
     "@nestjs-modules/mailer": "^2.0.2",

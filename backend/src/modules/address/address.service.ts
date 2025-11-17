@@ -1,5 +1,5 @@
 import { Injectable } from '@nestjs/common';
-import { PrismaService } from '@prisma/prisma.service';
+import { PrismaService } from '@PrismaDir/prisma.service';
 import { Address } from '@prisma/client';
 
 import { PaginationQuery, PaginationResponse } from '@shared/services/pagination/pagination.interface';

@@ -6,7 +6,7 @@ import { UpdateOrderDto } from './dto/update-order.dto';
 
 import { PaginationQuery, PaginationResponse } from '@shared/services/pagination/pagination.interface';
 import { PaginationService } from '@shared/services/pagination/pagination.service';
-import { PrismaService } from '@prisma/prisma.service';
+import { PrismaService } from '@PrismaDir/prisma.service';
 
 @Injectable()
 export class OrderService extends PaginationService<Order> {

@@ -1,7 +1,7 @@
 import { Module, forwardRef } from "@nestjs/common";
 import { JwtModule } from "@nestjs/jwt";
 
-import { PrismaModule } from "@prisma/prisma.module";
+import { PrismaModule } from "@PrismaDir/prisma.module";
 import Mediator from "@shared/events/mediator";
 
 import { CategoriesModule } from "../categories/categories.module";

@@ -4,7 +4,7 @@ import { UpdateServiceDto } from './dto/update-service.dto';
 import { PaginationQuery, PaginationResponse } from '@shared/services/pagination/pagination.interface';
 import { Service, User } from '@prisma/client';
 import { PaginationService } from '@shared/services/pagination/pagination.service';
-import { PrismaService } from '@prisma/prisma.service';
+import { PrismaService } from '@PrismaDir/prisma.service';
 import { UserService } from '../user/user.service';
 import { UserExistException } from '@shared/exceptions/user-exist.exception';
 

@@ -2,7 +2,7 @@ import { Injectable } from '@nestjs/common';
 
 import { PaginationResponse } from './pagination.interface';
 import { QueryParams } from '@shared/utils/queryParams';
-import { PrismaService } from '@prisma/prisma.service';
+import { PrismaService } from '@PrismaDir/prisma.service';
 
 @Injectable()
 export class PaginationService<T> {

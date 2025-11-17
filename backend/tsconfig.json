@@ -20,7 +20,10 @@
     "paths": {
       "@shared/*": [
         "./src/shared/*"
-      ]
+      ],
+      "@PrismaDir/*": [
+        "./src/prisma/*"
+      ],
     }
   }
 }

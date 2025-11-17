@@ -1,7 +1,7 @@
 import { Injectable, NotFoundException } from '@nestjs/common';
 import * as bcrypt from 'bcrypt';
 
-import { PrismaService } from 'prisma/prisma.service';
+import { PrismaService } from '@PrismaDir/prisma.service';
 import { ERROR_MESSAGES } from '../auth/auth.messages';
 
 @Injectable()
