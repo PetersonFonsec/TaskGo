@@ -1,0 +1,48 @@
+@use "../../scss/mixins/position" as position;
+@use "../../scss/variables/breakpoints" as breakpoints;
+
+#auth-page {
+  @include position.flexCenter();
+  width: 100dvw;
+
+  @media (min-width: breakpoints.$desktop) {
+    height: 100dvh;
+  }
+
+  &_container {
+    position: relative;
+    overflow: hidden;
+    flex: 1;
+
+    @media (max-width: breakpoints.$desktop) {
+      display: none;
+    }
+  }
+
+  &_forms {
+    background: var(--background-color);
+    transition: var(--transition);
+    max-width: 500px;
+    height: 100%;
+    flex: 0 0 0%;
+    z-index: 1;
+
+    @media (min-width: breakpoints.$desktop) {
+    }
+  }
+
+  &_forms:has(form) {
+    @include position.flexCenter();
+    padding: var(--space-6);
+    flex: 0 0 100%;
+    margin: 0;
+
+    @media (min-width: breakpoints.$desktop) {
+      border-bottom-left-radius: 16px;
+      border-top-left-radius: 16px;
+      margin-left: -20px;
+      min-width: 480px;
+      flex: 0 0 25%;
+    }
+  }
+}

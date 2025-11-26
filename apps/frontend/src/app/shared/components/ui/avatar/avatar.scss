@@ -1,0 +1,15 @@
+@use "mixins/image";
+@use "mixins/geometric";
+
+.avatar {
+  @include geometric.circle(220px);
+  background-color: var(--color-neutral-2);
+  overflow: hidden;
+
+  img {
+    @include image.validSizeImage();
+    object-fit: cover;
+    height: 100%;
+    width: 100%;
+  }
+}

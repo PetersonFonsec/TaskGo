@@ -1,0 +1,88 @@
+@use "../../../../scss/mixins/geometric" as geometric;
+@use "../../../../scss/mixins/position" as position;
+@use "../../../../scss/resets/button" as button;
+@use "../../../../scss/mixins/grid" as grid;
+
+.slider {
+  position: relative;
+
+  &_container {
+    @include position.flexCenter();
+
+    flex: 0 0 100%;
+    scroll-snap-type: x mandatory;
+    scroll-behavior: smooth;
+    justify-content: start;
+    overflow-x: auto;
+
+    &::scroll-marker-group {
+      display: flex;
+      justify-content: center;
+      gap: 12px;
+    }
+
+    &::-webkit-scrollbar {
+      display: none;
+    }
+
+    &::scroll-button(left),
+    &::scroll-button(right) {
+      content: ">";
+
+      @include geometric.circle(40px);
+      @extend .reset-button;
+      background-color: var(--color-primary);
+      color: var(--color-primary-contrast);
+      transition: var(--transition);
+      opacity: 1;
+      position: absolute;
+      font-weight: bolder;
+      top: 0;
+      bottom: 0;
+      margin: auto;
+
+      &:disabled {
+        opacity: 0.5;
+        cursor: auto;
+      }
+    }
+
+    &::scroll-button(left) {
+      content: "<";
+      transform: translateX(-100%);
+      left: 0;
+    }
+
+    &::scroll-button(right) {
+      transform: translateX(100%);
+      right: 1px;
+    }
+  }
+
+  &_image {
+    display: block;
+    margin-bottom: 24px;
+  }
+
+  &_content {
+    margin-bottom: 40px;
+  }
+
+  &_actions {
+    width: 100%;
+  }
+
+  .main-title {
+    margin-bottom: 18px;
+  }
+
+  app-button {
+    display: block;
+    width: 100%;
+    margin-bottom: 20px;
+  }
+
+  &::ng-deep app-layout-slider-item {
+    flex: 0 0 100%;
+  }
+}

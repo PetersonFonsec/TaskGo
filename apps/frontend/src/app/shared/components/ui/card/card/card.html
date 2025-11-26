@@ -1,0 +1,17 @@
+<div class="card">
+  <div class="card_title">
+    <ng-content select="[title]">
+      <h4 class="subtitle">
+        {{title()}}
+      </h4>
+    </ng-content>
+  </div>
+
+  <div class="card_content">
+    <ng-content></ng-content>
+  </div>
+
+  <div class="card_icon">
+    <fa-icon [icon]="icon"></fa-icon>
+  </div>
+</div>

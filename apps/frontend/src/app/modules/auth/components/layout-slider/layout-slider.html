@@ -1,0 +1,21 @@
+<div class="layout-slider">
+  <div class="layout-slider_container" #container>
+    <ng-content></ng-content>
+  </div>
+
+  <button
+    class="scroll-button left"
+    aria-label="Scroll left"
+    (click)="scrollLeft()"
+    [disabled]="!canScrollLeft()"
+    [attr.aria-disabled]="!canScrollLeft()"
+  ></button>
+
+  <button
+    class="scroll-button right"
+    aria-label="Scroll right"
+    (click)="scrollRight()"
+    [disabled]="!canScrollRight()"
+    [attr.aria-disabled]="!canScrollRight()"
+  ></button>
+</div>

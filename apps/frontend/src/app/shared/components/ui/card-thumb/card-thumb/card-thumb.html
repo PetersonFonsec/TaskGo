@@ -1,0 +1,11 @@
+<div role="listitem" class="card-thumb">
+  <div class="card-thumb_image">
+    @if (image()) {
+    <img [src]="image()" [alt]="title()" />
+    }
+  </div>
+
+  <h4 class="card-thumb_title subtitle color-light">
+    {{ title() }}
+  </h4>
+</div>

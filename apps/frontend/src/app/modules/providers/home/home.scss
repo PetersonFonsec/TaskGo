@@ -1,0 +1,68 @@
+@use "mixins/grid";
+@use "mixins/position";
+@use "variables/breakpoints";
+
+#provider-home {
+  @include grid.container(var(--container-size));
+
+  &_title {
+    margin-bottom: var(--space-10);
+
+    @media (min-width: breakpoints.$tablet) {
+      margin-bottom: var(--space-19);
+    }
+  }
+
+  &_categories {
+    margin-bottom: var(--space-19);
+
+    &_title {
+      margin-bottom: var(--space-10);
+    }
+
+    &_list {
+      @include grid.grid(288px, var(--space-10));
+    }
+  }
+
+  &_appointments {
+    margin-bottom: var(--space-19);
+
+    &_title {
+      margin-bottom: var(--space-10);
+    }
+
+    &_list {
+      display: block;
+      margin-bottom: var(--space-10);
+    }
+
+    &_actions {
+      @include position.flexCenter();
+      width: 100%;
+
+      app-button {
+        // width: 100%;
+        max-width: 320px;
+      }
+    }
+  }
+
+  &_history {
+    margin-bottom: var(--space-19);
+
+    &_title {
+      display: block;
+      margin-bottom: var(--space-10);
+    }
+
+    &_list {
+      display: block;
+      margin-bottom: var(--space-10);
+    }
+  }
+
+  ::ng-deep .card {
+    flex-direction: column;
+  }
+}

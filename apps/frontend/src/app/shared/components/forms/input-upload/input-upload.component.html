@@ -1,0 +1,29 @@
+<label
+  [id]="id()"
+  [for]="id() + '-input-file'"
+  class="input-upload"
+  [ngClass]="{ disabled: disabled() }"
+>
+  <input
+    type="file"
+    [id]="id() + '-input-file'"
+    [name]="id()"
+    [disabled]="disabled()"
+    [accept]="accept()"
+    (change)="showImage($event)"
+    class="input-upload_input"
+  />
+  @if (value.b64) {
+    <img [src]="value.b64" class="input-upload_preview" />
+  } @else if (initialImage) {
+    <img [src]="initialImage" class="input-upload_preview" />
+  } @else {
+    <button type="button" class="input-upload_button">
+      <fa-icon [icon]="icon"></fa-icon>
+    </button>
+  }
+</label>
+
+<span class="input-upload_text">
+  <ng-content></ng-content>
+</span>

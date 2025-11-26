@@ -1,0 +1,22 @@
+@if (showModal()) {
+<div class="full-modal {{ color() }}">
+  <div class="full-modal_content">
+    <div class="full-modal_illustration">
+      <ng-content slot="ilustration">
+        <img slot="ilustration" src="ilustrations/congratulation.png" alt="Full Modal Illustration" />
+      </ng-content>
+    </div>
+
+    <div class="full-modal_body">
+      <ng-content>
+        <h2 class="main-title color-light">{{ title() }}</h2>
+        <p class="text color-light">{{ message() }}</p>
+
+        <app-button (click)="onClose()" color="light">
+          Acessar Plataforma
+        </app-button>
+      </ng-content>
+    </div>
+  </div>
+</div>
+}

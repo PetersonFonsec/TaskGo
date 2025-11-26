@@ -1,0 +1,23 @@
+@use "../../../../scss/mixins/grid";
+
+.footer-links {
+  @include grid.directionColumn();
+
+  &_title {
+    margin-bottom: var(--space-5);
+    font-weight: bold;
+    width: 100%;
+  }
+
+  &_list {
+    @include grid.directionColumn();
+    align-items: flex-start;
+    gap: var(--space-7);
+  }
+
+  &_list.horizontal {
+    flex-direction: row;
+    font-size: 32px;
+    margin-left: -10px;
+  }
+}

@@ -1,0 +1,37 @@
+<div id="provider-pending-approval">
+  <h1 class="main-title">
+    Resumo da solicitação
+  </h1>
+
+  <div class="container-section">
+    <h2 class="subtitle">
+      Dados do solicitante
+    </h2>
+
+    <p class="text"> Solicitante: {{ order()?.client?.name }}</p>
+    <p class="text"> telefone: {{ order()?.client?.phone }}</p>
+    <p class="text"> email: {{ order()?.client?.email }}</p>
+  </div>
+
+  <div class="container-section">
+    <h2 class="subtitle">
+      Dados sobre o serviço solicitado
+    </h2>
+
+    <p class="text"> Serviço: {{ order()?.service?.title }} </p>
+    <p class="text"> Categoria do serviço: {{ order()?.service?.category }} </p>
+  </div>
+
+  <footer id="provider-pending-approval_footer">
+    <app-button (click)="cancel()" color="light">
+      não aceitar o serviço
+    </app-button>
+
+    <app-button (click)="confirm()" color="primary">
+      aceitar o serviço
+    </app-button>
+  </footer>
+</div>
+
+<app-full-modal (closeModal)="goToHome()" [showModal]="showModal()" title="Sua resposta foi feita!!"
+  [message]="modalMessage()" />

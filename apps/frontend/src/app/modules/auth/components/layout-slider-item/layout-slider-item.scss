@@ -1,0 +1,50 @@
+@use "mixins/geometric" as geometric;
+@use "mixins/position" as position;
+@use "resets/button" as button;
+@use "mixins/grid" as grid;
+
+.layout-slider-item {
+  @include position.flexCenter();
+  scroll-snap-align: start;
+  height: 100dvh;
+  width: 100%;
+
+  &.PROVIDER {
+    background-color: var(--color-provider);
+  }
+
+  &.CUSTOMER {
+    background-color: var(--color-customer);
+  }
+
+  &_container {
+    @include grid.directionColumn();
+    @include grid.container(322px);
+    flex: 0 0 100%;
+    gap: 24px;
+    position: relative;
+  }
+
+  &_image {
+    display: block;
+    margin-bottom: 24px;
+  }
+
+  &_content {
+    margin-bottom: 40px;
+  }
+
+  &_actions {
+    width: 100%;
+  }
+
+  .main-title {
+    margin-bottom: 18px;
+  }
+
+  app-button {
+    display: block;
+    width: 100%;
+    margin-bottom: 20px;
+  }
+}

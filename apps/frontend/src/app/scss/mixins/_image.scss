@@ -1,0 +1,5 @@
+@mixin validSizeImage($width: 100%, $height: 100%, $object-fit: contain) {
+  max-height: $height;
+  max-width: $width;
+  object-fit: $object-fit;
+}

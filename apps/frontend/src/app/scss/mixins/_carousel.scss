@@ -1,0 +1,53 @@
+@mixin carousel($item-size: 100%) {
+  scroll-snap-type: x mandatory;
+  scroll-behavior: smooth;
+  justify-content: start;
+  overflow-x: auto;
+  gap: 24px;
+  position: relative;
+  anchor-name: --carousel;
+
+  &::scroll-marker-group {
+    display: flex;
+    justify-content: center;
+    gap: 12px;
+  }
+
+  &::-webkit-scrollbar {
+    display: none;
+  }
+
+  &::scroll-button(left),
+  &::scroll-button(right) {
+    @include geometric.circle(14px);
+    @extend .reset-button;
+    content: "";
+    transition: var(--transition);
+    border-radius: 100%;
+    background-color: var(--background-color);
+    opacity: 0.5;
+    width: 14px;
+    position: fixed;
+    position-anchor: --carousel;
+    position-area: bottom center;
+
+    &:disabled {
+      border-radius: 8px;
+      width: 22px;
+      opacity: 1;
+    }
+  }
+
+  &::scroll-button(left) {
+    left: -24px;
+  }
+
+  &::scroll-button(right) {
+    right: -24px;
+  }
+
+  div {
+    scroll-snap-align: start;
+    flex: 0 0 $item-size;
+  }
+}

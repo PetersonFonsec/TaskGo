@@ -1,0 +1,35 @@
+@use "../../../../scss/mixins/grid" as grid;
+
+#social-form {
+  @include grid.directionColumn();
+  @include grid.container(400px);
+  height: 100%;
+  padding: var(--space-10) 0;
+
+  &_links,
+  &_footer,
+  &_content,
+  &_header {
+    display: block;
+    margin-bottom: var(--space-10);
+    width: 100%;
+  }
+
+  &_header {
+    flex-direction: column;
+    gap: var(--space-6);
+    display: flex;
+  }
+
+  &_content {
+    @include grid.directionColumn();
+    gap: var(--space-6);
+    text-align: left;
+    flex: 1;
+  }
+
+  &_footer {
+    display: flex;
+    gap: var(--space-4);
+  }
+}

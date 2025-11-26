@@ -1,0 +1,26 @@
+<form id="category-form">
+  <header id="category-form_header">
+    <h2 class="main-title">
+      Em que categoria <br>
+      seu serviço se enquadra?
+    </h2>
+    <p class="text">
+     Todos os serviços são agrupados em categorias
+    </p>
+  </header>
+
+  <div id="category-form_content">
+    @for (category of categories(); track $index) {
+      <app-card (click)="categorySelected.set(category)" [selected]="categorySelected() && categorySelected().id === category.id">
+        {{ category.name }}
+      </app-card>
+    }
+  </div>
+
+  <footer id="category-form_footer">
+    <app-button-back color="primary" />
+    <app-button [disabled]="!categorySelected()" (click)="selectCategory()" color="primary">
+      Selecionar categoria
+    </app-button>
+  </footer>
+</form>

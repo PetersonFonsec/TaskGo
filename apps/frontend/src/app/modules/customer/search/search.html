@@ -1,0 +1,37 @@
+<div id="customer-search">
+  <section id="customer-search_filters">
+    <header id="customer-search_filters_header">
+      <h1 class="main-title">
+        Categoria selecionada: {{category()}}
+      </h1>
+
+      <!-- <div id="customer-search_filters_content">
+        <app-filters title="Distância"/>
+        <app-filters title="Disponibilidade"/>
+        <app-filters title="Prestadores Premiuns" [mutiples]="false"/>
+      </div> -->
+    </header>
+  </section>
+
+  <section id="customer-search_providers">
+    <header id="customer-search_providers_header">
+      <h2 class="subtitle">
+        Prestadores
+      </h2>
+
+      <p class="text">
+        Com base nos filtros selecionados,
+        esses são os prestadores encontrados.
+      </p>
+    </header>
+
+    <ul>
+      @for (provider of providers(); track $index) {
+      <li>
+        <app-card-detail [routerLink]="'/customer/'+provider?.id" [image]="provider?.user?.photoUrl"
+          [title]="provider?.user?.name" [legend]="provider?.user?.phone" />
+      </li>
+      }
+    </ul>
+  </section>
+</div>

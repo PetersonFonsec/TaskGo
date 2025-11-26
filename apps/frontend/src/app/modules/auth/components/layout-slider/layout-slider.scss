@@ -1,0 +1,79 @@
+@use "mixins/geometric" as geometric;
+@use "mixins/position" as position;
+@use "resets/button" as button;
+@use "mixins/grid" as grid;
+
+.layout-slider {
+  &_container {
+    @include position.flexCenter();
+    position: relative;
+
+    flex: 0 0 100%;
+    scroll-snap-type: x mandatory;
+    scroll-behavior: smooth;
+    justify-content: start;
+    overflow-x: auto;
+
+    &::-webkit-scrollbar {
+      display: none;
+    }
+  }
+
+  .scroll-button {
+    content: "";
+    @include position.absoluteCenter();
+    @include geometric.circle(14px);
+    @extend .reset-button;
+    background-color: var(--background-color);
+    border-radius: 8px;
+    bottom: 80px;
+    cursor: pointer;
+    opacity: 1;
+    position: absolute;
+    top: unset;
+    transition: var(--transition);
+    width: 22px;
+
+    &:disabled {
+      border-radius: 100%;
+      opacity: 0.5;
+      width: 14px;
+    }
+  }
+
+  .scroll-button.left {
+    left: -48px;
+    transform: rotate(180deg);
+  }
+
+  .scroll-button.right {
+    right: 0;
+  }
+
+  &_image {
+    display: block;
+    margin-bottom: 24px;
+  }
+
+  &_content {
+    margin-bottom: 40px;
+  }
+
+  &_actions {
+    width: 100%;
+  }
+
+  .main-title {
+    margin-bottom: 18px;
+  }
+
+  app-button {
+    display: block;
+    width: 100%;
+    margin-bottom: 20px;
+  }
+
+  &::ng-deep app-layout-slider-item {
+    flex: 0 0 100%;
+  }
+}

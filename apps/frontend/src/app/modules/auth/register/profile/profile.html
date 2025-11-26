@@ -1,0 +1,37 @@
+<form #form="ngForm" (submit)="saveProfile()" id="profile-form">
+  <header id="profile-form_header">
+    <h2 class="main-title">
+      Seu perfil
+    </h2>
+    <p class="text">
+      Muitos clientes antes de contratar um produto
+      pesquisam referências sobre o profissional
+    </p>
+  </header>
+
+  <div id="profile-form_content">
+    <h3 class="subtitle">Contato</h3>
+    <app-input-text name="name" id="name" type="text" label="Nome" [autofocus]="true" [required]="true"
+      placeholder="Informe o seu nome" #email="ngModel" [(ngModel)]="payload.name" />
+
+    <app-input-text name="phone" id="phone" type="text" label="Telefone" [autofocus]="true" [required]="true"
+      placeholder="Informe o seu telefone" mask="(00) 0 0000-0000" #email="ngModel" [(ngModel)]="payload.phone" />
+
+    <app-input-text name="email" id="email" type="email" label="Email" [required]="true"
+      placeholder="Informe o seu email" #email="ngModel" [(ngModel)]="payload.email" />
+
+    <app-input-text name="password" id="password" [(ngModel)]="payload.password" type="password" label="Senha"
+      #password="ngModel" [required]="true" placeholder="Informe a sua senha" />
+
+    <app-input-text name="confirmPassword" id="confirmPassword" [(ngModel)]="payload.confirmPassword" type="password"
+      label="Senha" #password="ngModel" [required]="true" placeholder="Informe a sua senha" />
+
+    <app-input-text name="documentNumber" id="documentNumber" [(ngModel)]="payload.cpf" type="text" label="CPF"
+      [required]="true" mask="000.000.000-AA" placeholder="Informe o seu cpf" />
+  </div>
+
+  <footer id="profile-form_footer">
+    <app-button-back color="primary" />
+    <app-button [disabled]="!!form.invalid" type="submit" color="primary">Salvar</app-button>
+  </footer>
+</form>

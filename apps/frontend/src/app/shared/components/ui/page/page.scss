@@ -1,0 +1,25 @@
+@use "/mixins/grid";
+@use "/variables/breakpoints";
+
+.page {
+  @include grid.directionColumn();
+  height: 100dvh;
+  overflow: hidden;
+  overflow-y: auto;
+  width: 100dvw;
+
+  &_header,
+  &_content,
+  &_footer {
+    width: 100%;
+  }
+
+  &_content {
+    flex: 1;
+    padding: var(--space-10) var(--space-6);
+
+    @media (min-width: breakpoints.$tablet) {
+    padding: var(--space-19) var(--space-6);
+    }
+  }
+}

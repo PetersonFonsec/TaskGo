@@ -1,0 +1,23 @@
+@use "mixins/position";
+
+.filter {
+  @include position.flexCenter();
+  background-color: var(--color-neutral-3);
+  border-radius: 8px;
+  padding: var(--space-4);
+  cursor: pointer;
+
+  &.selected {
+    background-color: var(--color-primary);
+    color: var(--color-primary-contrast);
+    font-weight: var(--font-weight-bold);
+  }
+
+  &_content {
+    flex: 1;
+  }
+
+  &_icon {
+    margin-left: var(--space-4);
+  }
+}

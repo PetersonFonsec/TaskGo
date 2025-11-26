@@ -1,0 +1,67 @@
+.input-upload {
+  display: flex;
+  position: relative;
+  width: 100%;
+  height: 160px;
+  background-color: var(--background-color-1);
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  border-radius: 4px;
+  border: 4px dashed #afafaf;
+
+  &.disabled + .input-upload_text,
+  &.disabled {
+    opacity: 0.3;
+    pointer-events: none;
+  }
+
+  &_input {
+    opacity: 0;
+  }
+
+  &_button {
+    position: absolute;
+    background-color: var(--background-color-1);
+    border: none;
+    width: 100%;
+    height: 100%;
+    margin: 0;
+    padding: 0;
+    color: #afafaf;
+    font-size: 62px;
+    pointer-events: none;
+  }
+
+  &_text {
+    color: #000;
+    text-align: center;
+    font-family: var(--primary-font-family);
+    font-size: var(--font-size-3);
+    font-style: normal;
+    font-weight: var(--font-weight-bold);
+    line-height: normal;
+    width: 100%;
+    display: block;
+    margin-top: var(--space-5);
+    cursor: pointer;
+  }
+
+  &_preview {
+    max-height: 140px;
+    max-width: 140px;
+
+    left: 0;
+    top: 0;
+    right: 0;
+    bottom: 0;
+    margin: auto;
+
+    object-fit: cover;
+    object-position: center;
+    position: absolute;
+
+    z-index: 1;
+    pointer-events: none;
+  }
+}

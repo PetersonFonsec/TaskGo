@@ -1,0 +1,40 @@
+@use "mixins/animations";
+@use "mixins/position";
+@use "mixins/image";
+@use "mixins/grid";
+
+.card-thumb {
+  @extend .selectable;
+  display: flex;
+  align-items: flex-start;
+  flex-direction: column;
+  justify-content: flex-end;
+  background-color: var(--color-neutral-3);
+  border-radius: var(--space-6);
+  min-height: 268px;
+  height: 100%;
+  max-height: 100%;
+  overflow: hidden;
+  padding: var(--space-10) var(--space-6);
+  position: relative;
+  width: 100%;
+
+  &::before {
+    @include position.filledAbsolutePage();
+    content: '';
+    opacity: 0.3;
+    background: linear-gradient(#fff, #000);
+  }
+
+  &_image {
+    @include position.filledAbsolutePage();
+
+    img {
+      @include image.validSizeImage();
+    }
+  }
+
+  &_title {
+    z-index: 1;
+  }
+}

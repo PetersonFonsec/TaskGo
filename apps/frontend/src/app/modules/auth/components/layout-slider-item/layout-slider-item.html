@@ -1,0 +1,24 @@
+<div class="layout-slider-item {{userType()}}">
+  <div class="layout-slider-item_container">
+    <div class="layout-slider-item_image">
+      <ng-content slot="ilustration"></ng-content>
+    </div>
+
+    <div class="layout-slider-item_content">
+      <h1 class="main-title color-light">
+        {{title()}}
+      </h1>
+
+      <h2 class="text color-light">
+        {{subtitle()}}
+      </h2>
+    </div>
+
+    @if (!disabled()) {
+    <div class="layout-slider-item_actions">
+      <app-button (click)="onCreateAccount()" color="light">Criar uma conta</app-button>
+      <app-button (click)="onLogin()" color="light">Já tenho uma conta</app-button>
+    </div>
+    }
+  </div>
+</div>

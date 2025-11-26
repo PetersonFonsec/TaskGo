@@ -1,0 +1,39 @@
+.text-normal {
+  color: var(--font-color-dark);
+  font-family: var(--primary-font-family);
+  font-size: var(--font-size-3);
+  font-weight: var(--font-weight-regular);
+  font-style: normal;
+  line-height: normal;
+  margin: 0;
+  display: block;
+  text-decoration: none;
+  max-width: 100%;
+  width: 100%;
+}
+
+.titulo-grande {
+  @extend .text-normal;
+}
+
+.titulo-grande-claro {
+  @extend .text-normal;
+}
+
+.titulo-medio {
+  @extend .text-normal;
+}
+
+.titulo-normal {
+  @extend .text-normal;
+}
+
+.link {
+  @extend .text-normal;
+  color: var(--font-color-ligth);
+}
+
+.legenda {
+  @extend .text-normal;
+  color: var(--font-color-ligth);
+}

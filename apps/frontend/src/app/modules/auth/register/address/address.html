@@ -1,0 +1,45 @@
+<form #form="ngForm" (ngSubmit)="saveAddress()" id="address-form">
+  <header id="address-form_header">
+    <h2 class="main-title">
+      Nos conte onde você atua.
+    </h2>
+    <p class="text">
+      Nos recomendamos profissionais e clientes
+      com base na distancia entre eles.
+    </p>
+  </header>
+
+  <div id="address-form_content">
+    <h3 class="subtitle">Endereço</h3>
+
+    <app-input-text name="zipcode" id="zipcode" type="text" label="CEP" [required]="true"
+      (change)="getAddressByZipCode()" placeholder="Informe o seu CEP" mask="00000-000" [autofocus]="true"
+      [(ngModel)]="payload.cep" #zipcode="ngModel" />
+
+    <app-input-text name="street" id="street" type="text" label="Rua" [required]="true" placeholder="Informe a sua Rua"
+      [(ngModel)]="payload.street" />
+
+    <app-input-text name="number" id="number" type="text" label="Número" [required]="true"
+      placeholder="Informe o número da sua residência" [(ngModel)]="payload.number" />
+
+    <app-input-text name="neighborhood" id="neighborhood" type="text" label="Bairro" [required]="true"
+      placeholder="Informe o seu Bairro" [(ngModel)]="payload.neighborhood" />
+
+    <app-input-text name="complement" id="complement" type="text" label="Complemento"
+      placeholder="Informe o complemento" [(ngModel)]="payload.complement" />
+  </div>
+
+  @if (error()) {
+  <alert>
+    {{error()}}
+  </alert>
+  }
+
+  <footer id="address-form_footer">
+    <app-button-back color="primary" />
+
+    <app-button type="submit" [disabled]="!!form.invalid" color="primary">
+      Criar endereço
+    </app-button>
+  </footer>
+</form>

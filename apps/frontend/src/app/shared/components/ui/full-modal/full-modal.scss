@@ -1,0 +1,23 @@
+@use "mixins/grid";
+@use "mixins/position";
+
+.full-modal {
+  @include position.fixedFullScreen;
+  @include position.flexCenter();
+  background-color: var(--color-primary);
+  padding: 16px;
+  z-index: 1;
+
+  &_content {
+    @include grid.container(722px);
+    @include position.flexCenter();
+    gap: 24px;
+  }
+
+  &_body {
+    @include grid.directionColumn();
+    justify-content: center;
+    align-items: flex-start;
+    gap: 28px;
+  }
+}

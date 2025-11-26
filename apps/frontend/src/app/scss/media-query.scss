@@ -1,0 +1,16 @@
+@use 'sass:map';
+
+@use "variables/index.scss" as *;
+
+$breakpoints: (
+	'sm': $mobile,
+	'md': $tablet,
+	'lg': $desktop,
+	'xl': $desktop-lg,
+);
+
+@mixin media-query($breakpoint) {
+	@media screen and (min-width: map.get($breakpoints, $breakpoint)) {
+		@content;
+	}
+}

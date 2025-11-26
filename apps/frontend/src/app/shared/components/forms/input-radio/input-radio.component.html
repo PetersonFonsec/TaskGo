@@ -1,0 +1,18 @@
+<label class="radio">
+  <div class="radio-input">
+    <input
+      type="radio"
+      [value]="value()"
+      [(ngModel)]="val"
+      [name]="name()"
+      (change)="toggle(val)"
+      [id]="id()"
+    />
+
+    <div class="radio-bullet"></div>
+  </div>
+
+  <div class="radio-label">
+    <ng-content></ng-content>
+  </div>
+</label>

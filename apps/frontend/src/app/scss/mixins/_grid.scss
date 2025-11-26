@@ -1,0 +1,27 @@
+@mixin overflowLateralPadding($padding) {
+  width: calc(100% + ($padding * 2));
+  margin-left: ($padding * -1);
+}
+
+@mixin container($size) {
+  max-width: $size;
+  margin: 0 auto;
+  width: 100%;
+}
+
+@mixin grid($minWidthItem, $gap){
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax($minWidthItem, 1fr));
+  gap: $gap;
+}
+
+@mixin directionColumn() {
+  display: flex;
+  align-items: center;
+  flex-direction: column;
+  justify-content: flex-start;
+}
+
+@mixin filledHeigthPage($header: 132px) {
+  min-height: calc(100vh - $header);
+}

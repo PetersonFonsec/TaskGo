@@ -1,0 +1,264 @@
+/* You can add global styles to this file, and also import other style files */
+:root {
+  --color-primary: #000000;
+  --color-primary-rgb: 0, 102, 0;
+  --color-primary-contrast: #fff;
+  --color-primary-contrast-rgb: 255, 255, 255;
+  --color-customer-shade: #2c71c8;
+  --color-customer-tint: #478de6;
+
+  --color-secondary: #006600;
+  --color-secondary-rgb: 0, 102, 0;
+  --color-secondary-contrast: #ffffff;
+  --color-secondary-contrast-rgb: 255, 255, 255;
+  --color-secondary-shade: #005a00;
+  --color-secondary-tint: #1a751a;
+  --color-secondary-shade: #2c71c8;
+  --color-secondary-tint: #478de6;
+
+  --color-secondary: #006600;
+  --color-secondary-rgb: 0, 102, 0;
+  --color-secondary-contrast: #ffffff;
+  --color-secondary-contrast-rgb: 255, 255, 255;
+  --color-secondary-shade: #005a00;
+  --color-secondary-tint: #1a751a;
+
+  --color-provider: #7353C0;
+  --color-provider-rgb: 115, 83, 192;
+  --color-provider-contrast: #ffffff;
+  --color-provider-contrast-rgb: 255, 255, 255;
+  --color-provider-shade: #6549a9;
+  --color-provider-tint: #8164c6;
+
+  --color-customer: #3280E3;
+  --color-customer-rgb: 50, 128, 227;
+  --color-customer-contrast: #ffffff;
+  --color-customer-contrast-rgb: 255, 255, 255;
+  --color-customer-shade: #2c71c8;
+  --color-customer-tint: #478de6;
+
+  --color-primary: var(--color-customer);
+  --color-primary-rgb: var(--color-customer-rgb);
+  --color-primary-contrast: var(--color-customer-contrast);
+  --color-primary-contrast-rgb: var(--color-customer-contrast-rgb);
+  --color-primary-shade: var(--color-customer-shade);
+  --color-primary-tint: var(--color-customer-tint);
+
+  --color-secondary: var(--color-provider);
+  --color-secondary-rgb: var(--color-provider-rgb);
+  --color-secondary-contrast: var(--color-provider-contrast);
+  --color-secondary-contrast-rgb: var(--color-provider-contrast-rgb);
+  --color-secondary-shade: var(--color-provider-shade);
+  --color-secondary-tint: var(--color-provider-tint);
+
+  --color-success-1: #1be417;
+  --color-success-2: #3cf138;
+  --color-success-3: #59fb56;
+  --color-success-4: #7bff78;
+  --color-success-5: #bdffbc;
+
+  --color-error-1: #ff1616;
+  --color-error-2: #ff3333;
+  --color-error-3: #ff5151;
+  --color-error-4: #ff6a6a;
+  --color-error-5: #ffb5b5;
+
+  --color-info-1: #16abff;
+  --color-info-2: #35b6ff;
+  --color-info-3: #52c1ff;
+  --color-info-4: #73cdff;
+  --color-info-5: #b9e6ff;
+
+  --color-neutral-1: #afafaf;
+  --color-neutral-2: #D9D9D9;
+  --color-neutral-3: #E5E7EB;
+
+  --background-color: #fff !important;
+  --background-color-rgb: 255, 255, 255;
+  --text-color: #ffffff;
+  --text-color-rgb: 255, 255, 255;
+
+  --primary-font-family: "Inter", sans-serif;
+  --secondary-font-family: Arial, sans-serif;
+
+  --font-weight-regular: 400;
+  --font-weight-medium: 600;
+  --font-weight-bold: 700;
+
+  --transition: 0.3s ease-in-out;
+
+  --font-color-dark: #000000;
+  --font-color-light: #FFFFFF;
+  --font-color-neutral: #afafaf;
+
+  --border-radius-1: 12px;
+  --border: 16px;
+
+  --font-size-1: 14px;
+  --font-size-2: 16px;
+  --font-size-3: 18px;
+  --font-size-4: 22px;
+  --font-size-5: 28px;
+
+  --text: var(--font-size-3) var(--font-weight-regular) normal var(--primary-font-family);
+
+  --title: var(--font-size-4) var(--font-weight-bold) normal var(--primary-font-family);
+
+  --title-secondary: var(--font-size-4) var(--font-weight-bold) normal var(--primary-font-family);
+
+  --space-1: 4px;
+  --space-2: 6px;
+  --space-3: 8px;
+  --space-4: 12px;
+  --space-5: 14px;
+  --space-6: 16px;
+  --space-7: 18px;
+  --space-8: 20px;
+  --space-9: 22px;
+  --space-10: 24px;
+  --space-11: 32px;
+  --space-12: 34px;
+  --space-13: 38px;
+  --space-14: 40px;
+  --space-15: 44px;
+  --space-18: 48px;
+  --space-19: 62px;
+
+  --container-size: 1018px;
+  --container-size-small: 612px;
+}
+
+.scroll-style {
+  &::-webkit-scrollbar {
+    display: none;
+  }
+}
+
+* {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+}
+
+a {
+  text-decoration: none;
+  color: inherit;
+  cursor: pointer;
+}
+
+ol,
+ul {
+  list-style: none;
+  padding: 0;
+}
+
+body,
+html {
+  font-family: var(--primary-font-family);
+  margin: 0;
+  padding: 0;
+  overflow-x: hidden;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+.main-title {
+  display: block;
+  color: var(--font-color-dark);
+  font-size: var(--font-size-4);
+  font-weight: var(--font-weight-bold);
+  font-family: var(--primary-font-family);
+}
+
+.subtitle {
+  display: block;
+
+  color: var(--font-color-dark);
+  font-size: var(--font-size-3);
+  font-weight: var(--font-weight-medium);
+  font-family: var(--primary-font-family);
+  width: 100%;
+}
+
+.text {
+  display: block;
+  color: var(--font-color-dark);
+  font-size: var(--font-size-3);
+  font-weight: var(--font-weight-regular);
+  font-family: var(--primary-font-family);
+
+  strong {
+    display: inline-block;
+    font-weight: var(--font-weight-bold);
+  }
+}
+
+.color-light {
+  color: var(--font-color-light);
+}
+
+.color-neutral {
+  color: var(--font-color-neutral);
+}
+
+alert,
+app-card-detail,
+app-step,
+app-button,
+app-input-text {
+  display: block;
+  width: 100%;
+}
+
+app-services,
+app-category,
+app-social,
+app-register,
+app-profile,
+app-login {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  height: 100%;
+  width: 100%;
+}
+
+app-step {
+  cursor: pointer;
+}
+
+.slide-item {
+  scroll-snap-align: start;
+}
+
+html[data-theme="CUSTOMER"] {
+  --color-primary: var(--color-customer);
+  --color-primary-rgb: var(--color-customer-rgb);
+  --color-primary-contrast: var(--color-customer-contrast);
+  --color-primary-contrast-rgb: var(--color-customer-contrast-rgb);
+  --color-primary-shade: var(--color-customer-shade);
+  --color-primary-tint: var(--color-customer-tint);
+
+  --color-secondary: var(--color-provider);
+  --color-secondary-rgb: var(--color-provider-rgb);
+  --color-secondary-contrast: var(--color-provider-contrast);
+  --color-secondary-contrast-rgb: var(--color-provider-contrast-rgb);
+  --color-secondary-shade: var(--color-provider-shade);
+  --color-secondary-tint: var(--color-provider-tint);
+}
+
+html[data-theme="PROVIDER"] {
+  --color-primary: var(--color-provider);
+  --color-primary-rgb: var(--color-provider-rgb);
+  --color-primary-contrast: var(--color-provider-contrast);
+  --color-primary-contrast-rgb: var(--color-provider-contrast-rgb);
+  --color-primary-shade: var(--color-provider-shade);
+  --color-primary-tint: var(--color-provider-tint);
+
+  --color-secondary: var(--color-customer);
+  --color-secondary-rgb: var(--color-customer-rgb);
+  --color-secondary-contrast: var(--color-customer-contrast);
+  --color-secondary-contrast-rgb: var(--color-customer-contrast-rgb);
+  --color-secondary-shade: var(--color-customer-shade);
+  --color-secondary-tint: var(--color-customer-tint);
+}

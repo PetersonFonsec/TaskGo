@@ -1,0 +1,46 @@
+@use "../../../../scss/mixins/geometric";
+@use "../../../../scss/mixins/position";
+
+.radio {
+  cursor: pointer;
+  display: flex;
+  flex-direction: column;
+  width: max-content;
+
+  &-input {
+    @include geometric.circle(40px);
+    background-color: var(--neutral-color-2);
+    position: relative;
+
+    input {
+      pointer-events: none;
+      display: none;
+    }
+  }
+
+  &-bullet {
+    @include position.absoluteCenter();
+    @include geometric.circle(26px);
+    background-color: var(--primary-color-1);
+    pointer-events: none;
+    opacity: 0;
+    transition: var(--transition);
+  }
+
+  input:checked + &-bullet {
+    opacity: 1;
+  }
+
+  &-label {
+    color: var(--font-color-dark);
+    display: block;
+    font-family: var(--primary-font-family);
+    font-style: normal;
+    line-height: normal;
+    margin: 0;
+    margin-top: 8px;
+    max-width: 100%;
+    pointer-events: none;
+    text-decoration: none;
+  }
+}
