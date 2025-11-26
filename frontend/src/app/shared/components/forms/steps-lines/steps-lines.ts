@@ -1,5 +1,5 @@
 import { Component, computed, contentChildren, Directive, input, OnInit, output, signal } from '@angular/core';
-import { CommonModule } from '@angular/common';
+
 import { Step } from '../step/step';
 
 @Directive({
@@ -10,7 +10,7 @@ export class StepDirective { }
 
 @Component({
   selector: 'app-steps-lines',
-  imports: [CommonModule],
+  imports: [],
   templateUrl: './steps-lines.html',
   styleUrl: './steps-lines.scss',
 })

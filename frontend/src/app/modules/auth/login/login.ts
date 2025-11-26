@@ -7,7 +7,6 @@ import { FormsModule } from '@angular/forms';
 import { InputTextComponent } from '@shared/components/forms/input-text/input-text.component';
 import { ButtonComponent } from '@shared/components/ui/button/button.component';
 import { AlertComponent } from '@shared/components/ui/alert/alert.component';
-import { fadeAnimation } from '@shared/animations/fade/fade.animation';
 import { UserRegister } from '@shared/service/users/user-register';
 import { Utils } from '@shared/service/utils/utils.service';
 
@@ -22,7 +21,6 @@ import { Utils } from '@shared/service/utils/utils.service';
   ],
   templateUrl: './login.html',
   styleUrl: './login.scss',
-  animations: [fadeAnimation]
 })
 export class Login {
   #liveAnnouncer = inject(LiveAnnouncer);

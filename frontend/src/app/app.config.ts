@@ -7,10 +7,10 @@ import { provideRouter } from '@angular/router';
 import { tokenInterceptor } from '@shared/interceptors/token/token.interceptor';
 import { errorInterceptor } from '@shared/interceptors/error/error.interceptor';
 
-import { IConfig, provideEnvironmentNgxMask } from 'ngx-mask';
+import { provideEnvironmentNgxMask } from 'ngx-mask';
 import { routes } from './app.routes';
 
-const maskConfig: Partial<IConfig> = {
+const maskConfig: Partial<any> = {
   validation: false,
 };
 
