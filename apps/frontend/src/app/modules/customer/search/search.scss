@@ -1,0 +1,45 @@
+@use "mixins/animations";
+@use "mixins/grid";
+
+#customer-search {
+  @include grid.container(var(--container-size));
+  @include grid.directionColumn();
+  align-items: flex-start;
+  cursor: pointer;
+
+  &_filters {
+    width: 100%;
+
+    &_header {
+      display: block;
+      margin-bottom: var(--space-19);
+    }
+
+    &_content {
+      display: flex;
+      gap: var(--space-6);
+      margin-top: var(--space-6);
+    }
+  }
+
+  &_providers {
+    width: 100%;
+
+    &_header {
+      margin-bottom: var(--space-12);
+
+      .subtitle {
+        margin-bottom: var(--space-2);
+      }
+    }
+
+    ul {
+      @include grid.grid(280px, var(--space-6));
+      width: 100%;
+    }
+
+    li {
+      @extend .selectable;
+    }
+  }
+}

@@ -1,0 +1,42 @@
+@use "../../../scss/mixins/grid" as grid;
+
+#login-form {
+  @include grid.directionColumn();
+  @include grid.container(400px);
+  max-height: 500px;
+  height: 100%;
+
+  &_links {
+    text-align: center;
+
+    a {
+      margin-bottom: var(--space-4);
+    }
+  }
+
+  &_links,
+  &_footer,
+  &_content,
+  &_header {
+    display: block;
+    margin-bottom: var(--space-10);
+    width: 100%;
+  }
+
+  &_header {
+    display: flex;
+    gap: var(--space-6);
+    flex-direction: column;
+  }
+
+  &_content {
+    flex: 1;
+    gap: var(--space-6);
+  }
+
+  alert {
+    margin: 24px 0;
+  }
+
+  &_footer {}
+}

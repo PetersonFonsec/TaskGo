@@ -1,0 +1,13 @@
+<div class="filter" [class.selected]="selected()">
+  <div class="filter_content">
+    <ng-content>
+      {{ title() }}
+    </ng-content>
+  </div>
+
+  @if (mutiples()) {
+    <div class="filter_icon">
+      <fa-icon [icon]="icon"></fa-icon>
+    </div>
+  }
+</div>

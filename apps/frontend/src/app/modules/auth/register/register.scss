@@ -1,0 +1,51 @@
+@use "/mixins/grid";
+
+#register-form {
+  @include grid.directionColumn();
+  @include grid.container(400px);
+  height: 100%;
+  padding: var(--space-10) 0;
+
+  &_links {
+    text-align: center;
+
+    a {
+      margin-bottom: var(--space-4);
+    }
+  }
+
+  &_links,
+  &_footer,
+  &_content,
+  &_header {
+    display: block;
+    margin-bottom: var(--space-10);
+    width: 100%;
+  }
+
+  &_header {
+    display: flex;
+    gap: var(--space-6);
+    flex-direction: column;
+  }
+
+  &_content {
+    flex: 1;
+    gap: var(--space-6);
+    display: flex;
+    flex-direction: column;
+    align-items: flex-start;
+
+    .row {
+      display: flex;
+      width: 100%;
+      align-items: center;
+      justify-content: flex-start;
+      gap: 12px;
+    }
+  }
+
+  &_footer {
+    margin-bottom: 0;
+  }
+}

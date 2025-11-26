@@ -1,0 +1,96 @@
+.input-text {
+  align-items: flex-start;
+  display: flex;
+  flex-direction: column;
+  position: relative;
+  width: 100%;
+
+  &.disabled {
+    opacity: 0.3;
+    pointer-events: none;
+  }
+
+  .error-msg {
+    display: none;
+  }
+
+  input {
+    appearance: none;
+    background: var(--background-color);
+    border: 1px solid var(--color-neutral-1);
+    border-radius: var(--border-radius-1);
+    box-sizing: border-box;
+    padding: var(--space-6);
+    transition: var(--transition);
+    width: 100%;
+    color: var(--primary-color);
+    font-size: var(--font-size-3);
+    font-family: var(--primary-font-family);
+    font-style: normal;
+    font-weight: 600;
+    line-height: normal;
+    outline: none;
+    appearance: none;
+
+    &::placeholder {
+      color: var(--color-neutral-1);
+      font-size: var(--font-size-3);
+      font-style: normal;
+      font-weight: var(--font-weight-regular);
+      font-family: var(--primary-font-family);
+      line-height: normal;
+    }
+
+    &:active,
+    &:focus-visible,
+    &:focus {
+      border: 1px solid var(--color-info-1);
+      box-shadow: 0px 0px 2px 2px rgba(115, 205, 255, 1);
+    }
+  }
+
+  label {
+    display: block;
+    font-weight: var(--font-weight-bold);
+    font-family: var(--primary-font-family);
+    margin-bottom: var(--space-2);
+    color: var(--font-color-dark);
+    font-size: var(--font-size-3);
+    font-style: normal;
+    line-height: normal;
+  }
+
+  &.has-error {
+    input::placeholder,
+    label {
+      color: var(--color-error-1);
+    }
+
+    input {
+      border-color: var(--color-error-1);
+
+      &:active,
+      &:focus-visible,
+      &:focus {
+        box-shadow: 0px 0px 2px 2px rgba(255, 106, 106, 0.4);
+      }
+    }
+  }
+
+  &.success {
+    input::placeholder,
+    label {
+      color: var(--color-success-1);
+    }
+
+    input {
+      border-color: var(--color-success-1);
+
+      &:active,
+      &:focus-visible,
+      &:focus {
+        box-shadow: 0px 0px 2px 2px rgba(123, 255, 120, 0.4);
+      }
+    }
+  }
+}

@@ -1,0 +1,71 @@
+<div id="single-user">
+  <section id="single-user_profile">
+    <div id="single-user_profile_avatar">
+      <app-avatar [thumb]="provider()?.user?.photoUrl" [alt]="provider()?.user?.name" />
+    </div>
+
+    <div id="single-user_profile_content">
+      <h1 class="main-title">
+        {{ provider()?.user?.name}}
+      </h1>
+
+      <h2 class="subtitle">Serviços prestados</h2>
+
+      <div id="single-user_profile_content_services">
+        @for (service of provider()?.services; track $index) {
+        <app-badge [selected]="true" color="provider">
+          {{ service.title }}
+        </app-badge>
+        }
+      </div>
+
+      <app-footer-links title="Redes Sociais" [links]="socialLinks" direction="horizontal" />
+    </div>
+  </section>
+
+  @if(provider()?.bio) {
+  <section id="single-user_content">
+    <h3 class="subtitle">
+      Sobre o Profissional
+    </h3>
+
+    <p class="text">
+      {{provider().bio}}
+    </p>
+  </section>
+  }
+
+  <section id="single-user_contratar">
+    <h3 class="subtitle">
+      Gostaria de contratar os serviços do
+      {{ provider()?.user?.name}}?
+    </h3>
+
+    <app-button (click)="register()" color="provider">
+      Contratar Serviço
+    </app-button>
+  </section>
+
+
+  @if(provider()?.reviews?.length) {
+  <section id="single-user_appointments">
+    <h2 id="single-user_appointments_title" class="subtitle">
+      Feedbacks sobre o
+      {{ provider()?.user?.name}}
+    </h2>
+
+    <app-slider [gap]="14" [perpage]="3" id="single-user_appointments_list">
+      @for (review of provider()?.reviews; track $index) {
+      <app-card slide-item [title]="'Nota: '+review.rating">
+        <p class="text">
+          {{review.comment}}
+        </p>
+      </app-card>
+      }
+    </app-slider>
+  </section>
+  }
+</div>
+
+<app-full-modal (closeModal)="goToHome()" [showModal]="showModal()" title="Sua solicitação foi feita!!"
+  message="Seu pedido foi feito. Agora iremos te atualalizar quando o profissional aceitar a sua solicitação" />

@@ -1,0 +1,20 @@
+<main id="auth-page">
+  <app-layout-slider (change)="updateTheme($event)" id="auth-page_container">
+    <app-layout-slider-item (createdAccount)="goToCreateAccountForm($event)" (login)="goToLoging($event)"
+      title="Quero divulgar o meu serviço" subtitle="Consiga clientes de forma rapida facil e acima de tudo gratuita!"
+      [disabled]="disabledaActions()" [userType]="userType.PROVIDER">
+      <img slot="ilustration" src="/ilustrations/provider-illustration.png"
+        alt="Ilustração de um prestador de serviço" />
+    </app-layout-slider-item>
+
+    <app-layout-slider-item (createdAccount)="goToCreateAccountForm($event)" (login)="goToLoging($event)"
+      title="Quero encontrar um cliente" subtitle="Consiga clientes de forma rapida facil e acima de tudo gratuita!"
+      [disabled]="disabledaActions()" [userType]="userType.CUSTOMER">
+      <img slot="ilustration" src="/ilustrations/customer-illustration.png" alt="Ilustração de um cliente" />
+    </app-layout-slider-item>
+  </app-layout-slider>
+
+  <aside id="auth-page_forms">
+    <router-outlet (activate)='onActivate($event)'></router-outlet>
+  </aside>
+</main>

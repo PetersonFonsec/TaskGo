@@ -1,0 +1,37 @@
+<form #form="ngForm" (ngSubmit)="login()" id="login-form">
+  <header id="login-form_header">
+    <h2 class="main-title">Login</h2>
+    <p class="text">Por favor, insira suas credenciais para acessar sua conta.</p>
+  </header>
+
+  <div id="login-form_content">
+    <app-input-text name="email" id="email" type="email" label="Email" [autofocus]="true" [required]="true"
+      placeholder="Informe o seu email" #email="ngModel" [(ngModel)]="payload.email" />
+
+    <app-input-text name="senha" id="senha" [(ngModel)]="payload.password" type="password" label="Senha"
+      #password="ngModel" [required]="true" placeholder="Informe a sua senha" />
+  </div>
+
+  <div id="login-form_links">
+    <a routerLink="/authenticate/forgot-password" class="text color-neutral">
+      Esqueceu a senha ? <strong class="text">Clique aqui.</strong>
+    </a>
+
+    <a routerLink="/authenticate/register" class="text color-neutral">
+      Ainda não tem uma conta ?
+      <strong class="text">Cadastre-se !</strong>
+    </a>
+  </div>
+
+  @if (error()) {
+    <alert @fade>
+      {{ error() }}
+    </alert>
+  }
+
+  <footer id="login-form_footer">
+    <app-button type="submit" [disabled]="!!form.invalid" color="primary">
+      Entrar
+    </app-button>
+  </footer>
+</form>

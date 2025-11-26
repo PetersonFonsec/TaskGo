@@ -1,0 +1,40 @@
+<form id="register-form">
+  <header id="register-form_header">
+    <h2 class="main-title">Criar a sua conta</h2>
+    <p class="text">Que tipo de conta você gostaria de criar? como profissional ou cliente?</p>
+  </header>
+
+  <div id="register-form_content">
+    <div class="row">
+      <app-badge [selected]="userType == roles.PROVIDER" (click)="changeTheme(roles.PROVIDER)">Profissional</app-badge>
+      <app-badge [selected]="userType == roles.CUSTOMER" (click)="changeTheme(roles.CUSTOMER)">Cliente</app-badge>
+    </div>
+
+    <app-steps-lines #registerSteps title="Passos para completar seu cadastro">
+      <app-step routerLink="/authenticate/profile" [complete]="completeSteps.profile">Perfil</app-step>
+      <app-step routerLink="/authenticate/contact" [complete]="completeSteps.contact">Contato</app-step>
+      <app-step routerLink="/authenticate/address" [complete]="completeSteps.address">Localização</app-step>
+
+      @if (userType == roles.PROVIDER) {
+      <app-step routerLink="/authenticate/category" [complete]="completeSteps.service">
+        Anunciar um serviço
+      </app-step>
+      }
+    </app-steps-lines>
+  </div>
+
+  @if (error()) {
+  <alert>
+    {{ error()}}
+  </alert>
+  }
+
+  <footer id="register-form_footer">
+    <app-button [disabled]="!registerSteps.allStepsCompletes()" (click)="register()" color="primary">
+      Criar sua conta
+    </app-button>
+  </footer>
+</form>
+
+<app-full-modal (closeModal)="goToHome()" [showModal]="showModal()" title="Perfil Criado!!"
+  message="Seu perfil foi criado com sucesso agora é possível anunciar os seus serviços" />

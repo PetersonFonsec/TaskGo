@@ -1,0 +1,18 @@
+<label class="checkbox">
+  <div class="checkbox-input">
+    <input
+      type="checkbox"
+      [value]="value()"
+      [(ngModel)]="val"
+      [name]="name()"
+      (change)="toggle(val)"
+      [id]="id()"
+    />
+
+    <div class="checkbox-bullet"></div>
+  </div>
+
+  <div class="checkbox-label">
+    <ng-content></ng-content>
+  </div>
+</label>

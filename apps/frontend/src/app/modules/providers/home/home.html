@@ -1,0 +1,82 @@
+<div id="provider-home">
+  <h1 id="provider-home_title" class="main-title">Ola, Peterson</h1>
+
+  <section id="provider-home_appointments">
+    <h2 id="provider-home_appointments_title" class="subtitle">
+      Seus agendamentos Pendentes de aprovação
+    </h2>
+
+    @if(orders().length) {
+    <app-slider [gap]="14" [perpage]="3" id="provider-home_appointments_list">
+      @for (order of orders(); track $index) {
+      <app-card [routerLink]="order.id+'/aprovacao'" slide-item>
+        <p class="text">Cliente: {{ order.client?.name }}</p>
+        <p class="text">Solicitou o serviço: {{ order?.service?.title }}</p>
+        <p class="text normalize">
+          Status: {{order.status}}
+        </p>
+      </app-card>
+      }
+    </app-slider>
+
+    } @else {
+    <div id="provider-home_appointments_empty">
+      <h2 class="subtitle">
+        Você não possui nenhum pedido pendente.
+      </h2>
+    </div>
+    }
+  </section>
+
+  <section id="provider-home_history">
+    <h2 id="provider-home_history_title" class="subtitle">Históricos de serviços</h2>
+
+    <app-slider [gap]="14" [perpage]="3" id="provider-home_history_list">
+      <app-card slide-item title="Diarista 1">
+        <p class="text">Casa - Rua Teresa Barbarossa </p>
+        <p class="text">23 de Maio - 10:00 </p>
+        <p class="text">Ana Souza </p>
+      </app-card>
+      <app-card slide-item title="Diarista 2">
+        <p class="text">Casa - Rua Teresa Barbarossa </p>
+        <p class="text">23 de Maio - 10:00 </p>
+        <p class="text">Ana Souza </p>
+      </app-card>
+      <app-card slide-item title="Diarista 3">
+        <p class="text">Casa - Rua Teresa Barbarossa </p>
+        <p class="text">23 de Maio - 10:00 </p>
+        <p class="text">Ana Souza </p>
+      </app-card>
+      <app-card slide-item title="Diarista 4">
+        <p class="text">Casa - Rua Teresa Barbarossa </p>
+        <p class="text">23 de Maio - 10:00 </p>
+        <p class="text">Ana Souza </p>
+      </app-card>
+      <app-card slide-item title="Diarista 5">
+        <p class="text">Casa - Rua Teresa Barbarossa </p>
+        <p class="text">23 de Maio - 10:00 </p>
+        <p class="text">Ana Souza </p>
+      </app-card>
+      <app-card slide-item title="Diarista 6">
+        <p class="text">Casa - Rua Teresa Barbarossa </p>
+        <p class="text">23 de Maio - 10:00 </p>
+        <p class="text">Ana Souza </p>
+      </app-card>
+      <app-card slide-item title="Diarista 7">
+        <p class="text">Casa - Rua Teresa Barbarossa </p>
+        <p class="text">23 de Maio - 10:00 </p>
+        <p class="text">Ana Souza </p>
+      </app-card>
+      <app-card slide-item title="Diarista 8">
+        <p class="text">Casa - Rua Teresa Barbarossa </p>
+        <p class="text">23 de Maio - 10:00 </p>
+        <p class="text">Ana Souza </p>
+      </app-card>
+      <app-card slide-item title="Diarista 9">
+        <p class="text">Casa - Rua Teresa Barbarossa </p>
+        <p class="text">23 de Maio - 10:00 </p>
+        <p class="text">Ana Souza </p>
+      </app-card>
+    </app-slider>
+  </section>
+</div>

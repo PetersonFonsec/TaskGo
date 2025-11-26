@@ -1,0 +1,37 @@
+@use "../../../../scss/mixins/grid" as grid;
+
+#service-form {
+  @include grid.directionColumn();
+  @include grid.container(400px);
+  padding: var(--space-10) 0;
+  height: 100%;
+
+  .subtitle,
+  &_links,
+  &_footer,
+  &_content,
+  &_header {
+    display: block;
+    margin-bottom: var(--space-14);
+    width: 100%;
+  }
+
+  &_header {
+    display: flex;
+    gap: var(--space-6);
+    flex-direction: column;
+  }
+
+  &_content {
+    @include grid.directionColumn();
+    align-items: flex-start;
+    gap: var(--space-6);
+    flex: 1;
+  }
+
+  &_footer {
+    display: flex;
+    gap: var(--space-6);
+    margin-bottom: 0;
+  }
+}

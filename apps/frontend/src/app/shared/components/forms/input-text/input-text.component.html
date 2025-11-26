@@ -1,0 +1,24 @@
+<div class="input-text" [ngClass]="{ 'has-error': error(), success: success(), disabled: disabled() }">
+  <div class="input-text_header">
+    <label [for]="id()">{{ label() }}</label>
+
+    <div class="input-text_header_right">
+      <ng-content select="[right]"></ng-content>
+    </div>
+  </div>
+
+  <input
+    #inputHTML
+    [(ngModel)]="value"
+    [disabled]="disabled()"
+    [id]="id()"
+    [required]="required()"
+    [name]="id()"
+    [type]="type()"
+    [mask]="mask()"
+    [placeholder]="placeholder()"
+    [attr.aria-invalid]="error()"
+    [attr.aria-label]="label()"
+    [attr.describe-by]="describeBy()"
+  />
+</div>

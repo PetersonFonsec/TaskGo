@@ -1,0 +1,24 @@
+@use 'mixins/position';
+
+.badge {
+  @include position.flexCenter;
+  background-color: var(--color-neutral-2);
+  border-radius: 14px;
+  color: var(--color-primary);
+  cursor: pointer;
+  padding: var(--space-2) var(--space-8);
+  transition: var(--transition);
+
+  &.color,
+  &.selected {
+    background-color: var(--color-primary);
+    color: var(--color-primary-contrast);
+    font-weight: bold;
+  }
+
+  &.provider {
+    background-color: var(--color-provider);
+    color: var(--color-provider-contrast);
+
+  }
+}

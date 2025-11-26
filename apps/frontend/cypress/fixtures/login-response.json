@@ -1,0 +1,95 @@
+[
+  {
+    "user": {
+      "email": "peterson@gmail.com",
+      "name": "Peterson Fonseca Simião",
+      "role": "DIRECTOR",
+      "photo": "https://imagedelivery.net/Bpbv9d8J9NqFhm--zUdxEA/4613d904-fc22-4fef-d969-2398a5dd1e00/public",
+      "id": 1
+    },
+    "colleges": [
+      {
+        "id": 2,
+        "createdAt": "2024-06-15T02:13:51.855Z",
+        "updatedAt": "2024-06-15T02:13:51.855Z",
+        "name": "senac",
+        "CollegeStyle": [
+          {
+            "id": 2,
+            "createdAt": "2024-06-15T02:13:51.864Z",
+            "updatedAt": "2024-06-15T02:13:51.864Z",
+            "primaryColor": "#004A8D",
+            "secundaryColor": "#F9A94A",
+            "thumb": "https://imagedelivery.net/Bpbv9d8J9NqFhm--zUdxEA/b8b34540-bf8c-429d-dd23-bf8305274100/public",
+            "collegeId": 2
+          }
+        ],
+        "Course": [
+          {
+            "id": 1,
+            "createdAt": "2024-06-21T01:33:03.294Z",
+            "updatedAt": "2024-06-21T01:33:03.294Z",
+            "name": "Conceitos de computação I",
+            "thumb": "https://imagedelivery.net/Bpbv9d8J9NqFhm--zUdxEA/bde971f9-926c-4594-e041-2b270bb03a00/public",
+            "collegeId": 2
+          }
+        ],
+        "CollegeStudent": [],
+        "_count": {
+          "Course": 1,
+          "CollegeStyle": 1,
+          "CollegeStudent": 0
+        }
+      },
+      {
+        "id": 1,
+        "createdAt": "2024-06-15T02:13:51.825Z",
+        "updatedAt": "2024-06-15T02:13:51.825Z",
+        "name": "makenze",
+        "CollegeStyle": [
+          {
+            "id": 1,
+            "createdAt": "2024-06-15T02:13:51.841Z",
+            "updatedAt": "2024-06-15T02:13:51.841Z",
+            "primaryColor": "#212227",
+            "secundaryColor": "#BDD4E7",
+            "thumb": "https://imagedelivery.net/Bpbv9d8J9NqFhm--zUdxEA/9714082b-da85-4fb0-9248-c7be68ad2a00/public",
+            "collegeId": 1
+          }
+        ],
+        "Course": [],
+        "CollegeStudent": [],
+        "_count": {
+          "Course": 0,
+          "CollegeStyle": 1,
+          "CollegeStudent": 0
+        }
+      }
+    ],
+    "calendar": [],
+    "access_token": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJlbWFpbCI6InBldGVyc29uQGdtYWlsLmNvbSIsIm5hbWUiOiJQZXRlcnNvbiBGb25zZWNhIFNpbWnDo28iLCJyb2xlIjoiRElSRUNUT1IiLCJwaG90byI6Imh0dHBzOi8vaW1hZ2VkZWxpdmVyeS5uZXQvQnBidjlkOEo5TnFGaG0tLXpVZHhFQS80NjEzZDkwNC1mYzIyLTRmZWYtZDk2OS0yMzk4YTVkZDFlMDAvcHVibGljIiwiaWQiOjEsImlhdCI6MTcxOTA5MDA4MiwiZXhwIjoxNzE5MDkzNjgyLCJzdWIiOiIxIn0.yEejjBZ9LpNG3-C0XW4lXHagOPHbGeq5-y-GLELoMJM"
+  },
+  {
+    "user": {
+      "email": "thaina@gmail.com",
+      "name": "Thaina Alexandre Silva",
+      "role": "STUDENT",
+      "photo": "",
+      "id": 2
+    },
+    "colleges": [],
+    "calendar": [],
+    "access_token": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJlbWFpbCI6InRoYWluYUBnbWFpbC5jb20iLCJuYW1lIjoiVGhhaW5hIEFsZXhhbmRyZSBTaWx2YSIsInJvbGUiOiJTVFVERU5UIiwicGhvdG8iOiIiLCJpZCI6MiwiaWF0IjoxNzE5MDkwNjIzLCJleHAiOjE3MTkwOTQyMjMsInN1YiI6IjIifQ.Uy0mp9Oz1Z2svuVLa_lm03fVzKnMv0KS8vehLGxYu5k"
+  },
+  {
+    "user": {
+      "email": "bianca@gmail.com",
+      "name": "Bianca Fonseca Simião",
+      "role": "DIRECTOR",
+      "photo": "https://imagedelivery.net/Bpbv9d8J9NqFhm--zUdxEA/ce7509f2-0d8f-490e-81a6-1531005e8100/public",
+      "id": 2
+    },
+    "colleges": [],
+    "access_token": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJlbWFpbCI6ImJpYW5jYUBnbWFpbC5jb20iLCJuYW1lIjoiQmlhbmNhIEZvbnNlY2EgU2ltacOjbyIsInJvbGUiOiJESVJFQ1RPUiIsInBob3RvIjoiaHR0cHM6Ly9pbWFnZWRlbGl2ZXJ5Lm5ldC9CcGJ2OWQ4SjlOcUZobS0telVkeEVBL2NlNzUwOWYyLTBkOGYtNDkwZS04MWE2LTE1MzEwMDVlODEwMC9wdWJsaWMiLCJpZCI6MiwiaWF0IjoxNzQ3MDk1OTkwLCJleHAiOjE3NDcwOTk1OTAsInN1YiI6IjIifQ.dwCXKGHm_cXU8mhg28-8tL5W2c_3zwEpJBREWcYtUZM"
+  }
+]

@@ -1,0 +1,19 @@
+<div class="footer-links">
+  <h4 class="footer-links_title">{{title()}}</h4>
+
+  <ul class="footer-links_list {{ direction() }}">
+    @for (link of links(); track $index) {
+    <li>
+      @if (link.type === 'text') {
+      <a class="text" [routerLink]="link.link">
+        {{ link.text }}
+      </a>
+      } @else {
+        <a [href]="link.link" target="_blank" rel="noopener noreferrer">
+          <fa-icon [icon]="link.icon" />
+        </a>
+      }
+    </li>
+    }
+  </ul>
+</div>
