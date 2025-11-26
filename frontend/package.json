@@ -42,7 +42,6 @@
     "express": "^5.1.0",
     "ngx-mask": "^17.0.7",
     "rxjs": "~7.8.0",
-    "storybook": "^9.1.13",
     "tslib": "^2.3.0"
   },
   "devDependencies": {
@@ -50,9 +49,6 @@
     "@angular/build": "^20.3.7",
     "@angular/cli": "^20.3.7",
     "@angular/compiler-cli": "^20.3.7",
-    "@storybook/addon-docs": "^9.1.13",
-    "@storybook/addon-onboarding": "^9.1.13",
-    "@storybook/angular": "^9.1.13",
     "@types/express": "^5.0.1",
     "@types/jasmine": "~5.1.12",
     "@types/node": "^20.17.19",
