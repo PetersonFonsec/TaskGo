@@ -1,7 +1,0 @@
-{
-  "name": "taskgo",
-  "integrations": {
-    "capacitor": {}
-  },
-  "type": "angular-standalone"
-}
