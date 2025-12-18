@@ -1,0 +1,35 @@
+<div class="profile-header">
+  <app-avatar thumb="https://i.pravatar.cc/150?img=3" alt="imagem de perfil" class="profile-header_thumb" />
+
+  <div class="profile-header_content">
+    <div class="profile-header_content-info">
+      <p class="main-title name">João da Silva</p>
+    </div>
+    <!-- <a class="text email" href="mailto:joao.silva@example.com">
+        joao.silva@example.com
+      </a>
+
+      <a class="text phone" href="tel:+5511912345678">
+        +55 11 91234-5678
+      </a> -->
+
+    @if (services().length) {
+    <div class="profile-header_content-info">
+      <p class="subtitle"> Serviços prestados </p>
+
+      <ul>
+        @for (service of services(); track $index) {
+        <li>
+          <app-badge color="provider">
+            {{service}}
+          </app-badge>
+        </li>
+        }
+      </ul>
+    </div>
+    }
+
+    <app-footer-links class="profile-header_content-info" title="Redes Sociais" [links]="socialLinks"
+      direction="horizontal" />
+  </div>
+</div>

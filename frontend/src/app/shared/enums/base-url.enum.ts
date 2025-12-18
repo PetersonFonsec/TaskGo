@@ -4,4 +4,5 @@ export enum UrlBase {
   INSTITUTIONAL = 'institutional',
   CUSTOMER = 'customer',
   PROVIDER = 'provider',
+  GENERAL = 'general',
 }

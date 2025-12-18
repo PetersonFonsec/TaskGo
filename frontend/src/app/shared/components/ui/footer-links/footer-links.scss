@@ -1,7 +1,8 @@
-@use "../../../../scss/mixins/grid";
+@use "mixins/grid";
 
 .footer-links {
   @include grid.directionColumn();
+  align-items: flex-start;
 
   &_title {
     margin-bottom: var(--space-5);

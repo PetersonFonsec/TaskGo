@@ -1,0 +1,29 @@
+.profile-header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: flex-start;
+  gap: 48px;
+
+  &_thumb {}
+
+  &_content-info {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+
+    ul {
+      gap: 8px;
+      display: flex;
+      flex-wrap: wrap;
+      max-width: 400px;
+      justify-items: flex-start;
+      align-items: flex-start;
+    }
+  }
+
+  &_content {
+    display: flex;
+    flex-direction: column;
+    gap: 20px;
+  }
+}

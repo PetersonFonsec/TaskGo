@@ -1,0 +1,16 @@
+@use "mixins/grid";
+@use "mixins/position";
+@use "variables/breakpoints";
+
+#profile-home {
+  @include grid.container(var(--container-size));
+  height: 100%;
+
+  &_title {
+    margin-bottom: var(--space-10);
+
+    @media (min-width: breakpoints.$tablet) {
+      margin-bottom: var(--space-19);
+    }
+  }
+}
