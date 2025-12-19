@@ -1,0 +1,17 @@
+<section class="home">
+  <header class="home_header">
+    <h2 class="subtitle">Menus</h2>
+  </header>
+
+  <div class="home_container">
+    <ul>
+      @for (item of itens; track $index) {
+      <li>
+        <a [routerLink]="item.link" class="home_card-link">
+          <app-card-menu [title]="item.title" [subtitle]="item.subtitle" [icon]="item.icon" />
+        </a>
+      </li>
+      }
+    </ul>
+  </div>
+</section>

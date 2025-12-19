@@ -1,0 +1,15 @@
+@use "mixins/grid";
+
+.home {
+  @include grid.directionColumn();
+  align-items: flex-start;
+  gap: var(--space-6);
+
+  &_container {
+    width: 100%;
+
+    ul {
+      @include grid.grid(288px, var(--space-4));
+    }
+  }
+}
