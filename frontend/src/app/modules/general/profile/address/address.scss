@@ -1,0 +1,17 @@
+@use "mixins/grid";
+
+.address {
+  @include grid.directionColumn();
+  align-items: flex-start;
+  gap: var(--space-19);
+
+  &_container {
+    width: 100%;
+
+    ::ng-deep .tab-header {
+      gap: 12px;
+      max-width: 100%;
+      width: 400px;
+    }
+  }
+}

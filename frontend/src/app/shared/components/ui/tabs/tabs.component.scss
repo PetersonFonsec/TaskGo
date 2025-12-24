@@ -1,0 +1,61 @@
+.tab {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  justify-content: flex-start;
+  gap: 24px;
+  width: 100%;
+
+  &.column {
+    flex-direction: row;
+  }
+
+  &.column &-header {
+    flex-direction: column;
+    align-items: flex-start;
+
+    & .tab-item {
+      margin-right: 0 !important;
+      margin-bottom: 16px;
+
+      &:last-child {
+        margin-bottom: 0 !important;
+      }
+    }
+  }
+
+  &-header {
+    display: flex;
+    margin-bottom: 24px;
+  }
+
+  &-active {
+    transition: var(--transition);
+  }
+
+  &-active {
+    transition: var(--transition);
+  }
+
+  &-content {
+    width: 100%;
+  }
+
+  &-item {
+    cursor: pointer;
+
+    &:not(:last-child) {
+      margin-right: 24px;
+    }
+
+    &:not(.tab-active) {
+      opacity: 0.5;
+      font-weight: normal;
+
+      &::after {
+        content: "";
+        background-color: transparent;
+      }
+    }
+  }
+}

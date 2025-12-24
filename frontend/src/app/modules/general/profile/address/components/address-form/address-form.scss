@@ -1,0 +1,27 @@
+@use "mixins/grid";
+@use "mixins/position";
+@use "variables/breakpoints";
+
+.address-form {
+  @include grid.directionColumn();
+  gap: 22px;
+
+  &_header {
+    margin-bottom: 24px;
+    width: 100%;
+  }
+
+  &_content {
+    @include grid.grid(280px, var(--space-6));
+    width: 100%;
+    gap: 22px;
+  }
+
+  &_footer {
+    align-items: flex-start;
+    display: flex;
+    max-width: 300px;
+    margin-right: auto;
+    width: 100%;
+  }
+}

@@ -3,7 +3,7 @@
 .home {
   @include grid.directionColumn();
   align-items: flex-start;
-  gap: var(--space-6);
+  gap: var(--space-19);
 
   &_container {
     width: 100%;

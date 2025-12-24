@@ -23,7 +23,7 @@ export class AddressService extends PaginationService<Address> {
   }
 
   async findAll(query: PaginationQuery): Promise<PaginationResponse<Address>> {
-    const queryDefault: PaginationQuery = { page: 1, limit: 10, sortBy: 'id', order: 'desc', search: '' };
+    const queryDefault: PaginationQuery = { page: 1, limit: 10, sortBy: 'id', order: 'asc', search: '' };
     return await this.listPaginated(Object.assign(queryDefault, query));
   }
 

@@ -7,7 +7,7 @@ import { Home } from './profile/home/home';
 
 export const GeneralRoutes: Routes = [
   {
-    path: '',
+    path: ':userId',
     title: `Seja bem vindo ao TaskGo`,
     component: Profile,
     children: [

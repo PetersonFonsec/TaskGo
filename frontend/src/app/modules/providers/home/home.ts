@@ -3,9 +3,7 @@ import { RouterLink } from '@angular/router';
 import { forkJoin } from 'rxjs';
 
 import { UserLoggedService } from '@shared/service/user-logged/user-logged.service';
-import { CardThumb } from '@shared/components/ui/card-thumb/card-thumb/card-thumb';
 import { Slider, SliderItemDirective } from '@shared/components/ui/slider/slider';
-import { ButtonComponent } from '@shared/components/ui/button/button.component';
 import { ICategory } from '@shared/service/category/category.model';
 import { OrdersResponse } from '@shared/service/order/order.model';
 import { Card } from '@shared/components/forms/card/card';

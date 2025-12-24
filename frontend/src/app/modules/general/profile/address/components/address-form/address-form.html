@@ -1,0 +1,27 @@
+<form #form="ngForm" (ngSubmit)="createAddress()" class="address-form">
+  <header class="address-form_header">
+    <ng-content>
+      <h2 class="subtitle">Criar Novo Endereço</h2>
+    </ng-content>
+  </header>
+
+  <div class="address-form_content">
+    <app-input-text name="name" id="name" label="Nome do Endereço" [autofocus]="true" [required]="true"
+      placeholder="Como você prefere que chamemos este endereço?" />
+
+    <app-input-text name="zipcode" id="zipcode" label="CEP" [required]="true" mask="00000-000"
+      placeholder="Informe o seu CEP" />
+
+    <app-input-text name="street" id="street" label="Rua" [required]="true" placeholder="Nome da rua" />
+
+    <app-input-text name="number" id="number" label="Número" [required]="true" placeholder="Número da residência" />
+
+    <app-input-text name="complement" id="complement" label="Complemento" placeholder="Complemento (opcional)" />
+  </div>
+
+  <footer class="address-form_footer">
+    <app-button type="submit" [disabled]="!!form.invalid" color="primary">
+      Criar Endereço
+    </app-button>
+  </footer>
+</form>

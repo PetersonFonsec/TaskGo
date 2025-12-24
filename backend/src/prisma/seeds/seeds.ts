@@ -18,7 +18,7 @@ async function main() {
           phone: `+55 11 9${Math.floor(10000000 + Math.random() * 89999999)}`,
           addresses: {
             create: {
-              label: 'Casa',
+              label: `Casa ${i + 1}`,
               street: `Rua dos Clientes ${i + 1}`,
               number: `${100 + i}`,
               city: 'São Paulo',

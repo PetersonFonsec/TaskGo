@@ -1,0 +1,18 @@
+<div class="tab {{ layoutDireaction() }}">
+  <div class="tab-header" role="tablist">
+    @for (tab of tabsData(); track $index) {
+      <a
+        role="tab"
+        class="tab-item"
+        [ngClass]="{ 'tab-active': $index === selectedTab() }"
+        (click)="onSelectTab($index)"
+      >
+        <ng-container *ngTemplateOutlet="tab.header()"></ng-container>
+      </a>
+    }
+  </div>
+
+  <div class="tab-content">
+    <ng-container *ngTemplateOutlet="selectedTabContent()"></ng-container>
+  </div>
+</div>

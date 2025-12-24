@@ -15,7 +15,7 @@ export class AddressController {
   }
 
   @Get()
-  findAll(@Query() query: PaginationQuery) {
+  findAll(@Query() query: PaginationQuery & { userId?: string }) {
     return this.addressService.findAll(query);
   }
 

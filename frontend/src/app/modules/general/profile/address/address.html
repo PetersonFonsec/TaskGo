@@ -1,1 +1,35 @@
-<p>address works!</p>
+<section class="address">
+  <header class="address_header">
+    <h2 class="subtitle">Seus endereços</h2>
+  </header>
+
+  <div class="address_container">
+    <app-tabs layoutDireaction="column">
+      <app-tab>
+        <ng-template appTabHeader>
+          <h2 class="subtitle border">
+            Novo Endereço
+          </h2>
+        </ng-template>
+
+        <ng-template appTabContent>
+          <app-address-form />
+        </ng-template>
+      </app-tab>
+
+      @for (item of address(); track $index) {
+      <app-tab>
+        <ng-template appTabHeader>
+          <h2 class="subtitle border">{{ item.label }}</h2>
+        </ng-template>
+
+        <ng-template appTabContent>
+          <app-address-form>
+            <h2 class="subtitle">Endereço: {{ item.label }}</h2>
+          </app-address-form>
+        </ng-template>
+      </app-tab>
+      }
+    </app-tabs>
+  </div>
+</section>

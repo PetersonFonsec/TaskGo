@@ -1,4 +1,4 @@
-import { Component, inject } from '@angular/core';
+import { Component, inject, OnInit } from '@angular/core';
 import { RouterLink } from '@angular/router';
 import { UserLoggedService } from '@shared/service/user-logged/user-logged.service';
 
@@ -10,6 +10,7 @@ import { UserLoggedService } from '@shared/service/user-logged/user-logged.servi
 })
 export class Header {
   #userLoggedService = inject(UserLoggedService);
+  userId = this.#userLoggedService.user().user.id;
 
   logout() {
     this.#userLoggedService.logout();
