@@ -30,6 +30,10 @@
   }
 
   <footer id="register-form_footer">
+    <a id="register-form_footer_link" class="text color-primary" routerLink="/authenticate/login">
+      Já tenho uma conta
+    </a>
+
     <app-button [disabled]="!registerSteps.allStepsCompletes()" (click)="register()" color="primary">
       Criar sua conta
     </app-button>

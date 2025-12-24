@@ -47,5 +47,14 @@
 
   &_footer {
     margin-bottom: 0;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 22px;
+
+    &_link {
+      text-decoration: inline;
+    }
   }
 }
