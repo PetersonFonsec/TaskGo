@@ -27,24 +27,17 @@
 
   &_image {
     display: block;
-    margin-bottom: 24px;
-  }
-
-  &_content {
-    margin-bottom: 40px;
   }
 
   &_actions {
+    display: flex;
+    gap: 12px;
+    flex-direction: column;
     width: 100%;
-  }
-
-  .main-title {
-    margin-bottom: 18px;
   }
 
   app-button {
     display: block;
     width: 100%;
-    margin-bottom: 20px;
   }
 }

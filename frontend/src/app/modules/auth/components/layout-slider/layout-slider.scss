@@ -1,3 +1,4 @@
+@use "variables/breakpoints" as breakpoints;
 @use "mixins/geometric" as geometric;
 @use "mixins/position" as position;
 @use "resets/button" as button;
@@ -13,6 +14,7 @@
     scroll-behavior: smooth;
     justify-content: start;
     overflow-x: auto;
+    height: 100dvh;
 
     &::-webkit-scrollbar {
       display: none;
@@ -33,6 +35,10 @@
     top: unset;
     transition: var(--transition);
     width: 22px;
+
+    @media (max-height: breakpoints.$tablet) and (min-width: breakpoints.$tablet) {
+      bottom: 2px;
+    }
 
     &:disabled {
       border-radius: 100%;
