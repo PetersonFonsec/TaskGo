@@ -1,5 +1,5 @@
 import { HttpStatus } from "@nestjs/common";
-import { ErrorTypesEnum } from "@shared/enums/errors-types.enum";
+import { ErrorTypesEnum } from "../enums/errors-types.enum";
 
 export interface ExceptionInterface {
   name: string;

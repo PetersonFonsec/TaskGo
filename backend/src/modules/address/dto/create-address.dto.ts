@@ -1,5 +1,5 @@
-import { Address } from "@shared/interfaces/address.interface";
-import { IsLatitude, IsLongitude, IsString } from "class-validator";
+import { IsLatitude, IsLongitude, IsOptional, IsString } from "class-validator";
+import { Address } from "../../../shared/interfaces/address.interface";
 
 export class CreateAddressDto implements Address {
   @IsString() label: string;
@@ -10,4 +10,5 @@ export class CreateAddressDto implements Address {
   @IsString() cep: string;
   @IsLatitude() lat: number;
   @IsLongitude() lng: number;
+  @IsOptional() @IsString() complement?: string;
 }

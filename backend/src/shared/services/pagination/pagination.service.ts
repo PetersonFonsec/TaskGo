@@ -1,8 +1,8 @@
 import { Injectable } from '@nestjs/common';
+import { PrismaService } from '../../../prisma/prisma.service';
 
 import { PaginationResponse } from './pagination.interface';
-import { QueryParams } from '@shared/utils/queryParams';
-import { PrismaService } from '@PrismaDir/prisma.service';
+import { QueryParams } from '../../utils/queryParams';
 
 @Injectable()
 export class PaginationService<T> {

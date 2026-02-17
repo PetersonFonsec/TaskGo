@@ -4,9 +4,9 @@ import { Order, OrderStatus } from '@prisma/client';
 import { CreateOrderDto } from './dto/create-order.dto';
 import { UpdateOrderDto } from './dto/update-order.dto';
 
-import { PaginationQuery, PaginationResponse } from '@shared/services/pagination/pagination.interface';
-import { PaginationService } from '@shared/services/pagination/pagination.service';
-import { PrismaService } from '@PrismaDir/prisma.service';
+import { PaginationQuery, PaginationResponse } from '../../shared/services/pagination/pagination.interface';
+import { PaginationService } from '../../shared/services/pagination/pagination.service';
+import { PrismaService } from '../../prisma/prisma.service';
 
 @Injectable()
 export class OrderService extends PaginationService<Order> {

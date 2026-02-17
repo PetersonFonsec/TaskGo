@@ -1,5 +1,5 @@
-import { ValueObject } from "@shared/entities/value-object.interface";
-import { Address as IAddress } from "@shared/interfaces/address.interface";
+import { ValueObject } from "./../../../shared/entities/value-object.interface";
+import { Address as IAddress } from "./../../../shared/interfaces/address.interface";
 export class Address implements ValueObject<IAddress> {
   private cep: string;
   private street: string;

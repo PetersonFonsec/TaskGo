@@ -3,7 +3,7 @@ import { JwtService } from "@nestjs/jwt";
 
 import { AuthController } from "./auth.controller";
 import { UserService } from "../user/user.service";
-import Mediator from "@shared/events/mediator";
+import Mediator from "../../shared/events/mediator";
 import { AuthService } from "./auth.service";
 import { AuthGuard } from "./auth.guard";
 

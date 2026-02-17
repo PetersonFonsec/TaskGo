@@ -1,12 +1,15 @@
 import { Injectable } from '@nestjs/common';
+import { Service, User } from '@prisma/client';
+
+import { PrismaService } from '../../prisma/prisma.service';
+
+import { PaginationQuery, PaginationResponse } from '../../shared/services/pagination/pagination.interface';
+import { PaginationService } from '../../shared/services/pagination/pagination.service';
+import { UserExistException } from '../../shared/exceptions/user-exist.exception';
+import { UserService } from '../user/user.service';
+
 import { CreateServiceDto } from './dto/create-service.dto';
 import { UpdateServiceDto } from './dto/update-service.dto';
-import { PaginationQuery, PaginationResponse } from '@shared/services/pagination/pagination.interface';
-import { Service, User } from '@prisma/client';
-import { PaginationService } from '@shared/services/pagination/pagination.service';
-import { PrismaService } from '@PrismaDir/prisma.service';
-import { UserService } from '../user/user.service';
-import { UserExistException } from '@shared/exceptions/user-exist.exception';
 
 @Injectable()
 export class ServicesService extends PaginationService<Service> {

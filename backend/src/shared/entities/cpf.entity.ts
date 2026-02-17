@@ -1,4 +1,4 @@
-import { CPFException } from "@shared/exceptions/cpf.exception";
+import { CPFException } from "../../shared/exceptions/cpf.exception";
 import { ValueObject } from "./value-object.interface";
 
 export class Cpf implements ValueObject<Cpf> {

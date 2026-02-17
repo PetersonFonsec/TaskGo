@@ -1,16 +1,26 @@
 import { Controller, Get, Post, Body, Patch, Param, Delete, Query } from '@nestjs/common';
-import { UserService } from './user.service';
+import { CommandBus, QueryBus } from '@nestjs/cqrs';
+import { plainToClass } from 'class-transformer';
+
+import { PaginationQuery } from '../../shared/services/pagination/pagination.interface';
+import { CreateUserCommand } from './commands/create-user/create-user.command';
+import { GetUserQuery } from './queries/get-user/get-user.query';
 import { CreateUserDto } from './dto/create-user.dto';
 import { UpdateUserDto } from './dto/update-user.dto';
-import { PaginationQuery } from '@shared/services/pagination/pagination.interface';
-
+import { UserService } from './user.service';
 @Controller('user')
 export class UserController {
-  constructor(private readonly userService: UserService) {}
+  constructor(
+    private readonly userService: UserService,
+    private readonly queryBus: QueryBus,
+    private readonly commandBus: CommandBus
+  ) {}
 
   @Post()
-  create(@Body() createUserDto: CreateUserDto) {
-    return this.userService.create(createUserDto);
+  async create(@Body() createUserDto: CreateUserDto) {
+    const command = plainToClass(CreateUserCommand, createUserDto);
+    const id = await this.commandBus.execute(command);
+    return { id };
   }
 
   @Get()
@@ -19,8 +29,9 @@ export class UserController {
   }
 
   @Get(':id')
-  findOne(@Param('id') id: string) {
-    return this.userService.findOne(BigInt(id));
+  async findOne(@Param('id') id: string) {
+    const query = plainToClass(GetUserQuery, { id: BigInt(id) });
+    return await this.queryBus.execute(query);
   }
 
   @Patch(':id')

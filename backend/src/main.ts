@@ -7,8 +7,8 @@ import helmet from 'helmet';
 // import * as compression from 'compression';
 
 import { AppModule } from './app.module';
-import { CustomExceptionFilter } from "@shared/filters/http-exception.filter";
-import { BigIntInterceptor } from "@shared/interceptors/bigint.interceptor";
+import { CustomExceptionFilter } from "./shared/filters/http-exception.filter";
+import { BigIntInterceptor } from "./shared/interceptors/bigint.interceptor";
 
 async function bootstrap() {
   await otelSDK.start();

@@ -1,6 +1,6 @@
 import { Controller, Get, Post, Body, Patch, Param, Delete, Query } from '@nestjs/common';
 
-import { PaginationQuery } from '@shared/services/pagination/pagination.interface';
+import { PaginationQuery } from '../../shared/services/pagination/pagination.interface';
 
 import { ScheduleOrderDto } from './dto/schedule-order.dto';
 import { CreateOrderDto } from './dto/create-order.dto';

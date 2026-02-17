@@ -4,7 +4,7 @@ import { CategoriesService } from './categories.service';
 import { UpdateCategoryDto } from './dto/update-category.dto';
 import { CreateFullCategoryDto } from './dto/create-full-category.dto';
 
-import { PaginationQuery } from '@shared/services/pagination/pagination.interface';
+import { PaginationQuery } from '../../shared/services/pagination/pagination.interface';
 
 @Controller('categories')
 export class CategoriesController {

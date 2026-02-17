@@ -1,7 +1,8 @@
-import { Injectable, NotFoundException } from '@nestjs/common';
+import { ForbiddenException, Injectable, NotFoundException } from '@nestjs/common';
 import * as bcrypt from 'bcrypt';
 
-import { PrismaService } from '@PrismaDir/prisma.service';
+import { PrismaService } from '../../prisma/prisma.service';
+
 import { ERROR_MESSAGES } from '../auth/auth.messages';
 
 @Injectable()
@@ -17,7 +18,7 @@ export class UserValidateService {
 
     const matchPassword = await bcrypt.compare(password, user.passwordHash);
     if (!matchPassword) {
-      throw new NotFoundException(ERROR_MESSAGES.loginError);
+      throw new ForbiddenException(ERROR_MESSAGES.loginError);
     }
 
     return user;

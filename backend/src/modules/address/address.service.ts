@@ -1,9 +1,9 @@
 import { Injectable } from '@nestjs/common';
-import { PrismaService } from '@PrismaDir/prisma.service';
+import { PrismaService } from '../../prisma/prisma.service';
 import { Address } from '@prisma/client';
 
-import { PaginationQuery, PaginationResponse } from '@shared/services/pagination/pagination.interface';
-import { PaginationService } from '@shared/services/pagination/pagination.service';
+import { PaginationQuery, PaginationResponse } from '../../shared/services/pagination/pagination.interface';
+import { PaginationService } from '../../shared/services/pagination/pagination.service';
 import { Address as AddressEntity } from './entities/address.entity';
 import { CreateAddressDto } from './dto/create-address.dto';
 import { UpdateAddressDto } from './dto/update-address.dto';

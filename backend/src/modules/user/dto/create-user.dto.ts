@@ -1,7 +1,7 @@
 import { UserType } from "@prisma/client";
 import { Type } from "class-transformer";
-import { IsEmail, IsEnum, IsNotEmpty, IsOptional, IsString, ValidateNested } from "class-validator";
-import { CreateAddressDto } from "src/modules/address/dto/create-address.dto";
+import { IsArray, IsEmail, IsEnum, IsNotEmpty, IsOptional, IsString, ValidateNested } from "class-validator";
+import { CreateAddressDto } from "../../../modules/address/dto/create-address.dto";
 
 export class CreateUserDto {
   @IsNotEmpty() @IsString() password: string;
@@ -13,8 +13,12 @@ export class CreateUserDto {
   @IsOptional() @IsString() bio?: string;
   @IsOptional() @IsString() photoUrl?: string;
 
-  @IsOptional()
   @ValidateNested()
   @Type(() => CreateAddressDto)
   address: CreateAddressDto;
+
+  @IsOptional()
+  @IsArray()
+  @Type(() => BigInt)
+  services: bigint[];
 }

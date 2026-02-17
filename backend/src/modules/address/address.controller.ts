@@ -1,5 +1,5 @@
 import { Controller, Get, Post, Body, Patch, Param, Delete, Query } from '@nestjs/common';
-import { PaginationQuery } from '@shared/services/pagination/pagination.interface';
+import { PaginationQuery } from '../../shared/services/pagination/pagination.interface';
 
 import { AddressService } from './address.service';
 import { CreateAddressDto } from './dto/create-address.dto';

@@ -1,38 +1,33 @@
 import { Module, forwardRef } from "@nestjs/common";
+import { CqrsModule } from "@nestjs/cqrs";
 import { JwtModule } from "@nestjs/jwt";
 
-import { PrismaModule } from "@PrismaDir/prisma.module";
-import Mediator from "@shared/events/mediator";
+import { PrismaModule } from "../../prisma/prisma.module";
 
-import { CategoriesModule } from "../categories/categories.module";
-import { AddressModule } from "../address/address.module";
 import { AuthTokenService } from "./auth-token.service";
 import { AuthController } from "./auth.controller";
 import { UserModule } from "../user/user.module";
-import { AuthService } from "./auth.service";
-import { ServicesModule } from "../services/services.module";
-import { ProviderModule } from "../provider/provider.module";
+import { AuthCommands } from "./commands";
+import { AuthQueries } from "./queries";
 
 @Module({
   controllers: [
     AuthController
   ],
   providers: [
-    AuthService,
     AuthTokenService,
-    Mediator
+    ...AuthCommands,
+    ...AuthQueries
   ],
   imports: [
     forwardRef(() => UserModule),
-    forwardRef(() => AddressModule),
-    forwardRef(() => ProviderModule),
     PrismaModule,
+    CqrsModule,
     JwtModule.register({
-      secret: process.env.JWT_SECRET
+      secret: process.env.JWT_SECRET,
     }),
   ],
   exports: [
-    AuthService,
     AuthTokenService
   ]
 })

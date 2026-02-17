@@ -3,8 +3,8 @@ import { Cpf } from "./cpf.entity";
 import { Email } from "./email.entity";
 import { Phone } from "./phone.entity";
 import { ValueObject } from "./value-object.interface";
-import { UserException } from "@shared/exceptions/user.exception";
-import { CustomException } from "@shared/exceptions/custom.exception";
+import { UserException } from "../../shared/exceptions/user.exception";
+import { CustomException } from "../../shared/exceptions/custom.exception";
 
 export class User implements ValueObject<User> {
   id: bigint;

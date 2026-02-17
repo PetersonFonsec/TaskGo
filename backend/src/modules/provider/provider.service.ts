@@ -1,9 +1,9 @@
-import { PrismaService } from '@PrismaDir/prisma.service';
 import { Injectable } from '@nestjs/common';
 
 import { ServicesService } from '../services/services.service';
-import { CreateProviderDto } from './dto/create-provider.dto';
 import { UpdateProviderDto } from './dto/update-provider.dto';
+import { CreateProviderDto } from './dto/create-provider.dto';
+import { PrismaService } from '../../prisma/prisma.service';
 import { UserService } from '../user/user.service';
 
 @Injectable()
@@ -14,7 +14,7 @@ export class ProviderService {
     public serviceService: ServicesService,
   ) { }
 
-  async create(payload: CreateProviderDto) {
+  async create(payload: any) {
     return await this.prisma.$transaction(async (prisma) => {
       const user = await this.userService.create(payload.provider);
       await prisma.provider.create({

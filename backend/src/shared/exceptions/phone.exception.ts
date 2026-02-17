@@ -1,4 +1,4 @@
-import { ErrorTypesEnum } from "@shared/enums/errors-types.enum";
+import { ErrorTypesEnum } from "../../shared/enums/errors-types.enum";
 import { CustomException } from "./custom.exception";
 
 export class PhoneException extends CustomException {
