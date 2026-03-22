@@ -28,7 +28,7 @@ export const routes: Routes = [
     path: UrlBase.AUTHENTICATE,
     component: AuthPage,
     children: AuthRoutes,
-    canActivate: [userLoggedGuard],
+    // canActivate: [userLoggedGuard],
   },
   {
     path: UrlBase.PROVIDER,

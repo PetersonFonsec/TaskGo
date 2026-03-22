@@ -1,0 +1,6 @@
+{
+  "statusCode": 403,
+  "message": "Email ou senha incorretos",
+  "timestamp": "2026-02-20T23:52:18.080Z",
+  "path": "/auth/login"
+}

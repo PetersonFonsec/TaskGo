@@ -1,52 +1,60 @@
 export default class RegisterElements {
 
-  constructor(private readonly user: any) {
+  constructor(private readonly user: any) { }
 
+  get toFormLoginButton() {
+    return cy.get('#PROVIDER-login-button-button');
   }
 
-  get confirmPasswordInput() {
-    return cy.get('#confirm_password-input');
+  get toFormRegisterButton() {
+    return cy.get('#PROVIDER-register-button-button');
   }
 
-  get loginLink() {
-    return cy.get("#register-login-link");
+  get providerBadge() {
+    return cy.get('#badge-provider .badge');
   }
 
-  get documentNumberInput() {
-    return cy.get('#document_number-input');
-  }
-
-  get submitButton() {
-    return cy.get('#register-submit-button');
-  }
-
-  get passwordInput() {
-    return cy.get('#password-input');
+  get customerBadge() {
+    return cy.get('#badge-customer .badge');
   }
 
   get emailInput() {
-    return cy.get('#email-input');
+    return cy.get('#email');
   }
 
-  get nameInput() {
-    return cy.get('#name-input');
-  }
-  get alertComponent() {
-    return cy.get('.alert')
+  get passwordInput() {
+    return cy.get('#password');
   }
 
-  public fillFormValid() {
-    this.documentNumberInput.type(this.user.documentNumber);
-    this.confirmPasswordInput.type(this.user.password);
-    this.passwordInput.type(this.user.password);
-    this.emailInput.type(this.user.email);
-    this.nameInput.type(this.user.name);
+  get forgotPasswordLink() {
+    return cy.get('#forgot-password-link');
   }
 
-  public clearFormValid() {
-    this.confirmPasswordInput.clear();
-    this.documentNumberInput.clear();
-    this.passwordInput.clear();
-    this.nameInput.clear();
+  get registerLink() {
+    return cy.get('#register-link');
+  }
+
+  get registerButton() {
+    return cy.get('#register-form_footer_button button');
+  }
+
+  get loginLink() {
+    return cy.get('#register-form_footer_link');
+  }
+
+  get profileStep() {
+    return cy.get('#profile-step');
+  }
+
+  get contactStep() {
+    return cy.get('#contact-step');
+  }
+
+  get addressStep() {
+    return cy.get('#address-step');
+  }
+
+  get categoryStep() {
+    return cy.get('#category-step');
   }
 }

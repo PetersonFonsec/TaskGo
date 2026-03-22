@@ -6,17 +6,17 @@
 
   <div id="register-form_content">
     <div class="row">
-      <app-badge [selected]="userType == roles.PROVIDER" (click)="changeTheme(roles.PROVIDER)">Profissional</app-badge>
-      <app-badge [selected]="userType == roles.CUSTOMER" (click)="changeTheme(roles.CUSTOMER)">Cliente</app-badge>
+      <app-badge id="badge-provider" [selected]="userType == roles.PROVIDER" (click)="changeTheme(roles.PROVIDER)">Profissional</app-badge>
+      <app-badge id="badge-customer" [selected]="userType == roles.CUSTOMER" (click)="changeTheme(roles.CUSTOMER)">Cliente</app-badge>
     </div>
 
     <app-steps-lines #registerSteps title="Passos para completar seu cadastro">
-      <app-step routerLink="/authenticate/profile" [complete]="completeSteps.profile">Perfil</app-step>
-      <app-step routerLink="/authenticate/contact" [complete]="completeSteps.contact">Contato</app-step>
-      <app-step routerLink="/authenticate/address" [complete]="completeSteps.address">Localização</app-step>
+      <app-step id="profile-step" routerLink="/authenticate/profile" [complete]="completeSteps.profile">Perfil</app-step>
+      <app-step id="contact-step" routerLink="/authenticate/contact" [complete]="completeSteps.contact">Contato</app-step>
+      <app-step id="address-step" routerLink="/authenticate/address" [complete]="completeSteps.address">Localização</app-step>
 
       @if (userType == roles.PROVIDER) {
-      <app-step routerLink="/authenticate/category" [complete]="completeSteps.service">
+      <app-step id="category-step" routerLink="/authenticate/category" [complete]="completeSteps.service">
         Anunciar um serviço
       </app-step>
       }
@@ -34,7 +34,7 @@
       Já tenho uma conta
     </a>
 
-    <app-button [disabled]="!registerSteps.allStepsCompletes()" (click)="register()" color="primary">
+    <app-button id="register-form_footer_button" [disabled]="!registerSteps.allStepsCompletes()" (click)="register()" color="primary">
       Criar sua conta
     </app-button>
   </footer>

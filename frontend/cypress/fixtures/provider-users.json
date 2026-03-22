@@ -1,0 +1,37 @@
+[
+  {
+    "name": "Prestador 1",
+    "email": "prestador1@teste.com",
+    "passwordHash": 123456,
+    "type": "PROVIDER",
+    "cpf": "123.456.789-10"
+  },
+  {
+    "name": "Prestador 2",
+    "email": "prestador2@teste.com",
+    "passwordHash": 123456,
+    "type": "PROVIDER",
+    "cpf": "123.456.789-11"
+  },
+  {
+    "name": "Prestador 3",
+    "email": "prestador3@teste.com",
+    "passwordHash": 123456,
+    "type": "PROVIDER",
+    "cpf": "123.456.789-12"
+  },
+  {
+    "name": "Prestador 4",
+    "email": "prestador4@teste.com",
+    "passwordHash": 123456,
+    "type": "PROVIDER",
+    "cpf": "123.456.789-13"
+  },
+  {
+    "name": "Prestador 5",
+    "email": "prestador5@teste.com",
+    "passwordHash": 123456,
+    "type": "PROVIDER",
+    "cpf": "123.456.789-14"
+  }
+]

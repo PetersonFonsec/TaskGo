@@ -1,0 +1,38 @@
+o que falta fazer nesse projeto
+
+front e back
+[X] - back - adicionar testes e2e no front para validar que a jornada  de autenticação esta funcionando
+[] - front - adicionar testes e2e no front para validar que a jornada  de autenticação esta funcionando
+
+Melhorias
+1° Implementar a possibilidade de adicionar "reels" 
+para divulgação dos serviços
+
+2° Possibilidade de favoritar profissionais 
+
+
+Profissional
+1° - Adicionar algum tipo de Call To Action na home soliciando 
+para que o usuario finalize o cadastro dele
+
+2° - Cadasrar conta que deseja receber os pagamentos 
+3° - Criar tela de profile
+4° - Crud de endereços
+
+Cliente
+1° - Adicionar uma imagem por categoria
+2° - Adicionar filtros na lista de prestadores
+- - No filtro precisa ter o principal que é o filtro por distancia
+- - Adicionar tratamentos de lista vazia e mensagens caso algo de erro
+- - Adicionar paginação na lista de profissionais
+
+3° - Criar tela de profile 
+4° - Crud de cartões
+5° - Crud de endereços
+
+Geral
+1° - Criar o darkmode
+2° - Criar testes e2e
+3° - Disparo de emails
+4° - Conseguir migrar todo ambiente para o nx => EU JURO QUE EU TENTEI mas se loko a porra do backend não funciona no nx
+    

@@ -62,16 +62,4 @@ Cypress.Commands.addAll({
     loginElements.submitButton.click();
     cy.wait(100);
   },
-
-  createNewCollege(college: any, stub = true) {
-    cy.visit('http://localhost:4200/backoffice/create-college');
-
-    if (stub) {
-      const response = require('../fixtures/college-response-success.json');
-      cy.intercept('POST', `${Cypress.env('url')}/college`, {
-        statusCode: 201,
-        body: response
-      }).as('stubCollege');
-    }
-  }
 });

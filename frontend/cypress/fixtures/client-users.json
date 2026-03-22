@@ -1,0 +1,42 @@
+[
+  {
+    "name": "Cliente 1",
+    "email": "cliente1@teste.com",
+    "password": 123456,
+    "type": "CUSTOMER",
+    "cpf": "123.456.789-01",
+    "phone": "(11) 91234-5678"
+  },
+  {
+    "name": "Cliente 2",
+    "email": "cliente2@teste.com",
+    "password": 123456,
+    "type": "CUSTOMER",
+    "cpf": "123.456.789-02",
+    "phone": "(11) 92345-6789"
+  },
+  {
+    "name": "Cliente 3",
+    "email": "cliente3@teste.com",
+    "password": 123456,
+    "type": "CUSTOMER",
+    "cpf": "123.456.789-03",
+    "phone": "(11) 92345-6789"
+  },
+  {
+    "name": "Cliente 4",
+    "email": "cliente4@teste.com",
+    "password": 123456,
+    "type": "CUSTOMER",
+    "cpf": "123.456.789-04",
+    "phone": "(11) 92345-6789"
+  },
+  {
+    "name": "Cliente 5",
+    "email": "cliente5@teste.com",
+    "password": 123456,
+    "type": "CUSTOMER",
+    "cpf": "123.456.789-05",
+    "phone": "(11) 92345-6789"
+  }
+]

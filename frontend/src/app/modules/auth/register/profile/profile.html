@@ -10,7 +10,6 @@
   </header>
 
   <div id="profile-form_content">
-    <h3 class="subtitle">Contato</h3>
     <app-input-text name="name" id="name" type="text" label="Nome" [autofocus]="true" [required]="true"
       placeholder="Informe o seu nome" #email="ngModel" [(ngModel)]="payload.name" />
 
@@ -24,14 +23,14 @@
       #password="ngModel" [required]="true" placeholder="Informe a sua senha" />
 
     <app-input-text name="confirmPassword" id="confirmPassword" [(ngModel)]="payload.confirmPassword" type="password"
-      label="Senha" #password="ngModel" [required]="true" placeholder="Informe a sua senha" />
+      label="Confirmar Senha" #password="ngModel" [required]="true" placeholder="Informe a sua senha novamente" />
 
     <app-input-text name="documentNumber" id="documentNumber" [(ngModel)]="payload.cpf" type="text" label="CPF"
       [required]="true" mask="000.000.000-AA" placeholder="Informe o seu cpf" />
   </div>
 
   <footer id="profile-form_footer">
-    <app-button-back color="primary" />
-    <app-button [disabled]="!!form.invalid" type="submit" color="primary">Salvar</app-button>
+    <app-button-back id="profile-form_footer_back" color="primary" />
+    <app-button id="profile-form_footer_submit" [disabled]="!!form.invalid" type="submit" color="primary">Salvar</app-button>
   </footer>
 </form>

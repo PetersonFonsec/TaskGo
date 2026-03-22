@@ -16,8 +16,12 @@
 
     @if (!disabled()) {
     <div class="layout-slider-item_actions">
-      <app-button (click)="onCreateAccount()" color="light">Criar uma conta</app-button>
-      <app-button (click)="onLogin()" color="light">Já tenho uma conta</app-button>
+      <app-button id="{{userType()}}-register-button" (click)="onCreateAccount()" color="light">
+        Criar uma conta
+      </app-button>
+      <app-button id="{{userType()}}-login-button" (click)="onLogin()" color="light">
+        Já tenho uma conta
+      </app-button>
     </div>
     }
   </div>
