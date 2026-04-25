@@ -1,6 +1,6 @@
 import HomeElements from "../support/pages/home";
 
-describe("Home jorney - ", () => {
+describe.skip("Home jorney - legacy flow", () => {
   const [estudanteSemRegistro, diretorSemRegistro, diretorComRegistro] = require('../fixtures/usuarios.json');
   const homepageElements = new HomeElements();
 

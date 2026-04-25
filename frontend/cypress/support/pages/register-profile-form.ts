@@ -38,8 +38,8 @@ export default class RegisterProfileFormElements {
     this.nameInput.type(this.user.name);
     this.phoneInput.type(this.user.phone);
     this.emailInput.type(this.user.email);
-    this.passwordInput.type(this.user.password);
-    this.confirmPasswordInput.type(this.user.password);
+    this.passwordInput.type(String(this.user.password));
+    this.confirmPasswordInput.type(String(this.user.password));
     this.documentNumberInput.type(this.user.cpf);
   }
 }

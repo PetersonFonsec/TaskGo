@@ -61,9 +61,9 @@ export class RegisterUser {
     });
   }
 
-  addService(services: any) {
+  addService(services: Set<any> | any[]) {
     const currentUser = this.user();
-    currentUser.services = services;
+    currentUser.services = Array.isArray(services) ? services : Array.from(services);
     this.user.set(currentUser);
 
     this.completeSteps.update((steps) => {

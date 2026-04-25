@@ -1,10 +1,10 @@
 ## Como startar o ambiente de desenvolvimento
 
 # 1) Na pasta onde está o docker-compose.yml e o .env
-docker compose up -d db
+docker compose up -d postgres_db
 
 # 2) Rodar a API (dev)
-docker compose up api
+docker compose up backend
 # (ou -d para rodar em background)
 
 # 3) (Opcional) Subir o pgAdmin

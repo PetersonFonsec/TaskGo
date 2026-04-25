@@ -1,2 +1,4 @@
 db.env
 kind-windows-amd64.exe
+backend/dist/
+node_modules

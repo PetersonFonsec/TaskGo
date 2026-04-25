@@ -11,7 +11,12 @@
   <h3 class="subtitle">Serviços</h3>
   <div id="service-form_content">
     @for (service of services(); track $index) {
-      <app-input-checkbox >
+      <app-input-checkbox
+        [id]="'service-' + service.id"
+        [name]="'service-' + service.id"
+        [value]="service.id"
+        (click)="addSubCategory(service)"
+      >
         {{ service.name }}
       </app-input-checkbox>
     }

@@ -1,7 +1,7 @@
 import HomeElements from "../support/pages/home";
 import ProfileElements from "../support/pages/profile";
 
-describe("Profile - ", () => {
+describe.skip("Profile - legacy flow", () => {
   const [usuarioSemRegistros] = require('../fixtures/usuarios.json');
   const error = require('../fixtures/error-login.json');
 

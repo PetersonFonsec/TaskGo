@@ -10,6 +10,14 @@ export default class RegisterElements {
     return cy.get('#PROVIDER-register-button-button');
   }
 
+  get toCustomerFormLoginButton() {
+    return cy.get('#CUSTOMER-login-button-button');
+  }
+
+  get toCustomerFormRegisterButton() {
+    return cy.get('#CUSTOMER-register-button-button');
+  }
+
   get providerBadge() {
     return cy.get('#badge-provider .badge');
   }
@@ -56,5 +64,9 @@ export default class RegisterElements {
 
   get categoryStep() {
     return cy.get('#category-step');
+  }
+
+  get alertComponent() {
+    return cy.get('.alert');
   }
 }
