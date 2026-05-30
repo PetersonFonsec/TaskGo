@@ -16,6 +16,14 @@ export const serverRoutes: ServerRoute[] = [
     path: 'customer/:userId',
     renderMode: RenderMode.Server,
   },
+  {
+    path: 'general/:userId',
+    renderMode: RenderMode.Server,
+  },
+  {
+    path: 'general/:userId/**',
+    renderMode: RenderMode.Server,
+  },
   // Fallback: prerender static routes that don't include parameters
   {
     path: '**',

@@ -14,7 +14,7 @@
       <app-input-checkbox
         [id]="'service-' + service.id"
         [name]="'service-' + service.id"
-        [value]="service.id"
+        [value]="service.id.toString()"
         (click)="addSubCategory(service)"
       >
         {{ service.name }}

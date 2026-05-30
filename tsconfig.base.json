@@ -1,0 +1,9 @@
+{
+  "compilerOptions": {
+    "baseUrl": ".",
+    "paths": {
+      "@taskgo/shared": ["libs/shared/src/index.ts"],
+      "@taskgo/shared/*": ["libs/shared/src/*"]
+    }
+  }
+}

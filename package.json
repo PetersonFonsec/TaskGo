@@ -1,0 +1,23 @@
+{
+  "name": "taskgo-monorepo",
+  "version": "0.0.1",
+  "private": true,
+  "workspaces": [
+    "apps/backend",
+    "apps/frontend",
+    "libs/*"
+  ],
+  "scripts": {
+    "nx": "nx",
+    "backend": "nx serve backend",
+    "frontend": "nx serve frontend",
+    "build": "nx run-many -t build",
+    "test": "nx run-many -t test",
+    "lint": "nx run-many -t lint",
+    "docker:up": "docker compose up -d --build",
+    "docker:down": "docker compose down"
+  },
+  "devDependencies": {
+    "nx": "^21.0.0"
+  }
+}
