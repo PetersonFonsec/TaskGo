@@ -18,6 +18,7 @@ para que o usuario finalize o cadastro dele
 2° - Cadasrar conta que deseja receber os pagamentos 
 3° - Criar tela de profile
 4° - Crud de endereços
+5° - Sincronizar a agenda com o google calendar 
 
 Cliente
 1° - Adicionar uma imagem por categoria
@@ -29,6 +30,7 @@ Cliente
 3° - Criar tela de profile 
 4° - Crud de cartões
 5° - Crud de endereços
+6° - Sincronizar a agenda com o google calendar
 
 Geral
 1° - Criar o darkmode

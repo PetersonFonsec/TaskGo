@@ -1,0 +1,25 @@
+# Backend Rules
+
+- The backend lives in `apps/backend` and uses NestJS, Prisma, Jest, and TypeScript.
+- Follow the existing module structure under `apps/backend/src/modules`.
+- Every backend module must follow the folder organization used by `apps/backend/src/modules/auth`:
+  - root module files stay at the module root, such as `<name>.module.ts`, `<name>.controller.ts`, guards, messages, and module-level services
+  - write operations go under `commands/<use-case>/` with command, DTO, and handler files
+  - read operations go under `queries/<use-case>/` with query, DTO, and handler files
+  - module events go under `events/`
+  - module-specific exceptions go under `exceptions/`
+  - generic module DTOs go under `dto/`
+  - barrel files such as `commands/index.ts` and `queries/index.ts` should be kept when they match the auth pattern
+- Do not add new backend module folder patterns unless the auth structure cannot represent the use case.
+- Controllers should stay thin: route mapping, request validation, auth metadata, and delegation to services.
+- Services should contain application behavior and coordinate persistence or integrations.
+- Use `PrismaService` for database access. Do not create ad hoc database clients.
+- Keep domain/value-object style already present under `apps/backend/src/shared/entities`.
+- Prefer explicit exceptions from `apps/backend/src/shared/exceptions` when matching existing behavior.
+- When changing persistence models, update all affected files:
+  - `apps/backend/src/prisma/schema.prisma`
+  - Prisma migrations
+  - seeds, if required
+  - DTOs/interfaces/tests affected by the model change
+- Be careful with destructive database commands. Do not run `prisma migrate reset`, `npm run prisma:reset`, or scripts that reset the database unless the user explicitly approves.
+- Do not weaken authentication, authorization, validation, or error handling to make tests pass.
