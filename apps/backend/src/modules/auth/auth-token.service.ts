@@ -1,4 +1,4 @@
-import { BadRequestException, Injectable } from "@nestjs/common";
+import { Injectable, UnauthorizedException } from "@nestjs/common";
 import { JwtService } from "@nestjs/jwt";
 
 @Injectable()
@@ -23,17 +23,17 @@ export class AuthTokenService {
 
   checkToken(token: string) {
     try {
-      return this.jwtService.verify(token)
+      return this.jwtService.verify(token);
     } catch (error) {
-      throw new BadRequestException(error)
+      throw new UnauthorizedException('Invalid or expired authentication token');
     }
   }
 
   decodeToken(token: string) {
     try {
-      return this.jwtService.decode(token)
+      return this.jwtService.decode(token);
     } catch (error) {
-      throw new BadRequestException(error)
+      throw new UnauthorizedException('Invalid authentication token');
     }
   }
 }

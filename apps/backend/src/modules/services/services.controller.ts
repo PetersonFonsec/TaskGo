@@ -4,6 +4,7 @@ import { PaginationQuery } from '@shared/services/pagination/pagination.interfac
 import { ServicesService } from './services.service';
 import { CreateServiceDto } from './dto/create-service.dto';
 import { UpdateServiceDto } from './dto/update-service.dto';
+import { Public } from '../../shared/decorators/public.decorator';
 
 @Controller('services')
 export class ServicesController {
@@ -14,11 +15,13 @@ export class ServicesController {
     return this.servicesService.create(createServiceDto);
   }
 
+  @Public()
   @Get()
   findAll(@Query() query: PaginationQuery) {
     return this.servicesService.findAll(query);
   }
 
+  @Public()
   @Get(':id')
   findOne(@Param('id') id: string) {
     return this.servicesService.findOne(+id);

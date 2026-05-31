@@ -36,5 +36,5 @@ Geral
 1° - Criar o darkmode
 2° - Criar testes e2e
 3° - Disparo de emails
-4° - Conseguir migrar todo ambiente para o nx => EU JURO QUE EU TENTEI mas se loko a porra do backend não funciona no nx
+[x] 4° - Conseguir migrar todo ambiente para o nx => EU JURO QUE EU TENTEI mas se loko a porra do backend não funciona no nx no windows
     

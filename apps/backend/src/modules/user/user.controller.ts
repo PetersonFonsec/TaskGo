@@ -1,6 +1,7 @@
 import { Controller, Get, Post, Body, Patch, Param, Delete, Query } from '@nestjs/common';
 import { CommandBus, QueryBus } from '@nestjs/cqrs';
 import { plainToClass } from 'class-transformer';
+import { Public } from '../../shared/decorators/public.decorator';
 
 import { PaginationQuery } from '../../shared/services/pagination/pagination.interface';
 import { CreateUserCommand } from './commands/create-user/create-user.command';
@@ -16,6 +17,7 @@ export class UserController {
     private readonly commandBus: CommandBus
   ) {}
 
+  @Public()
   @Post()
   async create(@Body() createUserDto: CreateUserDto) {
     const command = plainToClass(CreateUserCommand, createUserDto);

@@ -3,6 +3,7 @@ import { Controller, Get, Post, Body, Patch, Param, Delete, Query } from '@nestj
 import { CategoriesService } from './categories.service';
 import { UpdateCategoryDto } from './dto/update-category.dto';
 import { CreateFullCategoryDto } from './dto/create-full-category.dto';
+import { Public } from '../../shared/decorators/public.decorator';
 
 import { PaginationQuery } from '../../shared/services/pagination/pagination.interface';
 
@@ -15,11 +16,13 @@ export class CategoriesController {
     return this.categoriesService.create(createCategoryDto);
   }
 
+  @Public()
   @Get()
   findAll(@Query() query: PaginationQuery) {
     return this.categoriesService.findAll(query);
   }
 
+  @Public()
   @Get(':id')
   findOne(@Param('id') id: string) {
     return this.categoriesService.findOne(+id);

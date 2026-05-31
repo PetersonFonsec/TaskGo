@@ -54,6 +54,30 @@ describe('Auth E2E', () => {
     expect(res.body.user).toHaveProperty('id');
   });
 
+  it('✅ should allow anonymous service discovery', async () => {
+    await request(app.getHttpServer())
+      .get('/services')
+      .expect(200);
+
+    await request(app.getHttpServer())
+      .get('/provider')
+      .expect(200);
+
+    await request(app.getHttpServer())
+      .get('/categories')
+      .expect(200);
+  });
+
+  it('✅ should reject anonymous order creation on a protected route', async () => {
+    await request(app.getHttpServer())
+      .post('/order')
+      .send({
+        serviceId: '1',
+        paymentMethod: 'PIX',
+      })
+      .expect(401);
+  });
+
   it('✅ should return an token when login successfully', async () => {
     const payload = {
       ...PROVIDER_VALID,

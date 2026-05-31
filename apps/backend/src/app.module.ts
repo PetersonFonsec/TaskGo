@@ -1,4 +1,5 @@
 import { Module } from '@nestjs/common';
+import { APP_GUARD } from '@nestjs/core';
 
 import { AppService } from './app.service';
 import { AppController } from './app.controller';
@@ -10,6 +11,7 @@ import { AddressModule } from './modules/address/address.module';
 import { ServicesModule } from './modules/services/services.module';
 import { CategoriesModule } from './modules/categories/categories.module';
 import { ProviderModule } from './modules/provider/provider.module';
+import { AuthGuard } from './modules/auth/auth.guard';
 
 @Module({
   imports: [
@@ -23,6 +25,12 @@ import { ProviderModule } from './modules/provider/provider.module';
     ProviderModule
   ],
   controllers: [AppController],
-  providers: [AppService],
+  providers: [
+    AppService,
+    {
+      provide: APP_GUARD,
+      useClass: AuthGuard,
+    },
+  ],
 })
 export class AppModule {}

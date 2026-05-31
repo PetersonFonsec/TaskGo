@@ -2,6 +2,7 @@ import { Controller, Get, Post, Body, Patch, Param, Delete } from '@nestjs/commo
 import { ProviderService } from './provider.service';
 import { CreateProviderDto } from './dto/create-provider.dto';
 import { UpdateProviderDto } from './dto/update-provider.dto';
+import { Public } from '../../shared/decorators/public.decorator';
 
 @Controller('provider')
 export class ProviderController {
@@ -12,16 +13,19 @@ export class ProviderController {
     return this.providerService.create(createProviderDto);
   }
 
+  @Public()
   @Get()
   findAll() {
     return this.providerService.findAll();
   }
 
+  @Public()
   @Get(':id')
   findOne(@Param('id') id: string) {
     return this.providerService.findOne(+id);
   }
 
+  @Public()
   @Get('by-category/:slug')
   findByCategory(@Param('slug') slug: string) {
     return this.providerService.findProvidersByCategorySlug(slug);

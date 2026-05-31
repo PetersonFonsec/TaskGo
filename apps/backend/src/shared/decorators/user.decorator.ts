@@ -1,13 +1,10 @@
 import { ExecutionContext, createParamDecorator } from "@nestjs/common";
-import { JwtService } from "@nestjs/jwt";
-import { UserTokenI } from "../interfaces/user-token";
+import { TOKEN_KEY } from "../../modules/auth/auth.guard";
 
 export const User = createParamDecorator((field, context: ExecutionContext) => {
   const request = context.switchToHttp().getRequest();
-  if (field && request[field]) return request[field]
-
-  const jwt = new JwtService();
-  const token = jwt.decode<UserTokenI>(request.headers.authorization.split(" ")[1]);
-
+  const token = request[TOKEN_KEY];
+  if (!token) return null;
+  if (field) return token[field];
   return token;
-})
+});

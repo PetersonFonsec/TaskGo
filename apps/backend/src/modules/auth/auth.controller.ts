@@ -11,6 +11,7 @@ import { AuthLoginDTO } from "./queries/login/login.dto";
 import { AuthForgetDTO } from "./commands/forgot-password/forgot-password.dto";
 import { AuthRegisterDTO } from "./dto/auth-register.dto";
 import { GetUserQuery } from "../user/queries/get-user/get-user.query";
+import { Public } from '../../shared/decorators/public.decorator';
 
 @Controller("auth")
 export class AuthController {
@@ -20,6 +21,7 @@ export class AuthController {
     private readonly queryBus: QueryBus,
   ) { }
 
+  @Public()
   @Post("login")
   async login(@Body() body: AuthLoginDTO) {
     const query = plainToClass(LoginQuery, body);
@@ -30,6 +32,7 @@ export class AuthController {
     return { user: result, access_token };
   }
 
+  @Public()
   @Post("register")
   async register(@Body() body: AuthRegisterDTO) {
     const command = plainToClass(CreateUserCommand, body);
@@ -43,6 +46,7 @@ export class AuthController {
     return { user, access_token };
   }
 
+  @Public()
   @Post("forget")
   async forget(@Body() body: AuthForgetDTO) {
     const command = plainToClass(ForgotPasswordCommand, body);

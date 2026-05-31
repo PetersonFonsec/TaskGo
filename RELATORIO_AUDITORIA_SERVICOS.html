@@ -1,0 +1,537 @@
+<!doctype html>
+<html lang="pt-BR">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Relatorio de Auditoria dos Servicos</title>
+    <style>
+      :root {
+        color-scheme: light;
+        --bg: #f4f7fb;
+        --panel: #ffffff;
+        --text: #172033;
+        --muted: #64748b;
+        --line: #dbe3ee;
+        --critical: #b42318;
+        --critical-bg: #fef3f2;
+        --high: #b54708;
+        --high-bg: #fffaeb;
+        --medium: #175cd3;
+        --medium-bg: #eff8ff;
+        --positive: #027a48;
+        --positive-bg: #ecfdf3;
+        --code: #f1f5f9;
+        --shadow: 0 12px 36px rgba(15, 23, 42, 0.08);
+      }
+
+      * {
+        box-sizing: border-box;
+      }
+
+      html {
+        scroll-behavior: smooth;
+      }
+
+      body {
+        margin: 0;
+        background: var(--bg);
+        color: var(--text);
+        font: 15px/1.65 Inter, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+      }
+
+      a {
+        color: #175cd3;
+        text-decoration: none;
+      }
+
+      a:hover {
+        text-decoration: underline;
+      }
+
+      code {
+        border-radius: 5px;
+        background: var(--code);
+        padding: 2px 5px;
+        font: 0.9em/1.5 ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+      }
+
+      pre {
+        overflow-x: auto;
+        border: 1px solid var(--line);
+        border-radius: 10px;
+        background: #0f172a;
+        color: #e2e8f0;
+        padding: 16px;
+        font: 13px/1.6 ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+      }
+
+      .layout {
+        display: grid;
+        grid-template-columns: 270px minmax(0, 1fr);
+        min-height: 100vh;
+      }
+
+      aside {
+        position: sticky;
+        top: 0;
+        height: 100vh;
+        overflow-y: auto;
+        border-right: 1px solid var(--line);
+        background: #10213d;
+        color: #dbeafe;
+        padding: 28px 22px;
+      }
+
+      aside h1 {
+        margin: 0 0 6px;
+        color: #ffffff;
+        font-size: 20px;
+        line-height: 1.25;
+      }
+
+      aside p {
+        margin: 0 0 24px;
+        color: #a9bbd6;
+        font-size: 12px;
+      }
+
+      aside a {
+        display: block;
+        border-radius: 6px;
+        color: #dbeafe;
+        padding: 6px 8px;
+        font-size: 13px;
+      }
+
+      aside a:hover {
+        background: rgba(255, 255, 255, 0.08);
+        text-decoration: none;
+      }
+
+      main {
+        width: min(1120px, 100%);
+        margin: 0 auto;
+        padding: 46px 44px 70px;
+      }
+
+      header,
+      section {
+        margin-bottom: 26px;
+        border: 1px solid var(--line);
+        border-radius: 14px;
+        background: var(--panel);
+        box-shadow: var(--shadow);
+        padding: 26px 30px;
+      }
+
+      header {
+        background: linear-gradient(135deg, #10213d, #1d4e89);
+        color: #ffffff;
+      }
+
+      header h1 {
+        margin: 0;
+        font-size: 34px;
+        line-height: 1.15;
+      }
+
+      header p {
+        margin: 10px 0 0;
+        color: #dbeafe;
+      }
+
+      h2 {
+        margin: 0 0 16px;
+        color: #10213d;
+        font-size: 24px;
+      }
+
+      h3 {
+        margin: 24px 0 8px;
+        color: #233553;
+        font-size: 18px;
+      }
+
+      table {
+        width: 100%;
+        border-collapse: collapse;
+      }
+
+      th,
+      td {
+        border-bottom: 1px solid var(--line);
+        padding: 12px;
+        text-align: left;
+        vertical-align: top;
+      }
+
+      th {
+        color: #334155;
+        font-size: 12px;
+        letter-spacing: 0.06em;
+        text-transform: uppercase;
+      }
+
+      tr:last-child td {
+        border-bottom: 0;
+      }
+
+      .tag {
+        display: inline-block;
+        border-radius: 999px;
+        padding: 3px 9px;
+        font-size: 12px;
+        font-weight: 700;
+      }
+
+      .critical {
+        background: var(--critical-bg);
+        color: var(--critical);
+      }
+
+      .high {
+        background: var(--high-bg);
+        color: var(--high);
+      }
+
+      .medium {
+        background: var(--medium-bg);
+        color: var(--medium);
+      }
+
+      .positive {
+        background: var(--positive-bg);
+        color: var(--positive);
+      }
+
+      .finding {
+        border-top: 1px solid var(--line);
+        padding-top: 2px;
+      }
+
+      .finding:first-of-type {
+        border-top: 0;
+      }
+
+      .finding p {
+        margin: 8px 0;
+      }
+
+      .label {
+        font-weight: 700;
+      }
+
+      ul,
+      ol {
+        padding-left: 22px;
+      }
+
+      .note {
+        border-left: 4px solid #175cd3;
+        background: #eff8ff;
+        padding: 12px 16px;
+      }
+
+      footer {
+        color: var(--muted);
+        font-size: 13px;
+        text-align: center;
+      }
+
+      @media (max-width: 860px) {
+        .layout {
+          display: block;
+        }
+
+        aside {
+          position: static;
+          height: auto;
+        }
+
+        aside nav {
+          display: grid;
+          grid-template-columns: repeat(2, minmax(0, 1fr));
+        }
+
+        main {
+          padding: 24px 16px 44px;
+        }
+
+        header,
+        section {
+          padding: 20px;
+        }
+
+        header h1 {
+          font-size: 28px;
+        }
+      }
+
+      @media print {
+        body {
+          background: #ffffff;
+        }
+
+        aside {
+          display: none;
+        }
+
+        .layout {
+          display: block;
+        }
+
+        main {
+          width: 100%;
+          padding: 0;
+        }
+
+        header,
+        section {
+          break-inside: avoid;
+          box-shadow: none;
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <div class="layout">
+      <aside>
+        <h1>Auditoria de Servicos</h1>
+        <p>TaskGo | 30 de maio de 2026</p>
+        <nav>
+          <a href="#escopo">Escopo</a>
+          <a href="#canvas">Canvas Executivo</a>
+          <a href="#criticos">Achados Criticos</a>
+          <a href="#altos">Achados Altos</a>
+          <a href="#medios">Achados Medios</a>
+          <a href="#cobertura">Cobertura</a>
+          <a href="#positivos">Aspectos Positivos</a>
+          <a href="#verificacao">Verificacao</a>
+          <a href="#ordem">Ordem Recomendada</a>
+          <a href="#observacao">Observacao</a>
+        </nav>
+      </aside>
+
+      <main>
+        <header>
+          <h1>Relatorio de Auditoria dos Servicos</h1>
+          <p>Auditoria transversal do codebase TaskGo</p>
+        </header>
+
+        <section id="escopo">
+          <h2>Escopo</h2>
+          <p>Auditoria transversal dos servicos backend e frontend, controllers, guards, interceptors, Prisma, configuracao e testes.</p>
+          <p>Nenhum arquivo de codigo-fonte foi alterado durante a analise.</p>
+        </section>
+
+        <section id="canvas">
+          <h2>Canvas Executivo</h2>
+          <table>
+            <thead>
+              <tr><th>Area</th><th>Estado</th><th>Diagnostico</th></tr>
+            </thead>
+            <tbody>
+              <tr><td>Seguranca</td><td><span class="tag critical">Critico</span></td><td>API praticamente publica</td></tr>
+              <tr><td>Integridade</td><td><span class="tag critical">Critico</span></td><td>Preco e identidade do pedido controlados pelo cliente</td></tr>
+              <tr><td>Privacidade</td><td><span class="tag critical">Critico</span></td><td>Hashes e dados pessoais retornados em consultas</td></tr>
+              <tr><td>Servicos</td><td><span class="tag high">Alto</span></td><td>CRUDs incompletos e fluxos inconsistentes</td></tr>
+              <tr><td>Testes</td><td><span class="tag high">Alto</span></td><td>Pipelines backend e frontend quebrados</td></tr>
+              <tr><td>Build</td><td><span class="tag medium">Atencao</span></td><td>Compila, mas nao garante comportamento correto</td></tr>
+            </tbody>
+          </table>
+        </section>
+
+        <section id="criticos">
+          <h2>Achados Criticos</h2>
+
+          <article class="finding">
+            <h3>1. Autorizacao nao aplicada no backend</h3>
+            <p>O <code>AuthGuard</code> existe em <a href="apps/backend/src/modules/auth/auth.guard.ts#L9"><code>apps/backend/src/modules/auth/auth.guard.ts</code></a>, mas nao e registrado globalmente nem usado nos controllers.</p>
+            <p>Qualquer cliente pode listar, alterar e excluir usuarios, enderecos e pedidos por rotas como:</p>
+            <ul>
+              <li><a href="apps/backend/src/modules/user/user.controller.ts#L35"><code>apps/backend/src/modules/user/user.controller.ts</code></a></li>
+              <li><a href="apps/backend/src/modules/order/order.controller.ts#L23"><code>apps/backend/src/modules/order/order.controller.ts</code></a></li>
+            </ul>
+            <p><span class="label">Impacto:</span> acesso e modificacao nao autorizados de dados.</p>
+            <p><span class="label">Recomendacao:</span> aplicar autenticacao global ou <code>@UseGuards(AuthGuard)</code> nas rotas protegidas e derivar o usuario autenticado do token.</p>
+          </article>
+
+          <article class="finding">
+            <h3>2. Pedido aceita fraude de identidade e preco</h3>
+            <p><code>clientId</code>, <code>serviceId</code> e <code>finalPrice</code> vem diretamente do payload em <a href="apps/backend/src/modules/order/order.service.ts#L21"><code>apps/backend/src/modules/order/order.service.ts</code></a>.</p>
+            <p><span class="label">Impacto:</span> um cliente pode criar pedidos para outro usuario e sobrescrever o preco base.</p>
+            <p><span class="label">Recomendacao:</span> derivar <code>clientId</code> do token, calcular o preco no servidor e validar transicoes de pagamento.</p>
+          </article>
+
+          <article class="finding">
+            <h3>3. Consultas expoem dados sensiveis</h3>
+            <p>Alguns includes retornam objetos Prisma completos, incluindo campos como <code>passwordHash</code>, CPF e email:</p>
+            <ul>
+              <li><a href="apps/backend/src/modules/provider/provider.service.ts#L34"><code>apps/backend/src/modules/provider/provider.service.ts</code></a></li>
+              <li><a href="apps/backend/src/modules/order/order.service.ts#L92"><code>apps/backend/src/modules/order/order.service.ts</code></a></li>
+              <li><a href="apps/backend/src/modules/order/order.service.ts#L137"><code>apps/backend/src/modules/order/order.service.ts</code></a></li>
+            </ul>
+            <p><span class="label">Impacto:</span> vazamento de credenciais derivadas e dados pessoais.</p>
+            <p><span class="label">Recomendacao:</span> usar <code>select</code> explicito ou DTOs de resposta com allowlist de campos.</p>
+          </article>
+
+          <article class="finding">
+            <h3>4. Enderecos vazam entre usuarios</h3>
+            <p>O frontend envia <code>userId</code>, mas o backend ignora o filtro em <a href="apps/backend/src/modules/address/address.controller.ts#L17"><code>apps/backend/src/modules/address/address.controller.ts</code></a>.</p>
+            <p>A criacao tambem descarta <code>userId</code>, <code>label</code>, <code>lat</code> e <code>lng</code> em <a href="apps/backend/src/modules/address/address.service.ts#L18"><code>apps/backend/src/modules/address/address.service.ts</code></a>.</p>
+            <p><span class="label">Impacto:</span> listagem cruzada de enderecos e registros incompletos.</p>
+            <p><span class="label">Recomendacao:</span> filtrar pelo usuario autenticado e persistir os campos validados.</p>
+          </article>
+        </section>
+
+        <section id="altos">
+          <h2>Achados Altos</h2>
+
+          <article class="finding">
+            <h3>5. Cadastro pelo frontend esta incompativel com a API</h3>
+            <p>O frontend envia <code>{ user: data }</code> em <a href="apps/frontend/src/app/shared/service/users/user-register.ts#L29"><code>apps/frontend/src/app/shared/service/users/user-register.ts</code></a>, enquanto o backend espera os campos na raiz em <a href="apps/backend/src/modules/auth/auth.controller.ts#L35"><code>apps/backend/src/modules/auth/auth.controller.ts</code></a>.</p>
+            <p><span class="label">Impacto:</span> cadastro pela interface pode falhar na validacao.</p>
+          </article>
+
+          <article class="finding">
+            <h3>6. Criacao de categoria responde antes da transacao</h3>
+            <p>A Promise de <code>$transaction()</code> nao e retornada nem aguardada em <a href="apps/backend/src/modules/categories/categories.service.ts#L18"><code>apps/backend/src/modules/categories/categories.service.ts</code></a>.</p>
+            <p><span class="label">Impacto:</span> falhas podem ocorrer depois de uma resposta de sucesso.</p>
+          </article>
+
+          <article class="finding">
+            <h3>7. CRUD de servicos e providers ainda e scaffold</h3>
+            <p>Operacoes retornam textos sem persistencia:</p>
+            <ul>
+              <li><a href="apps/backend/src/modules/services/services.service.ts#L25"><code>apps/backend/src/modules/services/services.service.ts</code></a></li>
+              <li><a href="apps/backend/src/modules/provider/provider.service.ts#L87"><code>apps/backend/src/modules/provider/provider.service.ts</code></a></li>
+            </ul>
+            <p><span class="label">Impacto:</span> endpoints respondem sem executar a operacao solicitada.</p>
+          </article>
+
+          <article class="finding">
+            <h3>8. DTO de subcategoria conflita com o schema</h3>
+            <p><code>categoryId</code> Prisma e <code>BigInt</code>, mas o DTO exige UUID e ainda obriga o cliente a informar um ID sobrescrito pelo servico:</p>
+            <ul>
+              <li><a href="apps/backend/src/modules/categories/dto/create-subcategory.dto.ts#L5"><code>apps/backend/src/modules/categories/dto/create-subcategory.dto.ts</code></a></li>
+            </ul>
+            <p><span class="label">Impacto:</span> payloads validos para o banco podem ser rejeitados pela API.</p>
+          </article>
+        </section>
+
+        <section id="medios">
+          <h2>Achados Medios</h2>
+
+          <article class="finding">
+            <h3>9. Paginacao aceita campos arbitrarios</h3>
+            <p><code>sortBy</code>, <code>limit</code> e chaves de busca entram diretamente na consulta Prisma em <a href="apps/backend/src/shared/services/pagination/pagination.service.ts#L45"><code>apps/backend/src/shared/services/pagination/pagination.service.ts</code></a>.</p>
+            <p><code>take: -limit</code> tambem inverte a direcao esperada da pagina.</p>
+            <p><span class="label">Impacto:</span> erros de consulta, comportamento inesperado e potencial abuso de recursos.</p>
+            <p><span class="label">Recomendacao:</span> validar limites e usar allowlist de campos pesquisaveis e ordenaveis.</p>
+          </article>
+
+          <article class="finding">
+            <h3>10. Recuperacao de senha esta incompleta</h3>
+            <p>O handler publica <code>ForgotPasswordEvent</code>, mas nao existe consumidor registrado nem endpoint de redefinicao:</p>
+            <ul>
+              <li><a href="apps/backend/src/modules/auth/commands/forgot-password/forgot-password.handle.ts#L19"><code>apps/backend/src/modules/auth/commands/forgot-password/forgot-password.handle.ts</code></a></li>
+            </ul>
+            <p><span class="label">Impacto:</span> fluxo iniciado sem conclusao funcional.</p>
+          </article>
+
+          <article class="finding">
+            <h3>11. Credenciais versionadas</h3>
+            <p>Ha senha de banco e segredo JWT rastreados:</p>
+            <ul>
+              <li><a href="config/db.env#L1"><code>config/db.env</code></a></li>
+              <li><a href="config/backend.env#L1"><code>config/backend.env</code></a></li>
+            </ul>
+            <p><span class="label">Impacto:</span> incentivo a reutilizacao insegura e risco de exposicao de ambientes.</p>
+            <p><span class="label">Recomendacao:</span> versionar apenas exemplos sem valores e rotacionar segredos reutilizados.</p>
+          </article>
+
+          <article class="finding">
+            <h3>12. Inicializacao dev destrutiva</h3>
+            <p><code>start:dev</code> executa <code>prisma migrate reset --force</code>:</p>
+            <ul>
+              <li><a href="apps/backend/package.json#L15"><code>apps/backend/package.json</code></a></li>
+            </ul>
+            <p><span class="label">Impacto:</span> perda de dados ao iniciar o ambiente local.</p>
+            <p><span class="label">Recomendacao:</span> remover o reset automatico e deixa-lo como comando explicito.</p>
+          </article>
+        </section>
+
+        <section id="cobertura">
+          <h2>Cobertura Da Analise</h2>
+          <ul>
+            <li>15 classes de servico e handlers do backend revisados.</li>
+            <li>Servicos HTTP, armazenamento local, guards e interceptors do frontend revisados.</li>
+            <li>Controllers, DTOs, Prisma schema e configuracoes de ambiente inspecionados.</li>
+          </ul>
+        </section>
+
+        <section id="positivos">
+          <h2>Aspectos Positivos</h2>
+          <ul>
+            <li>DTOs de pedidos usam validacao aninhada.</li>
+            <li>Operacoes compostas de pedido usam transacao Prisma.</li>
+            <li>O build Nx compila backend e frontend.</li>
+            <li>O frontend possui interceptor para envio de token.</li>
+          </ul>
+        </section>
+
+        <section id="verificacao">
+          <h2>Verificacao Executada</h2>
+          <h3>Lint</h3>
+          <pre>Claim: estado atual do lint
+Command: npm run lint -- --skip-nx-cache
+Exit code: 1
+Output summary: 242 problemas, 214 erros e 28 warnings
+Verdict: FAIL</pre>
+
+          <h3>Build</h3>
+          <pre>Claim: compilacao do monorepo
+Command: npm run build -- --skip-nx-cache
+Exit code: 0
+Output summary: backend e frontend compilados; 2 warnings Angular
+Verdict: PASS</pre>
+
+          <h3>Testes Frontend</h3>
+          <pre>Claim: testes frontend
+Command: npm run test -- --watch=false --browsers=ChromeHeadless
+Exit code: 1
+Output summary: falhas em imports SCSS e testes desatualizados
+Verdict: FAIL</pre>
+
+          <h3>Testes Agregados</h3>
+          <pre>Claim: testes do monorepo
+Command: npm run test -- --skip-nx-cache --runInBand
+Exit code: nao concluido integralmente
+Output summary: backend falhou em 15 suites; frontend entrou em modo continuo e foi encerrado
+Verdict: FAIL</pre>
+        </section>
+
+        <section id="ordem">
+          <h2>Ordem Recomendada De Correcao</h2>
+          <ol>
+            <li>Aplicar autenticacao e autorizacao no backend.</li>
+            <li>Remover controle de identidade e preco do payload de pedidos.</li>
+            <li>Criar DTOs de resposta sem dados sensiveis.</li>
+            <li>Corrigir isolamento e persistencia de enderecos.</li>
+            <li>Alinhar contrato de cadastro entre frontend e backend.</li>
+            <li>Implementar CRUDs que ainda retornam placeholders.</li>
+            <li>Corrigir lint e infraestrutura de testes.</li>
+            <li>Remover segredos versionados e inicializacao destrutiva.</li>
+          </ol>
+        </section>
+
+        <section id="observacao">
+          <h2>Observacao Sobre A Arvore De Trabalho</h2>
+          <p class="note">Durante a auditoria, <code>todo.txt</code> apresentou uma alteracao externa. Essa alteracao foi preservada e nao faz parte deste relatorio.</p>
+        </section>
+
+        <footer>TaskGo | Relatorio de Auditoria dos Servicos | 30 de maio de 2026</footer>
+      </main>
+    </div>
+  </body>
+</html>
