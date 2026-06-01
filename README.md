@@ -18,3 +18,12 @@ docker exec -it proxi_api sh
 # Dentro do container:
 npx prisma generate
 npx prisma migrate dev --name init
+
+## Release notes
+The new MVP favorites feature adds:
+
+- Favorite toggle on professional cards and profile pages.
+- A dedicated `Favorites` view for clients to browse saved professionals.
+- A `Show only favorites` search filter to restrict results to saved providers.
+
+See `RELEASE_NOTES.md` for a short launch summary.

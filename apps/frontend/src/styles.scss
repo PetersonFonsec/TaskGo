@@ -205,6 +205,11 @@ html {
   color: var(--font-color-neutral);
 }
 
+.cdk-live-announcer-element,
+.cdk-visually-hidden {
+  display: none !important;
+}
+
 alert,
 app-card-detail,
 app-step,

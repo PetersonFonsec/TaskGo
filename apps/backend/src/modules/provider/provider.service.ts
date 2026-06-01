@@ -1,10 +1,11 @@
-import { Injectable } from '@nestjs/common';
+import { Injectable, UnauthorizedException } from '@nestjs/common';
 
 import { ServicesService } from '../services/services.service';
 import { UpdateProviderDto } from './dto/update-provider.dto';
 import { CreateProviderDto } from './dto/create-provider.dto';
 import { PrismaService } from '../../prisma/prisma.service';
 import { UserService } from '../user/user.service';
+import { FavoritesService } from './favorites.service';
 
 @Injectable()
 export class ProviderService {
@@ -12,6 +13,7 @@ export class ProviderService {
     public prisma: PrismaService,
     public userService: UserService,
     public serviceService: ServicesService,
+    public favoritesService: FavoritesService,
   ) { }
 
   async create(payload: any) {
@@ -31,7 +33,20 @@ export class ProviderService {
     });
   }
 
-  async findAll() {
+  async findAll(options?: { onlyFavorites?: boolean; clientId?: number }) {
+    if (options?.onlyFavorites) {
+      if (!options.clientId) {
+        throw new UnauthorizedException('Authenticated client required for favorites filter');
+      }
+
+      const favorites = await this.favoritesService.listFavorites(options.clientId, {
+        skip: 0,
+        take: 100,
+      });
+
+      return favorites.items.map((favorite) => favorite.provider);
+    }
+
     return this.prisma.provider.findMany({
       include: {
         user: true,

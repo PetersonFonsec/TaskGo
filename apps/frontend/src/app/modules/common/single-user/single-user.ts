@@ -17,6 +17,7 @@ import { Utils } from '@shared/service/utils/utils.service';
 import { Card } from '@shared/components/forms/card/card';
 import { Badge } from '@shared/components/ui/badge/badge';
 import { User } from '@shared/service/users/user';
+import { environment } from '@environments/environment';
 
 
 /**
@@ -43,7 +44,7 @@ import { User } from '@shared/service/users/user';
   styleUrl: './single-user.scss',
 })
 export class SingleUser implements OnInit {
-  #userLogged = inject(UserLoggedService).user().user;
+  #userLogged = inject(UserLoggedService);
   #activatedRoute = inject(ActivatedRoute);
   #liveAnnouncer = inject(LiveAnnouncer);
   #provider = inject(Provider);
@@ -53,6 +54,11 @@ export class SingleUser implements OnInit {
   provider = signal<any>({});
   showModal = signal(false);
   error = signal("");
+  favoritesEnabled = environment.features?.favoritesMvp ?? false;
+  favoriteState = signal(false);
+  favoriteLoading = signal(false);
+  favoriteError = signal("");
+  favoriteAnnouncement = signal("");
 
   socialLinks = SOCIAL_LINKS;
 
@@ -64,6 +70,66 @@ export class SingleUser implements OnInit {
     ).subscribe({
       next: (provider: any) => {
         this.provider.set(provider);
+        if (this.favoritesEnabled) {
+          this.loadFavoriteState(provider?.id);
+        }
+      }
+    });
+  }
+
+  toggleFavorite() {
+    if (!this.favoritesEnabled || this.favoriteLoading()) {
+      return;
+    }
+
+    const clientId = this.#userLogged.user().user?.id;
+    const providerId = this.provider()?.id;
+
+    if (!clientId || !providerId) {
+      this.favoriteError.set('Não é possível atualizar favoritos no momento.');
+      return;
+    }
+
+    const nextState = !this.favoriteState();
+    this.favoriteLoading.set(true);
+    this.favoriteError.set('');
+    this.favoriteState.set(nextState);
+
+    const request = nextState
+      ? this.#provider.addFavorite(String(clientId), String(providerId))
+      : this.#provider.removeFavorite(String(clientId), String(providerId));
+
+    request.subscribe({
+      next: () => {
+        const message = nextState
+          ? 'Profissional adicionado aos favoritos.'
+          : 'Profissional removido dos favoritos.';
+
+        this.favoriteAnnouncement.set(message);
+        this.#liveAnnouncer.announce(message);
+      },
+      error: (error: HttpErrorResponse) => {
+        this.favoriteState.set(!nextState);
+        this.favoriteError.set(error.error?.message || 'Erro ao atualizar o favorito.');
+        this.#liveAnnouncer.announce('Não foi possível atualizar o favorito.');
+      },
+      complete: () => {
+        this.favoriteLoading.set(false);
+      }
+    });
+  }
+
+  private loadFavoriteState(providerId: any) {
+    const clientId = this.#userLogged.user().user?.id;
+    if (!clientId || !providerId) {
+      return;
+    }
+
+    this.#provider.listFavorites(String(clientId)).subscribe({
+      next: (response: any) => {
+        const items = response?.items ?? response ?? [];
+        const favoriteIds = (items as any[]).map(item => String(item.providerId ?? item.id ?? ''));
+        this.favoriteState.set(favoriteIds.includes(String(providerId)));
       }
     });
   }
@@ -71,10 +137,10 @@ export class SingleUser implements OnInit {
   register() {
     const payload: hireProviderRequest = {
       serviceId: this.provider().services[0].id,
-      clientId: this.#userLogged.id,
+      clientId: this.#userLogged.user().user?.id,
       finalPrice: 0,
       paymentMethod: 'PIX',
-      address: this.#userLogged.addresses[0]
+      address: this.#userLogged.user().user?.addresses[0]
     };
 
     this.#provider.hireProvider(payload).subscribe({
@@ -91,6 +157,6 @@ export class SingleUser implements OnInit {
   }
 
   goToHome() {
-    this.#router.navigateByUrl(Utils.getRouteByRole(this.#userLogged.type));
+    this.#router.navigateByUrl(Utils.getRouteByRole(this.#userLogged.user().user?.type));
   }
 }

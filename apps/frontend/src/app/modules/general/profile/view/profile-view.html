@@ -1,0 +1,34 @@
+<div class="profile-view">
+  <ng-container *ngIf="loading() === false; else loadingTemplate">
+    <div *ngIf="user(); else errorTemplate">
+      <section class="profile-summary">
+        <img *ngIf="user()?.photoUrl" [src]="user()?.photoUrl" alt="Foto do perfil" class="profile-photo" />
+        <h1 data-cy="profile-name">{{ user()?.name }}</h1>
+        <p data-cy="profile-email">Email: {{ user()?.email }}</p>
+        <p data-cy="profile-phone">Telefone: {{ user()?.phone }}</p>
+        <p *ngIf="user()?.emailVerified === false" class="status pending">Email pendente de verificação</p>
+        <p *ngIf="user()?.phoneVerified === false" class="status pending">Telefone pendente de verificação</p>
+        <button app-button type="button" data-cy="edit-profile" (click)="goToEdit()">Editar perfil</button>
+      </section>
+
+      <section class="profile-addresses">
+        <h2>Endereços</h2>
+        <ul>
+          <li *ngFor="let address of user()?.addresses || []" data-cy="profile-address-item">
+            <strong>{{ address.label }}</strong>
+            <span>{{ address.street }}, {{ address.city }} {{ address.state }}</span>
+          </li>
+        </ul>
+        <p *ngIf="!(user()?.addresses?.length)">Nenhum endereço cadastrado.</p>
+      </section>
+    </div>
+  </ng-container>
+</div>
+
+<ng-template #loadingTemplate>
+  <div class="loading">Carregando perfil...</div>
+</ng-template>
+
+<ng-template #errorTemplate>
+  <div class="error">{{ error() }}</div>
+</ng-template>

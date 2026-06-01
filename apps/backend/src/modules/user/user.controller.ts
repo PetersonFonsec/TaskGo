@@ -8,6 +8,10 @@ import { CreateUserCommand } from './commands/create-user/create-user.command';
 import { GetUserQuery } from './queries/get-user/get-user.query';
 import { CreateUserDto } from './dto/create-user.dto';
 import { UpdateUserDto } from './dto/update-user.dto';
+import { RequestEmailVerificationDto } from './dto/request-email-verification.dto';
+import { RequestPhoneVerificationDto } from './dto/request-phone-verification.dto';
+import { ConfirmEmailVerificationDto } from './dto/confirm-email-verification.dto';
+import { ConfirmPhoneVerificationDto } from './dto/confirm-phone-verification.dto';
 import { UserService } from './user.service';
 @Controller('user')
 export class UserController {
@@ -39,6 +43,26 @@ export class UserController {
   @Patch(':id')
   update(@Param('id') id: string, @Body() updateUserDto: UpdateUserDto) {
     return this.userService.update(BigInt(id), updateUserDto);
+  }
+
+  @Post(':id/verify-email')
+  requestEmailVerification(@Param('id') id: string, @Body() payload: RequestEmailVerificationDto) {
+    return this.userService.requestEmailVerification(BigInt(id), payload);
+  }
+
+  @Post(':id/verify-phone')
+  requestPhoneVerification(@Param('id') id: string, @Body() payload: RequestPhoneVerificationDto) {
+    return this.userService.requestPhoneVerification(BigInt(id), payload);
+  }
+
+  @Post(':id/confirm-email')
+  confirmEmailVerification(@Param('id') id: string, @Body() payload: ConfirmEmailVerificationDto) {
+    return this.userService.confirmEmailVerification(BigInt(id), payload);
+  }
+
+  @Post(':id/confirm-phone')
+  confirmPhoneVerification(@Param('id') id: string, @Body() payload: ConfirmPhoneVerificationDto) {
+    return this.userService.confirmPhoneVerification(BigInt(id), payload);
   }
 
   @Delete(':id')

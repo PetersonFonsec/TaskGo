@@ -1,0 +1,35 @@
+.profile-view {
+  padding: 1.5rem;
+}
+
+.profile-summary {
+  display: grid;
+  gap: 1rem;
+  margin-bottom: 2rem;
+}
+
+.profile-photo {
+  width: 96px;
+  height: 96px;
+  border-radius: 999px;
+  object-fit: cover;
+}
+
+.status.pending {
+  color: #b76e79;
+}
+
+.profile-addresses ul {
+  list-style: none;
+  padding: 0;
+}
+
+.profile-addresses li {
+  margin-bottom: 0.75rem;
+}
+
+.loading,
+.error {
+  padding: 1rem;
+  color: #333;
+}

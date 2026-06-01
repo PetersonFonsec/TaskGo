@@ -17,4 +17,8 @@ export class User {
   getProvider(userId: string) {
     return this.#http.get<UserResponse>(this.#urlbase + `/provider/${userId}`);
   }
+
+  updateUser(userId: string, payload: { name: string; email: string; phone: string }) {
+    return this.#http.patch<UserResponse>(this.#urlbase + `/user/${userId}`, payload);
+  }
 }

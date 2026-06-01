@@ -16,8 +16,7 @@ import { AlertComponent } from '@shared/components/ui/alert/alert.component';
     TabComponent,
     TabContentDirective,
     TabHeaderDirective,
-    AddressForm,
-    AlertComponent
+    AddressForm
   ],
   templateUrl: './address.html',
   styleUrl: './address.scss',

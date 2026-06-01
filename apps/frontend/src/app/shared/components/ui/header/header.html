@@ -6,7 +6,10 @@
   <nav class="header_links">
     <ul>
       <li>
-        <a class="text" routerLink="/">Pagina Inicial</a>
+        <a class="text" (click)="navigateToHome()">Pagina Inicial</a>
+      </li>
+      <li *ngIf="isCustomer && favoritesEnabled">
+        <a class="text" routerLink="/customer/favorites">Favoritos</a>
       </li>
        <li>
         <a class="text" routerLink="/general/{{ userId }}">Perfil</a>

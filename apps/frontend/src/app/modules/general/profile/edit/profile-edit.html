@@ -1,0 +1,49 @@
+<div class="profile-edit">
+  <div *ngIf="loading()">Carregando...</div>
+
+  <div *ngIf="!loading() && user()">
+    <h1>Editar perfil</h1>
+
+    <form #form="ngForm" (ngSubmit)="save(form)">
+      <app-input-text
+        name="name"
+        label="Nome"
+        [(ngModel)]="nameValue"
+        required
+      ></app-input-text>
+
+      <app-input-text
+        name="email"
+        label="Email"
+        type="text"
+        [(ngModel)]="emailValue"
+        required
+      ></app-input-text>
+
+      <app-input-text
+        name="phone"
+        label="Telefone"
+        type="text"
+        [(ngModel)]="phoneValue"
+        required
+      ></app-input-text>
+
+      <div class="status-line" *ngIf="user()?.emailVerified === false">
+        Email atual pendente de verificação
+      </div>
+      <div class="status-line" *ngIf="user()?.phoneVerified === false">
+        Telefone atual pendente de verificação
+      </div>
+
+      <div class="form-messages">
+        <p class="success" *ngIf="success()">{{ success() }}</p>
+        <p class="error" *ngIf="error()">{{ error() }}</p>
+      </div>
+
+      <div class="actions">
+        <button app-button type="button" (click)="cancel()">Cancelar</button>
+        <button app-button type="submit">Salvar</button>
+      </div>
+    </form>
+  </div>
+</div>

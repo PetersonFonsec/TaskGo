@@ -11,5 +11,31 @@
       <h4 class="card-detail_title">{{ title() }}</h4>
       <legend class="card-detail_subtitle">{{legend() }}</legend>
     </ng-content>
+
+    @if(showFavorite()) {
+    <div class="card-detail_actions">
+      <button type="button" class="card-detail_favorite" [disabled]="favoriteLoading()"
+        aria-pressed="{{ isFavorite() }}"
+        [attr.aria-label]="isFavorite() ? 'Remover dos favoritos' : 'Salvar nos favoritos'"
+        (click)="onFavoriteClick($event)">
+        @if(favoriteLoading()) {
+        <span>Processando...</span>
+        } @else {
+        @if(isFavorite()) {
+        <span aria-hidden="true">♥</span>
+        <span>Remover dos favoritos</span>
+        } @else {
+        <span aria-hidden="true">♡</span>
+        <span>Salvar nos favoritos</span>
+        }
+        }
+      </button>
+      @if(favoriteError()) {
+      <span class="card-detail_favorite_error" role="alert">
+        {{ favoriteError() }}
+      </span>
+      }
+    </div>
+    }
   </div>
 </div>

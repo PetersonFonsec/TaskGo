@@ -15,3 +15,13 @@ export interface hireProviderRequest {
     lng: number,
   }
 }
+
+export interface FavoriteRequest {
+  providerId: string;
+}
+
+export interface FavoriteItem {
+  providerId: string;
+  id?: string;
+  [key: string]: any;
+}

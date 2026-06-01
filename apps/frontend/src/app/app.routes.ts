@@ -28,7 +28,7 @@ export const routes: Routes = [
     path: UrlBase.AUTHENTICATE,
     component: AuthPage,
     children: AuthRoutes,
-    // canActivate: [userLoggedGuard],
+    canActivate: [userLoggedGuard],
   },
   {
     path: UrlBase.PROVIDER,
@@ -39,7 +39,7 @@ export const routes: Routes = [
   {
     path: UrlBase.CUSTOMER,
     component: Customer,
-    canActivate: [unauthorizedGuard],
+    canActivate: [unauthorizedGuard, permissionByRoleGuard([RolesBack.CUSTOMER])],
     children: CustomerRoutes
   },
   {

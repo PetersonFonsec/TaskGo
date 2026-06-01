@@ -1,0 +1,31 @@
+.profile-edit {
+  padding: 1.5rem;
+}
+
+form {
+  display: grid;
+  gap: 1rem;
+}
+
+.status-line {
+  color: #b76e79;
+  font-size: 0.95rem;
+}
+
+.form-messages {
+  display: grid;
+  gap: 0.5rem;
+}
+
+.success {
+  color: #148a08;
+}
+
+.error {
+  color: #b73333;
+}
+
+.actions {
+  display: flex;
+  gap: 1rem;
+}

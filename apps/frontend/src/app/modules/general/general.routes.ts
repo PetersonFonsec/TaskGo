@@ -21,6 +21,24 @@ export const GeneralRoutes: Routes = [
         component: Home,
       },
       {
+        path: 'profile',
+        children: [
+          {
+            path: 'view',
+            loadComponent: () => import('@modules/general/profile/view/profile-view').then(m => m.ProfileView),
+          },
+          {
+            path: 'edit',
+            loadComponent: () => import('@modules/general/profile/edit/profile-edit').then(m => m.ProfileEdit),
+          },
+          {
+            path: '',
+            pathMatch: 'full',
+            redirectTo: 'view',
+          },
+        ],
+      },
+      {
         path: 'history',
         component: History,
       },

@@ -29,7 +29,44 @@
       flex: 1;
 
       .main-title {
-        margin-bottom: var(--space-7);
+        margin-bottom: var(--space-3);
+      }
+
+      #single-user_profile_headline {
+        display: flex;
+        gap: var(--space-4);
+        align-items: center;
+        flex-wrap: wrap;
+        width: 100%;
+      }
+
+      .favorite-button {
+        border: 1px solid var(--color-primary);
+        border-radius: 100px;
+        padding: var(--space-3) var(--space-5);
+        background: var(--color-background);
+        color: var(--color-primary);
+        cursor: pointer;
+        font-weight: var(--font-weight-medium);
+      }
+
+      .favorite-button[disabled] {
+        opacity: 0.7;
+        cursor: not-allowed;
+      }
+
+      .favorite-error {
+        color: var(--color-danger);
+        margin-top: var(--space-3);
+      }
+
+      .favorite-announcement {
+        position: absolute;
+        left: -10000px;
+        top: auto;
+        width: 1px;
+        height: 1px;
+        overflow: hidden;
       }
 
       &_services {

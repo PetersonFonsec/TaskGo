@@ -14,6 +14,12 @@ export const CustomerRoutes: Routes = [
     data: { animation: 'login' }
   },
   {
+    path: 'favorites',
+    title: `Favoritos`,
+    loadComponent: () => import('@modules/customer/favorites/favorites').then(c => c.Favorites),
+    data: { animation: 'login' }
+  },
+  {
     path: ':userId',
     title: `Perfil do profissional`,
     loadComponent: () => import('@modules/common/single-user/single-user').then(c => c.SingleUser),

@@ -1,4 +1,4 @@
-import { Injectable } from '@nestjs/common';
+import { BadRequestException, Injectable, NotFoundException } from '@nestjs/common';
 import { PrismaService } from '../../prisma/prisma.service';
 import { Address } from '@prisma/client';
 
@@ -17,9 +17,21 @@ export class AddressService extends PaginationService<Address> {
 
   async create(payload: CreateAddressDto) {
     const address = new AddressEntity(payload);
-    address.validate();
 
-    return this.prisma.address.create({ data: address.getValue() });
+    if (address.getValue().isDefault && !payload.userId) {
+      throw new BadRequestException('userId is required when setting isDefault on an address');
+    }
+
+    return this.prisma.$transaction(async (prisma) => {
+      if (address.getValue().isDefault && payload.userId) {
+        await prisma.address.updateMany({
+          where: { userId: payload.userId, isDefault: true },
+          data: { isDefault: false },
+        });
+      }
+
+      return prisma.address.create({ data: address.getValue() });
+    });
   }
 
   async findAll(query: PaginationQuery): Promise<PaginationResponse<Address>> {
@@ -32,9 +44,30 @@ export class AddressService extends PaginationService<Address> {
   }
 
   async update(id: bigint, updateAddressDto: UpdateAddressDto) {
-    return this.prisma.address.update({
-      where: {id},
-      data: updateAddressDto
+    return this.prisma.$transaction(async (prisma) => {
+      const existing = await prisma.address.findUnique({ where: { id } });
+      if (!existing) {
+        throw new NotFoundException(`Address with id ${id} not found`);
+      }
+
+      const userId = updateAddressDto.userId ?? existing.userId;
+      const shouldUpdateDefault = updateAddressDto.isDefault === true;
+
+      if (shouldUpdateDefault && !userId) {
+        throw new BadRequestException('userId is required when setting isDefault on an address');
+      }
+
+      if (shouldUpdateDefault && userId) {
+        await prisma.address.updateMany({
+          where: { userId, isDefault: true },
+          data: { isDefault: false },
+        });
+      }
+
+      return prisma.address.update({
+        where: { id },
+        data: updateAddressDto,
+      });
     });
   }
 

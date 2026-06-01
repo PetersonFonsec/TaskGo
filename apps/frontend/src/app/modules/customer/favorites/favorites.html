@@ -1,0 +1,36 @@
+<div id="customer-favorites">
+  <section id="customer-favorites_header">
+    <h1 class="main-title">Meus favoritos</h1>
+    <p class="text">Gerencie seus profissionais favoritos e remova quem não for mais relevante.</p>
+  </section>
+
+  <section *ngIf="!favoritesEnabled" id="customer-favorites_disabled">
+    <p class="text">A funcionalidade de favoritos ainda não está disponível.</p>
+  </section>
+
+  <section *ngIf="favoritesEnabled">
+    <p *ngIf="isLoading()" class="text">Carregando profissionais favoritos...</p>
+
+    <div *ngIf="!isLoading() && providers().length === 0" id="customer-favorites_empty">
+      <h2 class="subtitle">Você não possui nenhum profissional favoritado.</h2>
+      <p class="text">Use a busca para selecionar prestadores e adicioná-los aos favoritos.</p>
+    </div>
+
+    <ul *ngIf="!isLoading() && providers().length > 0" id="customer-favorites_list">
+      @for (provider of providers(); track $index) {
+      <li>
+        <app-card-detail
+          [routerLink]="'/customer/' + provider.id"
+          [image]="provider.user?.photoUrl"
+          [title]="provider.user?.name"
+          [legend]="provider.user?.phone"
+          [showFavorite]="true"
+          [isFavorite]="isFavorite(provider.id)"
+          [favoriteLoading]="isFavoriteLoading(provider.id)"
+          [favoriteError]="favoriteErrorMessage(provider.id)"
+          (favoriteToggle)="toggleFavorite(provider.id)" />
+      </li>
+      }
+    </ul>
+  </section>
+</div>

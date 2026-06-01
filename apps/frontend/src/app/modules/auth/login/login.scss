@@ -32,6 +32,10 @@
   &_content {
     flex: 1;
     gap: var(--space-6);
+
+    app-input-text {
+      margin-bottom: var(--space-6);
+    }
   }
 
   alert {

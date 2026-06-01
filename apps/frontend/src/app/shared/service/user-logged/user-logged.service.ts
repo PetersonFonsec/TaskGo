@@ -12,8 +12,8 @@ import { environment } from 'environments/environment';
 export class UserLoggedService {
   #keyLocalStorage = environment.user;
   #tokenService = inject(TokenService);
-  #router = inject(Router);
   #platformId = inject(PLATFORM_ID);
+  #router = inject(Router);
 
   // default safe values used during SSR
   storageUser: string = '{}';

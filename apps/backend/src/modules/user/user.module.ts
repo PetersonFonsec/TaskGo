@@ -2,6 +2,7 @@ import { forwardRef, Module } from '@nestjs/common';
 import { CqrsModule } from '@nestjs/cqrs';
 
 import { UserValidateService } from './user-validate.service';
+import { UserVerificationService } from './user-verification.service';
 import { UserController } from './user.controller';
 import { CommandHandlers } from './commands';
 import { UserService } from './user.service';
@@ -18,12 +19,13 @@ import { CreateUserFactory } from './commands/create-user/factories/create-user.
   providers: [
     UserService,
     UserValidateService,
+    UserVerificationService,
     ...QueryHandlers,
     ...CommandHandlers,
     CreateProviderStrategy,
     CreateClientStrategy,
     CreateUserFactory
   ],
-  exports: [UserService, UserValidateService]
+  exports: [UserService, UserValidateService, UserVerificationService]
 })
 export class UserModule { }

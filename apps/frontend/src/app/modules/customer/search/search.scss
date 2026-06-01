@@ -33,6 +33,21 @@
       }
     }
 
+    &_actions {
+      display: flex;
+      align-items: center;
+      margin-top: var(--space-4);
+    }
+
+    .customer-search_filter-toggle {
+      display: flex;
+      align-items: center;
+      gap: var(--space-3);
+      font-size: var(--font-size-base);
+      color: var(--text-color);
+      cursor: pointer;
+    }
+
     ul {
       @include grid.grid(280px, var(--space-6));
       width: 100%;

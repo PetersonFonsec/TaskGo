@@ -5,6 +5,18 @@
         Categoria selecionada: {{category()}}
       </h1>
 
+      <div id="customer-search_filters_actions">
+        <label class="customer-search_filter-toggle">
+          <input
+            type="checkbox"
+            [checked]="onlyFavorites()"
+            (change)="toggleOnlyFavorites($event.target.checked)"
+            aria-checked="{{ onlyFavorites() }}"
+          />
+          Mostrar somente favoritos
+        </label>
+      </div>
+
       <!-- <div id="customer-search_filters_content">
         <app-filters title="Distância"/>
         <app-filters title="Disponibilidade"/>
@@ -28,8 +40,15 @@
     <ul>
       @for (provider of providers(); track $index) {
       <li>
-        <app-card-detail [routerLink]="'/customer/'+provider?.id" [image]="provider?.user?.photoUrl"
-          [title]="provider?.user?.name" [legend]="provider?.user?.phone" />
+        <app-card-detail 
+          [routerLink]="'/customer/'+provider?.id" [image]="provider?.user?.photoUrl"
+          [title]="provider?.user?.name" 
+          [legend]="provider?.user?.phone"
+          [showFavorite]="favoritesEnabled"
+          [isFavorite]="isFavorite(provider?.id)"
+          [favoriteLoading]="isFavoriteLoading(provider?.id)"
+          [favoriteError]="favoriteErrorMessage(provider?.id)"
+          (favoriteToggle)="toggleFavorite(provider?.id)" />
       </li>
       }
     </ul>

@@ -5,9 +5,30 @@
     </div>
 
     <div id="single-user_profile_content">
-      <h1 class="main-title">
-        {{ provider()?.user?.name}}
-      </h1>
+      <div id="single-user_profile_headline">
+        <h1 class="main-title">
+          {{ provider()?.user?.name}}
+        </h1>
+
+        @if(favoritesEnabled) {
+        <button type="button" class="favorite-button" [disabled]="favoriteLoading()"
+          aria-pressed="{{ favoriteState() }}"
+          [attr.aria-label]="favoriteState() ? 'Remover dos favoritos' : 'Salvar nos favoritos'"
+          (click)="toggleFavorite()">
+          @if(favoriteLoading()) {
+          Processando...
+          } @else {
+          @if(favoriteState()) {
+          <span aria-hidden="true">♥</span>
+          Remover dos favoritos
+          } @else {
+          <span aria-hidden="true">♡</span>
+          Salvar nos favoritos
+          }
+          }
+        </button>
+        }
+      </div>
 
       <h2 class="subtitle">Serviços prestados</h2>
 
@@ -17,6 +38,14 @@
           {{ service.title }}
         </app-badge>
         }
+      </div>
+
+      @if(favoriteError()) {
+      <p class="favorite-error" role="alert">{{ favoriteError() }}</p>
+      }
+
+      <div aria-live="polite" class="favorite-announcement">
+        {{ favoriteAnnouncement() }}
       </div>
 
       <app-footer-links title="Redes Sociais" [links]="socialLinks" direction="horizontal" />
