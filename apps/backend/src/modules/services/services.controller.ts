@@ -1,5 +1,5 @@
 import { Controller, Get, Post, Body, Patch, Param, Delete, Query } from '@nestjs/common';
-import { PaginationQuery } from '@shared/services/pagination/pagination.interface';
+import { PaginationQuery } from '@taskgo/backend/shared/services/pagination/pagination.interface';
 
 import { ServicesService } from './services.service';
 import { CreateServiceDto } from './dto/create-service.dto';
