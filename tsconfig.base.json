@@ -2,8 +2,12 @@
   "compilerOptions": {
     "baseUrl": ".",
     "paths": {
+      "@taskgo/shared/value-objects": ["./libs/shared/src/value-objects/src/index.ts"],
+      "@taskgo/shared/entities": ["./libs/shared/src/entities/src/index.ts"],
       "@taskgo/shared": ["libs/shared/src/index.ts"],
-      "@taskgo/shared/*": ["libs/shared/src/*"]
+      "@taskgo/shared/*": ["libs/shared/src/*"],
+      "@taskgo/backend/shared/*": ["apps/backend/src/shared/*"],
+      "@PrismaDir/*": ["apps/backend/src/prisma/*"]
     }
   }
 }

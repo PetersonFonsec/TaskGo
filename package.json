@@ -18,6 +18,20 @@
     "docker:down": "docker compose down"
   },
   "devDependencies": {
-    "nx": "^21.0.0"
-  }
+    "@nx/js": "^22.7.5",
+    "@nx/vite": "22.7.5",
+    "@nx/vitest": "22.7.5",
+    "@swc-node/register": "~1.11.1",
+    "@swc/core": "~1.15.5",
+    "@swc/helpers": "~0.5.18",
+    "@types/node": "20.19.9",
+    "@vitest/coverage-v8": "~4.1.0",
+    "nx": "^21.0.0",
+    "prettier": "~3.6.2",
+    "tslib": "^2.3.0",
+    "typescript": "~5.9.2",
+    "vite": "^8.0.0",
+    "vitest": "~4.1.0"
+  },
+  "dependencies": {}
 }
