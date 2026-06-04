@@ -24,7 +24,7 @@ export class UserAddressValidator implements UserValidations {
       data: {
         ...command.address,
         user: { connect: { id: BigInt(`${command.id}`) } }
-      }
+      } as any
     });
   }
 }

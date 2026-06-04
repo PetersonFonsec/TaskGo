@@ -9,7 +9,7 @@
         name="name"
         label="Nome"
         [(ngModel)]="nameValue"
-        required
+        [required]="true"
       ></app-input-text>
 
       <app-input-text
@@ -17,7 +17,7 @@
         label="Email"
         type="text"
         [(ngModel)]="emailValue"
-        required
+        [required]="true"
       ></app-input-text>
 
       <app-input-text
@@ -25,7 +25,7 @@
         label="Telefone"
         type="text"
         [(ngModel)]="phoneValue"
-        required
+        [required]="true"
       ></app-input-text>
 
       <div class="status-line" *ngIf="user()?.emailVerified === false">

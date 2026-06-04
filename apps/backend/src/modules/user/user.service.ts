@@ -63,7 +63,7 @@ export class UserService extends PaginationService<User> {
         data: {
           ...address.getValue(),
           user: { connect: { id: newUser.id } }
-        }
+        } as any
       });
       return newUser;
     });
