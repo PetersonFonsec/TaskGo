@@ -1,0 +1,28 @@
+.aside-list-item {
+    align-items: center;
+    background-color: var(--color-primary-contrast);
+    border-radius: var(--border-radius-1);
+    display: flex;
+    color: var(--font-color-dark);
+    cursor: pointer;
+    font-weight: var(--font-weight-bold);
+    padding: var(--font-size-4);
+    transition: background-color 0.2s ease-in-out;
+
+    &.active,
+    &:hover {
+        background-color: rgb(var(--color-primary-rgb), 0.05);
+        color: var(--color-primary);
+    }
+
+    a {
+        align-items: center;
+        display: flex;
+    }
+
+    &_icon {
+        font-size: var(--font-size-4);
+        margin-right: var(--space-3);
+        display: block;
+    }
+}

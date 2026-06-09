@@ -3,14 +3,13 @@ import { ActivatedRoute, Router } from '@angular/router';
 import { FormsModule, NgForm } from '@angular/forms';
 import { NgIf } from '@angular/common';
 import { InputTextComponent } from '@shared/components/forms/input-text/input-text.component';
-import { ButtonComponent } from '@shared/components/ui/button/button.component';
 import { User } from '@shared/service/users/user';
 import { UserResponse } from '@shared/service/users/user.model';
 
 @Component({
   selector: 'app-profile-edit',
   standalone: true,
-  imports: [FormsModule, NgIf, InputTextComponent, ButtonComponent],
+  imports: [FormsModule, NgIf, InputTextComponent],
   templateUrl: './profile-edit.html',
   styleUrl: './profile-edit.scss',
 })

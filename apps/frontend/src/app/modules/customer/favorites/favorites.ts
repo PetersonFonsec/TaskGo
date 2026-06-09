@@ -16,13 +16,13 @@ import { environment } from '@environments/environment';
   styleUrl: './favorites.scss',
 })
 export class Favorites implements OnInit {
-  #provider = inject(Provider);
   #userLoggedService = inject(UserLoggedService);
+  #provider = inject(Provider);
 
   favoritesEnabled = environment.features?.favoritesMvp ?? false;
-  providers = signal<any[]>([]);
   favoriteLoading = signal<Record<string, boolean>>({});
   favoriteError = signal<Record<string, string>>({});
+  providers = signal<any[]>([]);
   isLoading = signal(false);
 
   ngOnInit(): void {

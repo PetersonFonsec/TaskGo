@@ -2,10 +2,9 @@ import { Injectable, UnauthorizedException } from '@nestjs/common';
 
 import { ServicesService } from '../services/services.service';
 import { UpdateProviderDto } from './dto/update-provider.dto';
-import { CreateProviderDto } from './dto/create-provider.dto';
 import { PrismaService } from '../../prisma/prisma.service';
 import { UserService } from '../user/user.service';
-import { FavoritesService } from './favorites.service';
+import { FavoritesService } from './favorites/favorites.service';
 
 @Injectable()
 export class ProviderService {

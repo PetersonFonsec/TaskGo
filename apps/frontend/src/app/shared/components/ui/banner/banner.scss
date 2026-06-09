@@ -1,0 +1,47 @@
+@use "variables/breakpoints";
+
+.banner {
+    background-color: rgb(var(--color-primary-rgb), 0.05);
+    border-radius: var(--border-radius-1);
+    gap: var(--space-4);
+    overflow: hidden;
+
+    &_container {
+        display: flex;
+        justify-content: space-between;
+        position: relative;
+    }
+
+    &_content {
+        align-items: flex-start;
+        display: flex;
+        gap: var(--space-3);
+        flex-direction: column;
+        justify-content: center;
+        padding: var(--space-10);
+        padding-left: 62px;
+        flex: 1;
+        min-height: 280px;
+    }
+
+    &_subtitle {
+        font-size: var(--font-size-4);
+        font-weight: var(--font-weight-regular);
+    }
+
+    &_button {
+        width: 100%;
+        max-width: 300px;
+        margin-top: var(--space-10);
+    }
+
+    img {
+        position: absolute;
+        top: 0;
+        right: 0;
+
+        @media (max-width: breakpoints.$tablet) {
+            display: none;
+        }
+    }
+}

@@ -1,14 +1,14 @@
 import { forwardRef, Module } from '@nestjs/common';
 
 import { ProviderController } from './provider.controller';
-import { FavoritesController } from './favorites.controller';
 import { ProviderService } from './provider.service';
-import { FavoritesService } from './favorites.service';
 
 import { ServicesModule } from '../services/services.module';
 import { UserModule } from '../user/user.module';
 import { AuthModule } from '../auth/auth.module';
 import { SharedModule } from '../../shared/shared.module';
+import { FavoritesController } from './favorites/favorites.controller';
+import { FavoritesService } from './favorites/favorites.service';
 
 @Module({
   imports: [

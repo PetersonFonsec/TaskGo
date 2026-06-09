@@ -12,6 +12,7 @@ import { ServicesModule } from './modules/services/services.module';
 import { CategoriesModule } from './modules/categories/categories.module';
 import { ProviderModule } from './modules/provider/provider.module';
 import { AuthGuard } from './modules/auth/auth.guard';
+import { FeatureFlagModule } from './feature-flag/feature-flag.module';
 
 @Module({
   imports: [
@@ -22,15 +23,12 @@ import { AuthGuard } from './modules/auth/auth.guard';
     AddressModule,
     ServicesModule,
     CategoriesModule,
-    ProviderModule
+    ProviderModule,
+    FeatureFlagModule
   ],
   controllers: [AppController],
   providers: [
-    AppService,
-    {
-      provide: APP_GUARD,
-      useClass: AuthGuard,
-    },
+    AppService
   ],
 })
-export class AppModule {}
+export class AppModule { }

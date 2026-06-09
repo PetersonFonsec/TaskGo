@@ -1,0 +1,40 @@
+<form formGroupName="filters" class="filters">
+    <h1>Filtros</h1>
+
+    <div class="filter">
+        <strong>Categoria</strong>
+        <ul>
+            <li>
+                <label>
+                    <input type="checkbox" formControlName="cleaning" />
+                    Limpeza
+                </label>
+            </li>
+            <li>
+                <label>
+                    <input type="checkbox" formControlName="moving" />
+                    Mudança
+                </label>
+            </li>
+            <li>
+                <label>
+                    <input type="checkbox" formControlName="assembly" />
+                    Montagem
+                </label>
+            </li>
+        </ul>
+    </div>
+
+    <div class="filter">
+        <label for="category">Avaliação minima</label>
+        
+    </div>
+
+
+
+    <footer>
+        <app-button color="primary" [disabled]="true" type="submit">
+            Aplicar Filtros
+        </app-button>
+    </footer>
+</form>

@@ -1,14 +1,17 @@
 import { Component, inject } from '@angular/core';
-import { Router, RouterLink } from '@angular/router';
-import { NgIf } from '@angular/common';
-import { RolesBack } from '@shared/enums/roles.enum';
+import { Router } from '@angular/router';
+
 import { UserLoggedService } from '@shared/service/user-logged/user-logged.service';
 import { Utils } from '@shared/service/utils/utils.service';
 import { environment } from '@environments/environment';
+import { RolesBack } from '@shared/enums/roles.enum';
+
+import { ProfileHeader } from '../profile-header/profile-header';
+import { Notification } from '@shared/components/functional/notification/notification';
 
 @Component({
   selector: 'app-header',
-  imports: [RouterLink, NgIf],
+  imports: [ProfileHeader, Notification],
   templateUrl: './header.html',
   styleUrl: './header.scss',
 })

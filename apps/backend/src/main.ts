@@ -26,6 +26,7 @@ async function bootstrap() {
     .setDescription('The TaskGo backend API documentation')
     .setVersion('1.0')
     .addTag('TaskGo')
+    .addBearerAuth()
     .build();
 
   const document = SwaggerModule.createDocument(app, config);

@@ -25,16 +25,16 @@ export class Provider {
   }
 
   listFavorites(clientId: string) {
-    return this.#http.get<any>(`${environment.url}/clients/${clientId}/favorites`);
+    return this.#http.get<any>(`${environment.url}/favorites`);
   }
 
   addFavorite(clientId: string, providerId: string) {
-    return this.#http.post<any>(`${environment.url}/clients/${clientId}/favorites`, {
+    return this.#http.post<any>(`${environment.url}/favorites`, {
       providerId
     });
   }
 
   removeFavorite(clientId: string, providerId: string) {
-    return this.#http.delete<any>(`${environment.url}/clients/${clientId}/favorites/${providerId}`);
+    return this.#http.delete<any>(`${environment.url}/favorites/${providerId}`);
   }
 }

@@ -52,41 +52,45 @@ enum ServiceAreaMode {
 // ---------- Models ----------
 
 model User {
-  id           BigInt   @id @default(autoincrement())
-  name         String   @map("nome")
-  email        String   @unique
-  passwordHash String   @map("senha_hash")
-  phone        String?  @map("telefone")
-  emailVerified Boolean @default(false) @map("email_verified")
-  phoneVerified Boolean @default(false) @map("phone_verified")
+  id            BigInt   @id @default(autoincrement())
+  name          String   @map("nome")
+  email         String   @unique
+  passwordHash  String   @map("senha_hash")
+  phone         String?  @map("telefone")
+  emailVerified Boolean  @default(false) @map("email_verified")
+  phoneVerified Boolean  @default(false) @map("phone_verified")
   pendingEmail  String?  @map("pending_email")
   pendingPhone  String?  @map("pending_phone")
-  type         UserType @map("tipo")
-  photoUrl     String?  @map("foto_url")
-  createdAt    DateTime @default(now()) @map("created_at")
-  updatedAt    DateTime @updatedAt @map("updated_at")
-  cpf          String   @unique @map("cpf")
+  type          UserType @map("tipo")
+  photoUrl      String?  @map("foto_url")
+  createdAt     DateTime @default(now()) @map("created_at")
+  updatedAt     DateTime @updatedAt @map("updated_at")
+  cpf           String   @unique @map("cpf")
 
   // Relations
   provider  Provider?
   addresses Address[]
-  orders    Order[]     @relation("UserOrders")
-  reviews   Avaliacao[] @relation("UserReviews")
+  orders    Order[]          @relation("UserOrders")
+  reviews   Avaliacao[]      @relation("UserReviews")
   favorites ClientFavorite[]
 
   @@map("usuarios")
 }
 
 model Provider {
-  id          BigInt   @id
+  id             BigInt   @id
   // 1:1 with User (same PK)
-  user        User     @relation(fields: [id], references: [id], onDelete: Cascade)
-  bio         String?
-  ratingAvg   Decimal? @default(0) @map("nota_media")
-  ratingCount Int      @default(0) @map("qtd_avaliacoes")
-  verified    Boolean  @default(false) @map("verificado")
-  createdAt   DateTime @default(now()) @map("created_at")
-  updatedAt   DateTime @updatedAt @map("updated_at")
+  user           User     @relation(fields: [id], references: [id], onDelete: Cascade)
+  bio            String?
+  ratingAvg      Decimal? @default(0) @map("nota_media")
+  ratingCount    Int      @default(0) @map("qtd_avaliacoes")
+  verified       Boolean  @default(false) @map("verificado")
+  createdAt      DateTime @default(now()) @map("created_at")
+  updatedAt      DateTime @updatedAt @map("updated_at")
+  acceptPix      Boolean  @default(false) @map("aceitaPix")
+  acceptsCard    Boolean  @default(false) @map("aceitaCartao")
+  emergencyCare  Boolean  @default(false) @map("aceitaEmergencia")
+  isAvailable24h Boolean  @default(false) @map("disponivel24h")
 
   pagarmeRecipientId String? @unique @map("pagarme_recipient_id")
 
@@ -100,10 +104,10 @@ model Provider {
 }
 
 model ClientFavorite {
-  id         BigInt    @id @default(autoincrement())
-  clientId   BigInt    @map("cliente_id")
-  providerId BigInt    @map("prestador_id")
-  createdAt  DateTime  @default(now()) @map("created_at")
+  id         BigInt   @id @default(autoincrement())
+  clientId   BigInt   @map("cliente_id")
+  providerId BigInt   @map("prestador_id")
+  createdAt  DateTime @default(now()) @map("created_at")
 
   client   User     @relation(fields: [clientId], references: [id], onDelete: Cascade)
   provider Provider @relation(fields: [providerId], references: [id], onDelete: Cascade)
@@ -324,4 +328,16 @@ model Subcategory {
   @@index([categoryId])
   @@index([isActive])
   @@map("subcategories")
+}
+
+model FeatureFlag {
+  id          BigInt   @id @default(autoincrement())
+  name        String
+  description String?
+  isActive    Boolean  @default(true)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  @@index([isActive])
+  @@map("feature_flags")
 }

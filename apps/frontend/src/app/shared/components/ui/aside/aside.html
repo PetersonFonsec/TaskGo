@@ -1,0 +1,48 @@
+<aside class="aside">
+    <header class="aside_header"></header>
+    <div class="aside_content">
+        <div class="aside_list">
+            <h3 class="aside_title">Minha Conta</h3>
+            <ul>
+                @for (item of items(); track $index) {
+                <app-aside-list-item [text]="item.text" [routerLink]="item.routerLink" [icon]="item.icon" />
+                }
+            </ul>
+        </div>
+
+        <hr />
+
+        <div class="aside_list">
+            <h4 class="aside_title aside_title--subtitle">Para Prestadores</h4>
+            <ul>
+                @for (item of itemsSecundary(); track $index) {
+                <app-aside-list-item [text]="item.text" [routerLink]="item.routerLink" [icon]="item.icon" />
+                }
+            </ul>
+        </div>
+
+        <div class="aside_banner">
+            <h6 class="aside_banner_title">
+                <fa-icon class="aside_banner_icon" [icon]="bannerIcon()"></fa-icon>
+                Seja Premium
+            </h6>
+            <p class="aside_banner_text">
+                Tenha mais visibilidade e oportunidades de trabalho.
+                <br />Tenha mais clientes!
+            </p>
+            <app-button class="aside_banner_button" color="primary">
+                Quero ser Premium
+            </app-button>
+        </div>
+
+        <div class="aside_list">
+            <ul>
+                @for (item of itemsFooter(); track $index) {
+                <app-aside-list-item [text]="item.text" [routerLink]="item.routerLink" [icon]="item.icon" />
+                }
+
+                <app-aside-list-item (click)="logout()" [text]="exitItem.text" [icon]="exitItem.icon" />
+            </ul>
+        </div>
+    </div>
+</aside>

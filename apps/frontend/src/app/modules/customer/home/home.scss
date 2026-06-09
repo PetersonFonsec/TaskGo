@@ -4,6 +4,9 @@
 
 #customer-home {
   @include grid.container(var(--container-size));
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-19);
 
   &_title {
     margin-bottom: var(--space-10);

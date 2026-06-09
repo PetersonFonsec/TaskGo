@@ -1,25 +1,15 @@
-import { Injectable, NotFoundException } from '@nestjs/common';
-import { PrismaService } from '../../prisma/prisma.service';
-import Mediator from '../../shared/events/mediator';
-import { FeatureFlagService } from '../../shared/services/feature-flag.service';
+import { Injectable } from '@nestjs/common';
+import { PrismaService } from '@PrismaDir/prisma.service';
+import Mediator from '@taskgo/backend/shared/events/mediator';
 
 @Injectable()
 export class FavoritesService {
   constructor(
     private prisma: PrismaService,
-    private mediator: Mediator,
-    private featureFlagService: FeatureFlagService,
-  ) {}
-
-  private ensureFavoritesEnabled() {
-    if (!this.featureFlagService.isFavoritesMvpEnabled()) {
-      throw new NotFoundException('Favorites feature disabled');
-    }
-  }
+    private mediator: Mediator
+  ) { }
 
   async addFavorite(clientId: number, providerId: number) {
-    this.ensureFavoritesEnabled();
-
     const favorite = await this.prisma.clientFavorite.upsert({
       where: {
         clientId_providerId: {
@@ -46,8 +36,6 @@ export class FavoritesService {
   }
 
   async removeFavorite(clientId: number, providerId: number) {
-    this.ensureFavoritesEnabled();
-
     const favorite = await this.prisma.clientFavorite.findUnique({
       where: {
         clientId_providerId: {
@@ -78,8 +66,6 @@ export class FavoritesService {
   }
 
   async listFavorites(clientId: number, paging?: { skip?: number; take?: number }) {
-    this.ensureFavoritesEnabled();
-
     const skip = paging?.skip ?? 0;
     const take = paging?.take ?? 20;
 

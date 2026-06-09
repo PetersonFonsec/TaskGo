@@ -54,6 +54,10 @@ async function main() {
           },
           bio: `Sou o prestador ${i + 1}, especializado em serviços gerais.`,
           verified: i % 2 === 0,
+          acceptPix: true,
+          acceptsCard: true,
+          emergencyCare: true,
+          isAvailable24h: true,
           services: {
             create: [
               {

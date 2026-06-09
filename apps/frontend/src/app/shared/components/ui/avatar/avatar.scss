@@ -2,7 +2,6 @@
 @use "mixins/geometric";
 
 .avatar {
-  @include geometric.circle(220px);
   background-color: var(--color-neutral-2);
   overflow: hidden;
 
@@ -11,5 +10,17 @@
     object-fit: cover;
     height: 100%;
     width: 100%;
+  }
+
+  &--small {
+    @include geometric.circle(32px);
+  }
+
+  &--medium {
+    @include geometric.circle(64px);
+  }
+
+  &--large {
+    @include geometric.circle(220px);
   }
 }

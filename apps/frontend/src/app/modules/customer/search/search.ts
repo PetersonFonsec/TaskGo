@@ -15,17 +15,18 @@ import { switchMap, tap } from 'rxjs';
   styleUrl: './search.scss',
 })
 export class Search implements OnInit {
-  #route = inject(ActivatedRoute);
-  #router = inject(Router);
-  #provider = inject(Provider);
   #userLoggedService = inject(UserLoggedService);
-  providers = signal<any>([]);
-  category = signal('');
-  onlyFavorites = signal(false);
+  #route = inject(ActivatedRoute);
+  #provider = inject(Provider);
+  #router = inject(Router);
+
   favoritesEnabled = environment.features?.favoritesMvp ?? false;
-  favorites = signal<Record<string, boolean>>({});
   favoriteLoading = signal<Record<string, boolean>>({});
   favoriteError = signal<Record<string, string>>({});
+  favorites = signal<Record<string, boolean>>({});
+  onlyFavorites = signal(false);
+  providers = signal<any>([]);
+  category = signal('');
 
   private get storageAvailable() {
     return typeof window !== 'undefined' && typeof window.localStorage !== 'undefined';

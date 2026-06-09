@@ -7,6 +7,7 @@ import { Component, input } from '@angular/core';
   styleUrl: './avatar.scss',
 })
 export class Avatar {
-  thumb = input()
-  alt = input()
+  size = input('small');// small | medium | large
+  thumb = input();
+  alt = input();
 }

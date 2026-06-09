@@ -4,9 +4,10 @@
 .page {
   @include grid.directionColumn();
   height: 100dvh;
+  width: 100dvw;
   overflow: hidden;
   overflow-y: auto;
-  width: 100dvw;
+  max-width: 100%;
 
   &_header,
   &_content,
@@ -14,12 +15,30 @@
     width: 100%;
   }
 
+  &_container {
+    display: flex;
+    width: 100%;
+    max-width: 100%;
+  }
+
   &_content {
     flex: 1;
     padding: var(--space-10) var(--space-6);
 
     @media (min-width: breakpoints.$tablet) {
-    padding: var(--space-19) var(--space-6);
+      padding: var(--space-19) var(--space-6);
+    }
+  }
+
+  &_aside {
+    display: none;
+
+    @media (min-width: breakpoints.$tablet) {
+      display: flex;
+    }
+
+    app-aside {
+      width: 100%;
     }
   }
 }

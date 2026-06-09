@@ -12,6 +12,7 @@ import { forkJoin } from "rxjs";
 import { User } from "@shared/service/users/user";
 import { Order } from "@shared/service/order/order";
 import { OrdersResponse } from "@shared/service/order/order.model";
+import { Banner } from "@shared/components/ui/banner/banner";
 
 @Component({
   selector: 'app-home',
@@ -21,7 +22,8 @@ import { OrdersResponse } from "@shared/service/order/order.model";
     Slider,
     SliderItemDirective,
     ButtonComponent,
-    RouterLink
+    RouterLink,
+    Banner
   ],
   templateUrl: './home.html',
   styleUrl: './home.scss',

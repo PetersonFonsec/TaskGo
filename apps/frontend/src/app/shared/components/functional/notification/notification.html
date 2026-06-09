@@ -1,0 +1,9 @@
+<div class="notification">
+    <fa-icon [icon]="notificationIcon()" class="notification__icon" />
+
+    @if (notificationCount() > 0) {
+        <span class="notification_badge">
+            {{ notificationCount() }}
+        </span>
+    }
+</div>

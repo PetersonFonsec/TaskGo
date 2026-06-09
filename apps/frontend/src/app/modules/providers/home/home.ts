@@ -8,6 +8,7 @@ import { ICategory } from '@shared/service/category/category.model';
 import { OrdersResponse } from '@shared/service/order/order.model';
 import { Card } from '@shared/components/forms/card/card';
 import { Order } from '@shared/service/order/order';
+import { Aside } from '@shared/components/ui/aside/aside';
 
 @Component({
   selector: 'app-home',
