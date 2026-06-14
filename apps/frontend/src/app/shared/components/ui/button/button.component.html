@@ -1,9 +1,10 @@
-<button
-  [disabled]="disabled()"
-  [attr.aria-disabled]="disabled()"
-  id="{{ id() }}"
-  class="button button--{{ color() }} button--{{ size() }}"
-  [type]="type()"
->
+<button 
+  [disabled]="disabled()" 
+  [attr.aria-disabled]="disabled()" 
+  id="{{ id() }}" 
+  class="button button--{{ color() }} 
+  button--{{ size() }}
+  button--{{ typeColor() }}" 
+  [type]="type()">
   <ng-content></ng-content>
 </button>

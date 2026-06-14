@@ -12,11 +12,21 @@
   //Color
   &--primary {
     background: var(--color-primary);
+    border-color: var(--color-primary);
     color: var(--color-primary-contrast);
 
     &:active,
     &:hover {
       background-color: var(--color-primary-shade);
+      
+      &.button--outline {
+        color: var(--color-primary-contrast);
+      }
+    }
+
+    &.button--outline {
+      border: 1px solid var(--color-primary);
+      color: var(--color-primary);
     }
   }
 
@@ -27,7 +37,21 @@
     &:active,
     &:hover {
       background-color: var(--color-secondary-shade);
+      
+      &.button--outline {
+        border: 1px solid var(--color-primary);
+        color: var(--color-secondary);
+      }
     }
+
+    &.button--outline {
+      color: var(--color-secondary);
+    }
+  }
+
+  //Type
+  &--outline {
+    background: transparent;
   }
 
   &--customer {

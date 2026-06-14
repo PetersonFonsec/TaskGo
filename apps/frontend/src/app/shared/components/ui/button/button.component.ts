@@ -7,6 +7,7 @@ import { Component, input } from '@angular/core';
 })
 export class ButtonComponent {
   readonly color = input("primary");
+  readonly typeColor = input("filled");
   readonly size = input("medium");
   readonly id = input("", { transform: (value: string /*T:VAE*/) => `${value}-button` });
   readonly disabled = input(false);

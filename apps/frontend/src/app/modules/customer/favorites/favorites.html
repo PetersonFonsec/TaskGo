@@ -24,10 +24,7 @@
           [image]="provider.user?.photoUrl"
           [title]="provider.user?.name"
           [legend]="provider.user?.phone"
-          [showFavorite]="true"
           [isFavorite]="isFavorite(provider.id)"
-          [favoriteLoading]="isFavoriteLoading(provider.id)"
-          [favoriteError]="favoriteErrorMessage(provider.id)"
           (favoriteToggle)="toggleFavorite(provider.id)" />
       </li>
       }

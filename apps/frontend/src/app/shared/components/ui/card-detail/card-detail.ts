@@ -1,23 +1,29 @@
-import { Component, input, output } from '@angular/core';
+import { Component, input, output, signal } from '@angular/core';
+import { FaIconComponent } from "@fortawesome/angular-fontawesome";
+import { faHeart } from '@fortawesome/free-solid-svg-icons';
+import { ButtonComponent } from '../button/button.component';
+import { Price } from '../price/price';
+import { Badge } from "../badge/badge";
 
 @Component({
   selector: 'app-card-detail',
-  imports: [],
+  imports: [FaIconComponent, ButtonComponent, Price, Badge],
   templateUrl: './card-detail.html',
   styleUrl: './card-detail.scss',
 })
 export class CardDetail {
+  favoriteIcon = signal(faHeart);
+  
+  isFavorite = input(false);
   legend = input("");
   image = input("");
   title = input("");
-  showFavorite = input(false);
-  isFavorite = input(false);
-  favoriteLoading = input(false);
-  favoriteError = input("");
+  
   favoriteToggle = output();
 
-  onFavoriteClick(event: MouseEvent) {
-    event.stopPropagation();
+  
+  
+  onFavoriteClick() {
     this.favoriteToggle.emit();
   }
 }

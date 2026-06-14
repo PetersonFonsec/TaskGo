@@ -3,6 +3,9 @@
 
 .card-detail {
   @include grid.directionColumn();
+  border: 1px solid #E5E7EB;
+  border-radius: 12px;
+  padding: 16px;
 
   &_thumb {
     background-color: var(--color-neutral-3);
@@ -21,6 +24,10 @@
     width: 100%;
   }
 
+  &_content {
+    position: relative;
+  }
+
   &_title {
     display: block;
     margin-bottom: var(--space-1);
@@ -37,25 +44,20 @@
   }
 
   &_favorite {
-    display: inline-flex;
-    align-items: center;
-    gap: var(--space-2);
-    border: 1px solid var(--color-primary);
-    border-radius: 100px;
-    padding: var(--space-2) var(--space-4);
-    background: var(--color-background);
-    color: var(--color-primary);
+    appearance: none;
+    border: none;
+    background: transparent;
+    color: red;
+    font-size: 24px;
+    position: absolute;
     cursor: pointer;
-    font-weight: var(--font-weight-medium);
+    padding: 4px;
+    top: 0;
+    right: 0;
   }
 
   &_favorite[disabled] {
     opacity: 0.65;
     cursor: not-allowed;
-  }
-
-  &_favorite_error {
-    color: var(--color-danger);
-    font-size: var(--font-size-2);
   }
 }
