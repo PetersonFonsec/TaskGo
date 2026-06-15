@@ -1,0 +1,19 @@
+<section
+  class="proxi-map"
+  aria-label="Mapa de profissionais próximos"
+>
+  <div
+    #mapContainer
+    class="proxi-map__canvas"
+    role="region"
+    aria-label="Mapa com sua localização e profissionais próximos"
+    [class.proxi-map__canvas--ready]="mapReady()"
+  ></div>
+
+  @if (fallbackMessage()) {
+    <div class="proxi-map__fallback" role="status">
+      <strong>Mapa Proxi</strong>
+      <span>{{ fallbackMessage() }}</span>
+    </div>
+  }
+</section>

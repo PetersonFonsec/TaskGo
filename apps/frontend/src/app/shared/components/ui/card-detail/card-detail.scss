@@ -26,11 +26,19 @@
 
   &_content {
     position: relative;
+    gap: 10px;
+    display: flex;
+    flex-direction: column;
+    font-weight: var(--font-weight-medium);
+    color: var(--color-neutral-1);
   }
 
   &_title {
     display: block;
     margin-bottom: var(--space-1);
+    font-size: 22px;
+    font-weight: 800;
+    color: var(--font-color-dark);
   }
 
   &_legend {}
@@ -59,5 +67,10 @@
   &_favorite[disabled] {
     opacity: 0.65;
     cursor: not-allowed;
+  }
+
+  app-badge {
+    display: block;
+    max-width: max-content;
   }
 }

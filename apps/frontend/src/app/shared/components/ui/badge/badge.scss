@@ -20,4 +20,10 @@
     background-color: var(--color-provider);
     color: var(--color-provider-contrast);
   }
+
+  &.success {
+    background-color: var(--color-success-5);
+    color: var(--color-success-1);
+    font-weight: bold;
+  }
 }

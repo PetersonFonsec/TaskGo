@@ -1,6 +1,6 @@
 import { Component, input, output, signal } from '@angular/core';
 import { FaIconComponent } from "@fortawesome/angular-fontawesome";
-import { faHeart } from '@fortawesome/free-solid-svg-icons';
+import { faCheck, faHeart, faMapMarkerAlt, faTimes } from '@fortawesome/free-solid-svg-icons';
 import { ButtonComponent } from '../button/button.component';
 import { Price } from '../price/price';
 import { Badge } from "../badge/badge";
@@ -12,7 +12,10 @@ import { Badge } from "../badge/badge";
   styleUrl: './card-detail.scss',
 })
 export class CardDetail {
+  mapIcon = signal(faMapMarkerAlt);
   favoriteIcon = signal(faHeart);
+  checkIcon = signal(faCheck);
+  timeIcon = signal(faTimes);
   
   isFavorite = input(false);
   legend = input("");
@@ -20,8 +23,6 @@ export class CardDetail {
   title = input("");
   
   favoriteToggle = output();
-
-  
   
   onFavoriteClick() {
     this.favoriteToggle.emit();

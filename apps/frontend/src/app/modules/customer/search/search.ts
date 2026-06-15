@@ -1,8 +1,14 @@
-import { Component, inject, OnInit, signal } from '@angular/core';
+import { Component, computed, inject, OnInit, signal } from '@angular/core';
 import { ActivatedRoute, Router, RouterLink } from '@angular/router';
 import { HttpErrorResponse } from '@angular/common/http';
 
 import { CardDetail } from '@shared/components/ui/card-detail/card-detail';
+import {
+  ProxiMapComponent,
+  ProxiMapLocation,
+  ProxiMapProvider,
+} from '@shared/components/ui/proxi-map/proxi-map.component';
+import { Geolocalization } from '@shared/service/geolocalization/geolocalization';
 import { Provider } from '@shared/service/provider/provider';
 import { UserLoggedService } from '@shared/service/user-logged/user-logged.service';
 import { environment } from '@environments/environment';
@@ -10,29 +16,36 @@ import { switchMap, tap } from 'rxjs';
 
 @Component({
   selector: 'app-search',
-  imports: [CardDetail, RouterLink],
+  imports: [CardDetail, RouterLink, ProxiMapComponent],
   templateUrl: './search.html',
   styleUrl: './search.scss',
 })
 export class Search implements OnInit {
   #userLoggedService = inject(UserLoggedService);
+  #geolocalization = inject(Geolocalization);
   #route = inject(ActivatedRoute);
   #provider = inject(Provider);
   #router = inject(Router);
 
   favoritesEnabled = environment.features?.favoritesMvp ?? false;
   favoriteLoading = signal<Record<string, boolean>>({});
+  userLocation = signal<ProxiMapLocation | null>(null);
   favoriteError = signal<Record<string, string>>({});
   favorites = signal<Record<string, boolean>>({});
   onlyFavorites = signal(false);
   providers = signal<any>([]);
   category = signal('');
+  mapProviders = computed(() => this.providers()
+    .map((provider: any) => this.toMapProvider(provider))
+    .filter((provider: ProxiMapProvider | null): provider is ProxiMapProvider => !!provider));
 
   private get storageAvailable() {
     return typeof window !== 'undefined' && typeof window.localStorage !== 'undefined';
   }
 
   ngOnInit(): void {
+    this.resolveUserLocation();
+
     this.#route.queryParams.pipe(
       tap(({ categoria, onlyFavorites }) => {
         this.category.set(categoria);
@@ -83,6 +96,10 @@ export class Search implements OnInit {
     });
   }
 
+  viewProviderProfile(providerId: ProxiMapProvider['id']) {
+    this.#router.navigate(['/customer', providerId]);
+  }
+
   private restoreOnlyFavoritesPreference(clientId: string) {
     if (!this.storageAvailable) {
       return false;
@@ -101,6 +118,95 @@ export class Search implements OnInit {
 
   private getStorageKey(clientId: string) {
     return `search.onlyFavorites.${clientId}`;
+  }
+
+  private resolveUserLocation() {
+    const addressLocation = this.getUserAddressLocation();
+    if (addressLocation) {
+      this.userLocation.set(addressLocation);
+      return;
+    }
+
+    this.#geolocalization.getCurrentPosition().subscribe({
+      next: ({ latitude, longitude }) => {
+        this.userLocation.set({ lat: latitude, lng: longitude });
+      },
+      error: () => {
+        this.userLocation.set(null);
+      }
+    });
+  }
+
+  private getUserAddressLocation(): ProxiMapLocation | null {
+    const addresses = this.#userLoggedService.user().user?.addresses ?? [];
+    const address = addresses.find((item: any) => item?.isDefault || item?.isPrimary) ?? addresses[0];
+
+    return this.toLocation(address);
+  }
+
+  private toMapProvider(provider: any): ProxiMapProvider | null {
+    const location = this.toLocation(provider) ?? this.toLocation(provider?.address) ?? this.toLocation(provider?.user?.address);
+    const id = provider?.id ?? provider?.providerId ?? provider?.user?.id;
+
+    if (!location || id == null || id === '') {
+      return null;
+    }
+
+    return {
+      id,
+      name: provider?.user?.name ?? provider?.name ?? 'Profissional Proxi',
+      service: this.resolveProviderService(provider),
+      rating: this.toNumber(provider?.rating ?? provider?.ratingAvg ?? provider?.user?.provider?.ratingAvg, 0),
+      priceFrom: this.toNumber(provider?.priceFrom ?? provider?.price ?? provider?.services?.[0]?.price, 0),
+      lat: location.lat,
+      lng: location.lng,
+      distanceKm: this.optionalNumber(provider?.distanceKm ?? provider?.distance),
+      photoUrl: provider?.user?.photoUrl ?? provider?.photoUrl,
+      premium: !!(provider?.premium ?? provider?.isPremium),
+      verified: !!(provider?.verified ?? provider?.user?.provider?.verified),
+    };
+  }
+
+  private toLocation(source: any): ProxiMapLocation | null {
+    const lat = Number(source?.lat ?? source?.latitude);
+    const lng = Number(source?.lng ?? source?.longitude);
+
+    if (
+      !Number.isFinite(lat) ||
+      !Number.isFinite(lng) ||
+      Math.abs(lat) > 90 ||
+      Math.abs(lng) > 180 ||
+      (lat === 0 && lng === 0)
+    ) {
+      return null;
+    }
+
+    return { lat, lng };
+  }
+
+  private resolveProviderService(provider: any) {
+    const service =
+      provider?.service ??
+      provider?.serviceName ??
+      provider?.category?.name ??
+      provider?.services?.[0]?.name ??
+      this.category();
+
+    return service || 'Serviço Proxi';
+  }
+
+  private toNumber(value: any, fallback: number) {
+    if (value && Array.isArray(value.d)) {
+      return Number(value.d.join('')) || fallback;
+    }
+
+    const numericValue = Number(value);
+    return Number.isFinite(numericValue) ? numericValue : fallback;
+  }
+
+  private optionalNumber(value: any) {
+    const numericValue = Number(value);
+    return Number.isFinite(numericValue) ? numericValue : undefined;
   }
 
   isFavorite(providerId: any) {

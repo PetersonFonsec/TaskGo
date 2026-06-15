@@ -7,12 +7,8 @@
 
       <div id="customer-search_filters_actions">
         <label class="customer-search_filter-toggle">
-          <input
-            type="checkbox"
-            [checked]="onlyFavorites()"
-            (change)="toggleOnlyFavorites($event.target.checked)"
-            aria-checked="{{ onlyFavorites() }}"
-          />
+          <input type="checkbox" [checked]="onlyFavorites()" (change)="toggleOnlyFavorites($event.target.checked)"
+            aria-checked="{{ onlyFavorites() }}" />
           Mostrar somente favoritos
         </label>
       </div>
@@ -25,29 +21,39 @@
     </header>
   </section>
 
-  <section id="customer-search_providers">
-    <header id="customer-search_providers_header">
-      <h2 class="subtitle">
-        Prestadores
-      </h2>
+  <section id="customer-search_results">
+    <div id="customer-search_providers">
+      <header id="customer-search_providers_header">
+        <h2 class="subtitle">
+          Prestadores
+        </h2>
 
-      <p class="text">
-        Com base nos filtros selecionados,
-        esses são os prestadores encontrados.
+        <p class="text">
+          Com base nos filtros selecionados,
+          esses são os prestadores encontrados.
+        </p>
+      </header>
+
+      <ul>
+        @for (provider of providers(); track $index) {
+        <li>
+          <app-card-detail [routerLink]="'/customer/'+provider?.id" [image]="provider?.user?.photoUrl"
+            [title]="provider?.user?.name" [legend]="provider?.user?.phone" [isFavorite]="isFavorite(provider?.id)"
+            (favoriteToggle)="toggleFavorite(provider?.id)" />
+        </li>
+        }
+      </ul>
+    </div>
+
+    <aside id="customer-search_map" aria-label="Mapa de prestadores próximos">
+      <app-proxi-map [userLocation]="userLocation()" [providers]="mapProviders()"
+        (viewProfile)="viewProviderProfile($event)" />
+
+      @if (!mapProviders().length) {
+      <p class="customer-search_empty-map text">
+        Nenhum prestador com localização disponível para os filtros atuais.
       </p>
-    </header>
-
-    <ul>
-      @for (provider of providers(); track $index) {
-      <li>
-        <app-card-detail 
-          [routerLink]="'/customer/'+provider?.id" [image]="provider?.user?.photoUrl"
-          [title]="provider?.user?.name" 
-          [legend]="provider?.user?.phone"
-          [isFavorite]="isFavorite(provider?.id)"
-          (favoriteToggle)="toggleFavorite(provider?.id)" />
-      </li>
       }
-    </ul>
+    </aside>
   </section>
 </div>

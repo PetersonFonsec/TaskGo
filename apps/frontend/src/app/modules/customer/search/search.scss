@@ -6,6 +6,7 @@
   @include grid.directionColumn();
   align-items: flex-start;
   cursor: pointer;
+  max-width: 100%;
 
   &_filters {
     width: 100%;
@@ -52,9 +53,51 @@
       @include grid.grid(280px, var(--space-6));
       width: 100%;
     }
+  }
 
-    li {
-      @extend .selectable;
+  &_results {
+    display: flex;
+    gap: var(--space-8);
+    width: 100%;
+    align-items: flex-start;
+  }
+
+  &_map {
+    position: sticky;
+    top: var(--space-6);
+    max-width: 600px;
+    width: 100%;
+
+    app-proxi-map {
+      display: block;
+      width: 100%;
+    }
+  }
+}
+
+.customer-search_empty-map {
+  margin-top: var(--space-3);
+  color: var(--text-color);
+}
+
+@media (max-width: 960px) {
+  #customer-search {
+    &_results {
+      grid-template-columns: 1fr;
+    }
+
+    &_map {
+      position: static;
+      order: -1;
+    }
+  }
+}
+
+@media (max-width: 768px) {
+  #customer-search {
+    &_map {
+      max-height: 260px;
+      overflow: hidden;
     }
   }
 }

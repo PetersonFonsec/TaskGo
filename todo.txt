@@ -26,6 +26,7 @@ Cliente
 - - No filtro precisa ter o principal que é o filtro por distancia
 - - Adicionar tratamentos de lista vazia e mensagens caso algo de erro
 - - Adicionar paginação na lista de profissionais
+3 - Adicionar um mapa para o cliente conseguir visuazliar onde o prestador de servico fica
 
 3° - Criar tela de profile 
 4° - Crud de cartões

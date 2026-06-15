@@ -16,19 +16,22 @@
 
     <h4 class="card-detail_title">{{ title() }}</h4>
     <legend class="card-detail_subtitle">
-      <fa-icon icon=""></fa-icon> 4,7 (78 avaliações)
+      <fa-icon [icon]="favoriteIcon()" aria-hidden="true"></fa-icon> 4,7 (78 avaliações)
     </legend>
 
     <legend class="card-detail_subtitle">
-      <fa-icon></fa-icon> 3,1 km de você
+      <fa-icon [icon]="mapIcon()" aria-hidden="true"></fa-icon> 3,1 km de você
     </legend>
 
     <legend class="card-detail_subtitle">
-      <fa-icon></fa-icon> responde em até 1 hora
+      <fa-icon [icon]="timeIcon()" aria-hidden="true"></fa-icon> responde em até 1 hora
     </legend>
 
     <legend class="card-detail_subtitle">
-      <app-badge color="success">Verificado</app-badge>
+      <app-badge color="success">
+        <fa-icon [icon]="checkIcon()" aria-hidden="true"></fa-icon> 
+        Verificado
+      </app-badge>
     </legend>
 
     <app-price [value]="110" />

@@ -27,6 +27,7 @@
               }
             ],
             "styles": [
+              "leaflet/dist/leaflet.css",
               "src/styles.scss"
             ],
             "server": "src/main.server.ts",
@@ -97,6 +98,7 @@
               }
             ],
             "styles": [
+              "leaflet/dist/leaflet.css",
               "src/styles.scss"
             ],
             "stylePreprocessorOptions": {
@@ -112,7 +114,10 @@
             "configDir": ".storybook",
             "browserTarget": "frontend:build",
             "compodoc": true,
-            "styles": ["src/styles.scss"],
+            "styles": [
+              "leaflet/dist/leaflet.css",
+              "src/styles.scss"
+            ],
             "compodocArgs": ["-e", "json", "-d", "."],
             "port": 6006
           }
@@ -124,7 +129,11 @@
             "browserTarget": "frontend:build",
             "compodoc": true,
             "compodocArgs": ["-e", "json", "-d", "."],
-            "outputDir": "storybook-static"
+            "outputDir": "storybook-static",
+            "styles": [
+              "leaflet/dist/leaflet.css",
+              "src/styles.scss"
+            ]
           }
         }
       }
