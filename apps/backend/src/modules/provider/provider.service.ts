@@ -75,6 +75,9 @@ export class ProviderService {
       },
       include: {
         user: true,
+        locations: true,
+        reviews: true,
+        serviceAreas: true,
         // include only the matching services to keep payload small
         services: {
           where: { category: slug, status: 'ATIVO' }

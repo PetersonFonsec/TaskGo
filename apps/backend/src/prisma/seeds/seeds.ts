@@ -1,6 +1,7 @@
 import { PrismaClient, UserType, ServiceStatus, OrderStatus, PaymentMethod, PaymentStatus } from '@prisma/client';
 import { CategorySeeds } from './category.seed';
 import * as bcrypt from 'bcrypt';
+import { SBC_LOCATIONS } from './sbc-locations';
 
 const prisma = new PrismaClient();
 
@@ -37,8 +38,10 @@ async function main() {
   );
 
   // cria 10 prestadores com serviços
-  const prestadores = await Promise.all(
+  const prestadores: any[] = await Promise.all(
     Array.from({ length: 10 }).map(async (_, i) => {
+      const location = SBC_LOCATIONS[i];
+
       return prisma.provider.create({
         data: {
           user: {
@@ -49,15 +52,34 @@ async function main() {
               passwordHash: await bcrypt.hash('123456', 10),
               type: UserType.PRESTADOR,
               phone: `+55 11 9${Math.floor(10000000 + Math.random() * 89999999)}`,
-              photoUrl: 'https://dummyimage.com/600x400/000/fff'
+              photoUrl: 'https://dummyimage.com/600x400/000/fff',
+              addresses: {
+                create: {
+                  label: 'Atendimento',
+                  street: `Rua ${location.bairro}`,
+                  number: `${100 + i}`,
+                  city: 'São Bernardo do Campo',
+                  state: 'SP',
+                  cep: '09700-000',
+                  lat: location.lat,
+                  lng: location.lng,
+                  isDefault: true,
+                },
+              },
             },
+          },
+          locations:{
+            create: {
+              lat: location.lat,
+              lng: location.lng,
+            }
           },
           bio: `Sou o prestador ${i + 1}, especializado em serviços gerais.`,
           verified: i % 2 === 0,
-          acceptPix: true,
-          acceptsCard: true,
-          emergencyCare: true,
-          isAvailable24h: true,
+          acceptPix:  i % 2 === 0,
+          acceptsCard:  i % 2 === 0,
+          emergencyCare:  i % 2 === 0,
+          isAvailable24h:  i % 2 === 0,
           services: {
             create: [
               {
@@ -77,7 +99,10 @@ async function main() {
             ],
           },
         },
-        include: { user: true, services: true },
+        include: {
+          user: true,
+          services: true,
+        },
       });
     })
   );

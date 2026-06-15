@@ -145,9 +145,10 @@ export class Search implements OnInit {
   }
 
   private toMapProvider(provider: any): ProxiMapProvider | null {
-    const location = this.toLocation(provider) ?? this.toLocation(provider?.address) ?? this.toLocation(provider?.user?.address);
+    const locations = provider?.locations ?? (provider?.user?.address ? [provider.user.address] : []);
+    const location = this.toLocation(provider) ?? this.toLocation(locations[0]) ?? this.toLocation(provider?.user?.address);
     const id = provider?.id ?? provider?.providerId ?? provider?.user?.id;
-
+    console.log('Mapping provider to map provider:', { id, location, provider });
     if (!location || id == null || id === '') {
       return null;
     }
