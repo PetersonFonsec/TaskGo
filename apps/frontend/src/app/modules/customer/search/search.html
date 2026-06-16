@@ -37,8 +37,10 @@
       <ul>
         @for (provider of providers(); track $index) {
         <li>
-          <app-card-detail [routerLink]="'/customer/'+provider?.id" [image]="provider?.user?.photoUrl"
-            [title]="provider?.user?.name" [legend]="provider?.user?.phone" [isFavorite]="isFavorite(provider?.id)"
+          <app-card-detail
+            [image]="provider?.user?.photoUrl"
+            [title]="provider?.user?.name" [legend]="provider?.user?.phone" 
+            [isFavorite]="isFavorite(provider?.id)"
             (favoriteToggle)="toggleFavorite(provider?.id)" />
         </li>
         }

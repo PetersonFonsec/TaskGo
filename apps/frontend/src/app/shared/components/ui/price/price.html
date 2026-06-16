@@ -1,1 +1,7 @@
-<p>price works!</p>
+<div class="price">
+    <span class="price-legend">A partir de</span>
+    <strong class="price-value">
+        {{ value() | currency: 'BRL': 'symbol':'1.0-0' }}
+    </strong>
+    <span class="price-legend">por diária</span>
+</div>

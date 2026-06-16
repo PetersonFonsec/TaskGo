@@ -5,6 +5,11 @@
       <img [src]="image()" [alt]="title()" />
       }
     </ng-content>
+
+    <app-badge class="card-detail_badge" color="success">
+      <fa-icon [icon]="checkIcon()" aria-hidden="true"></fa-icon> 
+      Verificado
+    </app-badge>
   </div>
 
   <div class="card-detail_content">
@@ -25,13 +30,6 @@
 
     <legend class="card-detail_subtitle">
       <fa-icon [icon]="timeIcon()" aria-hidden="true"></fa-icon> responde em até 1 hora
-    </legend>
-
-    <legend class="card-detail_subtitle">
-      <app-badge color="success">
-        <fa-icon [icon]="checkIcon()" aria-hidden="true"></fa-icon> 
-        Verificado
-      </app-badge>
     </legend>
 
     <app-price [value]="110" />

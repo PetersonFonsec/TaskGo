@@ -1,6 +1,6 @@
 import { Component, input, output, signal } from '@angular/core';
 import { FaIconComponent } from "@fortawesome/angular-fontawesome";
-import { faCheck, faHeart, faMapMarkerAlt, faTimes } from '@fortawesome/free-solid-svg-icons';
+import { faCheck, faHeart, faMapMarkerAlt, faTimes, faTimesCircle } from '@fortawesome/free-solid-svg-icons';
 import { ButtonComponent } from '../button/button.component';
 import { Price } from '../price/price';
 import { Badge } from "../badge/badge";
@@ -15,7 +15,7 @@ export class CardDetail {
   mapIcon = signal(faMapMarkerAlt);
   favoriteIcon = signal(faHeart);
   checkIcon = signal(faCheck);
-  timeIcon = signal(faTimes);
+  timeIcon = signal(faTimesCircle);
   
   isFavorite = input(false);
   legend = input("");

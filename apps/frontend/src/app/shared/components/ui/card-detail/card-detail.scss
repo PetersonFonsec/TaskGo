@@ -12,11 +12,18 @@
     border-radius: 16px;
     margin-bottom: var(--space-4);
     overflow: hidden;
+    position: relative;
 
     img {
       @include image.validSizeImage();
       display: block;
     }
+  }
+
+  &_badge {
+    position: absolute;
+    top: 8px;
+    left: 8px;
   }
 
   &_thumb,
@@ -40,8 +47,6 @@
     font-weight: 800;
     color: var(--font-color-dark);
   }
-
-  &_legend {}
 
   &_actions {
     margin-top: var(--space-3);

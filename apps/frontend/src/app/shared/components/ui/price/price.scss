@@ -1,0 +1,19 @@
+.price {
+    display: flex;
+    align-items: flex-start;
+    flex-direction: column;
+    gap: 0.5rem;
+    width: fit-content;
+
+    &-value {
+        color: var(--font-color-dark);
+        font-size: var(--font-size-4);
+        font-weight: var(--font-weight-bold);
+    }
+
+    &-legend {
+        color: var(--font-color-neutral);
+        font-size: var(--font-size-2);
+        font-weight: var(--font-weight-regular);
+    }
+}
