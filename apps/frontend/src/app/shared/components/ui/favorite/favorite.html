@@ -1,0 +1,4 @@
+<button class="favorite" [attr.aria-label]="isFavorite() ? 'Remover dos favoritos' : 'Salvar nos favoritos'"
+    type="button" aria-label="Voltar" (click)="favoriteToggle.emit()">
+    <fa-icon [icon]="favoriteIcon()" aria-hidden="true"></fa-icon>
+</button>

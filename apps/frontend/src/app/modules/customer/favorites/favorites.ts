@@ -1,9 +1,7 @@
 import { Component, inject, OnInit, signal } from '@angular/core';
-import { RouterLink } from '@angular/router';
 import { HttpErrorResponse } from '@angular/common/http';
-import { NgFor, NgIf } from '@angular/common';
+import { NgIf } from '@angular/common';
 
-import { CardDetail } from '@shared/components/ui/card-detail/card-detail';
 import { Provider } from '@shared/service/provider/provider';
 import { UserLoggedService } from '@shared/service/user-logged/user-logged.service';
 import { environment } from '@environments/environment';
@@ -11,7 +9,7 @@ import { environment } from '@environments/environment';
 @Component({
   selector: 'app-favorites',
   standalone: true,
-  imports: [CardDetail, RouterLink, NgIf, NgFor],
+  imports: [NgIf],
   templateUrl: './favorites.html',
   styleUrl: './favorites.scss',
 })

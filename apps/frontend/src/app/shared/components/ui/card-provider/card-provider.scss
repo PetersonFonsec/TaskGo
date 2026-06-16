@@ -1,0 +1,43 @@
+@use "mixins/position";
+
+.card-provider {
+    @include position.flexCollumn();
+
+    &_content,
+    &_header {
+        display: block;
+        margin-bottom: var(--space-4);
+    }
+    
+    &_footer {
+        display: block;
+        margin-top: var(--space-4);
+    }
+
+    &_content {
+        @include position.flexCollumn();
+        position: relative;
+        font-weight: var(--font-weight-medium);
+        color: var(--color-neutral-1);
+        gap: var(--space-2);
+        margin-left: -4px;
+    }
+
+    &_title {
+        color: var(--font-color-dark);
+        font-size: var(--font-size-4);
+        font-weight: var(--font-weight-bold);
+        width: 100%;
+    }
+
+    &_favorite {
+        position: absolute;
+        top: 0;
+        right: 0;
+
+        &[disabled] {
+            opacity: 0.65;
+            cursor: not-allowed;
+        }
+    }
+}

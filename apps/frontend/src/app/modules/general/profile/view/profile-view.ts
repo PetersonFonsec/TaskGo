@@ -8,7 +8,7 @@ import { UserResponse } from '@shared/service/users/user.model';
 @Component({
   selector: 'app-profile-view',
   standalone: true,
-  imports: [NgIf, NgFor, ButtonComponent],
+  imports: [NgIf, NgFor],
   templateUrl: './profile-view.html',
   styleUrl: './profile-view.scss',
 })

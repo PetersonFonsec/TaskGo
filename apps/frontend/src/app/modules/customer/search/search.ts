@@ -13,10 +13,12 @@ import { Provider } from '@shared/service/provider/provider';
 import { UserLoggedService } from '@shared/service/user-logged/user-logged.service';
 import { environment } from '@environments/environment';
 import { switchMap, tap } from 'rxjs';
+import { CardProvider } from '@shared/components/ui/card-provider/card-provider';
+import { FormatedProviderParamPipe } from './pipes/formated-provider-param-pipe';
 
 @Component({
   selector: 'app-search',
-  imports: [CardDetail, RouterLink, ProxiMapComponent],
+  imports: [CardProvider, ProxiMapComponent, FormatedProviderParamPipe],
   templateUrl: './search.html',
   styleUrl: './search.scss',
 })
@@ -35,6 +37,7 @@ export class Search implements OnInit {
   onlyFavorites = signal(false);
   providers = signal<any>([]);
   category = signal('');
+
   mapProviders = computed(() => this.providers()
     .map((provider: any) => this.toMapProvider(provider))
     .filter((provider: ProxiMapProvider | null): provider is ProxiMapProvider => !!provider));
@@ -290,5 +293,9 @@ export class Search implements OnInit {
         this.favorites.set(favoritesMap);
       }
     });
+  }
+
+  redirectToProfile(profileId: string) {
+    this.#router.navigateByUrl('/customer/'+profileId);
   }
 }

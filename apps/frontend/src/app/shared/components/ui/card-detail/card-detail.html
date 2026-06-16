@@ -2,40 +2,19 @@
   <div class="card-detail_thumb">
     <ng-content select="[thumb]">
       @if (image()) {
-      <img [src]="image()" [alt]="title()" />
+      <img [src]="image()" alt="foto de perfil do prestador de serviço"/>
       }
     </ng-content>
 
-    <app-badge class="card-detail_badge" color="success">
-      <fa-icon [icon]="checkIcon()" aria-hidden="true"></fa-icon> 
-      Verificado
-    </app-badge>
+    @if(verified()) {
+      <app-badge class="card-detail_badge" color="success">
+        <fa-icon [icon]="checkIcon()" aria-hidden="true"></fa-icon> 
+        Verificado
+      </app-badge>
+    }
   </div>
 
   <div class="card-detail_content">
-    <button class="card-detail_favorite"
-      [attr.aria-label]="isFavorite() ? 'Remover dos favoritos' : 'Salvar nos favoritos'" type="button"
-      aria-label="Voltar" (click)="onFavoriteClick()">
-      <fa-icon [icon]="favoriteIcon()" aria-hidden="true"></fa-icon>
-    </button>
-
-    <h4 class="card-detail_title">{{ title() }}</h4>
-    <legend class="card-detail_subtitle">
-      <fa-icon [icon]="favoriteIcon()" aria-hidden="true"></fa-icon> 4,7 (78 avaliações)
-    </legend>
-
-    <legend class="card-detail_subtitle">
-      <fa-icon [icon]="mapIcon()" aria-hidden="true"></fa-icon> 3,1 km de você
-    </legend>
-
-    <legend class="card-detail_subtitle">
-      <fa-icon [icon]="timeIcon()" aria-hidden="true"></fa-icon> responde em até 1 hora
-    </legend>
-
-    <app-price [value]="110" />
-
-    <app-button typeColor="outline">
-      Ver perfil
-    </app-button>
+    <ng-content></ng-content>
   </div>
 </div>

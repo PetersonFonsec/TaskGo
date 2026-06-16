@@ -19,14 +19,15 @@
     <ul *ngIf="!isLoading() && providers().length > 0" id="customer-favorites_list">
       @for (provider of providers(); track $index) {
       <li>
-        <app-card-detail
+        <!-- TODO refatorar para usar o card-provider 
+        <app-card-provider
           [routerLink]="'/customer/' + provider.id"
           [image]="provider.user?.photoUrl"
-          [title]="provider.user?.name"
           [legend]="provider.user?.phone"
           [isFavorite]="isFavorite(provider.id)"
+          [title]="provider.user?.name"
           (favoriteToggle)="toggleFavorite(provider.id)" />
-      </li>
+      </li> -->
       }
     </ul>
   </section>

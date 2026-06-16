@@ -4,6 +4,11 @@
   flex: 1;
 }
 
+@mixin flexCollumn {
+  display: flex;
+  flex-direction: column;
+}
+
 @mixin filledAbsolutePage {
   position: absolute;
   top: 0;

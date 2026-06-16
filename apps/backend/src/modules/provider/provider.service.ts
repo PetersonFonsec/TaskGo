@@ -64,7 +64,7 @@ export class ProviderService {
   async findProvidersByCategorySlug(slug: string) {
     if (!slug) return [];
 
-    return this.prisma.provider.findMany({
+    const providers = await this.prisma.provider.findMany({
       where: {
         services: {
           some: {
@@ -84,6 +84,15 @@ export class ProviderService {
         }
       }
     });
+
+    providers.forEach((provider) => {
+      provider.services = provider.services.map(service => {
+        service.basePrice = Number(service.basePrice) as any;
+        return service
+      });
+    });
+
+    return providers;
   }
 
   findOne(id: number) {

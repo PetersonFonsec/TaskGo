@@ -37,11 +37,11 @@
       <ul>
         @for (provider of providers(); track $index) {
         <li>
-          <app-card-detail
-            [image]="provider?.user?.photoUrl"
-            [title]="provider?.user?.name" [legend]="provider?.user?.phone" 
-            [isFavorite]="isFavorite(provider?.id)"
-            (favoriteToggle)="toggleFavorite(provider?.id)" />
+          <app-card-provider
+            [params]="provider | formatedProviderParam"
+            (favoriteToggle)="toggleFavorite(provider?.id)" 
+            (clickButton)="redirectToProfile(provider?.id)"
+            />
         </li>
         }
       </ul>
