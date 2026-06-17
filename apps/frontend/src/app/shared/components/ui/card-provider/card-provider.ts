@@ -2,12 +2,11 @@ import { Component, input, output, signal } from '@angular/core';
 import { FaIconComponent } from '@fortawesome/angular-fontawesome';
 
 import { CardProviderParams } from './card-provider.interface';
-import { CardDetail } from '../card-detail/card-detail';
-import { Favorite } from '../favorite/favorite';
+import { Favorite } from '../../functional/favorite/favorite';
 import { PROVIDER_CONTENT } from './card-provider.constants';
-import { Price } from '../price/price';
 import { ButtonComponent } from '../button/button.component';
-import { JsonPipe } from '@angular/common';
+import { CardDetail } from '../card-detail/card-detail';
+import { Price } from '../price/price';
 
 @Component({
   selector: 'app-card-provider',

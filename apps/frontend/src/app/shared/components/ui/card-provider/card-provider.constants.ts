@@ -5,13 +5,12 @@ import { faCheck, faClock, faCreditCard, faMapMarkerAlt } from "@fortawesome/fre
 export interface ProviderLegend {
     icon: IconDefinition,
     label: string
-
 }
 
 export const PROVIDER_CONTENT: ProviderLegend[] = [
     {
         icon: faMapMarkerAlt,
-        label: '3,1 km de você'
+        label: '3,1 km de você',
     },
     {
         icon: faPix,
