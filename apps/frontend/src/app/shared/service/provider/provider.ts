@@ -1,7 +1,13 @@
 import { HttpClient, HttpParams } from '@angular/common/http';
 import { inject, Injectable } from '@angular/core';
 import { environment } from '@environments/environment';
-import { hireProviderRequest } from './provider.model';
+import { hireProviderRequest, ProviderAvailabilityResponse } from './provider.model';
+
+export interface ProviderAvailabilityQuery {
+  from: string;
+  to: string;
+  serviceId?: string;
+}
 
 @Injectable({
   providedIn: 'root'
@@ -22,6 +28,19 @@ export class Provider {
 
   hireProvider(payload: hireProviderRequest) {
     return this.#http.post(`${environment.url}/order`, payload);
+  }
+
+  getAvailability(providerId: string, query: ProviderAvailabilityQuery) {
+    let params = new HttpParams().set('from', query.from).set('to', query.to);
+
+    if (query.serviceId) {
+      params = params.set('serviceId', query.serviceId);
+    }
+
+    return this.#http.get<ProviderAvailabilityResponse>(
+      `${this.#urlBase}/${providerId}/availability`,
+      { params }
+    );
   }
 
   listFavorites(clientId: string) {

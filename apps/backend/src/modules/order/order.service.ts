@@ -1,37 +1,68 @@
-import { Injectable, NotFoundException, BadRequestException, ForbiddenException } from '@nestjs/common';
+import {
+  Injectable,
+  NotFoundException,
+  BadRequestException,
+  ForbiddenException,
+} from '@nestjs/common';
 import { Order, OrderStatus } from '@prisma/client';
 
 import { CreateOrderDto } from './dto/create-order.dto';
 import { UpdateOrderDto } from './dto/update-order.dto';
 
-import { PaginationQuery, PaginationResponse } from '../../shared/services/pagination/pagination.interface';
+import {
+  PaginationQuery,
+  PaginationResponse,
+} from '../../shared/services/pagination/pagination.interface';
 import { PaginationService } from '../../shared/services/pagination/pagination.service';
 import { PrismaService } from '../../prisma/prisma.service';
+import { ProviderService } from '../provider/provider.service';
+
+const BOOKING_TIMEZONE = 'America/Sao_Paulo';
 
 @Injectable()
 export class OrderService extends PaginationService<Order> {
-
   constructor(
     public prisma: PrismaService,
+    private readonly providerService: ProviderService,
   ) {
     super(prisma);
     this.modelName = this.prisma.order;
   }
 
   async create(createOrderDto: CreateOrderDto): Promise<any> {
-    const { clientId, serviceId, scheduledFor, finalPrice, paymentMethod, address } = createOrderDto as any;
+    const {
+      clientId,
+      serviceId,
+      scheduledFor,
+      finalPrice,
+      paymentMethod,
+      address,
+    } = createOrderDto as any;
 
     // basic validation and conversions
-    if (!clientId || !serviceId) throw new BadRequestException('clientId and serviceId are required');
+    if (!clientId || !serviceId)
+      throw new BadRequestException('clientId and serviceId are required');
 
     const svcId = BigInt(serviceId);
     const cliId = BigInt(clientId);
 
-    const service = await this.prisma.service.findUnique({ where: { id: svcId } });
+    const service = await this.prisma.service.findUnique({
+      where: { id: svcId },
+    });
     if (!service) throw new NotFoundException('Service not found');
-    if (service.status !== 'ATIVO') throw new BadRequestException('Service is not available');
+    if (service.status !== 'ATIVO')
+      throw new BadRequestException('Service is not available');
 
     const price = finalPrice ?? service.basePrice;
+    const scheduledAt = scheduledFor ? new Date(scheduledFor) : undefined;
+
+    if (scheduledFor && (!scheduledAt || Number.isNaN(scheduledAt.getTime()))) {
+      throw new BadRequestException('Invalid scheduledFor');
+    }
+
+    if (scheduledAt) {
+      await this.ensureScheduledSlotAvailable(service, scheduledAt);
+    }
 
     // create order with payment and address snapshot in a transaction
     const created = await this.prisma.$transaction(async (prisma) => {
@@ -41,7 +72,7 @@ export class OrderService extends PaginationService<Order> {
           serviceId: svcId,
           status: OrderStatus.PENDENTE,
           finalPrice: price,
-          scheduledFor: scheduledFor ? new Date(scheduledFor) : undefined,
+          scheduledFor: scheduledAt,
           payment: {
             create: {
               method: (paymentMethod as any) || 'PIX',
@@ -74,14 +105,68 @@ export class OrderService extends PaginationService<Order> {
     return created;
   }
 
+  private async ensureScheduledSlotAvailable(
+    service: { id: bigint; providerId: bigint },
+    scheduledAt: Date,
+  ) {
+    const bookingDate = this.formatDateInBookingTimezone(scheduledAt);
+    const availability = await this.providerService.getAvailability(
+      service.providerId.toString(),
+      {
+        from: bookingDate,
+        to: bookingDate,
+        serviceId: service.id.toString(),
+      },
+    );
+
+    const requestedTime = scheduledAt.getTime();
+    const selectedSlot = availability.days
+      .flatMap((day) => day.slots)
+      .find(
+        (slot) =>
+          slot.available &&
+          slot.serviceId === service.id.toString() &&
+          new Date(slot.startsAt).getTime() === requestedTime,
+      );
+
+    if (!selectedSlot) {
+      throw new BadRequestException(
+        'Selected scheduled slot is no longer available',
+      );
+    }
+  }
+
+  private formatDateInBookingTimezone(date: Date): string {
+    const parts = new Intl.DateTimeFormat('en-CA', {
+      timeZone: BOOKING_TIMEZONE,
+      year: 'numeric',
+      month: '2-digit',
+      day: '2-digit',
+    }).formatToParts(date);
+
+    const values = Object.fromEntries(
+      parts
+        .filter((part) => part.type !== 'literal')
+        .map((part) => [part.type, part.value]),
+    );
+
+    return `${values.year}-${values.month}-${values.day}`;
+  }
+
   async findAll(query: PaginationQuery): Promise<PaginationResponse<Order>> {
-    const queryDefault: PaginationQuery = { page: 1, limit: 10, sortBy: 'id', order: 'desc', search: '' };
+    const queryDefault: PaginationQuery = {
+      page: 1,
+      limit: 10,
+      sortBy: 'id',
+      order: 'desc',
+      search: '',
+    };
     return await this.listPaginated(Object.assign(queryDefault, query));
   }
 
   async findOne(id: bigint): Promise<any> {
     return await this.prisma.order.findUnique({
-      where: { id }
+      where: { id },
     });
   }
 
@@ -95,8 +180,8 @@ export class OrderService extends PaginationService<Order> {
       include: {
         client: true,
         addressSnap: true,
-        service: true
-      }
+        service: true,
+      },
     });
 
     if (!order) throw new NotFoundException('Order not found');
@@ -119,14 +204,14 @@ export class OrderService extends PaginationService<Order> {
         service: {
           include: {
             provider: {
-              include: { user: true }
-            }
-          }
+              include: { user: true },
+            },
+          },
         },
         payment: true,
         addressSnap: true,
         review: true,
-      }
+      },
     });
   }
 
@@ -141,8 +226,8 @@ export class OrderService extends PaginationService<Order> {
         service: {
           is: {
             providerId,
-          }
-        }
+          },
+        },
       },
       orderBy: { requestedAt: 'desc' },
       include: {
@@ -150,14 +235,14 @@ export class OrderService extends PaginationService<Order> {
         service: {
           include: {
             provider: {
-              include: { user: true }
-            }
-          }
+              include: { user: true },
+            },
+          },
         },
         payment: true,
         addressSnap: true,
         review: true,
-      }
+      },
     });
   }
 
@@ -185,7 +270,7 @@ export class OrderService extends PaginationService<Order> {
       data: {
         scheduledFor: scheduledAt,
         status: OrderStatus.CONFIRMADO,
-      }
+      },
     });
   }
 
@@ -208,7 +293,9 @@ export class OrderService extends PaginationService<Order> {
     if (!order) throw new NotFoundException('Order not found');
 
     if (!order.service || order.service.providerId !== providerId) {
-      throw new ForbiddenException('Provider not allowed to confirm this order');
+      throw new ForbiddenException(
+        'Provider not allowed to confirm this order',
+      );
     }
 
     if (order.status !== OrderStatus.PENDENTE) {
@@ -237,8 +324,13 @@ export class OrderService extends PaginationService<Order> {
     }
 
     // allow cancel from PENDENTE or CONFIRMADO
-    if (order.status !== OrderStatus.PENDENTE && order.status !== OrderStatus.CONFIRMADO) {
-      throw new BadRequestException('Only PENDENTE or CONFIRMADO orders can be cancelled by provider');
+    if (
+      order.status !== OrderStatus.PENDENTE &&
+      order.status !== OrderStatus.CONFIRMADO
+    ) {
+      throw new BadRequestException(
+        'Only PENDENTE or CONFIRMADO orders can be cancelled by provider',
+      );
     }
 
     return await this.prisma.order.update({

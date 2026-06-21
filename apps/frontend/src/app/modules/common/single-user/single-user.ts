@@ -1,14 +1,18 @@
-import { Component, inject, OnInit, signal } from '@angular/core';
+import { Component, computed, inject, OnInit, signal } from '@angular/core';
 import { ActivatedRoute, Router } from '@angular/router';
 import { HttpErrorResponse } from '@angular/common/http';
 import { LiveAnnouncer } from '@angular/cdk/a11y';
-import { switchMap } from 'rxjs';
+import { finalize, switchMap } from 'rxjs';
 
 import { UserLoggedService } from '@shared/service/user-logged/user-logged.service';
 import { Slider, SliderItemDirective } from '@shared/components/ui/slider/slider';
 import { ButtonComponent } from '@shared/components/ui/button/button.component';
 import { FooterLinks } from '@shared/components/ui/footer-links/footer-links';
-import { hireProviderRequest } from '@shared/service/provider/provider.model';
+import {
+  hireProviderRequest,
+  ProviderAvailabilityDay,
+  ProviderAvailabilitySlot,
+} from '@shared/service/provider/provider.model';
 import { SOCIAL_LINKS } from '@shared/components/ui/footer/footer.data';
 import { FullModal } from '@shared/components/ui/full-modal/full-modal';
 import { Avatar } from '@shared/components/ui/avatar/avatar';
@@ -18,7 +22,6 @@ import { Card } from '@shared/components/forms/card/card';
 import { Badge } from '@shared/components/ui/badge/badge';
 import { User } from '@shared/service/users/user';
 import { environment } from '@environments/environment';
-
 
 /**
  * TODO: Por conta do prazo de entraga do projeto
@@ -38,7 +41,7 @@ import { environment } from '@environments/environment';
     SliderItemDirective,
     FooterLinks,
     ButtonComponent,
-    FullModal
+    FullModal,
   ],
   templateUrl: './single-user.html',
   styleUrl: './single-user.scss',
@@ -53,28 +56,83 @@ export class SingleUser implements OnInit {
 
   provider = signal<any>({});
   showModal = signal(false);
-  error = signal("");
+  error = signal('');
   favoritesEnabled = environment.features?.favoritesMvp ?? false;
   favoriteState = signal(false);
   favoriteLoading = signal(false);
-  favoriteError = signal("");
-  favoriteAnnouncement = signal("");
+  favoriteError = signal('');
+  favoriteAnnouncement = signal('');
+  availabilityDays = signal<ProviderAvailabilityDay[]>([]);
+  availabilityTimezone = signal('');
+  availabilityLoading = signal(false);
+  availabilityError = signal('');
+  selectedDate = signal<string | null>(null);
+  selectedSlot = signal<ProviderAvailabilitySlot | null>(null);
+  appointmentSummary = computed(() => {
+    const day = this.availabilityDays().find((item) => item.date === this.selectedDate());
+    const slot = this.selectedSlot();
+    const service = this.selectedService();
+
+    if (!day || !slot) {
+      return null;
+    }
+
+    return {
+      date: day.date,
+      startsAt: slot.startsAt,
+      endsAt: slot.endsAt,
+      label: slot.label,
+      timezone: this.availabilityTimezone(),
+      serviceTitle: service?.title ?? 'Serviço',
+      price: this.servicePrice(),
+    };
+  });
+  hasAvailableSlots = computed(() =>
+    this.availabilityDays().some((day) => this.dayHasAvailableSlots(day)),
+  );
+  selectedService = computed(() => this.provider()?.services?.[0] ?? null);
+  servicePrice = computed(() => {
+    const service = this.selectedService();
+    const value = service?.basePrice ?? service?.price ?? this.provider()?.priceFrom ?? 0;
+
+    return Number(value) || 0;
+  });
+  requestDisabled = computed(() => this.availabilityLoading() || !this.selectedSlot());
 
   socialLinks = SOCIAL_LINKS;
 
   ngOnInit(): void {
-    this.#activatedRoute.params.pipe(
-      switchMap(({ userId }) =>
-        this.#user.getProvider(userId)
-      )
-    ).subscribe({
-      next: (provider: any) => {
-        this.provider.set(provider);
-        if (this.favoritesEnabled) {
-          this.loadFavoriteState(provider?.id);
-        }
-      }
-    });
+    this.#activatedRoute.params
+      .pipe(switchMap(({ userId }) => this.#user.getProvider(userId)))
+      .subscribe({
+        next: (provider: any) => {
+          this.provider.set(provider);
+          this.loadAvailability(provider);
+          if (this.favoritesEnabled) {
+            this.loadFavoriteState(provider?.id);
+          }
+        },
+      });
+  }
+
+  selectDate(date: string) {
+    const day = this.availabilityDays().find((item) => item.date === date);
+    if (!day || !this.dayHasAvailableSlots(day)) {
+      return;
+    }
+
+    this.selectedDate.set(date);
+    this.selectedSlot.set(null);
+    this.error.set('');
+  }
+
+  selectSlot(slot: ProviderAvailabilitySlot) {
+    if (!slot.available) {
+      return;
+    }
+
+    this.selectedSlot.set(slot);
+    this.error.set('');
   }
 
   toggleFavorite() {
@@ -115,7 +173,7 @@ export class SingleUser implements OnInit {
       },
       complete: () => {
         this.favoriteLoading.set(false);
-      }
+      },
     });
   }
 
@@ -128,35 +186,151 @@ export class SingleUser implements OnInit {
     this.#provider.listFavorites(String(clientId)).subscribe({
       next: (response: any) => {
         const items = response?.items ?? response ?? [];
-        const favoriteIds = (items as any[]).map(item => String(item.providerId ?? item.id ?? ''));
+        const favoriteIds = (items as any[]).map((item) =>
+          String(item.providerId ?? item.id ?? ''),
+        );
         this.favoriteState.set(favoriteIds.includes(String(providerId)));
-      }
+      },
     });
   }
 
   register() {
+    const selectedSlot = this.selectedSlot();
+    if (!selectedSlot) {
+      this.error.set('Selecione um horário disponível antes de contratar.');
+      this.#liveAnnouncer.announce('Selecione um horário disponível antes de contratar.');
+      return;
+    }
+
     const payload: hireProviderRequest = {
-      serviceId: this.provider().services[0].id,
+      serviceId: this.selectedService()?.id ?? '',
       clientId: this.#userLogged.user().user?.id,
-      finalPrice: 0,
+      scheduledFor: selectedSlot.startsAt,
+      finalPrice: this.servicePrice(),
       paymentMethod: 'PIX',
-      address: this.#userLogged.user().user?.addresses[0]
+      address: this.#userLogged.user().user?.addresses[0],
     };
 
     this.#provider.hireProvider(payload).subscribe({
       next: (response) => {
         console.log(response);
-        this.#liveAnnouncer.announce("Conta criada com sucesso");
+        this.#liveAnnouncer.announce('Conta criada com sucesso');
         this.showModal.set(true);
       },
       error: (error: HttpErrorResponse) => {
-        this.#liveAnnouncer.announce("Houve um erro ao criar a sua conta");
-        this.error.set(error.error.message[0]);
-      }
+        this.#liveAnnouncer.announce('Houve um erro ao criar a sua conta');
+        this.error.set(this.getErrorMessage(error, 'Não foi possível criar a solicitação.'));
+      },
     });
+  }
+
+  getSelectedDaySlots() {
+    return this.availabilityDays().find((day) => day.date === this.selectedDate())?.slots ?? [];
+  }
+
+  formatDateLabel(date: string) {
+    const [year, month, day] = date.split('-').map(Number);
+    const parsedDate = new Date(year, month - 1, day);
+
+    return new Intl.DateTimeFormat('pt-BR', {
+      weekday: 'short',
+      day: '2-digit',
+      month: 'short',
+    })
+      .format(parsedDate)
+      .replace('.', '');
+  }
+
+  formatShortDate(date: string) {
+    const [year, month, day] = date.split('-').map(Number);
+    const parsedDate = new Date(year, month - 1, day);
+
+    return new Intl.DateTimeFormat('pt-BR', {
+      day: '2-digit',
+      month: 'long',
+    }).format(parsedDate);
+  }
+
+  formatPrice(value: number) {
+    return new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(value);
+  }
+
+  dayHasAvailableSlots(day: ProviderAvailabilityDay) {
+    return day.available && day.slots.some((slot) => slot.available);
   }
 
   goToHome() {
     this.#router.navigateByUrl(Utils.getRouteByRole(this.#userLogged.user().user?.type));
+  }
+
+  private loadAvailability(provider: any) {
+    const providerId = provider?.id;
+    const serviceId = provider?.services?.[0]?.id;
+
+    this.availabilityDays.set([]);
+    this.availabilityTimezone.set('');
+    this.availabilityError.set('');
+    this.selectedDate.set(null);
+    this.selectedSlot.set(null);
+
+    if (!providerId) {
+      return;
+    }
+
+    const range = this.getAvailabilityRange();
+    this.availabilityLoading.set(true);
+
+    this.#provider
+      .getAvailability(String(providerId), {
+        ...range,
+        serviceId,
+      })
+      .pipe(finalize(() => this.availabilityLoading.set(false)))
+      .subscribe({
+        next: (response) => {
+          const days = response?.days ?? [];
+          this.availabilityDays.set(days);
+          this.availabilityTimezone.set(response?.timezone ?? '');
+          this.selectedDate.set(this.findFirstAvailableDate(days));
+        },
+        error: (error: HttpErrorResponse) => {
+          this.availabilityError.set(
+            this.getErrorMessage(error, 'Não foi possível carregar os horários disponíveis.'),
+          );
+        },
+      });
+  }
+
+  private getAvailabilityRange() {
+    const from = new Date();
+    const to = new Date(from);
+    to.setDate(from.getDate() + 13);
+
+    return {
+      from: this.toDateInputValue(from),
+      to: this.toDateInputValue(to),
+    };
+  }
+
+  private toDateInputValue(date: Date) {
+    const year = date.getFullYear();
+    const month = String(date.getMonth() + 1).padStart(2, '0');
+    const day = String(date.getDate()).padStart(2, '0');
+
+    return `${year}-${month}-${day}`;
+  }
+
+  private findFirstAvailableDate(days: ProviderAvailabilityDay[]) {
+    return days.find((day) => this.dayHasAvailableSlots(day))?.date ?? null;
+  }
+
+  private getErrorMessage(error: HttpErrorResponse, fallback: string) {
+    const message = error.error?.message;
+
+    if (Array.isArray(message)) {
+      return message[0] ?? fallback;
+    }
+
+    return message || error.error?.error || fallback;
   }
 }

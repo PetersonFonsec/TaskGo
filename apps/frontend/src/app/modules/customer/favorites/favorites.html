@@ -19,15 +19,22 @@
     <ul *ngIf="!isLoading() && providers().length > 0" id="customer-favorites_list">
       @for (provider of providers(); track $index) {
       <li>
-        <!-- TODO refatorar para usar o card-provider 
-        <app-card-provider
-          [routerLink]="'/customer/' + provider.id"
-          [image]="provider.user?.photoUrl"
-          [legend]="provider.user?.phone"
-          [isFavorite]="isFavorite(provider.id)"
-          [title]="provider.user?.name"
-          (favoriteToggle)="toggleFavorite(provider.id)" />
-      </li> -->
+        <article class="customer-favorites_card">
+          <div>
+            <h2 class="subtitle">{{ provider.user?.name || provider.name || 'Profissional favorito' }}</h2>
+            <p class="text">{{ provider.user?.phone || provider.phone || 'Contato não informado' }}</p>
+          </div>
+
+          <button
+            type="button"
+            class="card-detail_favorite"
+            [disabled]="isFavoriteLoading(provider.id)"
+            (click)="toggleFavorite(provider.id)"
+          >
+            Remover dos favoritos
+          </button>
+        </article>
+      </li>
       }
     </ul>
   </section>

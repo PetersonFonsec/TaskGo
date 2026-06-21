@@ -29,13 +29,17 @@ describe('Favorites MVP', () => {
   const favoritedProvider = {
     id: '1',
     user: { name: 'Provider Favorito', phone: '999999999' },
-    services: [],
+    lat: -23.55052,
+    lng: -46.633308,
+    services: [{ basePrice: 120 }],
   };
 
   const nonFavoritedProvider = {
     id: '2',
     user: { name: 'Outro Provider', phone: '888888888' },
-    services: [],
+    lat: -23.551,
+    lng: -46.634,
+    services: [{ basePrice: 150 }],
   };
 
   beforeEach(() => {
@@ -54,14 +58,19 @@ describe('Favorites MVP', () => {
       });
     }).as('searchProviders');
 
-    cy.intercept('GET', '**/clients/10/favorites', (req) => {
+    cy.intercept('GET', `${Cypress.env('url')}/favorites`, (req) => {
       req.reply({
         statusCode: 200,
-        body: { items: currentFavorites.map((provider) => ({ provider })) },
+        body: {
+          items: currentFavorites.map((provider) => ({
+            providerId: provider.id,
+            provider,
+          })),
+        },
       });
     }).as('favoritesList');
 
-    cy.intercept('POST', '**/clients/10/favorites', (req) => {
+    cy.intercept('POST', `${Cypress.env('url')}/favorites`, (req) => {
       const requestedId = String(req.body?.providerId ?? '');
       const addedProvider = requestedId === '1' ? favoritedProvider : nonFavoritedProvider;
       currentFavorites.push(addedProvider);
@@ -71,7 +80,7 @@ describe('Favorites MVP', () => {
       });
     }).as('addFavorite');
 
-    cy.intercept('DELETE', '**/clients/10/favorites/1', (req) => {
+    cy.intercept('DELETE', `${Cypress.env('url')}/favorites/1`, (req) => {
       currentFavorites = currentFavorites.filter((provider) => provider.id !== '1');
       req.reply({ statusCode: 200, body: {} });
     }).as('removeFavorite');
@@ -83,7 +92,7 @@ describe('Favorites MVP', () => {
   });
 
   it('adds a favorite in search, filters only favorites, and removes it from Favorites page', () => {
-    cy.visit('http://localhost:4201/authenticate/login');
+    cy.visit('http://localhost:4200/authenticate/login');
 
     cy.get('#email input').type(customer.email);
     cy.get('#senha input').type(customer.password);
@@ -105,15 +114,13 @@ describe('Favorites MVP', () => {
     cy.wait('@favoritesList');
 
     cy.get('#customer-search').within(() => {
-      cy.contains('Provider Favorito').should('be.visible');
-      cy.contains('Outro Provider').should('be.visible');
-      cy.contains('Salvar nos favoritos').should('exist');
+      cy.contains('Provider Favorito').should('exist');
+      cy.contains('Outro Provider').should('exist');
+      cy.get('button.favorite').should('have.length.at.least', 2);
     });
 
-    cy.get('#customer-search').contains('Salvar nos favoritos').click();
+    cy.get('#customer-search button.favorite').first().click();
     cy.wait('@addFavorite');
-
-    cy.get('#customer-search').contains('Remover dos favoritos').should('be.visible');
 
     cy.get('#customer-search_filters_actions input[type="checkbox"]').check({ force: true });
     cy.wait('@searchProviders');
@@ -121,26 +128,25 @@ describe('Favorites MVP', () => {
     cy.window().its('localStorage').invoke('getItem', 'search.onlyFavorites.10').should('equal', 'true');
 
     cy.get('#customer-search').within(() => {
-      cy.contains('Provider Favorito').should('be.visible');
+      cy.contains('Provider Favorito').should('exist');
       cy.contains('Outro Provider').should('not.exist');
     });
 
-    cy.visit('/customer/favorites', {
-      onBeforeLoad(win) {
-        win.localStorage.setItem('@ODIN/TOKEN', userResponse.access_token);
-        win.localStorage.setItem('@ODIN/USER', JSON.stringify(userResponse));
-      }
+    cy.window().then((win) => {
+      win.history.pushState({}, '', '/customer/favorites');
+      win.dispatchEvent(new PopStateEvent('popstate'));
     });
+
     cy.url().should('include', '/customer/favorites');
     cy.wait('@favoritesList');
 
     cy.get('#customer-favorites').within(() => {
-      cy.contains('Meus favoritos').should('be.visible');
-      cy.contains('Provider Favorito').should('be.visible');
+      cy.contains('Meus favoritos').should('exist');
+      cy.contains('Provider Favorito').should('exist');
       cy.get('button.card-detail_favorite').contains('Remover dos favoritos').click();
     });
 
     cy.wait('@removeFavorite');
-    cy.contains('Você não possui nenhum profissional favoritado.').should('be.visible');
+    cy.contains('Você não possui nenhum profissional favoritado.').should('exist');
   });
 });

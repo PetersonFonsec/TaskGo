@@ -1,8 +1,21 @@
-import { Controller, Get, Post, Body, Patch, Param, Delete, Query, Req, UnauthorizedException, NotFoundException } from '@nestjs/common';
+import {
+  Controller,
+  Get,
+  Post,
+  Body,
+  Patch,
+  Param,
+  Delete,
+  Query,
+  Req,
+  UnauthorizedException,
+  NotFoundException,
+} from '@nestjs/common';
 import { Request } from 'express';
 import { ProviderService } from './provider.service';
 import { CreateProviderDto } from './dto/create-provider.dto';
 import { UpdateProviderDto } from './dto/update-provider.dto';
+import { ProviderAvailabilityQueryDto } from './dto/provider-availability.dto';
 import { Public } from '../../shared/decorators/public.decorator';
 import { AuthTokenService } from '../auth/auth-token.service';
 import Mediator from '../../shared/events/mediator';
@@ -15,7 +28,7 @@ export class ProviderController {
     private readonly authTokenService: AuthTokenService,
     private readonly mediator: Mediator,
     private readonly featureFlagService: FeatureFlagService,
-  ) { }
+  ) {}
 
   @Post()
   create(@Body() createProviderDto: CreateProviderDto) {
@@ -24,18 +37,27 @@ export class ProviderController {
 
   @Public()
   @Get()
-  async findAll(@Query('onlyFavorites') onlyFavorites?: string, @Req() req?: Request) {
+  async findAll(
+    @Query('onlyFavorites') onlyFavorites?: string,
+    @Req() req?: Request,
+  ) {
     const onlyFavoritesEnabled = onlyFavorites === 'true';
     let clientId: number | undefined;
 
-    if (onlyFavoritesEnabled && !this.featureFlagService.isFavoritesMvpEnabled()) {
+    if (
+      onlyFavoritesEnabled &&
+      !this.featureFlagService.isFavoritesMvpEnabled()
+    ) {
       throw new NotFoundException('Favorites feature disabled');
     }
 
     if (onlyFavoritesEnabled) {
-      const authorization = req?.headers?.authorization || req?.headers?.Authorization;
+      const authorization =
+        req?.headers?.authorization || req?.headers?.Authorization;
       if (!authorization || typeof authorization !== 'string') {
-        throw new UnauthorizedException('Authentication required for favorites filter');
+        throw new UnauthorizedException(
+          'Authentication required for favorites filter',
+        );
       }
 
       const parts = authorization.split(' ');
@@ -49,11 +71,16 @@ export class ProviderController {
       clientId = Number(decoded?.id);
 
       if (!clientId) {
-        throw new UnauthorizedException('Authenticated client required for favorites filter');
+        throw new UnauthorizedException(
+          'Authenticated client required for favorites filter',
+        );
       }
     }
 
-    const providers = await this.providerService.findAll({ onlyFavorites: onlyFavoritesEnabled, clientId });
+    const providers = await this.providerService.findAll({
+      onlyFavorites: onlyFavoritesEnabled,
+      clientId,
+    });
 
     if (onlyFavoritesEnabled) {
       await this.mediator.publish('favorites.searchFilter.used', {
@@ -67,9 +94,12 @@ export class ProviderController {
   }
 
   @Public()
-  @Get(':id')
-  findOne(@Param('id') id: string) {
-    return this.providerService.findOne(+id);
+  @Get(':id/availability')
+  getAvailability(
+    @Param('id') id: string,
+    @Query() query: ProviderAvailabilityQueryDto,
+  ) {
+    return this.providerService.getAvailability(id, query);
   }
 
   @Public()
@@ -78,8 +108,17 @@ export class ProviderController {
     return this.providerService.findProvidersByCategorySlug(slug);
   }
 
+  @Public()
+  @Get(':id')
+  findOne(@Param('id') id: string) {
+    return this.providerService.findOne(+id);
+  }
+
   @Patch(':id')
-  update(@Param('id') id: string, @Body() updateProviderDto: UpdateProviderDto) {
+  update(
+    @Param('id') id: string,
+    @Body() updateProviderDto: UpdateProviderDto,
+  ) {
     return this.providerService.update(+id, updateProviderDto);
   }
 

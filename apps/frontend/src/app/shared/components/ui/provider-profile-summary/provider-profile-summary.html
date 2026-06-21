@@ -1,0 +1,36 @@
+<div class="provider-profile-summary">
+    <header class="provider-profile-summary_header">
+        <div class="provider-profile-summary_header_thumb">
+            @if (image()) {
+            <img [src]="image()" alt="foto de perfil do prestador de serviço" />
+            }
+
+            @if(verified()) {
+            <app-badge class="card-detail_badge" color="success">
+                <fa-icon [icon]="checkIcon()" aria-hidden="true"></fa-icon>
+                Verificado
+            </app-badge>
+            }
+        </div>
+
+        <div class="provider-profile-summary_header_title">
+            João Eletricista
+        </div>
+    </header>
+
+    <div class="provider-profile-summary_content">
+        <ul>
+            @for (item of items(); track $index) {
+                <li>
+
+                </li>
+            }
+        </ul>
+    </div>
+
+    <footer class="provider-profile-summary_footer">
+        <app-button typeColor="outline" color="primary">
+            Ver Perfil Completo
+        </app-button>
+    </footer>
+</div>

@@ -1,100 +1,227 @@
 <div id="single-user">
-  <section id="single-user_profile">
-    <div id="single-user_profile_avatar">
-      <app-avatar [thumb]="provider()?.user?.photoUrl" [alt]="provider()?.user?.name" />
+  <section id="single-user_booking" aria-labelledby="booking-title">
+    <div id="single-user_profile">
+      <div id="single-user_profile_avatar">
+        <app-avatar [thumb]="provider()?.user?.photoUrl" [alt]="provider()?.user?.name" />
+      </div>
+
+      <div id="single-user_profile_content">
+        <div id="single-user_profile_headline">
+          <div>
+            <h1 id="booking-title" class="main-title">
+              {{ provider()?.user?.name }}
+            </h1>
+            <p class="profile-kicker">Agende um atendimento com este profissional</p>
+          </div>
+
+          @if (favoritesEnabled) {
+            <button
+              type="button"
+              class="favorite-button"
+              [disabled]="favoriteLoading()"
+              [attr.aria-pressed]="favoriteState()"
+              [attr.aria-label]="favoriteState() ? 'Remover dos favoritos' : 'Salvar nos favoritos'"
+              (click)="toggleFavorite()"
+            >
+              @if (favoriteLoading()) {
+                Processando...
+              } @else {
+                @if (favoriteState()) {
+                  <span aria-hidden="true">♥</span>
+                  Remover
+                } @else {
+                  <span aria-hidden="true">♡</span>
+                  Salvar
+                }
+              }
+            </button>
+          }
+        </div>
+
+        <div class="trust-signals" aria-label="Informações de confiança">
+          <span>{{ provider()?.reviews?.length || 0 }} avaliações</span>
+          <span>Pagamento por PIX</span>
+          @if (availabilityTimezone()) {
+            <span>{{ availabilityTimezone() }}</span>
+          }
+        </div>
+
+        <div id="single-user_profile_content_services" aria-label="Serviços prestados">
+          @for (service of provider()?.services; track service.id || $index) {
+            <app-badge [selected]="service.id === selectedService()?.id" color="provider">
+              {{ service.title }}
+            </app-badge>
+          }
+        </div>
+
+        @if (provider()?.bio) {
+          <p class="text profile-bio">
+            {{ provider().bio }}
+          </p>
+        }
+
+        @if (favoriteError()) {
+          <p class="favorite-error" role="alert">{{ favoriteError() }}</p>
+        }
+
+        <div aria-live="polite" class="favorite-announcement">
+          {{ favoriteAnnouncement() }}
+        </div>
+
+        <app-footer-links title="Redes Sociais" [links]="socialLinks" direction="horizontal" />
+      </div>
     </div>
 
-    <div id="single-user_profile_content">
-      <div id="single-user_profile_headline">
-        <h1 class="main-title">
-          {{ provider()?.user?.name}}
-        </h1>
+    <div id="single-user_contratar">
+      <div class="booking-header">
+        <p class="section-label">Escolha seu horário</p>
+        <h2 class="subtitle">Solicitar agendamento</h2>
+      </div>
 
-        @if(favoritesEnabled) {
-        <button type="button" class="favorite-button" [disabled]="favoriteLoading()"
-          aria-pressed="{{ favoriteState() }}"
-          [attr.aria-label]="favoriteState() ? 'Remover dos favoritos' : 'Salvar nos favoritos'"
-          (click)="toggleFavorite()">
-          @if(favoriteLoading()) {
-          Processando...
+      <div class="booking-state" aria-live="polite">
+        @if (availabilityLoading()) {
+          <div class="booking-loading" role="status">
+            <span aria-hidden="true"></span>
+            <p class="text">Carregando horários disponíveis...</p>
+          </div>
+        } @else {
+          @if (availabilityError()) {
+            <p class="text booking-error" role="alert">{{ availabilityError() }}</p>
           } @else {
-          @if(favoriteState()) {
-          <span aria-hidden="true">♥</span>
-          Remover dos favoritos
-          } @else {
-          <span aria-hidden="true">♡</span>
-          Salvar nos favoritos
+            @if (!hasAvailableSlots()) {
+              <p class="text empty-state">Nenhum horário disponível para os próximos dias.</p>
+            } @else {
+              <div class="booking-group">
+                <h3 class="booking-group-title">Data</h3>
+                <div class="booking-dates" role="group" aria-label="Datas disponíveis">
+                  @for (day of availabilityDays(); track day.date) {
+                    <button
+                      type="button"
+                      [class.selected]="selectedDate() === day.date"
+                      [class.unavailable]="!dayHasAvailableSlots(day)"
+                      [disabled]="!dayHasAvailableSlots(day)"
+                      [attr.aria-pressed]="selectedDate() === day.date"
+                      [attr.aria-label]="
+                        dayHasAvailableSlots(day)
+                          ? 'Selecionar ' + formatDateLabel(day.date)
+                          : formatDateLabel(day.date) + ' indisponível'
+                      "
+                      (click)="selectDate(day.date)"
+                    >
+                      <span>{{ formatDateLabel(day.date) }}</span>
+                      <small>{{ dayHasAvailableSlots(day) ? 'Disponível' : 'Indisponível' }}</small>
+                    </button>
+                  }
+                </div>
+              </div>
+
+              <div class="booking-group">
+                <h3 class="booking-group-title">Horário</h3>
+                <div class="booking-slots" role="group" aria-label="Horários disponíveis">
+                  @if (getSelectedDaySlots().length) {
+                    @for (slot of getSelectedDaySlots(); track slot.startsAt) {
+                      <button
+                        type="button"
+                        [class.selected]="selectedSlot()?.startsAt === slot.startsAt"
+                        [class.unavailable]="!slot.available"
+                        [disabled]="!slot.available"
+                        [attr.aria-pressed]="selectedSlot()?.startsAt === slot.startsAt"
+                        [attr.aria-label]="
+                          slot.available
+                            ? 'Selecionar horário ' + slot.label
+                            : 'Horário ' + slot.label + ' indisponível'
+                        "
+                        (click)="selectSlot(slot)"
+                      >
+                        {{ slot.label }}
+                        @if (!slot.available) {
+                          <small>Ocupado</small>
+                        }
+                      </button>
+                    }
+                  } @else {
+                    <p class="text empty-state">Selecione uma data disponível.</p>
+                  }
+                </div>
+              </div>
+            }
           }
-          }
-        </button>
         }
       </div>
 
-      <h2 class="subtitle">Serviços prestados</h2>
+      <aside class="appointment-summary" aria-labelledby="appointment-summary-title">
+        <h3 id="appointment-summary-title" class="booking-group-title">Resumo</h3>
+        <dl>
+          <div>
+            <dt>Serviço</dt>
+            <dd>{{ selectedService()?.title || 'Serviço não informado' }}</dd>
+          </div>
+          <div>
+            <dt>Data</dt>
+            <dd>
+              @if (appointmentSummary(); as summary) {
+                {{ formatShortDate(summary.date) }}
+              } @else {
+                Selecione uma data
+              }
+            </dd>
+          </div>
+          <div>
+            <dt>Horário</dt>
+            <dd>
+              @if (appointmentSummary(); as summary) {
+                {{ summary.label }}
+              } @else {
+                Selecione um horário
+              }
+            </dd>
+          </div>
+          <div>
+            <dt>Valor</dt>
+            <dd>{{ formatPrice(servicePrice()) }}</dd>
+          </div>
+        </dl>
+        <p class="payment-note">Pagamento via PIX após a confirmação do profissional.</p>
 
-      <div id="single-user_profile_content_services">
-        @for (service of provider()?.services; track $index) {
-        <app-badge [selected]="true" color="provider">
-          {{ service.title }}
-        </app-badge>
+        @if (error()) {
+          <p id="booking-error-message" class="text booking-error" role="alert">{{ error() }}</p>
         }
-      </div>
 
-      @if(favoriteError()) {
-      <p class="favorite-error" role="alert">{{ favoriteError() }}</p>
-      }
-
-      <div aria-live="polite" class="favorite-announcement">
-        {{ favoriteAnnouncement() }}
-      </div>
-
-      <app-footer-links title="Redes Sociais" [links]="socialLinks" direction="horizontal" />
+        <app-button
+          (click)="register()"
+          color="provider"
+          [disabled]="requestDisabled()"
+          id="booking-request"
+        >
+          Solicitar agendamento
+        </app-button>
+      </aside>
     </div>
   </section>
 
-  @if(provider()?.bio) {
-  <section id="single-user_content">
-    <h3 class="subtitle">
-      Sobre o Profissional
-    </h3>
+  @if (provider()?.reviews?.length) {
+    <section id="single-user_appointments">
+      <h2 id="single-user_appointments_title" class="subtitle">
+        Feedbacks sobre o
+        {{ provider()?.user?.name }}
+      </h2>
 
-    <p class="text">
-      {{provider().bio}}
-    </p>
-  </section>
-  }
-
-  <section id="single-user_contratar">
-    <h3 class="subtitle">
-      Gostaria de contratar os serviços do
-      {{ provider()?.user?.name}}?
-    </h3>
-
-    <app-button (click)="register()" color="provider">
-      Contratar Serviço
-    </app-button>
-  </section>
-
-
-  @if(provider()?.reviews?.length) {
-  <section id="single-user_appointments">
-    <h2 id="single-user_appointments_title" class="subtitle">
-      Feedbacks sobre o
-      {{ provider()?.user?.name}}
-    </h2>
-
-    <app-slider [gap]="14" [perpage]="3" id="single-user_appointments_list">
-      @for (review of provider()?.reviews; track $index) {
-      <app-card slide-item [title]="'Nota: '+review.rating">
-        <p class="text">
-          {{review.comment}}
-        </p>
-      </app-card>
-      }
-    </app-slider>
-  </section>
+      <app-slider [gap]="14" [perpage]="3" id="single-user_appointments_list">
+        @for (review of provider()?.reviews; track $index) {
+          <app-card slide-item [title]="'Nota: ' + review.rating">
+            <p class="text">
+              {{ review.comment }}
+            </p>
+          </app-card>
+        }
+      </app-slider>
+    </section>
   }
 </div>
 
-<app-full-modal (closeModal)="goToHome()" [showModal]="showModal()" title="Sua solicitação foi feita!!"
-  message="Seu pedido foi feito. Agora iremos te atualalizar quando o profissional aceitar a sua solicitação" />
+<app-full-modal
+  (closeModal)="goToHome()"
+  [showModal]="showModal()"
+  title="Sua solicitação foi feita!!"
+  message="Seu pedido foi feito. Agora iremos te atualalizar quando o profissional aceitar a sua solicitação"
+/>
