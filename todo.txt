@@ -37,5 +37,4 @@ Geral
 1° - Criar o darkmode
 2° - Criar testes e2e
 3° - Disparo de emails
-[x] 4° - Conseguir migrar todo ambiente para o nx => EU JURO QUE EU TENTEI mas se loko a porra do backend não funciona no nx no windows
-    
+4 - na rota http://localhost:4200/general/1/addresses mudar para http://localhost:4200/general/addresses e pegar os dados do cliente via token

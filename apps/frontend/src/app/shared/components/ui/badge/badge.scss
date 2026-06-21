@@ -26,4 +26,10 @@
     color: var(--color-success-1);
     font-weight: bold;
   }
+
+  &.soft-primary {
+    background-color: rgb(var(--color-primary-rgb), 0.05);
+    color: var(--color-primary);
+    font-weight: bold;
+  }
 }

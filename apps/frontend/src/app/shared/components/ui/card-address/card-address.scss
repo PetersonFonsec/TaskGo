@@ -1,0 +1,62 @@
+@use "mixins/position";
+@use "mixins/geometric";
+
+.card-address {
+    border: 1px solid var(--color-neutral-3);
+    border-radius: var(--border-radius-1);
+    display: flex;
+    gap: var(--space-5);
+    padding: var(--space-6);
+
+    &_icon {
+        @include geometric.circle(44px);
+        @include position.flexCenter();
+        background-color: rgb(var(--color-primary-rgb), 0.05);
+        color: var(--color-primary);
+    }
+
+    &_wrapper {
+        @include position.flexCollumn();
+        flex: 1;
+    }
+
+    &_header {
+        align-items: center;
+        display: flex;
+        gap: 20px;
+        margin-bottom: var(--space-2);
+
+        app-badge {
+            display: block;
+            width: min-content;
+        }
+    }
+
+    &_container {
+        @include position.flexCollumn();
+    }
+
+    &_footer {
+        display: flex;
+        justify-content: flex-end;
+        gap: var(--space-5);
+    }
+
+    &_edit {
+        color: var(--color-primary);
+    }
+
+    &_remove {
+        color: var(--color-error-2);
+    }
+
+    &_button {
+        appearance: none;
+        background: none;
+        border: none;
+        cursor: pointer;
+        font-weight: var(--font-weight-bold);
+        font-size: var(--font-size-2);
+        white-space: nowrap;
+    }
+}

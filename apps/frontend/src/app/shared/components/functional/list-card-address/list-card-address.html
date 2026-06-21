@@ -1,0 +1,19 @@
+<div class="list-card-address">
+    <header class="list-card-address_header">
+        <strong class="list-card-address_title subtitle">
+            Endereços Cadastrados
+        </strong>
+
+        <button>
+            + Adicionar endereço
+        </button>
+    </header>
+
+    <ul class="list-card-address_list">
+        @for (item of address(); track $index) {
+            <li>
+                <app-card-address />
+            </li>
+        }
+    </ul>
+</div>

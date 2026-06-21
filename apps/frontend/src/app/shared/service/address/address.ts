@@ -10,8 +10,8 @@ export class Address {
   readonly #urlBase = environment.url + '/address';
   readonly #http = inject(HttpClient);
 
-  getAddress(userId: string) {
-    return this.#http.get<ResponseAddressList>(`${this.#urlBase}?userId=${userId}`);
+  getAddress(userId: string, limit = 3) {
+    return this.#http.get<ResponseAddressList>(`${this.#urlBase}?userId=${userId}&limit=${limit}`);
   }
 
   createAddress(payload: IAddressEntity) {

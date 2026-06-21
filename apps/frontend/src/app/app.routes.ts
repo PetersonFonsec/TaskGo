@@ -45,7 +45,7 @@ export const routes: Routes = [
   {
     path: UrlBase.GENERAL,
     component: General,
-    canActivate: [unauthorizedGuard],
+    // canActivate: [unauthorizedGuard],
     children: GeneralRoutes
   },
   // { path: '**', component: NotFoundComponent } TODO - criar pagina 404
