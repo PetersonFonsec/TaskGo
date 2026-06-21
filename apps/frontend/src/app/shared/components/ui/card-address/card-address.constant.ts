@@ -20,3 +20,13 @@ export const ADDRESS_ICONS: address_icon[] = [
         icon: faLocationDot
     },
 ]
+
+export enum CardAddressActions {
+    edit,
+    remove
+}
+
+export interface CardAddressEvent {
+    action: CardAddressActions;
+    address_id: string;
+}

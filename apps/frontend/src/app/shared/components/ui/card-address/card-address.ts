@@ -1,8 +1,9 @@
-import { Component, input } from '@angular/core';
+import { Component, input, output } from '@angular/core';
 import { FaIconComponent } from '@fortawesome/angular-fontawesome';
 import { faHome } from '@fortawesome/free-solid-svg-icons';
-import { IAddressEntity } from '@shared/service/address/address.model';
+import { IFullAddress } from '@shared/service/address/address.model';
 import { Badge } from '../badge/badge';
+import { CardAddressActions, CardAddressEvent } from './card-address.constant';
 
 
 @Component({
@@ -12,6 +13,15 @@ import { Badge } from '../badge/badge';
   styleUrl: './card-address.scss',
 })
 export class CardAddress {
-  address = input<IAddressEntity>();
-  icon = faHome; 
+  action = output<CardAddressEvent>();
+  address = input<IFullAddress>();
+  events = CardAddressActions;
+  icon = faHome;
+
+  onClick(action: CardAddressActions) {
+    this.action.emit({
+      action,
+      address_id: this.address()?.id || ""
+    });
+  }
 }

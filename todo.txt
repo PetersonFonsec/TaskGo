@@ -34,6 +34,7 @@ Cliente
 6° - Sincronizar a agenda com o google calendar
 
 Geral
+0 - Adicionar uma constrant no banco para o cliente ter apenas 1 endereço principal
 1° - Criar o darkmode
 2° - Criar testes e2e
 3° - Disparo de emails

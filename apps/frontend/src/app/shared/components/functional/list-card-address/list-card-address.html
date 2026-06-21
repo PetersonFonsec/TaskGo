@@ -11,9 +11,9 @@
 
     <ul class="list-card-address_list">
         @for (item of address(); track $index) {
-            <li>
-                <app-card-address />
-            </li>
+        <li>
+            <app-card-address [address]="item" />
+        </li>
         }
     </ul>
 </div>

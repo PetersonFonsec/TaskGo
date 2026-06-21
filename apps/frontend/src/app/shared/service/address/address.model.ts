@@ -12,6 +12,8 @@ export interface IAddressEntity {
   cep: string,
   lat: number,
   lng: number,
+  isDefault?: boolean
+  active?: boolean
 }
 
 export interface IFullAddress extends IAddressEntity{

@@ -1,7 +1,7 @@
 import { Component, inject, input, OnInit, signal } from '@angular/core';
 import { CardAddress } from '@shared/components/ui/card-address/card-address';
 import { Address as AddressService } from '@shared/service/address/address';
-import { IAddressEntity } from '@shared/service/address/address.model';
+import { IFullAddress } from '@shared/service/address/address.model';
 
 @Component({
   selector: 'app-list-card-address',
@@ -11,7 +11,7 @@ import { IAddressEntity } from '@shared/service/address/address.model';
 })
 export class ListCardAddress implements OnInit {
   #addressService = inject(AddressService);
-  address = signal<IAddressEntity[]>([]);
+  address = signal<IFullAddress[]>([]);
   userId = input("");
 
   ngOnInit(): void {

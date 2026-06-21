@@ -3,25 +3,34 @@
 
     <div class="card-address_wrapper">
         <header class="card-address_header">
-            <strong>Casa</strong>
+            <strong>
+                {{address()?.label}}
+            </strong>
 
+            @if (address()?.isDefault) {
             <app-badge color="soft-primary">
                 Principal
             </app-badge>
+            }
         </header>
 
         <div class="card-address_container">
-            <span class="legend">Rua das Orquideas, 123</span>
-            <span class="legend">Centro - São Bernardo do campo, SP</span>
-            <span class="legend">CEP: 09853-120</span>
+            <span class="legend">{{address()?.street}}, {{address()?.number}}</span>
+            <span class="legend">
+                @if (address()?.neighborhood) {
+                {{address()?.neighborhood}} -
+                }
+                {{address()?.city}}, {{address()?.state}}
+            </span>
+            <span class="legend">CEP: {{address()?.cep}}</span>
         </div>
 
         <footer class="card-address_footer">
-            <button class="card-address_button card-address_edit">
+            <button (click)="onClick(events.edit)" class="card-address_button card-address_edit">
                 Editar
             </button>
 
-            <button class="card-address_button card-address_remove">
+            <button (click)="onClick(events.remove)" class="card-address_button card-address_remove">
                 Remover
             </button>
         </footer>
