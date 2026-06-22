@@ -1,0 +1,70 @@
+<app-page>
+  <section class="not-found" aria-labelledby="not-found-title">
+    <div class="not-found_hero">
+      <div class="not-found_content">
+        <h1 id="not-found-title" class="not-found_title">404</h1>
+        <h2 class="not-found_subtitle">Página não encontrada</h2>
+
+        <div class="not-found_copy">
+          <p>
+            Ops! Parece que você entrou em um endereço que não existe ou foi movido.
+          </p>
+          <p>
+            Não se preocupe, podemos te ajudar a voltar para o caminho certo.
+          </p>
+        </div>
+
+        <div class="not-found_actions">
+          <a routerLink="/customer" class="not-found_primary-action">
+            <fa-icon [icon]="homeIcon()" />
+            Voltar para a página inicial
+          </a>
+
+          <a routerLink="/customer/search" class="not-found_secondary-action">
+            Ou buscar um serviço
+            <fa-icon [icon]="arrowIcon()" />
+          </a>
+        </div>
+      </div>
+
+      <div class="not-found_illustration" aria-hidden="true">
+        <img
+          src="/ilustrations/not-found-ilustration.webp"
+          alt=""
+          width="700"
+          height="470"
+        />
+      </div>
+    </div>
+
+    <section class="not-found_suggestions" aria-labelledby="not-found-suggestions-title">
+      <h3 id="not-found-suggestions-title">Talvez você esteja procurando por:</h3>
+
+      <div class="not-found_cards">
+        @for (shortcut of shortcuts(); track shortcut.title) {
+          <a [routerLink]="shortcut.link" class="not-found_card">
+            <span class="not-found_card-icon">
+              <fa-icon [icon]="shortcut.icon" />
+            </span>
+            <span class="not-found_card-copy">
+              <strong>{{ shortcut.title }}</strong>
+              <span>{{ shortcut.description }}</span>
+            </span>
+            <fa-icon class="not-found_card-arrow" [icon]="arrowIcon()" />
+          </a>
+        }
+      </div>
+    </section>
+
+    <aside class="not-found_help" aria-label="Ajuda">
+      <span class="not-found_help-icon">
+        <fa-icon [icon]="supportIcon()" />
+      </span>
+      <div>
+        <strong>Ainda precisa de ajuda?</strong>
+        <span>Nossa equipe está pronta para te ajudar.</span>
+      </div>
+      <a routerLink="/institutional/support">Falar com suporte</a>
+    </aside>
+  </section>
+</app-page>

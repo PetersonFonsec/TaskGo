@@ -1,0 +1,19 @@
+@use "mixins/position";
+@use "mixins/geometric";
+
+.card-address {
+    @include geometric.circle(44px);
+    @include position.flexCenter();
+
+
+    //colors
+    &.primary {
+        background-color: rgb(var(--color-primary-rgb), 0.05);
+        color: var(--color-primary);
+    }
+    
+    &.secundary {
+        background-color: rgb(var(--color-secundary-rgb), 0.05);
+        color: var(--color-secundary);
+    }
+}

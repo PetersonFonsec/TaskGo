@@ -16,6 +16,7 @@ import { unauthorizedGuard } from '@shared/guards/unauthorized/unauthorized.guar
 import { userLoggedGuard } from '@shared/guards/userLogged/user-logged.guard';
 import { UrlBase } from '@shared/enums/base-url.enum';
 import { RolesBack } from '@shared/enums/roles.enum';
+import { NotFound } from '@modules/common/not-found/not-found';
 
 export const routes: Routes = [
   { path: '', redirectTo: UrlBase.AUTHENTICATE, pathMatch: 'full' },
@@ -48,5 +49,5 @@ export const routes: Routes = [
     // canActivate: [unauthorizedGuard],
     children: GeneralRoutes
   },
-  // { path: '**', component: NotFoundComponent } TODO - criar pagina 404
+  { path: '**', component: NotFound }
 ];

@@ -33,12 +33,12 @@ export const asideListItemsSecundary: AsideListItem[] = [
 export const asideListItems: AsideListItem[] = [
     {
         text: 'Dados Pessoais',
-        routerLink: '/customer/profile',
+        routerLink: '/general/1/profile',
         icon: faUser
     },
     {
         text: 'Endereços',
-        routerLink: '/customer/addresses',
+        routerLink: '/general/1/addresses',
         icon: faLocationDot
     },
     {
