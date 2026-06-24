@@ -5,6 +5,17 @@ import { SBC_LOCATIONS } from './sbc-locations';
 
 const prisma = new PrismaClient();
 
+const defaultServiceAvailability = {
+  timezone: 'America/Sao_Paulo',
+  weekdays: {
+    monday: [{ start: '09:00', end: '17:00', slotMinutes: 60 }],
+    tuesday: [{ start: '09:00', end: '17:00', slotMinutes: 60 }],
+    wednesday: [{ start: '09:00', end: '17:00', slotMinutes: 60 }],
+    thursday: [{ start: '09:00', end: '17:00', slotMinutes: 60 }],
+    friday: [{ start: '09:00', end: '17:00', slotMinutes: 60 }],
+  },
+};
+
 async function main() {
   // cria 10 clientes
   const clientes = await Promise.all(
@@ -87,6 +98,7 @@ async function main() {
                 description: `Descrição do serviço ${i + 1}A`,
                 category: 'reparo',
                 basePrice: 100 + i * 10,
+                availability: defaultServiceAvailability,
                 status: ServiceStatus.ATIVO,
               },
               {
@@ -94,6 +106,7 @@ async function main() {
                 description: `Descrição do serviço ${i + 1}B`,
                 category: 'limpeza',
                 basePrice: 80 + i * 5,
+                availability: defaultServiceAvailability,
                 status: ServiceStatus.ATIVO,
               },
             ],

@@ -65,13 +65,14 @@ export class FavoritesService {
     return favorite;
   }
 
-  async listFavorites(clientId: number, paging?: { skip?: number; take?: number }) {
+  async listFavorites(clientId: any, paging?: { skip?: number; take?: number }) {
     const skip = paging?.skip ?? 0;
     const take = paging?.take ?? 20;
-
     const [items, total] = await Promise.all([
       this.prisma.clientFavorite.findMany({
-        where: { clientId },
+        where: {
+          clientId: BigInt(clientId.id),
+        },
         skip,
         take,
         orderBy: { createdAt: 'desc' },
@@ -84,7 +85,11 @@ export class FavoritesService {
           },
         },
       }),
-      this.prisma.clientFavorite.count({ where: { clientId } }),
+      this.prisma.clientFavorite.count({
+        where: {
+          clientId: BigInt(clientId.id),
+        }
+      }),
     ]);
 
     await this.mediator.publish('favorites.view', {
