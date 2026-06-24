@@ -38,4 +38,6 @@ Geral
 1° - Criar o darkmode
 2° - Criar testes e2e
 3° - Disparo de emails
-4 - na rota http://localhost:4200/general/1/addresses mudar para http://localhost:4200/general/addresses e pegar os dados do cliente via token
+4˚ - na rota http://localhost:4200/general/1/addresses mudar para http://localhost:4200/general/addresses e pegar os dados do cliente via token
+5˚ - Separar as entidades/interfaces que hoje estao duplicadas entre os projetos de frontend e backend para deixar dentro da pasta ./libs
+6˚ - Estou pensando em separar tambem os componentes de ui para dentro de libs assim quando eu for desenvolver o backoffice ou talvez ate o mobile eu reaproveitaria
