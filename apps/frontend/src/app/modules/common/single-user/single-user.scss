@@ -6,10 +6,8 @@
   @include grid.container(var(--container-size));
 
   &_booking {
-    display: grid;
-    grid-template-columns: minmax(0, 1fr) minmax(340px, 420px);
+    display: flex;
     gap: var(--space-18);
-    align-items: start;
     margin-bottom: var(--space-19);
   }
 
@@ -23,7 +21,11 @@
 
   &_profile {
     display: flex;
-    min-width: 0;
+    width: 100%;
+
+    @media (min-width: breakpoints.$tablet) {
+      max-width: 400px;
+    }
 
     &_avatar {
       margin-right: var(--space-18);

@@ -12,8 +12,8 @@ import { PROVIDER_PROFILE_SUMMARY_CONTENT } from './provider-profile-summary.con
   styleUrl: './provider-profile-summary.scss',
 })
 export class ProviderProfileSummary {
+  image = input("https://dummyimage.com/600x400/000/fff");
   verified = input(false);
-  image = input("");
 
   items = signal(PROVIDER_PROFILE_SUMMARY_CONTENT);
   checkIcon = signal(faCheck);

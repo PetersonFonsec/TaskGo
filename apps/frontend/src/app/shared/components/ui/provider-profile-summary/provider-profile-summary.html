@@ -13,7 +13,7 @@
             }
         </div>
 
-        <div class="provider-profile-summary_header_title">
+        <div class="provider-profile-summary_header_title main-title">
             João Eletricista
         </div>
     </header>
@@ -21,9 +21,20 @@
     <div class="provider-profile-summary_content">
         <ul>
             @for (item of items(); track $index) {
-                <li>
+            <li>
+                <div class="item">
+                    <fa-icon class="item-icon" [icon]="item.icon" />
 
-                </li>
+                    <div class="item-content">
+                        <strong class="item-title">
+                            {{ item.label }}
+                        </strong>
+                        <div class="item-legend">
+                            {{ item.value }}
+                        </div>
+                    </div>
+                </div>
+            </li>
             }
         </ul>
     </div>

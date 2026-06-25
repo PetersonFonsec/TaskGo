@@ -4,15 +4,11 @@ import { HttpErrorResponse } from '@angular/common/http';
 import { LiveAnnouncer } from '@angular/cdk/a11y';
 import { finalize, switchMap } from 'rxjs';
 
+import { ProviderProfileSummary } from '@shared/components/ui/provider-profile-summary/provider-profile-summary';
 import { UserLoggedService } from '@shared/service/user-logged/user-logged.service';
 import { Slider, SliderItemDirective } from '@shared/components/ui/slider/slider';
 import { ButtonComponent } from '@shared/components/ui/button/button.component';
 import { FooterLinks } from '@shared/components/ui/footer-links/footer-links';
-import {
-  hireProviderRequest,
-  ProviderAvailabilityDay,
-  ProviderAvailabilitySlot,
-} from '@shared/service/provider/provider.model';
 import { SOCIAL_LINKS } from '@shared/components/ui/footer/footer.data';
 import { FullModal } from '@shared/components/ui/full-modal/full-modal';
 import { Avatar } from '@shared/components/ui/avatar/avatar';
@@ -20,8 +16,13 @@ import { Provider } from '@shared/service/provider/provider';
 import { Utils } from '@shared/service/utils/utils.service';
 import { Card } from '@shared/components/forms/card/card';
 import { Badge } from '@shared/components/ui/badge/badge';
-import { User } from '@shared/service/users/user';
 import { environment } from '@environments/environment';
+import { User } from '@shared/service/users/user';
+import {
+  hireProviderRequest,
+  ProviderAvailabilityDay,
+  ProviderAvailabilitySlot,
+} from '@shared/service/provider/provider.model';
 
 /**
  * TODO: Por conta do prazo de entraga do projeto
@@ -42,6 +43,7 @@ import { environment } from '@environments/environment';
     FooterLinks,
     ButtonComponent,
     FullModal,
+    ProviderProfileSummary,
   ],
   templateUrl: './single-user.html',
   styleUrl: './single-user.scss',
