@@ -24,7 +24,7 @@ export interface RevenueByMonth {
 export type RequestStatus = 'pending' | 'accepted' | 'declined';
 
 export interface PendingRequest {
-  id: number;
+  id: string | number;
   clientName: string;
   service: string;
   date: string;
@@ -35,12 +35,46 @@ export interface PendingRequest {
 }
 
 export interface CompletedService {
-  id: number;
+  id: string | number;
   clientName: string;
   service: string;
   date: string;
   amount: number;
   rating: number;
+}
+
+export interface ProviderHomeData {
+  earnings: {
+    today: number;
+    month: number;
+    previousMonth: number;
+    lastSixMonths: RevenueByMonth[];
+  };
+  services: { completedTotal: number; completedThisWeek: number };
+  rating: { average: number; count: number };
+  pendingRequests: Array<{
+    id: string;
+    clientName: string;
+    service: string;
+    scheduledFor: string | null;
+    address: string;
+    amount: number;
+    status: 'pending';
+  }>;
+  recentServices: Array<{
+    id: string;
+    clientName: string;
+    service: string;
+    completedAt: string;
+    amount: number;
+    rating: number | null;
+  }>;
+  insights: {
+    mostRequestedService: string | null;
+    averageTicket: number;
+    mostServedNeighborhood: string | null;
+    monthlyGrowth: number | null;
+  };
 }
 
 export interface ProviderInsight {

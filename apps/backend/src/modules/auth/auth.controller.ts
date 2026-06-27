@@ -12,6 +12,7 @@ import { AuthForgetDTO } from "./commands/forgot-password/forgot-password.dto";
 import { AuthRegisterDTO } from "./dto/auth-register.dto";
 import { GetUserQuery } from "../user/queries/get-user/get-user.query";
 import { Public } from '../../shared/decorators/public.decorator';
+import { ProviderHomeService } from './provider-home.service';
 
 @Controller("auth")
 export class AuthController {
@@ -19,6 +20,7 @@ export class AuthController {
     private readonly tokenService: AuthTokenService,
     private readonly commandBus: CommandBus,
     private readonly queryBus: QueryBus,
+    private readonly providerHomeService: ProviderHomeService,
   ) { }
 
   @Public()
@@ -29,7 +31,11 @@ export class AuthController {
     result.id = result.id.toString();
 
     const { access_token } = await this.tokenService.createToken(result.id.toString());
-    return { user: result, access_token };
+    const providerHome = result.type === 'PRESTADOR'
+      ? await this.providerHomeService.getForProvider(BigInt(result.id))
+      : undefined;
+
+    return { user: result, access_token, ...(providerHome ? { providerHome } : {}) };
   }
 
   @Public()

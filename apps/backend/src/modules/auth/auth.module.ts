@@ -9,6 +9,7 @@ import { AuthController } from "./auth.controller";
 import { UserModule } from "../user/user.module";
 import { AuthCommands } from "./commands";
 import { AuthQueries } from "./queries";
+import { ProviderHomeService } from './provider-home.service';
 
 @Module({
   controllers: [
@@ -16,6 +17,7 @@ import { AuthQueries } from "./queries";
   ],
   providers: [
     AuthTokenService,
+    ProviderHomeService,
     ...AuthCommands,
     ...AuthQueries
   ],

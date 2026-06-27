@@ -1,11 +1,13 @@
 // import { LoginResponse } from "app/pages/auth/services/auth/auth.model";
 
 import { Roles } from "@shared/enums/roles.enum";
+import type { ProviderHomeData } from '@modules/providers/home/data';
 
 // export interface IUserLogged extends LoginResponse { }
 
 export interface IUserLogged {
   user: IUser;
+  providerHome?: ProviderHomeData;
 }
 
 export interface IAddress {
