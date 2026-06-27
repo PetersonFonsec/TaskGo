@@ -34,14 +34,7 @@ import {
  */
 @Component({
   selector: 'app-single-user',
-  imports: [
-    Card,
-    Slider,
-    SliderItemDirective,
-    ButtonComponent,
-    FullModal,
-    ProviderProfileSummary,
-  ],
+  imports: [Card, Slider, SliderItemDirective, ButtonComponent, FullModal, ProviderProfileSummary],
   templateUrl: './single-user.html',
   styleUrl: './single-user.scss',
 })
@@ -201,23 +194,35 @@ export class SingleUser implements OnInit {
       return;
     }
 
+    const serviceId = this.selectedService()?.id;
+    const loggedUser = this.#userLogged.user()?.user;
+
+    if (!serviceId || !loggedUser?.id) {
+      const message = 'Não foi possível identificar o cliente ou o serviço selecionado.';
+      this.error.set(message);
+      this.#liveAnnouncer.announce(message);
+      return;
+    }
+
+    const address = loggedUser.addresses?.[0];
+
     const payload: hireProviderRequest = {
-      serviceId: this.selectedService()?.id ?? '',
-      clientId: this.#userLogged.user().user?.id,
+      serviceId,
+      clientId: loggedUser.id,
       scheduledFor: selectedSlot.startsAt,
       finalPrice: this.servicePrice(),
       paymentMethod: 'PIX',
-      address: this.#userLogged.user().user?.addresses[0],
+      ...(address ? { address } : {}),
     };
 
     this.#provider.hireProvider(payload).subscribe({
       next: (response) => {
         console.log(response);
-        this.#liveAnnouncer.announce('Conta criada com sucesso');
+        this.#liveAnnouncer.announce('Agendamento solicitado com sucesso');
         this.showModal.set(true);
       },
       error: (error: HttpErrorResponse) => {
-        this.#liveAnnouncer.announce('Houve um erro ao criar a sua conta');
+        this.#liveAnnouncer.announce('Houve um erro ao solicitar o agendamento');
         this.error.set(this.getErrorMessage(error, 'Não foi possível criar a solicitação.'));
       },
     });
@@ -260,6 +265,14 @@ export class SingleUser implements OnInit {
 
   goToHome() {
     this.#router.navigateByUrl(Utils.getRouteByRole(this.#userLogged.user().user?.type));
+  }
+
+  openFullProfile() {
+    const providerId = this.provider()?.id;
+
+    if (providerId) {
+      this.#router.navigate(['/customer/profile', providerId]);
+    }
   }
 
   private loadAvailability(provider: any) {

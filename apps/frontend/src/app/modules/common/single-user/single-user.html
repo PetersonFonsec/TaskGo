@@ -1,6 +1,12 @@
 <div id="single-user">
   <section id="single-user_booking" aria-labelledby="booking-title">
-    <app-provider-profile-summary id="single-user_profile"/>
+    <app-provider-profile-summary
+      id="single-user_profile"
+      [image]="provider()?.user?.photoUrl || provider()?.photoUrl"
+      [providerName]="provider()?.user?.name || provider()?.name"
+      [verified]="provider()?.verified || provider()?.provider?.verified"
+      (viewFullProfile)="openFullProfile()"
+    />
     <!-- <div id="single-user_profile">
       <div id="single-user_profile_avatar">
         <app-avatar [thumb]="provider()?.user?.photoUrl" [alt]="provider()?.user?.name" />
@@ -190,7 +196,7 @@
 
         <app-button
           (click)="register()"
-          color="provider"
+          color="primary"
           [disabled]="requestDisabled()"
           id="booking-request"
         >

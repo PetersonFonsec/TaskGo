@@ -4,7 +4,7 @@ export interface hireProviderRequest {
   scheduledFor?: string;
   finalPrice: number;
   paymentMethod: 'PIX';
-  address: {
+  address?: {
     street: string;
     number: string;
     complement: string;

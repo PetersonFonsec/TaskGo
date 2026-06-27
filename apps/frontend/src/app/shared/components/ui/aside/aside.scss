@@ -36,7 +36,7 @@
 
   &_banner {
     align-items: flex-start;
-    background: linear-gradient(145deg, #eff6ff, #dbeafe);
+    background: linear-gradient(145deg, #eff6ff, rgb(var(--color-primary-rgb), 0.2));
     border: 1px solid #bfdbfe;
     border-radius: var(--proxi-radius-md);
     display: flex;

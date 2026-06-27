@@ -326,6 +326,27 @@ describe('SingleUser', () => {
     expect(component.showModal()).toBeTrue();
   });
 
+  it('should request an appointment when the logged user has no addresses', () => {
+    userLoggedMock.user.and.returnValue({
+      user: {
+        id: 'client-1',
+        type: 'CUSTOMER',
+      },
+    });
+    component.selectSlot(availabilityResponse.days[1].slots[0]);
+
+    expect(() => component.register()).not.toThrow();
+    expect(providerMock.hireProvider).toHaveBeenCalledWith(
+      jasmine.objectContaining({
+        serviceId: 's1',
+        clientId: 'client-1',
+        scheduledFor: '2026-06-23T12:00:00.000Z',
+      }),
+    );
+    expect(providerMock.hireProvider.calls.mostRecent().args[0].address).toBeUndefined();
+    expect(component.showModal()).toBeTrue();
+  });
+
   it('should call addFavorite when the favorite toggle is activated', () => {
     component.favoriteState.set(false);
     component.toggleFavorite();

@@ -1,0 +1,142 @@
+<main class="provider-profile-page">
+  <a class="back-link" routerLink="/customer" aria-label="Voltar para profissionais">
+    <span aria-hidden="true">←</span> Voltar para profissionais
+  </a>
+
+  @if (loading()) {
+    <div class="page-state" role="status">Carregando perfil profissional...</div>
+  } @else if (error()) {
+    <div class="page-state page-state--error" role="alert">
+      <h1>Não foi possível abrir o perfil</h1>
+      <p>{{ error() }}</p>
+    </div>
+  } @else if (provider()) {
+    <section class="profile-hero" aria-labelledby="provider-name">
+      <div class="profile-photo">
+        @if (user()?.photoUrl) {
+          <img [src]="user().photoUrl" [alt]="'Foto de ' + user().name" />
+        } @else {
+          <span aria-hidden="true">{{ (user()?.name || 'P').charAt(0) }}</span>
+        }
+      </div>
+
+      <div class="profile-intro">
+        <p class="eyebrow">Perfil profissional</p>
+        <div class="name-line">
+          <h1 id="provider-name">{{ user()?.name || 'Profissional' }}</h1>
+          @if (provider()?.verified || provider()?.provider?.verified) {
+            <span class="verified">✓ Verificado</span>
+          }
+        </div>
+        <p class="bio">
+          {{
+            provider()?.bio ||
+              provider()?.provider?.bio ||
+              'Este profissional ainda não adicionou uma apresentação.'
+          }}
+        </p>
+        <div class="profile-stats" aria-label="Resumo das avaliações">
+          <span
+            ><strong>{{ formatRating(rating()) }}</strong> nota média</span
+          >
+          <span
+            ><strong>{{ reviews().length }}</strong> avaliações</span
+          >
+          <span>Na plataforma desde {{ formatMemberSince(provider()?.createdAt) }}</span>
+        </div>
+      </div>
+    </section>
+
+    <div class="profile-grid">
+      <div class="profile-main">
+        <section class="profile-card" aria-labelledby="services-title">
+          <div class="section-heading">
+            <p class="eyebrow">Especialidades</p>
+            <h2 id="services-title">Serviços oferecidos</h2>
+          </div>
+          @if (services().length) {
+            <ul class="services-list">
+              @for (service of services(); track service.id || $index) {
+                <li>
+                  <strong>{{ service.title || service.name }}</strong>
+                  @if (service.description) {
+                    <p>{{ service.description }}</p>
+                  }
+                </li>
+              }
+            </ul>
+          } @else {
+            <p class="empty-copy">Nenhum serviço informado.</p>
+          }
+        </section>
+
+        <section class="profile-card" aria-labelledby="reviews-title">
+          <div class="section-heading section-heading--reviews">
+            <div>
+              <p class="eyebrow">Experiências reais</p>
+              <h2 id="reviews-title">Comentários e feedbacks</h2>
+            </div>
+            <span class="rating-summary">★ {{ formatRating(rating()) }}</span>
+          </div>
+
+          @if (reviews().length) {
+            <ul class="reviews-list">
+              @for (review of reviews(); track review.id || $index) {
+                <li>
+                  <div class="review-heading">
+                    <strong>{{
+                      review.client?.name || review.user?.name || review.authorName || 'Cliente'
+                    }}</strong>
+                    <span [attr.aria-label]="'Nota ' + review.rating + ' de 5'"
+                      >★ {{ review.rating }}/5</span
+                    >
+                  </div>
+                  <p>{{ review.comment || 'O cliente não deixou um comentário.' }}</p>
+                </li>
+              }
+            </ul>
+          } @else {
+            <p class="empty-copy">Este profissional ainda não recebeu avaliações.</p>
+          }
+        </section>
+      </div>
+
+      <aside class="profile-card contact-card" aria-labelledby="contact-title">
+        <p class="eyebrow">Fale diretamente</p>
+        <h2 id="contact-title">Informações de contato</h2>
+        <p class="contact-help">Use os canais abaixo para tirar dúvidas antes da contratação.</p>
+
+        <dl>
+          <div>
+            <dt>Telefone</dt>
+            <dd>
+              @if (user()?.phone) {
+                <a [href]="phoneHref(user().phone)">{{ user().phone }}</a>
+              } @else {
+                Não informado
+              }
+            </dd>
+          </div>
+          <div>
+            <dt>E-mail</dt>
+            <dd>
+              @if (user()?.email) {
+                <a [href]="'mailto:' + user().email">{{ user().email }}</a>
+              } @else {
+                Não informado
+              }
+            </dd>
+          </div>
+          @if (user()?.addresses?.[0]; as address) {
+            <div>
+              <dt>Região de atendimento</dt>
+              <dd>{{ address.city }}{{ address.state ? ' - ' + address.state : '' }}</dd>
+            </div>
+          }
+        </dl>
+
+        <a class="booking-link" [routerLink]="['/customer', provider().id]">Agendar serviço</a>
+      </aside>
+    </div>
+  }
+</main>

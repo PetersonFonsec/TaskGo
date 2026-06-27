@@ -1,47 +1,47 @@
 <article class="provider-profile-summary">
-    <header class="provider-profile-summary_header">
-        <div class="provider-profile-summary_header_thumb">
-            @if (image()) {
-            <img [src]="image()" [alt]="'Foto de perfil de ' + providerName()" />
-            }
+  <header class="provider-profile-summary_header">
+    <div class="provider-profile-summary_header_thumb">
+      @if (image()) {
+        <img [src]="image()" [alt]="'Foto de perfil de ' + providerName()" />
+      }
 
-            @if(verified()) {
-            <app-badge class="card-detail_badge" color="success">
-                <fa-icon [icon]="checkIcon()" aria-hidden="true" /> Verificado
-            </app-badge>
-            }
-        </div>
-
-        <div class="provider-profile-summary_header_content">
-            <span class="provider-profile-summary_eyebrow">Profissional disponível</span>
-            <h2 class="provider-profile-summary_header_title">{{ providerName() }}</h2>
-        </div>
-    </header>
-
-    <div class="provider-profile-summary_content">
-        <ul>
-            @for (item of items(); track $index) {
-            <li>
-                <div class="item">
-                    <span class="item-icon"><fa-icon [icon]="item.icon" /></span>
-
-                    <div class="item-content">
-                        <strong class="item-title">
-                            {{ item.label }}
-                        </strong>
-                        <span class="item-legend">
-                            {{ item.value }}
-                        </span>
-                    </div>
-                </div>
-            </li>
-            }
-        </ul>
+      @if (verified()) {
+        <app-badge class="card-detail_badge" color="success">
+          <fa-icon [icon]="checkIcon()" aria-hidden="true" /> Verificado
+        </app-badge>
+      }
     </div>
 
-    <footer class="provider-profile-summary_footer">
-        <app-button typeColor="outline" color="primary">
-            Ver Perfil Completo
-        </app-button>
-    </footer>
+    <div class="provider-profile-summary_header_content">
+      <span class="provider-profile-summary_eyebrow">Profissional disponível</span>
+      <h2 class="provider-profile-summary_header_title">{{ providerName() }}</h2>
+    </div>
+  </header>
+
+  <div class="provider-profile-summary_content">
+    <ul>
+      @for (item of items(); track $index) {
+        <li>
+          <div class="item">
+            <span class="item-icon"><fa-icon [icon]="item.icon" /></span>
+
+            <div class="item-content">
+              <strong class="item-title">
+                {{ item.label }}
+              </strong>
+              <span class="item-legend">
+                {{ item.value }}
+              </span>
+            </div>
+          </div>
+        </li>
+      }
+    </ul>
+  </div>
+
+  <footer class="provider-profile-summary_footer">
+    <app-button typeColor="outline" color="primary" (click)="viewFullProfile.emit()">
+      Ver Perfil Completo
+    </app-button>
+  </footer>
 </article>
