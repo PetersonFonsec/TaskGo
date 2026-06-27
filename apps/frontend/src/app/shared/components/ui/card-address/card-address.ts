@@ -1,10 +1,9 @@
 import { Component, input, output } from '@angular/core';
 import { FaIconComponent } from '@fortawesome/angular-fontawesome';
-import { faHome } from '@fortawesome/free-solid-svg-icons';
+import { faHouse, faPen, faTrashCan } from '@fortawesome/free-solid-svg-icons';
 import { IFullAddress } from '@shared/service/address/address.model';
 import { Badge } from '../badge/badge';
 import { CardAddressActions, CardAddressEvent } from './card-address.constant';
-
 
 @Component({
   selector: 'app-card-address',
@@ -16,12 +15,14 @@ export class CardAddress {
   action = output<CardAddressEvent>();
   address = input<IFullAddress>();
   events = CardAddressActions;
-  icon = faHome;
+  icon = faHouse;
+  editIcon = faPen;
+  removeIcon = faTrashCan;
 
   onClick(action: CardAddressActions) {
     this.action.emit({
       action,
-      address_id: this.address()?.id || ""
+      address_id: this.address()?.id || '',
     });
   }
 }

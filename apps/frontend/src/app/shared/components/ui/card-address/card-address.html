@@ -1,38 +1,49 @@
 <div class="card-address">
-    <fa-icon class="card-address_icon" [icon]="icon" />
+  <div class="card-address_icon" aria-hidden="true">
+    <fa-icon [icon]="icon" />
+  </div>
 
-    <div class="card-address_wrapper">
-        <header class="card-address_header">
-            <strong>
-                {{address()?.label}}
-            </strong>
+  <div class="card-address_wrapper">
+    <header class="card-address_header">
+      <strong>{{ address()?.label || 'Endereço' }}</strong>
 
-            @if (address()?.isDefault) {
-            <app-badge color="soft-primary">
-                Principal
-            </app-badge>
-            }
-        </header>
+      @if (address()?.isDefault) {
+        <app-badge color="soft-primary">Principal</app-badge>
+      }
+    </header>
 
-        <div class="card-address_container">
-            <span class="legend">{{address()?.street}}, {{address()?.number}}</span>
-            <span class="legend">
-                @if (address()?.neighborhood) {
-                {{address()?.neighborhood}} -
-                }
-                {{address()?.city}}, {{address()?.state}}
-            </span>
-            <span class="legend">CEP: {{address()?.cep}}</span>
-        </div>
-
-        <footer class="card-address_footer">
-            <button (click)="onClick(events.edit)" class="card-address_button card-address_edit">
-                Editar
-            </button>
-
-            <button (click)="onClick(events.remove)" class="card-address_button card-address_remove">
-                Remover
-            </button>
-        </footer>
+    <div class="card-address_container">
+      <strong>{{ address()?.street }}, {{ address()?.number }}</strong>
+      @if (address()?.complement) {
+        <span>{{ address()?.complement }}</span>
+      }
+      <span>
+        @if (address()?.neighborhood) {
+          {{ address()?.neighborhood }} ·
+        }
+        {{ address()?.city }}, {{ address()?.state }}
+      </span>
+      <span class="card-address_cep">CEP {{ address()?.cep }}</span>
     </div>
+
+    <footer class="card-address_footer">
+      <button
+        type="button"
+        (click)="onClick(events.edit)"
+        class="card-address_button card-address_edit"
+      >
+        <fa-icon [icon]="editIcon" />
+        Editar
+      </button>
+
+      <button
+        type="button"
+        (click)="onClick(events.remove)"
+        class="card-address_button card-address_remove"
+      >
+        <fa-icon [icon]="removeIcon" />
+        Remover
+      </button>
+    </footer>
+  </div>
 </div>

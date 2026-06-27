@@ -1,19 +1,44 @@
 <div class="list-card-address">
-    <header class="list-card-address_header">
-        <strong class="list-card-address_title subtitle">
-            Endereços Cadastrados
-        </strong>
+  <header class="list-card-address_header">
+    <div class="list-card-address_heading">
+      <span class="list-card-address_heading-icon" aria-hidden="true">
+        <fa-icon [icon]="locationIcon" />
+      </span>
 
-        <button>
-            + Adicionar endereço
-        </button>
-    </header>
+      <div>
+        <span class="list-card-address_eyebrow">Minha conta</span>
+        <h2>Endereços cadastrados</h2>
+        <p>
+          @if (addressCount()) {
+            {{ addressCount() }} {{ addressCount() === 1 ? 'endereço salvo' : 'endereços salvos' }}
+          } @else {
+            Gerencie os locais onde você recebe seus serviços
+          }
+        </p>
+      </div>
+    </div>
 
+    <button type="button" class="list-card-address_add">
+      <fa-icon [icon]="plusIcon" />
+      <span>Adicionar endereço</span>
+    </button>
+  </header>
+
+  @if (addressCount()) {
     <ul class="list-card-address_list">
-        @for (item of address(); track $index) {
+      @for (item of address(); track item.id) {
         <li>
-            <app-card-address [address]="item" />
+          <app-card-address [address]="item" />
         </li>
-        }
+      }
     </ul>
+  } @else {
+    <div class="list-card-address_empty">
+      <span class="list-card-address_empty-icon" aria-hidden="true">
+        <fa-icon [icon]="locationIcon" />
+      </span>
+      <h3>Nenhum endereço cadastrado</h3>
+      <p>Adicione um endereço para encontrar e contratar serviços perto de você.</p>
+    </div>
+  }
 </div>
