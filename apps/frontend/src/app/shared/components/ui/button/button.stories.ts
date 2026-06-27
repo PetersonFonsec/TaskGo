@@ -5,7 +5,6 @@ import { argsToTemplate } from '@storybook/angular';
 
 type ButtonStory = ButtonComponent & { label?: string };
 
-
 const meta: Meta<ButtonStory> = {
   component: ButtonComponent,
   render: ({ label, ...args }) => ({
@@ -15,7 +14,21 @@ const meta: Meta<ButtonStory> = {
       ${label}
     </app-button>`,
   }),
-
+  args: {
+    color: 'primary',
+    disabled: false,
+    label: 'Continuar',
+    size: 'medium',
+    typeColor: 'filled',
+  },
+  argTypes: {
+    color: {
+      control: 'select',
+      options: ['primary', 'secondary', 'customer', 'provider', 'light'],
+    },
+    size: { control: 'select', options: ['small', 'medium', 'large'] },
+    typeColor: { control: 'select', options: ['filled', 'outline'] },
+  },
 };
 
 export default meta;
@@ -24,6 +37,20 @@ type Story = StoryObj<ButtonStory>;
 
 export const Primary: Story = {
   args: {
-    label: "Peterson",
+    label: 'Continuar',
+  },
+};
+
+export const Outline: Story = {
+  args: {
+    label: 'Ver detalhes',
+    typeColor: 'outline',
+  },
+};
+
+export const Disabled: Story = {
+  args: {
+    disabled: true,
+    label: 'Indisponível',
   },
 };

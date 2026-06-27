@@ -1,35 +1,52 @@
 <div class="profile-header">
-  <app-avatar thumb="https://i.pravatar.cc/150?img=3" alt="imagem de perfil" class="profile-header_thumb" />
-
-  <div class="profile-header_content">
-    <div class="profile-header_content-info">
-      <p class="main-title name">João da Silva</p>
+  <div class="profile-header_hero">
+    <div class="profile-header_avatar-wrap">
+      <app-avatar
+        size="large"
+        thumb="https://i.pravatar.cc/150?img=3"
+        alt="Foto de perfil de João da Silva"
+        class="profile-header_thumb"
+      />
     </div>
-    <!-- <a class="text email" href="mailto:joao.silva@example.com">
-        joao.silva@example.com
-      </a>
 
-      <a class="text phone" href="tel:+5511912345678">
-        +55 11 91234-5678
-      </a> -->
-
-    @if (services().length) {
-    <div class="profile-header_content-info">
-      <p class="subtitle"> Serviços prestados </p>
-
-      <ul>
-        @for (service of services(); track $index) {
-        <li>
-          <app-badge color="provider">
-            {{service}}
-          </app-badge>
-        </li>
-        }
-      </ul>
+    <div class="profile-header_identity">
+      <span class="profile-header_eyebrow">Perfil profissional</span>
+      <h1>João da Silva</h1>
+      <p>Especialista em serviços para sua casa</p>
     </div>
+  </div>
+
+  <div
+    class="profile-header_details"
+    [class.profile-header_details--social-only]="!servicesCount()"
+  >
+    @if (servicesCount()) {
+      <section class="profile-header_section" aria-labelledby="profile-services-title">
+        <header class="profile-header_section-header">
+          <span class="profile-header_section-icon" aria-hidden="true">
+            <fa-icon [icon]="briefcaseIcon" />
+          </span>
+          <div>
+            <h2 id="profile-services-title">Serviços prestados</h2>
+            <p>
+              {{ servicesCount() }}
+              {{
+                servicesCount() === 1 ? 'especialidade disponível' : 'especialidades disponíveis'
+              }}
+            </p>
+          </div>
+        </header>
+
+        <ul class="profile-header_services">
+          @for (service of services(); track service) {
+            <li>{{ service }}</li>
+          }
+        </ul>
+      </section>
     }
 
-    <app-footer-links class="profile-header_content-info" title="Redes Sociais" [links]="socialLinks"
-      direction="horizontal" />
+    <section class="profile-header_section profile-header_social" aria-label="Redes sociais">
+      <app-footer-links title="Redes sociais" [links]="socialLinks" direction="horizontal" />
+    </section>
   </div>
 </div>

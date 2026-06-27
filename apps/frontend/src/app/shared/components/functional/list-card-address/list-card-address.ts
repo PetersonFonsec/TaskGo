@@ -1,6 +1,7 @@
 import { Component, computed, inject, input, OnInit, signal } from '@angular/core';
-import { FaIconComponent } from '@fortawesome/angular-fontawesome';
 import { faLocationDot, faPlus } from '@fortawesome/free-solid-svg-icons';
+import { FaIconComponent } from '@fortawesome/angular-fontawesome';
+
 import { CardAddress } from '@shared/components/ui/card-address/card-address';
 import { Address as AddressService } from '@shared/service/address/address';
 import { IFullAddress } from '@shared/service/address/address.model';
@@ -13,9 +14,11 @@ import { IFullAddress } from '@shared/service/address/address.model';
 })
 export class ListCardAddress implements OnInit {
   #addressService = inject(AddressService);
+
+  addressCount = computed(() => this.address().length);
   address = signal<IFullAddress[]>([]);
   userId = input('');
-  addressCount = computed(() => this.address().length);
+
   locationIcon = faLocationDot;
   plusIcon = faPlus;
 

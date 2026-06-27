@@ -1,15 +1,16 @@
 import { Component, input } from '@angular/core';
+
 @Component({
   selector: 'app-button',
   standalone: true,
   templateUrl: './button.component.html',
-  styleUrl: './button.component.scss'
+  styleUrl: './button.component.scss',
 })
 export class ButtonComponent {
-  readonly color = input("primary");
-  readonly typeColor = input("filled");
-  readonly size = input("medium");
-  readonly id = input("", { transform: (value: string /*T:VAE*/) => `${value}-button` });
+  readonly color = input('primary');
+  readonly typeColor = input('filled');
+  readonly size = input('medium');
+  readonly id = input('', { transform: (value: string) => `${value}-button` });
   readonly disabled = input(false);
-  readonly type = input("button");
+  readonly type = input('button');
 }

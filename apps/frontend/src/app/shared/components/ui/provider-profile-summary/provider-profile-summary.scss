@@ -9,6 +9,7 @@
   max-width: 400px;
   padding: 16px;
   width: 100%;
+  height: max-content;
 
   &_header_thumb {
     aspect-ratio: 16 / 10;
@@ -80,7 +81,14 @@
       min-width: 0;
     }
 
-    &-title { color: var(--proxi-text); font-size: 12px; }
-    &-legend { color: var(--proxi-text-muted); font-size: 11px; }
+    &-title {
+      color: var(--proxi-text);
+      font-size: 12px;
+    }
+
+    &-legend {
+      color: var(--proxi-text-muted);
+      font-size: 11px;
+    }
   }
 }
