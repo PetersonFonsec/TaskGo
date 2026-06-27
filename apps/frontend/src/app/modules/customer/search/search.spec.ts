@@ -10,6 +10,7 @@ import { ProxiMapComponent, ProxiMapLocation, ProxiMapProvider } from '@shared/c
 import { Provider } from '@shared/service/provider/provider';
 import { Geolocalization } from '@shared/service/geolocalization/geolocalization';
 import { UserLoggedService } from '@shared/service/user-logged/user-logged.service';
+import { CategoryService } from '@shared/service/category/category';
 
 @Component({
   selector: 'app-proxi-map',
@@ -48,6 +49,7 @@ describe('Search', () => {
   let geolocalizationMock: any;
   let userLoggedMock: any;
   let routerMock: any;
+  let categoryServiceMock: any;
   let providersResponse: any[];
 
   beforeEach(async () => {
@@ -84,6 +86,13 @@ describe('Search', () => {
 
     routerMock = {
       navigate: jasmine.createSpy('navigate'),
+      navigateByUrl: jasmine.createSpy('navigateByUrl'),
+    };
+
+    categoryServiceMock = {
+      getCategories: jasmine.createSpy('getCategories').and.returnValue(of({
+        data: [{ id: 1, name: 'Encanadores', slug: 'encanadores' }],
+      })),
     };
 
     await TestBed.configureTestingModule({
@@ -92,6 +101,7 @@ describe('Search', () => {
         { provide: Provider, useValue: providerMock },
         { provide: Geolocalization, useValue: geolocalizationMock },
         { provide: UserLoggedService, useValue: userLoggedMock },
+        { provide: CategoryService, useValue: categoryServiceMock },
         { provide: Router, useValue: routerMock },
         { provide: ActivatedRoute, useValue: { queryParams: of({ categoria: 'encanadores' }) } },
       ],
@@ -229,6 +239,50 @@ describe('Search', () => {
 
     expect(component.onlyFavorites()).toBeTrue();
     expect(providerMock.findProvidersByCategorySlug).toHaveBeenCalledWith('encanadores', jasmine.objectContaining({ onlyFavorites: true }));
+  });
+
+  it('should filter providers by minimum rating, distance and price range', () => {
+    providersResponse = [
+      { ...validProvider, id: 'match', distanceKm: 4, services: [{ basePrice: 120 }] },
+      { ...validProvider, id: 'low-rating', user: { provider: { ratingAvg: 3.5 } }, distanceKm: 4, services: [{ basePrice: 120 }] },
+      { ...validProvider, id: 'far-away', distanceKm: 18, services: [{ basePrice: 120 }] },
+      { ...validProvider, id: 'too-expensive', distanceKm: 4, services: [{ basePrice: 300 }] },
+    ];
+    fixture.detectChanges();
+
+    component.minimumRating.set(4);
+    component.maximumDistance.set(10);
+    component.minimumPrice.set(100);
+    component.maximumPrice.set(200);
+
+    expect(component.providers().map((provider) => provider.id)).toEqual(['match']);
+  });
+
+  it('should filter the results locally when only favorites is enabled', () => {
+    providersResponse = [validProvider, { ...validProvider, id: 'provider-2' }];
+    fixture.detectChanges();
+
+    component.onlyFavorites.set(true);
+
+    expect(component.providers().map((provider) => provider.id)).toEqual(['provider-1']);
+  });
+
+  it('should calculate provider distance from coordinates when it is not supplied', () => {
+    providersResponse = [{ ...validProvider, distanceKm: undefined }];
+    fixture.detectChanges();
+    component.maximumDistance.set(1);
+
+    expect(component.providers().map((provider) => provider.id)).toEqual(['provider-1']);
+  });
+
+  it('should expose available categories and update the category query parameter', () => {
+    fixture.detectChanges();
+
+    expect(component.categories()[0].slug).toBe('encanadores');
+    component.updateCategory('limpeza');
+    expect(routerMock.navigate).toHaveBeenCalledWith([], jasmine.objectContaining({
+      queryParams: { categoria: 'limpeza' },
+    }));
   });
 
   it('should add a favorite when toggled on', () => {

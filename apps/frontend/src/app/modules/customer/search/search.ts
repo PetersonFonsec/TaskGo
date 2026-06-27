@@ -1,6 +1,7 @@
 import { Component, computed, inject, OnInit, signal } from '@angular/core';
 import { ActivatedRoute, Router, RouterLink } from '@angular/router';
 import { HttpErrorResponse } from '@angular/common/http';
+import { FormsModule } from '@angular/forms';
 
 import { CardDetail } from '@shared/components/ui/card-detail/card-detail';
 import {
@@ -15,10 +16,19 @@ import { environment } from '@environments/environment';
 import { switchMap, tap } from 'rxjs';
 import { CardProvider } from '@shared/components/ui/card-provider/card-provider';
 import { FormatedProviderParamPipe } from './pipes/formated-provider-param-pipe';
+import { CategoryService } from '@shared/service/category/category';
+import { ICategory } from '@shared/service/category/category.model';
+import { ButtonComponent } from '@shared/components/ui/button/button.component';
 
 @Component({
   selector: 'app-search',
-  imports: [CardProvider, ProxiMapComponent, FormatedProviderParamPipe],
+  imports: [
+    CardProvider, 
+    ProxiMapComponent, 
+    FormatedProviderParamPipe, 
+    FormsModule,
+    ButtonComponent
+  ],
   templateUrl: './search.html',
   styleUrl: './search.scss',
 })
@@ -27,6 +37,7 @@ export class Search implements OnInit {
   #geolocalization = inject(Geolocalization);
   #route = inject(ActivatedRoute);
   #provider = inject(Provider);
+  #categoryService = inject(CategoryService);
   #router = inject(Router);
 
   favoritesEnabled = environment.features?.favoritesMvp ?? false;
@@ -35,8 +46,25 @@ export class Search implements OnInit {
   favoriteError = signal<Record<string, string>>({});
   favorites = signal<Record<string, boolean>>({});
   onlyFavorites = signal(false);
-  providers = signal<any>([]);
+  allProviders = signal<any[]>([]);
+  categories = signal<ICategory[]>([]);
   category = signal('');
+  minimumRating = signal(0);
+  maximumDistance = signal(0);
+  minimumPrice = signal<number | null>(null);
+  maximumPrice = signal<number | null>(null);
+
+  providers = computed(() => this.allProviders().filter((provider) => {
+    const rating = this.providerRating(provider);
+    const price = this.providerPrice(provider);
+    const distance = this.providerDistance(provider);
+
+    return rating >= this.minimumRating()
+      && (!this.maximumDistance() || (distance != null && distance <= this.maximumDistance()))
+      && (this.minimumPrice() == null || price >= this.minimumPrice()!)
+      && (this.maximumPrice() == null || price <= this.maximumPrice()!)
+      && (!this.onlyFavorites() || this.isFavorite(provider?.id ?? provider?.providerId));
+  }));
 
   mapProviders = computed(() => this.providers()
     .map((provider: any) => this.toMapProvider(provider))
@@ -48,10 +76,15 @@ export class Search implements OnInit {
 
   ngOnInit(): void {
     this.resolveUserLocation();
+    this.loadCategories();
 
     this.#route.queryParams.pipe(
-      tap(({ categoria, onlyFavorites }) => {
-        this.category.set(categoria);
+      tap(({ categoria, onlyFavorites, minimumRating, maximumDistance, minimumPrice, maximumPrice }) => {
+        this.category.set(categoria ?? '');
+        this.minimumRating.set(this.queryNumber(minimumRating));
+        this.maximumDistance.set(this.queryNumber(maximumDistance));
+        this.minimumPrice.set(this.queryOptionalNumber(minimumPrice));
+        this.maximumPrice.set(this.queryOptionalNumber(maximumPrice));
 
         const clientId = this.#userLoggedService.user().user?.id;
         const persistedOnlyFavorites = clientId ? this.restoreOnlyFavoritesPreference(String(clientId)) : false;
@@ -71,13 +104,62 @@ export class Search implements OnInit {
       )
     ).subscribe({
       next: (params: any) => {
-        this.providers.set(params);
+        this.allProviders.set(params);
 
         const clientId = this.#userLoggedService.user().user?.id;
         if (this.favoritesEnabled && clientId) {
           this.loadFavorites(String(clientId));
         }
       }
+    });
+  }
+
+  updateCategory(category: string) {
+    this.updateFilters({ categoria: category });
+  }
+
+  updateMinimumRating(value: number) {
+    this.minimumRating.set(Number(value));
+    this.updateFilters({ minimumRating: value || null });
+  }
+
+  updateMaximumDistance(value: number) {
+    this.maximumDistance.set(Number(value));
+    this.updateFilters({ maximumDistance: value || null });
+  }
+
+  updateMinimumPrice(value: number | null) {
+    this.minimumPrice.set(this.normalizePrice(value));
+    this.updateFilters({ minimumPrice: this.minimumPrice() });
+  }
+
+  updateMaximumPrice(value: number | null) {
+    this.maximumPrice.set(this.normalizePrice(value));
+    this.updateFilters({ maximumPrice: this.maximumPrice() });
+  }
+
+  applyFilters() {
+    this.updateFilters({
+      minimumRating: this.minimumRating() || null,
+      maximumDistance: this.maximumDistance() || null,
+      minimumPrice: this.minimumPrice(),
+      maximumPrice: this.maximumPrice(),
+      onlyFavorites: this.onlyFavorites() ? 'true' : null,
+    });
+  }
+
+  clearFilters() {
+    this.minimumRating.set(0);
+    this.maximumDistance.set(0);
+    this.minimumPrice.set(null);
+    this.maximumPrice.set(null);
+    this.onlyFavorites.set(false);
+    this.updateFilters({
+      minimumRating: null,
+      maximumDistance: null,
+      minimumPrice: null,
+      maximumPrice: null,
+      onlyFavorites: null,
     });
   }
 
@@ -96,6 +178,20 @@ export class Search implements OnInit {
         onlyFavorites: value ? 'true' : null
       },
       queryParamsHandling: 'merge'
+    });
+  }
+
+  private updateFilters(queryParams: Record<string, unknown>) {
+    this.#router.navigate([], {
+      relativeTo: this.#route,
+      queryParams,
+      queryParamsHandling: 'merge',
+    });
+  }
+
+  private loadCategories() {
+    this.#categoryService.getCategories().subscribe({
+      next: (response) => this.categories.set(response.data ?? []),
     });
   }
 
@@ -151,7 +247,6 @@ export class Search implements OnInit {
     const locations = provider?.locations ?? (provider?.user?.address ? [provider.user.address] : []);
     const location = this.toLocation(provider) ?? this.toLocation(locations[0]) ?? this.toLocation(provider?.user?.address);
     const id = provider?.id ?? provider?.providerId ?? provider?.user?.id;
-    console.log('Mapping provider to map provider:', { id, location, provider });
     if (!location || id == null || id === '') {
       return null;
     }
@@ -160,11 +255,11 @@ export class Search implements OnInit {
       id,
       name: provider?.user?.name ?? provider?.name ?? 'Profissional Proxi',
       service: this.resolveProviderService(provider),
-      rating: this.toNumber(provider?.rating ?? provider?.ratingAvg ?? provider?.user?.provider?.ratingAvg, 0),
-      priceFrom: this.toNumber(provider?.priceFrom ?? provider?.price ?? provider?.services?.[0]?.price, 0),
+      rating: this.providerRating(provider),
+      priceFrom: this.providerPrice(provider),
       lat: location.lat,
       lng: location.lng,
-      distanceKm: this.optionalNumber(provider?.distanceKm ?? provider?.distance),
+      distanceKm: this.providerDistance(provider) ?? undefined,
       photoUrl: provider?.user?.photoUrl ?? provider?.photoUrl,
       premium: !!(provider?.premium ?? provider?.isPremium),
       verified: !!(provider?.verified ?? provider?.user?.provider?.verified),
@@ -211,6 +306,57 @@ export class Search implements OnInit {
   private optionalNumber(value: any) {
     const numericValue = Number(value);
     return Number.isFinite(numericValue) ? numericValue : undefined;
+  }
+
+  private providerRating(provider: any) {
+    return this.toNumber(provider?.rating ?? provider?.ratingAvg ?? provider?.user?.provider?.ratingAvg, 0);
+  }
+
+  private providerPrice(provider: any) {
+    return this.toNumber(
+      provider?.priceFrom ?? provider?.price ?? provider?.services?.[0]?.basePrice ?? provider?.services?.[0]?.price,
+      0,
+    );
+  }
+
+  private providerDistance(provider: any): number | null {
+    const suppliedDistance = this.optionalNumber(provider?.distanceKm ?? provider?.distance);
+    if (suppliedDistance != null) {
+      return suppliedDistance;
+    }
+
+    const origin = this.userLocation();
+    const destination = this.toLocation(provider)
+      ?? this.toLocation(provider?.locations?.[0])
+      ?? this.toLocation(provider?.user?.address);
+    if (!origin || !destination) {
+      return null;
+    }
+
+    const radians = (degrees: number) => degrees * Math.PI / 180;
+    const latitudeDelta = radians(destination.lat - origin.lat);
+    const longitudeDelta = radians(destination.lng - origin.lng);
+    const a = Math.sin(latitudeDelta / 2) ** 2
+      + Math.cos(radians(origin.lat)) * Math.cos(radians(destination.lat))
+      * Math.sin(longitudeDelta / 2) ** 2;
+
+    return 6371 * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+  }
+
+  private queryNumber(value: unknown) {
+    const number = Number(value);
+    return Number.isFinite(number) && number > 0 ? number : 0;
+  }
+
+  private queryOptionalNumber(value: unknown) {
+    if (value == null || value === '') {
+      return null;
+    }
+    return this.normalizePrice(Number(value));
+  }
+
+  private normalizePrice(value: number | null) {
+    return value != null && Number.isFinite(Number(value)) && Number(value) >= 0 ? Number(value) : null;
   }
 
   isFavorite(providerId: any) {
@@ -296,6 +442,6 @@ export class Search implements OnInit {
   }
 
   redirectToProfile(profileId: string) {
-    this.#router.navigateByUrl('/customer/'+profileId);
+    this.#router.navigateByUrl('/customer/' + profileId);
   }
 }

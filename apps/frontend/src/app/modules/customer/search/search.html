@@ -1,60 +1,117 @@
 <div id="customer-search">
-  <section id="customer-search_filters">
-    <header id="customer-search_filters_header">
-      <h1 class="main-title">
-        Categoria selecionada: {{category()}}
-      </h1>
-
-      <div id="customer-search_filters_actions">
-        <label class="customer-search_filter-toggle">
-          <input type="checkbox" [checked]="onlyFavorites()" (change)="toggleOnlyFavorites($event.target.checked)"
-            aria-checked="{{ onlyFavorites() }}" />
-          Mostrar somente favoritos
-        </label>
-      </div>
-
-      <!-- <div id="customer-search_filters_content">
-        <app-filters title="Distância"/>
-        <app-filters title="Disponibilidade"/>
-        <app-filters title="Prestadores Premiuns" [mutiples]="false"/>
-      </div> -->
+  <aside id="customer-search_filters" aria-label="Filtros de prestadores">
+    <header class="customer-search_filters-title">
+      <h1>Filtros</h1>
+      <button type="button" class="customer-search_clear-filters" (click)="clearFilters()">
+        Limpar filtros <span aria-hidden="true">↻</span>
+      </button>
     </header>
-  </section>
+
+    <section class="customer-search_filter-group">
+      <h2>Categoria <span aria-hidden="true">⌃</span></h2>
+      <div class="customer-search_category-list">
+        @for (item of categories(); track item.id; let index = $index) {
+          @if (index < 5) {
+            <label class="customer-search_check-option">
+              <input type="checkbox" [checked]="category() === item.slug"
+                (change)="updateCategory(item.slug)" />
+              <span class="customer-search_custom-check" aria-hidden="true">✓</span>
+              <span>{{ item.name }}</span>
+              @if (category() === item.slug) {
+                <small>{{ providers().length }}</small>
+              }
+            </label>
+          }
+        }
+      </div>
+    </section>
+
+    <section class="customer-search_filter-group">
+      <h2>Avaliação mínima <span aria-hidden="true">⌃</span></h2>
+      <div class="customer-search_rating-list">
+        @for (rating of [5, 4, 3, 2]; track rating) {
+          <label class="customer-search_rating-option">
+            <input type="radio" name="minimum-rating" [checked]="minimumRating() === rating"
+              (change)="updateMinimumRating(rating)" />
+            <span class="customer-search_custom-radio" aria-hidden="true"></span>
+            <span class="customer-search_stars" [attr.aria-label]="rating + ' estrelas ou mais'">
+              @for (star of [1, 2, 3, 4, 5]; track star) {
+                <span [class.is-empty]="star > rating">★</span>
+              }
+            </span>
+            @if (rating < 5) { <span class="customer-search_or-more">ou mais</span> }
+          </label>
+        }
+      </div>
+    </section>
+
+    <section class="customer-search_filter-group customer-search_range-group">
+      <h2>
+        Distância
+        <strong>{{ maximumDistance() ? 'Até ' + maximumDistance() + ' km' : 'Sem limite' }}</strong>
+      </h2>
+      <input class="customer-search_range" type="range" min="0" max="50" step="5"
+        [ngModel]="maximumDistance()" (ngModelChange)="updateMaximumDistance($event)"
+        aria-label="Distância máxima em quilômetros" />
+      <div class="customer-search_range-labels"><span>0 km</span><span>10 km</span><span>25 km</span><span>50 km+</span></div>
+    </section>
+
+    <section class="customer-search_filter-group customer-search_range-group">
+      <h2>
+        Faixa de preço
+        <strong>R$ {{ minimumPrice() ?? 0 }} – R$ {{ maximumPrice() ?? 500 }}{{ maximumPrice() === 500 ? '+' : '' }}</strong>
+      </h2>
+      <div class="customer-search_price-ranges">
+        <input class="customer-search_range" type="range" min="0" max="500" step="25"
+          [ngModel]="minimumPrice() ?? 0" (ngModelChange)="updateMinimumPrice($event)"
+          aria-label="Preço mínimo" />
+        <input class="customer-search_range" type="range" min="0" max="500" step="25"
+          [ngModel]="maximumPrice() ?? 500" (ngModelChange)="updateMaximumPrice($event)"
+          aria-label="Preço máximo" />
+      </div>
+      <div class="customer-search_range-labels"><span>R$ 0</span><span>R$ 50</span><span>R$ 250</span><span>R$ 500+</span></div>
+    </section>
+
+    <section class="customer-search_filter-group customer-search_switches">
+      <label>
+        <span>Somente favoritos</span>
+        <input type="checkbox" role="switch" [checked]="onlyFavorites()"
+          (change)="toggleOnlyFavorites($event.target.checked)" />
+        <span class="customer-search_switch" aria-hidden="true"></span>
+      </label>
+    </section>
+
+    <app-button type="button" color="primary" class="customer-search_apply-button" (click)="applyFilters()">Aplicar filtros</app-button>
+    <p class="customer-search_filter-total">{{ providers().length }} profissionais encontrados</p>
+  </aside>
 
   <section id="customer-search_results">
     <div id="customer-search_providers">
       <header id="customer-search_providers_header">
-        <h2 class="subtitle">
-          Prestadores
-        </h2>
-
-        <p class="text">
-          Com base nos filtros selecionados,
-          esses são os prestadores encontrados.
-        </p>
+        <h2>{{ providers().length }} profissionais encontrados</h2>
+        <span>Ordenar por: mais próximos</span>
       </header>
 
       <ul>
-        @for (provider of providers(); track $index) {
-        <li>
-          <app-card-provider
-            [params]="provider | formatedProviderParam"
-            (favoriteToggle)="toggleFavorite(provider?.id)" 
-            (clickButton)="redirectToProfile(provider?.id)"
-            />
-        </li>
+        @for (provider of providers(); track provider?.id ?? $index) {
+          <li>
+            <app-card-provider [params]="provider | formatedProviderParam"
+              (favoriteToggle)="toggleFavorite(provider?.id)"
+              (clickButton)="redirectToProfile(provider?.id)" />
+          </li>
         }
       </ul>
+
+      @if (!providers().length) {
+        <p class="customer-search_empty-results text">Nenhum prestador corresponde aos filtros selecionados.</p>
+      }
     </div>
 
     <aside id="customer-search_map" aria-label="Mapa de prestadores próximos">
       <app-proxi-map [userLocation]="userLocation()" [providers]="mapProviders()"
         (viewProfile)="viewProviderProfile($event)" />
-
       @if (!mapProviders().length) {
-      <p class="customer-search_empty-map text">
-        Nenhum prestador com localização disponível para os filtros atuais.
-      </p>
+        <p class="customer-search_empty-map text">Nenhum prestador com localização disponível.</p>
       }
     </aside>
   </section>
