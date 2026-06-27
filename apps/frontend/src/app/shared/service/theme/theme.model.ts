@@ -17,10 +17,10 @@ export class ProviderTheme implements ThemeColors {
 }
 
 export class CustomerTheme implements ThemeColors {
-  color = '#3280E3';
-  rgb = '50, 128, 227';
+  color = '#2563EB';
+  rgb = '37, 99, 235';
   contrast = '#ffffff';
   contrastRgb = '255, 255, 255';
-  shade = '#2c71c8';
-  tint = '#478de6';
+  shade = '#1D4ED8';
+  tint = '#3B82F6';
 }

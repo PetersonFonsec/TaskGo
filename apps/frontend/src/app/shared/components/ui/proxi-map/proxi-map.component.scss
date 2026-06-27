@@ -58,9 +58,9 @@
   height: 18px;
   border: 3px solid #ffffff;
   border-radius: 50%;
-  background: #2563eb;
+  background: var(--proxi-primary);
   box-shadow:
-    0 0 0 6px rgba(37, 99, 235, 0.2),
+    0 0 0 6px rgba(var(--color-primary-rgb), 0.2),
     0 8px 20px rgba(15, 23, 42, 0.25);
 }
 

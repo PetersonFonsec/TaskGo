@@ -1,9 +1,9 @@
 /* You can add global styles to this file, and also import other style files */
 :root {
   /* Proxi design system */
-  --proxi-primary: #2563eb;
-  --proxi-primary-hover: #1d4ed8;
-  --proxi-primary-soft: #eff6ff;
+  --proxi-primary: var(--color-primary);
+  --proxi-primary-hover: var(--color-primary-shade);
+  --proxi-primary-soft: rgba(var(--color-primary-rgb), 0.08);
   --proxi-surface: #ffffff;
   --proxi-background: #f8fafc;
   --proxi-text: #111827;
@@ -39,19 +39,19 @@
   --color-secondary-shade: #005a00;
   --color-secondary-tint: #1a751a;
 
-  --color-provider: #2563EB;
-  --color-provider-rgb: 37, 99, 235;
+  --color-provider: #7353C0;
+  --color-provider-rgb: 115, 83, 192;
   --color-provider-contrast: #ffffff;
   --color-provider-contrast-rgb: 255, 255, 255;
-  --color-provider-shade: #1D4ED8;
-  --color-provider-tint: #3B82F6;
+  --color-provider-shade: #6549A9;
+  --color-provider-tint: #8164C6;
 
-  --color-customer: #3280E3;
-  --color-customer-rgb: 50, 128, 227;
+  --color-customer: #2563EB;
+  --color-customer-rgb: 37, 99, 235;
   --color-customer-contrast: #ffffff;
   --color-customer-contrast-rgb: 255, 255, 255;
-  --color-customer-shade: #2c71c8;
-  --color-customer-tint: #478de6;
+  --color-customer-shade: #1D4ED8;
+  --color-customer-tint: #3B82F6;
 
   --color-primary: var(--color-customer);
   --color-primary-rgb: var(--color-customer-rgb);
@@ -142,6 +142,24 @@
 
   --container-size: 1018px;
   --container-size-small: 612px;
+}
+
+:root[data-theme='CUSTOMER'] {
+  --color-primary: var(--color-customer);
+  --color-primary-rgb: var(--color-customer-rgb);
+  --color-primary-contrast: var(--color-customer-contrast);
+  --color-primary-contrast-rgb: var(--color-customer-contrast-rgb);
+  --color-primary-shade: var(--color-customer-shade);
+  --color-primary-tint: var(--color-customer-tint);
+}
+
+:root[data-theme='PROVIDER'] {
+  --color-primary: var(--color-provider);
+  --color-primary-rgb: var(--color-provider-rgb);
+  --color-primary-contrast: var(--color-provider-contrast);
+  --color-primary-contrast-rgb: var(--color-provider-contrast-rgb);
+  --color-primary-shade: var(--color-provider-shade);
+  --color-primary-tint: var(--color-provider-tint);
 }
 
 .scroll-style {
