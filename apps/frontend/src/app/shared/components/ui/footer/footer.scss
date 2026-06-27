@@ -1,46 +1,61 @@
-@use "mixins/grid";
 @use "variables/breakpoints";
 
 .footer {
-  @include grid.directionColumn();
-  background-color: var(--color-neutral-3);
-  color: var(--font-color-dark);
-  padding: var(--space-14);
+  background: #0f172a;
+  color: #cbd5e1;
+  padding: 48px var(--proxi-page-padding) 28px;
 
   &_container {
-    @include grid.directionColumn();
-    @include grid.container(var(--container-size));
+    margin: 0 auto;
+    max-width: 1440px;
+    width: 100%;
+  }
+
+  &_brand {
+    align-items: center;
+    display: flex;
+    gap: 12px;
+    margin-bottom: 36px;
+
+    &-mark {
+      align-items: center;
+      background: var(--proxi-primary);
+      border-radius: 11px;
+      color: #fff;
+      display: flex;
+      font-size: 18px;
+      font-weight: 800;
+      height: 40px;
+      justify-content: center;
+      width: 40px;
+    }
+
+    strong { color: #fff; font-size: 18px; }
+    p { color: #94a3b8; font-size: 12px; margin-top: 4px; }
   }
 
   &_links {
-    align-items: flex-start;
-    display: flex;
-    flex: 1;
-    flex-direction: column;
-    justify-content: space-between;
-    gap: 40px;
-    width: 100%;
-
-    @media (min-width: breakpoints.$tablet) {
-      gap: 0;
-      flex-direction: row;
-    }
-
+    display: grid;
+    gap: 32px;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
   }
 
   &_divider {
-    margin: var(--space-6) 0;
-    background: #000;
-    height: 2px;
-    width: 100%;
+    border: 0;
+    border-top: 1px solid #334155;
+    margin: 36px 0 22px;
   }
 
   &_legend {
-    line-height: 170%;
-
-
-    @media (min-width: breakpoints.$tablet) {
-      text-align: center;
-    }
+    color: #94a3b8;
+    font-size: 11px;
+    line-height: 1.7;
+    text-align: center;
   }
+}
+
+@media (max-width: breakpoints.$tablet) {
+  .footer { padding-top: 36px; }
+  .footer_links { grid-template-columns: 1fr; }
+  .footer_legend { text-align: left; }
 }

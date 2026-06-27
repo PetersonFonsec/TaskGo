@@ -1,15 +1,46 @@
 .header {
-  display: flex;
   align-items: center;
-  justify-content: flex-start;
-  padding: 24px 32px;
-  border-bottom: 1px solid #E5E7EB;
+  background: rgba(255, 255, 255, 0.94);
+  border-bottom: 1px solid var(--proxi-border);
+  display: flex;
+  height: 72px;
+  justify-content: space-between;
+  padding: 0 clamp(16px, 3vw, 40px);
+
+  &_brand {
+    align-items: center;
+    background: transparent;
+    border: 0;
+    color: var(--proxi-text);
+    cursor: pointer;
+    display: flex;
+    font: inherit;
+    font-size: 20px;
+    font-weight: 800;
+    gap: 10px;
+    letter-spacing: -0.04em;
+  }
+
+  &_brand-mark {
+    align-items: center;
+    background: var(--proxi-primary);
+    border-radius: 10px;
+    color: #fff;
+    display: flex;
+    font-size: 16px;
+    height: 34px;
+    justify-content: center;
+    width: 34px;
+  }
 
   &_content {
-    flex: 1;
-    gap: var(--space-12);
-    display: flex;
     align-items: center;
-    justify-content: flex-end;
+    display: flex;
+    gap: 20px;
   }
+}
+
+@media (max-width: 767px) {
+  .header { height: 64px; }
+  .header_brand-name { display: none; }
 }

@@ -1,8 +1,7 @@
 <aside class="aside">
-    <header class="aside_header"></header>
     <div class="aside_content">
         <div class="aside_list">
-            <h3 class="aside_title">Minha Conta</h3>
+            <h2 class="aside_title">Minha conta</h2>
             <ul>
                 @for (item of items(); track $index) {
                 <app-aside-list-item [text]="item.text" [routerLink]="item.routerLink" [icon]="item.icon" />
@@ -13,7 +12,7 @@
         <hr />
 
         <div class="aside_list">
-            <h4 class="aside_title aside_title--subtitle">Para Prestadores</h4>
+            <h2 class="aside_title">Para prestadores</h2>
             <ul>
                 @for (item of itemsSecundary(); track $index) {
                 <app-aside-list-item [text]="item.text" [routerLink]="item.routerLink" [icon]="item.icon" />
@@ -22,10 +21,10 @@
         </div>
 
         <div class="aside_banner">
-            <h6 class="aside_banner_title">
+            <h3 class="aside_banner_title">
                 <fa-icon class="aside_banner_icon" [icon]="bannerIcon()"></fa-icon>
                 Seja Premium
-            </h6>
+            </h3>
             <p class="aside_banner_text">
                 Tenha mais visibilidade e oportunidades de trabalho.
                 <br />Tenha mais clientes!

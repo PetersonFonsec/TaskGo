@@ -1,4 +1,8 @@
-<div class="aside-list-item">
+<div
+    class="aside-list-item"
+    routerLinkActive="aside-list-item--active"
+    [routerLinkActiveOptions]="{ exact: true }"
+>
     <a [routerLink]="routerLink()">
         <fa-icon class="aside-list-item_icon" [icon]="icon()" />
 

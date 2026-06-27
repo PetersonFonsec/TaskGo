@@ -16,8 +16,8 @@ export const PROVIDER_PROFILE_SUMMARY_CONTENT: ProviderProfileSummaryLegend[] = 
     },
     {
         icon: faClock,
-        label: "Mais de cinco anos de expceriência",
-        value: "Profissional Expecialista"
+        label: "Mais de cinco anos de experiência",
+        value: "Profissional especialista"
     },
     {
         icon: faCreditCard,

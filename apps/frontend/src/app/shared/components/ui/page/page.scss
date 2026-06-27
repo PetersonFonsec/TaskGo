@@ -1,33 +1,29 @@
-@use "/mixins/grid";
-@use "/variables/breakpoints";
+@use "variables/breakpoints";
 
 .page {
-  @include grid.directionColumn();
-  height: 100dvh;
-  width: 100dvw;
-  overflow: hidden;
-  overflow-y: auto;
-  max-width: 100%;
+  background: var(--proxi-background);
+  display: flex;
+  flex-direction: column;
+  min-height: 100dvh;
+  width: 100%;
 
-  &_header,
-  &_content,
-  &_footer {
+  &_header {
+    position: sticky;
+    top: 0;
     width: 100%;
+    z-index: 20;
   }
 
   &_container {
     display: flex;
+    flex: 1;
     width: 100%;
-    max-width: 100%;
   }
 
   &_content {
     flex: 1;
-    padding: var(--space-10) var(--space-6);
-
-    @media (min-width: breakpoints.$tablet) {
-      padding: var(--space-19) var(--space-6);
-    }
+    min-width: 0;
+    padding: var(--proxi-page-padding);
   }
 
   &_aside {
@@ -35,10 +31,11 @@
 
     @media (min-width: breakpoints.$tablet) {
       display: flex;
+      flex: 0 0 280px;
     }
 
-    app-aside {
-      width: 100%;
-    }
+    app-aside { width: 100%; }
   }
+
+  &_footer { width: 100%; }
 }

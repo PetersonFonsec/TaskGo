@@ -1,24 +1,31 @@
 <app-card-detail class="card-provider" [verified]="params()!.verified" [image]="params()!.thumb">
     <div class="card-provider_content">
         <header class="card-provider_header">
-            <app-favorite class="card-provider_favorite" (favoriteToggle)="favoriteToggle.emit()" />
+            <div>
+                <span class="card-provider_eyebrow">Profissional próximo</span>
+                <h3 class="card-provider_title">{{ params()?.title }}</h3>
+            </div>
 
-            <h4 class="card-provider_title subtitle">{{ params()?.title }}</h4>
+            <app-favorite
+                class="card-provider_favorite"
+                [isFavorite]="params()!.favorite"
+                (favoriteToggle)="favoriteToggle.emit()"
+            />
         </header>
 
-        <div class="card-provider_content">
+        <div class="card-provider_details">
             @for (subtitle of subtitles(); track $index) {
-            <legend class="card-provider_subtitle">
+            <span class="card-provider_subtitle">
                 <fa-icon [icon]="subtitle.icon" aria-hidden="true"></fa-icon>
                 {{ subtitle.label }}
-            </legend>
+            </span>
             }
         </div>
 
         <app-price [value]="params()!.price" />
 
         <footer class="card-provider_footer">
-            <app-button typeColor="outline" (click)="clickButton.emit()">
+            <app-button color="customer" typeColor="outline" (click)="clickButton.emit()">
                 Ver perfil
             </app-button>
         </footer>

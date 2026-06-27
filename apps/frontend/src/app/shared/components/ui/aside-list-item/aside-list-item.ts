@@ -1,11 +1,11 @@
 import { Component, input } from '@angular/core';
-import { RouterLink } from '@angular/router';
+import { RouterLink, RouterLinkActive } from '@angular/router';
 
 import { FontAwesomeModule, IconDefinition } from '@fortawesome/angular-fontawesome';
 
 @Component({
   selector: 'app-aside-list-item',
-  imports: [RouterLink, FontAwesomeModule],
+  imports: [RouterLink, RouterLinkActive, FontAwesomeModule],
   templateUrl: './aside-list-item.html',
   styleUrl: './aside-list-item.scss',
 })

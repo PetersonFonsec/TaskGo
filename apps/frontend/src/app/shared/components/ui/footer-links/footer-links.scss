@@ -1,24 +1,42 @@
-@use "mixins/grid";
-
 .footer-links {
-  @include grid.directionColumn();
   align-items: flex-start;
+  display: flex;
+  flex-direction: column;
 
   &_title {
-    margin-bottom: var(--space-5);
-    font-weight: bold;
-    width: 100%;
+    color: #f8fafc;
+    font-size: 13px;
+    font-weight: 700;
+    margin-bottom: 16px;
   }
 
   &_list {
-    @include grid.directionColumn();
     align-items: flex-start;
-    gap: var(--space-7);
-  }
+    display: flex;
+    flex-direction: column;
+    gap: 11px;
 
-  &_list.horizontal {
-    flex-direction: row;
-    font-size: 32px;
-    margin-left: -10px;
+    a {
+      color: #94a3b8;
+      font-size: 12px;
+      transition: color 160ms ease;
+      &:hover { color: #fff; }
+    }
+
+    &.horizontal {
+      flex-direction: row;
+      gap: 10px;
+
+      a {
+        align-items: center;
+        background: #1e293b;
+        border-radius: 9px;
+        display: flex;
+        font-size: 15px;
+        height: 36px;
+        justify-content: center;
+        width: 36px;
+      }
+    }
   }
 }

@@ -2,7 +2,6 @@ import { CurrencyPipe } from '@angular/common';
 import { Component, computed, signal } from '@angular/core';
 import { FontAwesomeModule } from '@fortawesome/angular-fontawesome';
 import {
-  faBell,
   faCalendarDays,
   faCheck,
   faClock,
@@ -37,7 +36,6 @@ export class ProviderHomePage {
   );
 
   readonly icons = {
-    bell: faBell,
     calendar: faCalendarDays,
     check: faCheck,
     clock: faClock,

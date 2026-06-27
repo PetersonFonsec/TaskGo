@@ -6,7 +6,7 @@
   font-family: var(--primary-font-family);
   height: 100%;
   max-width: 100%;
-  transition: 0.3s all linear;
+  transition: background-color 160ms ease, color 160ms ease;
   width: 100%;
 
   //Color
@@ -88,10 +88,10 @@
 
   //Size
   &--medium {
-    padding: 20px;
-    font-size: var(--font-size-3);
+    padding: 13px 18px;
+    font-size: 14px;
     font-weight: var(--font-weight-bold);
-    border-radius: var(--border-radius-1);
+    border-radius: var(--proxi-radius-sm);
   }
 
   &--small {

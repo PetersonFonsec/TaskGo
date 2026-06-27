@@ -1,5 +1,21 @@
 /* You can add global styles to this file, and also import other style files */
 :root {
+  /* Proxi design system */
+  --proxi-primary: #2563eb;
+  --proxi-primary-hover: #1d4ed8;
+  --proxi-primary-soft: #eff6ff;
+  --proxi-surface: #ffffff;
+  --proxi-background: #f8fafc;
+  --proxi-text: #111827;
+  --proxi-text-muted: #64748b;
+  --proxi-border: #e2e8f0;
+  --proxi-radius-sm: 10px;
+  --proxi-radius-md: 14px;
+  --proxi-radius-lg: 18px;
+  --proxi-shadow-sm: 0 3px 14px rgba(15, 23, 42, 0.04);
+  --proxi-shadow-md: 0 12px 28px rgba(15, 23, 42, 0.08);
+  --proxi-page-padding: clamp(20px, 4vw, 48px);
+
   --color-primary: #000000;
   --color-primary-rgb: 0, 102, 0;
   --color-primary-contrast: #fff;
@@ -23,12 +39,12 @@
   --color-secondary-shade: #005a00;
   --color-secondary-tint: #1a751a;
 
-  --color-provider: #7353C0;
-  --color-provider-rgb: 115, 83, 192;
+  --color-provider: #2563EB;
+  --color-provider-rgb: 37, 99, 235;
   --color-provider-contrast: #ffffff;
   --color-provider-contrast-rgb: 255, 255, 255;
-  --color-provider-shade: #6549a9;
-  --color-provider-tint: #8164c6;
+  --color-provider-shade: #1D4ED8;
+  --color-provider-tint: #3B82F6;
 
   --color-customer: #3280E3;
   --color-customer-rgb: 50, 128, 227;
@@ -154,6 +170,8 @@ ul {
 
 body,
 html {
+  background: var(--proxi-background);
+  color: var(--proxi-text);
   font-family: var(--primary-font-family);
   margin: 0;
   padding: 0;
@@ -164,7 +182,7 @@ html {
 
 .main-title {
   display: block;
-  color: var(--font-color-dark);
+  color: var(--proxi-text);
   font-size: var(--font-size-4);
   font-weight: var(--font-weight-bold);
   font-family: var(--primary-font-family);
@@ -173,7 +191,7 @@ html {
 .subtitle {
   display: block;
 
-  color: var(--font-color-dark);
+  color: var(--proxi-text-muted);
   font-size: var(--font-size-3);
   font-weight: var(--font-weight-medium);
   font-family: var(--primary-font-family);

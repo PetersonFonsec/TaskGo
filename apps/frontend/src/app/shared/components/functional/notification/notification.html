@@ -1,4 +1,4 @@
-<div class="notification">
+<button class="notification" type="button" aria-label="Notificações">
     <fa-icon [icon]="notificationIcon()" class="notification__icon" />
 
     @if (notificationCount() > 0) {
@@ -6,4 +6,4 @@
             {{ notificationCount() }}
         </span>
     }
-</div>
+</button>

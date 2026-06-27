@@ -1,28 +1,30 @@
 .aside-list-item {
+  border-radius: 11px;
+  color: #475569;
+  cursor: pointer;
+  font-size: 13px;
+  font-weight: 600;
+  transition: background-color 160ms ease, color 160ms ease;
+
+  &:hover,
+  &--active {
+    background: var(--proxi-primary-soft);
+    color: var(--proxi-primary);
+  }
+
+  a {
     align-items: center;
-    background-color: var(--color-primary-contrast);
-    border-radius: var(--border-radius-1);
     display: flex;
-    color: var(--font-color-dark);
-    cursor: pointer;
-    font-weight: var(--font-weight-bold);
-    padding: var(--font-size-4);
-    transition: background-color 0.2s ease-in-out;
+    min-height: 42px;
+    padding: 10px 12px;
+    width: 100%;
+  }
 
-    &.active,
-    &:hover {
-        background-color: rgb(var(--color-primary-rgb), 0.05);
-        color: var(--color-primary);
-    }
-
-    a {
-        align-items: center;
-        display: flex;
-    }
-
-    &_icon {
-        font-size: var(--font-size-4);
-        margin-right: var(--space-3);
-        display: block;
-    }
+  &_icon {
+    display: block;
+    font-size: 15px;
+    margin-right: 12px;
+    text-align: center;
+    width: 18px;
+  }
 }

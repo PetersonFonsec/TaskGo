@@ -1,11 +1,17 @@
 .favorite {
     appearance: none;
-    background: transparent;
-    border: none;
-    color: red;
-    font-size: 24px;
+    align-items: center;
+    background: #fff;
+    border: 1px solid var(--proxi-border);
+    border-radius: 10px;
+    color: #ef4444;
+    display: flex;
+    font-size: 15px;
+    height: 34px;
+    justify-content: center;
     cursor: pointer;
-    padding: 4px;
+    padding: 0;
+    width: 34px;
     
     &[disabled] {
         opacity: 0.65;

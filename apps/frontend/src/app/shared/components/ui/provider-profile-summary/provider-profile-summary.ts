@@ -12,7 +12,8 @@ import { PROVIDER_PROFILE_SUMMARY_CONTENT } from './provider-profile-summary.con
   styleUrl: './provider-profile-summary.scss',
 })
 export class ProviderProfileSummary {
-  image = input("https://dummyimage.com/600x400/000/fff");
+  image = input('https://dummyimage.com/600x400/e2e8f0/64748b');
+  providerName = input('João Eletricista');
   verified = input(false);
 
   items = signal(PROVIDER_PROFILE_SUMMARY_CONTENT);
