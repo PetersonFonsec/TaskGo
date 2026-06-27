@@ -1,5 +1,5 @@
 import { Module } from '@nestjs/common';
-import { APP_GUARD } from '@nestjs/core';
+import { APP_GUARD, APP_INTERCEPTOR } from '@nestjs/core';
 
 import { AppService } from './app.service';
 import { AppController } from './app.controller';
@@ -13,6 +13,7 @@ import { CategoriesModule } from './modules/categories/categories.module';
 import { ProviderModule } from './modules/provider/provider.module';
 import { AuthGuard } from './modules/auth/auth.guard';
 import { FeatureFlagModule } from './feature-flag/feature-flag.module';
+import { BigIntInterceptor } from './shared/interceptors/bigint.interceptor';
 
 @Module({
   imports: [
@@ -28,7 +29,15 @@ import { FeatureFlagModule } from './feature-flag/feature-flag.module';
   ],
   controllers: [AppController],
   providers: [
-    AppService
+    AppService,
+    {
+      provide: APP_GUARD,
+      useClass: AuthGuard,
+    },
+    {
+      provide: APP_INTERCEPTOR,
+      useClass: BigIntInterceptor,
+    },
   ],
 })
 export class AppModule { }

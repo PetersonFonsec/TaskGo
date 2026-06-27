@@ -5,5 +5,10 @@
   "testRegex": ".e2e-spec.ts$",
   "transform": {
     "^.+\\.(t|j)s$": "ts-jest"
+  },
+  "moduleNameMapper": {
+    "^@PrismaDir/(.*)$": "<rootDir>/../src/prisma/$1",
+    "^@taskgo/backend/shared/(.*)$": "<rootDir>/../src/shared/$1",
+    "^@shared/(.*)$": "<rootDir>/../src/shared/$1"
   }
 }

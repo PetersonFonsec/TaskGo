@@ -5,6 +5,10 @@ import { SBC_LOCATIONS } from './sbc-locations';
 
 const prisma = new PrismaClient();
 
+const SEED_EMAIL_DOMAIN = 'teste.com';
+const SEED_PASSWORD = '123456';
+const SEED_NOW = new Date('2026-01-05T12:00:00.000Z');
+
 const defaultServiceAvailability = {
   timezone: 'America/Sao_Paulo',
   weekdays: {
@@ -17,6 +21,28 @@ const defaultServiceAvailability = {
 };
 
 async function main() {
+  // Keep the development dataset repeatable without touching non-seed users.
+  // Orders must be removed first because the client relation is restrictive.
+  const seedUsers = await prisma.user.findMany({
+    where: { email: { endsWith: `@${SEED_EMAIL_DOMAIN}` } },
+    select: { id: true },
+  });
+  const seedUserIds = seedUsers.map(({ id }) => id);
+
+  if (seedUserIds.length > 0) {
+    await prisma.order.deleteMany({
+      where: {
+        OR: [
+          { clientId: { in: seedUserIds } },
+          { service: { providerId: { in: seedUserIds } } },
+        ],
+      },
+    });
+    await prisma.user.deleteMany({ where: { id: { in: seedUserIds } } });
+  }
+
+  await CategorySeeds(prisma);
+
   // cria 10 clientes
   const clientes = await Promise.all(
     Array.from({ length: 10 }).map(async (_, i) => {
@@ -24,10 +50,10 @@ async function main() {
         data: {
           name: `Cliente ${i + 1}`,
           email: `cliente${i + 1}@teste.com`,
-          passwordHash: await bcrypt.hash('123456', 10),
+          passwordHash: await bcrypt.hash(SEED_PASSWORD, 10),
           type: UserType.CLIENTE,
           cpf: `123.456.78${(10 + i).toString().padStart(2, '0')}-90`,
-          phone: `+55 11 9${Math.floor(10000000 + Math.random() * 89999999)}`,
+          phone: `+55 11 91${(100000 + i).toString().padStart(6, '0')}`,
           emailVerified: true,
           phoneVerified: true,
           addresses: {
@@ -38,8 +64,8 @@ async function main() {
               city: 'São Paulo',
               state: 'SP',
               cep: '01000-000',
-              lat: -23.5505 + Math.random() * 0.01,
-              lng: -46.6333 + Math.random() * 0.01,
+              lat: -23.5505 + i * 0.001,
+              lng: -46.6333 + i * 0.001,
               isDefault: true,
             },
           },
@@ -60,9 +86,9 @@ async function main() {
               cpf: `123.456.78${(20 + i).toString().padStart(2, '0')}-90`,
               name: `Prestador ${i + 1}`,
               email: `prestador${i + 1}@teste.com`,
-              passwordHash: await bcrypt.hash('123456', 10),
+              passwordHash: await bcrypt.hash(SEED_PASSWORD, 10),
               type: UserType.PRESTADOR,
-              phone: `+55 11 9${Math.floor(10000000 + Math.random() * 89999999)}`,
+              phone: `+55 11 92${(100000 + i).toString().padStart(6, '0')}`,
               photoUrl: 'https://dummyimage.com/600x400/000/fff',
               addresses: {
                 create: {
@@ -132,7 +158,7 @@ async function main() {
         serviceId: servico.id,
         status: OrderStatus.PENDENTE,
         finalPrice: servico.basePrice,
-        scheduledFor: new Date(Date.now() + 3 * 24 * 60 * 60 * 1000),
+        scheduledFor: new Date(SEED_NOW.getTime() + (i + 1) * 24 * 60 * 60 * 1000),
         payment: {
           create: {
             method: PaymentMethod.PIX,
@@ -147,8 +173,8 @@ async function main() {
             city: 'São Paulo',
             state: 'SP',
             cep: '02000-000',
-            lat: -23.55 + Math.random() * 0.01,
-            lng: -46.63 + Math.random() * 0.01,
+            lat: -23.55 + i * 0.001,
+            lng: -46.63 + i * 0.001,
           },
         },
       },
@@ -157,7 +183,7 @@ async function main() {
     // Create some reviews for a subset of orders (for realism)
     // We'll create reviews for half of the orders (i < 5)
     if (i < 5) {
-      const rating = Math.floor(3 + Math.random() * 3); // 3..5
+      const rating = 3 + (i % 3); // 3..5, deterministic
       await prisma.avaliacao.create({
         data: {
           orderId: order.id,
@@ -171,7 +197,6 @@ async function main() {
     }
   }
 
-  await CategorySeeds(prisma);
   console.log('✅ Seeds inseridos com sucesso!');
 }
 

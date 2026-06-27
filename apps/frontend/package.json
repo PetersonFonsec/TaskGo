@@ -10,7 +10,8 @@
     "serve:ssr:frontend": "node dist/frontend/server/server.mjs",
     "storybook": "ng run frontend:storybook",
     "build-storybook": "ng run frontend:build-storybook",
-    "cypress:open": "cross-env NODE_OPTIONS= cypress open"
+    "cypress:open": "cross-env NODE_OPTIONS= cypress open",
+    "cypress:run": "cross-env NODE_OPTIONS= cypress run"
   },
   "prettier": {
     "printWidth": 100,

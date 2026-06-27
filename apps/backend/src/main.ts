@@ -8,7 +8,6 @@ import helmet from 'helmet';
 
 import { AppModule } from './app.module';
 import { CustomExceptionFilter } from "./shared/filters/http-exception.filter";
-import { BigIntInterceptor } from "./shared/interceptors/bigint.interceptor";
 
 async function bootstrap() {
   await otelSDK.start();
@@ -17,7 +16,6 @@ async function bootstrap() {
   app.enableCors();
   app.use(helmet());
   app.useGlobalPipes(new ValidationPipe());
-  app.useGlobalInterceptors(new BigIntInterceptor());
   app.useGlobalFilters(new CustomExceptionFilter());
   // app.use(compression());
 

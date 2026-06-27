@@ -8,16 +8,19 @@ import { Observable } from 'rxjs';
 import { map } from 'rxjs/operators';
 
 export function convertBigInt(obj: any): any {
-  if (Array.isArray(obj)) {
+  if (typeof obj === 'bigint') {
+    return obj.toString();
+  } else if (obj instanceof Date) {
+    return obj.toISOString();
+  } else if (obj?.constructor?.name === 'Decimal') {
+    return Number(obj.toString());
+  } else if (Array.isArray(obj)) {
     return obj.map(convertBigInt);
   } else if (obj && typeof obj === 'object') {
     const newObj: any = {};
     for (const key of Object.keys(obj)) {
       const value = obj[key];
-      newObj[key] =
-        typeof value === 'bigint'
-          ? value.toString()
-          : convertBigInt(value);
+      newObj[key] = convertBigInt(value);
     }
     return newObj;
   }

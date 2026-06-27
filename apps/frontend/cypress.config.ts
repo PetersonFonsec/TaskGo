@@ -2,6 +2,7 @@ import { defineConfig } from "cypress";
 
 export default defineConfig({
   e2e: {
+    baseUrl: 'http://localhost:4200',
     setupNodeEvents(on, config) {
       // implement node event listeners here
     },
@@ -10,12 +11,4 @@ export default defineConfig({
     url: 'http://localhost:3000',
   },
   video: true,
-  reporter: 'mochawesome',
-  reporterOptions: {
-    reportDir: 'cypress/results',
-    overwrite: false,
-    html: true,
-    json: false,
-    timestamp: 'mmddyyyy_HHMMss'
-  }
 });
