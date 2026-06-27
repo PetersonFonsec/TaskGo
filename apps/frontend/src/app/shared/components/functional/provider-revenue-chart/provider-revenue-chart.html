@@ -1,5 +1,19 @@
-<ngx-charts-bar-vertical-2d [view]="view" [scheme]="colorScheme" [results]="chartData" [gradient]="gradient"
-    [xAxis]="showXAxis" [yAxis]="showYAxis" [legend]="showLegend" [showXAxisLabel]="showXAxisLabel"
-    [showYAxisLabel]="showYAxisLabel" [xAxisLabel]="xAxisLabel" [yAxisLabel]="yAxisLabel" [legendTitle]="legendTitle"
-    (select)="onSelect($event)" (activate)="onActivate($event)" (deactivate)="onDeactivate($event)">
-</ngx-charts-bar-vertical-2d>
+<div class="revenue-chart" role="img" aria-label="Gráfico de ganhos mensais dos últimos seis meses">
+  <div class="revenue-chart__plot">
+    @for (item of data(); track item.month) {
+      <div class="revenue-chart__column">
+        <span class="revenue-chart__value">
+          {{ item.revenue | currency: 'BRL' : 'symbol' : '1.0-0' }}
+        </span>
+        <div class="revenue-chart__track">
+          <div
+            class="revenue-chart__bar"
+            [style.height.%]="barHeight(item.revenue)"
+            [class.revenue-chart__bar--current]="$last"
+          ></div>
+        </div>
+        <span class="revenue-chart__month">{{ item.month }}</span>
+      </div>
+    }
+  </div>
+</div>

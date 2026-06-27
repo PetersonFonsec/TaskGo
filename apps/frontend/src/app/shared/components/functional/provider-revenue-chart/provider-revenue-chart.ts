@@ -1,44 +1,19 @@
-import { Component } from '@angular/core';
-import { providerRevenueChartData } from '@modules/providers/home/data';
-import { NgxChartsModule, ScaleType } from '@swimlane/ngx-charts';
+import { CurrencyPipe } from '@angular/common';
+import { Component, computed, input } from '@angular/core';
+
+import { RevenueByMonth } from '@modules/providers/home/data';
 
 @Component({
   selector: 'app-provider-revenue-chart',
-  imports: [NgxChartsModule],
+  imports: [CurrencyPipe],
   templateUrl: './provider-revenue-chart.html',
   styleUrl: './provider-revenue-chart.scss',
 })
-export class ProviderRevenueChart {
-  chartData = providerRevenueChartData;
-  view: [number, number] = [700, 360];
+export class ProviderRevenueChartComponent {
+  readonly data = input.required<RevenueByMonth[]>();
+  readonly maxRevenue = computed(() => Math.max(...this.data().map(({ revenue }) => revenue), 1));
 
-  showXAxis = true;
-  showYAxis = true; 
-  gradient = false;
-  showLegend = false;
-  showXAxisLabel = false;
-  xAxisLabel = 'Indicador';
-  showYAxisLabel = false;
-  yAxisLabel = 'Total';
-  legendTitle = 'Periodo';
-  showGridLines = false;
-
-  colorScheme = {
-    name: 'provider-dashboard',
-    selectable: true,
-    group: ScaleType.Ordinal,
-    domain: ['#2f80ed', '#27ae60']
-  };
-
-  onSelect(data: unknown): void {
-    console.log('Item clicked', JSON.parse(JSON.stringify(data)));
-  }
-
-  onActivate(data: unknown): void {
-    console.log('Activate', JSON.parse(JSON.stringify(data)));
-  }
-
-  onDeactivate(data: unknown): void {
-    console.log('Deactivate', JSON.parse(JSON.stringify(data)));
+  barHeight(revenue: number): number {
+    return Math.round((revenue / this.maxRevenue()) * 100);
   }
 }

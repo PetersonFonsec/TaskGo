@@ -1,0 +1,68 @@
+:host {
+  display: block;
+  width: 100%;
+}
+
+.revenue-chart {
+  overflow-x: auto;
+  padding-top: 24px;
+
+  &__plot {
+    align-items: end;
+    display: grid;
+    gap: clamp(10px, 2.2vw, 24px);
+    grid-template-columns: repeat(6, minmax(48px, 1fr));
+    min-width: 430px;
+  }
+
+  &__column {
+    align-items: center;
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+  }
+
+  &__value {
+    color: #64748b;
+    font-size: 11px;
+    font-weight: 600;
+    white-space: nowrap;
+  }
+
+  &__track {
+    align-items: end;
+    background: linear-gradient(to top, #f1f5f9 1px, transparent 1px);
+    background-size: 100% 25%;
+    border-bottom: 1px solid #e2e8f0;
+    display: flex;
+    height: 190px;
+    justify-content: center;
+    width: 100%;
+  }
+
+  &__bar {
+    background: #bfdbfe;
+    border-radius: 9px 9px 3px 3px;
+    max-width: 48px;
+    min-height: 4px;
+    transition: height 400ms ease, background-color 200ms ease;
+    width: min(68%, 48px);
+
+    &:hover,
+    &--current {
+      background: #2563eb;
+    }
+  }
+
+  &__month {
+    color: #64748b;
+    font-size: 13px;
+    font-weight: 600;
+  }
+}
+
+@media (max-width: 600px) {
+  .revenue-chart__track {
+    height: 160px;
+  }
+}

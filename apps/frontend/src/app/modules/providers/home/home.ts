@@ -1,35 +1,57 @@
-import { Component, inject, OnInit, signal } from '@angular/core';
-import { NgxChartsModule, ScaleType } from '@swimlane/ngx-charts';
-import { forkJoin } from 'rxjs';
+import { CurrencyPipe } from '@angular/common';
+import { Component, computed, signal } from '@angular/core';
+import { FontAwesomeModule } from '@fortawesome/angular-fontawesome';
+import {
+  faBell,
+  faCalendarDays,
+  faCheck,
+  faClock,
+  faLocationDot,
+  faStar,
+} from '@fortawesome/free-solid-svg-icons';
 
-import { UserLoggedService } from '@shared/service/user-logged/user-logged.service';
-import { ICategory } from '@shared/service/category/category.model';
-import { OrdersResponse } from '@shared/service/order/order.model';
-import { Order } from '@shared/service/order/order';
-import { ProviderRevenueChart } from '@shared/components/functional/provider-revenue-chart/provider-revenue-chart';
+import { ProviderRevenueChartComponent } from '@shared/components/functional/provider-revenue-chart/provider-revenue-chart';
+import {
+  completedServices,
+  pendingRequests,
+  providerInsights,
+  providerRevenue,
+  providerSummary,
+  RequestStatus,
+} from './data';
 
 @Component({
-  selector: 'app-home',
-  imports: [ProviderRevenueChart
-  ],
+  selector: 'app-provider-home',
+  imports: [CurrencyPipe, FontAwesomeModule, ProviderRevenueChartComponent],
   templateUrl: './home.html',
-  styleUrl: './home.scss'
+  styleUrl: './home.scss',
 })
-export class Home implements OnInit {
-  #userLogged = inject(UserLoggedService);
-  #order = inject(Order);
+export class ProviderHomePage {
+  readonly summary = providerSummary;
+  readonly revenue = providerRevenue;
+  readonly services = completedServices;
+  readonly insights = providerInsights;
+  readonly requests = signal(pendingRequests.map((request) => ({ ...request })));
+  readonly pendingCount = computed(
+    () => this.requests().filter(({ status }) => status === 'pending').length,
+  );
 
-  categories = signal<ICategory[]>([]);
-  orders = signal<OrdersResponse>([]);
-  reviews = signal<any[]>([]);
+  readonly icons = {
+    bell: faBell,
+    calendar: faCalendarDays,
+    check: faCheck,
+    clock: faClock,
+    location: faLocationDot,
+    star: faStar,
+  };
 
-  ngOnInit(): void {
-    const user = this.#userLogged.user().user;
+  updateRequestStatus(id: number, status: Exclude<RequestStatus, 'pending'>): void {
+    this.requests.update((requests) =>
+      requests.map((request) => (request.id === id ? { ...request, status } : request)),
+    );
+  }
 
-    forkJoin([
-      this.#order.getOrderByProvider(user.id),
-    ]).subscribe(([orders]) => {
-      this.orders.set(orders);
-    });
+  ratingLabel(rating: number): string {
+    return `${rating} ${rating === 1 ? 'estrela' : 'estrelas'}`;
   }
 }

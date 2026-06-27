@@ -1,39 +1,179 @@
-<div id="provider-home">
-  <header id="provider-home_header">
-    <h1 id="provider-home_title" class="main-title">
-      Ola, Peterson
-    </h1>
+<main class="provider-home">
+  <header class="welcome">
+    <div>
+      <p class="welcome__eyebrow">Visão geral</p>
+      <h1>Bom dia, João <span aria-hidden="true">👋</span></h1>
+      <p class="welcome__subtitle">Veja como está seu desempenho hoje</p>
+    </div>
 
-    <h2 id="provider-home_subtitle" class="subtitle">
-      Você possui 3 solicitações aguardando aprovação
-    </h2>
+    <div class="welcome__profile">
+      <button class="notification-button" type="button" aria-label="Notificações">
+        <fa-icon [icon]="icons.bell" />
+        <span class="notification-button__badge" aria-label="3 notificações">3</span>
+      </button>
+      <div class="avatar" aria-label="Avatar de João">JS</div>
+    </div>
   </header>
 
-  <section id="provider-home_dashboard">
-    <div id="provider-home_dashboard_sumary">
-      <div class="sumary">
-        <span class="sumary-title">Ganhos Hoje</span>
-        <strong class="sumary-value">R$ 320</strong>
+  <section class="summary-grid" aria-label="Resumo do desempenho">
+    @for (item of summary; track item.id) {
+      <article class="summary-card">
+        <div class="summary-card__icon"><fa-icon [icon]="item.icon" /></div>
+        <div class="summary-card__content">
+          <p>{{ item.title }}</p>
+          <strong>{{ item.value }}</strong>
+          <span [class.summary-card__description--positive]="item.trend === 'positive'">
+            {{ item.description }}
+          </span>
+        </div>
+      </article>
+    }
+  </section>
+
+  <div class="dashboard-grid">
+    <section class="panel revenue-panel">
+      <div class="section-heading">
+        <div>
+          <h2>Ganhos nos últimos meses</h2>
+          <p>Acompanhe a evolução do seu faturamento</p>
+        </div>
+        <span class="section-heading__period">Últimos 6 meses</span>
+      </div>
+      <app-provider-revenue-chart [data]="revenue" />
+    </section>
+
+    <section class="panel requests-panel">
+      <div class="section-heading section-heading--requests">
+        <div>
+          <h2>Solicitações aguardando aprovação</h2>
+          <p>{{ pendingCount() }} {{ pendingCount() === 1 ? 'solicitação pendente' : 'solicitações pendentes' }}</p>
+        </div>
+        @if (pendingCount()) {
+          <span class="pending-badge">{{ pendingCount() }}</span>
+        }
       </div>
 
-      <div class="sumary">
-        <span class="sumary-title">Ganhos Mês</span>
-        <strong class="sumary-value">R$ 4.320</strong>
+      <div class="request-list">
+        @for (request of requests(); track request.id) {
+          <article class="request-card" [class.request-card--resolved]="request.status !== 'pending'">
+            <div class="request-card__top">
+              <div class="client-avatar">{{ request.clientName.charAt(0) }}</div>
+              <div class="request-card__client">
+                <strong>{{ request.clientName }}</strong>
+                <span>{{ request.service }}</span>
+              </div>
+              <strong class="request-card__amount">
+                {{ request.amount | currency: 'BRL' : 'symbol' : '1.0-0' }}
+              </strong>
+            </div>
+
+            <div class="request-card__details">
+              <span><fa-icon [icon]="icons.calendar" />{{ request.date }}</span>
+              <span><fa-icon [icon]="icons.clock" />{{ request.time }}</span>
+              <span class="request-card__address">
+                <fa-icon [icon]="icons.location" />{{ request.address }}
+              </span>
+            </div>
+
+            @if (request.status === 'pending') {
+              <div class="request-card__actions">
+                <button
+                  class="button button--secondary"
+                  type="button"
+                  (click)="updateRequestStatus(request.id, 'declined')"
+                >
+                  Recusar
+                </button>
+                <button
+                  class="button button--primary"
+                  type="button"
+                  (click)="updateRequestStatus(request.id, 'accepted')"
+                >
+                  Aceitar
+                </button>
+              </div>
+            } @else {
+              <div class="request-card__status" [class.request-card__status--declined]="request.status === 'declined'">
+                @if (request.status === 'accepted') {
+                  <fa-icon [icon]="icons.check" />
+                }
+                {{ request.status === 'accepted' ? 'Solicitação aceita' : 'Solicitação recusada' }}
+              </div>
+            }
+          </article>
+        }
+      </div>
+    </section>
+  </div>
+
+  <div class="details-grid">
+    <section class="panel services-panel">
+      <div class="section-heading">
+        <div>
+          <h2>Últimos serviços realizados</h2>
+          <p>Seu histórico mais recente</p>
+        </div>
+        <button class="text-button" type="button">Ver todos</button>
       </div>
 
-      <div class="sumary">
-        <span class="sumary-title">Serviços</span>
-        <strong class="sumary-value">48</strong>
+      <div class="service-list">
+        @for (service of services; track service.id) {
+          <article class="service-row">
+            <div class="client-avatar client-avatar--soft">{{ service.clientName.charAt(0) }}</div>
+            <div class="service-row__identity">
+              <strong>{{ service.clientName }}</strong>
+              <span>{{ service.service }}</span>
+            </div>
+            <span class="service-row__date">{{ service.date }}</span>
+            <strong class="service-row__amount">
+              {{ service.amount | currency: 'BRL' : 'symbol' : '1.0-0' }}
+            </strong>
+            <span class="service-row__rating" [attr.aria-label]="ratingLabel(service.rating)">
+              <fa-icon [icon]="icons.star" /> {{ service.rating }}.0
+            </span>
+          </article>
+        }
       </div>
+    </section>
 
-      <div class="sumary">
-        <span class="sumary-title">Avaliação</span>
-        <strong class="sumary-value">4.9</strong>
+    <section class="panel goal-card">
+      <div class="goal-card__header">
+        <div>
+          <span>Meta do mês</span>
+          <strong>R$ 6.000</strong>
+        </div>
+        <span class="goal-card__percentage">80%</span>
+      </div>
+      <div class="goal-card__progress" role="progressbar" aria-label="Progresso da meta mensal" aria-valuenow="80" aria-valuemin="0" aria-valuemax="100">
+        <span></span>
+      </div>
+      <div class="goal-card__footer">
+        <p><strong>R$ 4.820</strong> arrecadados</p>
+        <p>Faltam R$ 1.180</p>
+      </div>
+      <p class="goal-card__message">Você já atingiu 80% da sua meta. Continue assim!</p>
+    </section>
+  </div>
+
+  <section class="insights-section">
+    <div class="section-heading">
+      <div>
+        <h2>Insights do seu negócio</h2>
+        <p>Dados que ajudam você a crescer</p>
       </div>
     </div>
-
-    <div id="provider-home_dashboard_chart">
-      <app-provider-revenue-chart />
+    <div class="insights-grid">
+      @for (insight of insights; track insight.id) {
+        <article class="insight-card">
+          <div class="insight-card__icon"><fa-icon [icon]="insight.icon" /></div>
+          <div>
+            <span>{{ insight.label }}</span>
+            <strong [class.insight-card__value--positive]="insight.id === 'growth'">
+              {{ insight.value }}
+            </strong>
+          </div>
+        </article>
+      }
     </div>
   </section>
-</div>
+</main>

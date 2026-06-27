@@ -1,23 +1,30 @@
 import { ComponentFixture, TestBed } from '@angular/core/testing';
 
-import { Home } from './home';
+import { ProviderHomePage } from './home';
 
-describe('Home', () => {
-  let component: Home;
-  let fixture: ComponentFixture<Home>;
+describe('ProviderHomePage', () => {
+  let component: ProviderHomePage;
+  let fixture: ComponentFixture<ProviderHomePage>;
 
   beforeEach(async () => {
     await TestBed.configureTestingModule({
-      imports: [Home]
+      imports: [ProviderHomePage]
     })
     .compileComponents();
 
-    fixture = TestBed.createComponent(Home);
+    fixture = TestBed.createComponent(ProviderHomePage);
     component = fixture.componentInstance;
     fixture.detectChanges();
   });
 
   it('should create', () => {
     expect(component).toBeTruthy();
+  });
+
+  it('should update a request status', () => {
+    component.updateRequestStatus(1, 'accepted');
+
+    expect(component.requests().find(({ id }) => id === 1)?.status).toBe('accepted');
+    expect(component.pendingCount()).toBe(2);
   });
 });
