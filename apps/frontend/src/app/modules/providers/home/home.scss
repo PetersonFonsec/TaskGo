@@ -4,65 +4,28 @@
 
 #provider-home {
   @include grid.container(var(--container-size));
+  @include position.flexCollumn();
+  gap: var(--space-14);
 
-  &_title {
-    margin-bottom: var(--space-10);
+  &_dashboard {
+    display: flex;
+    gap: var(--space-4);
 
-    @media (min-width: breakpoints.$tablet) {
-      margin-bottom: var(--space-19);
-    }
-  }
-
-  &_categories {
-    margin-bottom: var(--space-19);
-
-    &_title {
-      margin-bottom: var(--space-10);
+    &_sumary {
+      display: grid;
+      grid-template-columns: repeat(2, minmax(200px, 1fr));
+      gap: var(--space-2);
     }
 
-    &_list {
-      @include grid.grid(288px, var(--space-10));
+    .sumary {
+      @include position.flexCollumn();
+      background-color: rgb(var(--color-primary-rgb), 0.8);
+      border-radius: var(--border-radius-1);
+      color: var(--color-primary-contrast);
+      font-size: var(--font-size-3);
+      justify-content: center;
+      padding: var(--space-4);
+      gap: var(--space-2);
     }
-  }
-
-  &_appointments {
-    margin-bottom: var(--space-19);
-
-    &_title {
-      margin-bottom: var(--space-10);
-    }
-
-    &_list {
-      display: block;
-      margin-bottom: var(--space-10);
-    }
-
-    &_actions {
-      @include position.flexCenter();
-      width: 100%;
-
-      app-button {
-        // width: 100%;
-        max-width: 320px;
-      }
-    }
-  }
-
-  &_history {
-    margin-bottom: var(--space-19);
-
-    &_title {
-      display: block;
-      margin-bottom: var(--space-10);
-    }
-
-    &_list {
-      display: block;
-      margin-bottom: var(--space-10);
-    }
-  }
-
-  ::ng-deep .card {
-    flex-direction: column;
   }
 }

@@ -1,23 +1,17 @@
 import { Component, inject, OnInit, signal } from '@angular/core';
-import { RouterLink } from '@angular/router';
+import { NgxChartsModule, ScaleType } from '@swimlane/ngx-charts';
 import { forkJoin } from 'rxjs';
 
 import { UserLoggedService } from '@shared/service/user-logged/user-logged.service';
-import { Slider, SliderItemDirective } from '@shared/components/ui/slider/slider';
 import { ICategory } from '@shared/service/category/category.model';
 import { OrdersResponse } from '@shared/service/order/order.model';
-import { Card } from '@shared/components/forms/card/card';
 import { Order } from '@shared/service/order/order';
-import { Aside } from '@shared/components/ui/aside/aside';
+import { ProviderRevenueChart } from '@shared/components/functional/provider-revenue-chart/provider-revenue-chart';
 
 @Component({
   selector: 'app-home',
-  imports: [
-    Card,
-    Slider,
-    SliderItemDirective,
-    RouterLink
-],
+  imports: [ProviderRevenueChart
+  ],
   templateUrl: './home.html',
   styleUrl: './home.scss'
 })
@@ -39,4 +33,3 @@ export class Home implements OnInit {
     });
   }
 }
-

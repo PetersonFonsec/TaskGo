@@ -35,12 +35,9 @@ import {
 @Component({
   selector: 'app-single-user',
   imports: [
-    Avatar,
-    Badge,
     Card,
     Slider,
     SliderItemDirective,
-    FooterLinks,
     ButtonComponent,
     FullModal,
     ProviderProfileSummary,
