@@ -1,0 +1,38 @@
+<article class="appointment-card">
+  <header class="appointment-card__header">
+    <div class="appointment-card__date" aria-label="Data do agendamento">
+      <fa-icon [icon]="calendarIcon" />
+      <strong>{{ scheduledDate() }}</strong>
+    </div>
+    <span
+      class="appointment-card__status"
+      [class]="'appointment-card__status appointment-card__status--' + statusTone()"
+    >
+      {{ statusLabel() }}
+    </span>
+  </header>
+
+  <div class="appointment-card__body">
+    <h3>{{ order().service?.title || 'Serviço agendado' }}</h3>
+
+    <ul class="appointment-card__details">
+      <li>
+        <fa-icon [icon]="clockIcon" />
+        <span>{{ scheduledTime() }}</span>
+      </li>
+      <li>
+        <fa-icon [icon]="locationIcon" />
+        <span>{{ address() }}</span>
+      </li>
+      <li>
+        <fa-icon [icon]="userIcon" />
+        <span>{{ order().service?.provider?.user?.name || 'Profissional a confirmar' }}</span>
+      </li>
+    </ul>
+  </div>
+
+  <footer class="appointment-card__footer">
+    <span>Detalhes do agendamento</span>
+    <span aria-hidden="true">→</span>
+  </footer>
+</article>

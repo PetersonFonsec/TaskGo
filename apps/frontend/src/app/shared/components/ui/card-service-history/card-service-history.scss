@@ -1,0 +1,123 @@
+:host {
+  display: block;
+  height: 100%;
+}
+
+.history-card {
+  background: var(--proxi-surface);
+  border: 1px solid var(--proxi-border);
+  border-radius: var(--proxi-radius-lg);
+  box-shadow: var(--proxi-shadow-sm);
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  min-height: 250px;
+  padding: 18px;
+  transition:
+    border-color 180ms ease,
+    box-shadow 180ms ease,
+    transform 180ms ease;
+
+  &:hover {
+    border-color: #bbf7d0;
+    box-shadow: var(--proxi-shadow-md);
+    transform: translateY(-2px);
+  }
+
+  &__topline {
+    align-items: center;
+    display: flex;
+    justify-content: space-between;
+    margin-bottom: 14px;
+  }
+  &__completed {
+    align-items: center;
+    background: #ecfdf5;
+    border-radius: 999px;
+    color: #047857;
+    display: flex;
+    font-size: 10px;
+    font-weight: 800;
+    gap: 6px;
+    padding: 6px 9px;
+    text-transform: uppercase;
+  }
+  &__date {
+    color: var(--proxi-text-muted);
+    font-size: 11px;
+  }
+
+  h3 {
+    color: var(--proxi-text);
+    font-size: 16px;
+    letter-spacing: -0.02em;
+    margin-bottom: 16px;
+  }
+
+  &__provider {
+    align-items: center;
+    display: flex;
+    gap: 10px;
+    margin-bottom: 13px;
+  }
+  &__avatar {
+    align-items: center;
+    background: var(--proxi-primary-soft);
+    border-radius: 12px;
+    color: var(--proxi-primary);
+    display: flex;
+    height: 36px;
+    justify-content: center;
+    width: 36px;
+  }
+  &__provider div {
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+  }
+  &__provider small {
+    color: var(--proxi-text-muted);
+    font-size: 9px;
+    text-transform: uppercase;
+  }
+  &__provider strong {
+    color: var(--proxi-text);
+    font-size: 12px;
+  }
+
+  &__address {
+    align-items: center;
+    color: var(--proxi-text-muted);
+    display: flex;
+    font-size: 11px;
+    gap: 8px;
+    margin-bottom: 16px;
+    min-width: 0;
+  }
+  &__address fa-icon {
+    color: var(--proxi-primary);
+  }
+  &__address span {
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+
+  footer {
+    align-items: center;
+    border-top: 1px solid var(--proxi-border);
+    color: var(--proxi-text-muted);
+    display: flex;
+    font-size: 10px;
+    justify-content: space-between;
+    margin-top: auto;
+    padding-top: 13px;
+  }
+  &__repeat {
+    align-items: center;
+    color: var(--proxi-primary);
+    display: flex;
+    font-weight: 700;
+    gap: 5px;
+  }
+}

@@ -1,0 +1,29 @@
+<article class="history-card">
+  <div class="history-card__topline">
+    <span class="history-card__completed">
+      <fa-icon [icon]="calendarIcon" />
+      Concluído
+    </span>
+    <span class="history-card__date">{{ date() }}</span>
+  </div>
+
+  <h3>{{ title() }}</h3>
+
+  <div class="history-card__provider">
+    <span class="history-card__avatar" aria-hidden="true"><fa-icon [icon]="userIcon" /></span>
+    <div>
+      <small>Profissional</small>
+      <strong>{{ provider() }}</strong>
+    </div>
+  </div>
+
+  <p class="history-card__address">
+    <fa-icon [icon]="locationIcon" />
+    <span>{{ address() }}</span>
+  </p>
+
+  <footer>
+    <span>Ver serviço</span>
+    <span class="history-card__repeat"><fa-icon [icon]="repeatIcon" /> Contratar novamente</span>
+  </footer>
+</article>

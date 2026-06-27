@@ -1,29 +1,30 @@
-import { RouterLink } from "@angular/router";
+import { RouterLink } from '@angular/router';
 import { Component, inject, OnInit, signal } from '@angular/core';
 
-import { UserLoggedService } from "@shared/service/user-logged/user-logged.service";
+import { UserLoggedService } from '@shared/service/user-logged/user-logged.service';
 import { CardThumb } from '@shared/components/ui/card-thumb/card-thumb/card-thumb';
 import { Slider, SliderItemDirective } from '@shared/components/ui/slider/slider';
 import { ButtonComponent } from '@shared/components/ui/button/button.component';
-import { CategoryService } from "@shared/service/category/category";
-import { ICategory } from "@shared/service/category/category.model";
-import { Card } from '@shared/components/ui/card/card/card';
-import { forkJoin } from "rxjs";
-import { User } from "@shared/service/users/user";
-import { Order } from "@shared/service/order/order";
-import { OrdersResponse } from "@shared/service/order/order.model";
-import { Banner } from "@shared/components/ui/banner/banner";
+import { CategoryService } from '@shared/service/category/category';
+import { ICategory } from '@shared/service/category/category.model';
+import { forkJoin } from 'rxjs';
+import { Order } from '@shared/service/order/order';
+import { OrdersResponse } from '@shared/service/order/order.model';
+import { Banner } from '@shared/components/ui/banner/banner';
+import { CardAppointment } from '@shared/components/ui/card-appointment/card-appointment';
+import { CardServiceHistory } from '@shared/components/ui/card-service-history/card-service-history';
 
 @Component({
   selector: 'app-home',
   imports: [
     CardThumb,
-    Card,
+    CardAppointment,
+    CardServiceHistory,
     Slider,
     SliderItemDirective,
     ButtonComponent,
     RouterLink,
-    Banner
+    Banner,
   ],
   templateUrl: './home.html',
   styleUrl: './home.scss',

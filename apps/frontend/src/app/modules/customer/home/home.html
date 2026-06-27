@@ -34,11 +34,7 @@
     @if (orders().length) {
       <app-slider [gap]="16" [perpage]="3" class="customer-home__slider">
         @for (order of orders(); track order.id) {
-          <app-card slide-item [title]="order.service?.title">
-            <p class="text">{{ order.addressSnap?.street }}, {{ order.addressSnap?.number }}</p>
-            <p class="text">{{ order.service?.provider?.user?.name }}</p>
-            <p class="text normalize">Status: {{ order.status }}</p>
-          </app-card>
+          <app-card-appointment slide-item [order]="order" />
         }
       </app-slider>
     } @else {
@@ -63,11 +59,13 @@
 
     <app-slider [gap]="16" [perpage]="3" class="customer-home__slider">
       @for (item of [1, 2, 3, 4, 5, 6]; track item) {
-        <app-card slide-item [title]="'Serviço residencial ' + item">
-          <p class="text">Casa · Rua Teresa Barbarossa</p>
-          <p class="text">23 de maio · 10:00</p>
-          <p class="text">Ana Souza</p>
-        </app-card>
+        <app-card-service-history
+          slide-item
+          [title]="'Serviço residencial ' + item"
+          address="Casa · Rua Teresa Barbarossa"
+          date="23 de maio · 10:00"
+          provider="Ana Souza"
+        />
       }
     </app-slider>
   </section>
