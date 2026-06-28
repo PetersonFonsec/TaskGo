@@ -78,6 +78,13 @@ enum OrderPhotoType {
   DAMAGE
 }
 
+enum DisputeStatus {
+  OPEN
+  UNDER_REVIEW
+  RESOLVED
+  REJECTED
+}
+
 // ---------- Models ----------
 
 model User {
@@ -405,11 +412,11 @@ model FeatureFlag {
 }
 
 model OrderDispute {
-  id BigInt
-  orderId BigInt
-  openedBy UserType
-  reason String
+  id          BigInt        @id @default(autoincrement())
+  orderId     BigInt
+  openedBy    UserType
+  reason      String
   description String
-  status DisputeStatus
-  createdAt DateTime
+  status      DisputeStatus
+  createdAt   DateTime      @default(now())
 }
