@@ -199,9 +199,9 @@ describe('Customer booking journey E2E', () => {
       expect.objectContaining({
         clientId: clientLogin.body.user.id,
         serviceId,
-        status: 'PENDENTE',
+        status: 'AGUARDANDO_APROVACAO',
         scheduledFor: slot.startsAt,
-        payment: expect.objectContaining({ method: 'PIX', status: 'PENDENTE' }),
+        payment: expect.objectContaining({ method: 'PIX', status: 'CREATED' }),
       }),
     );
   });

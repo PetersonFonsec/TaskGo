@@ -1,4 +1,11 @@
-import { PrismaClient, UserType, ServiceStatus, OrderStatus, PaymentMethod, PaymentStatus } from '@prisma/client';
+import {
+  PrismaClient,
+  UserType,
+  ServiceStatus,
+  OrderStatus,
+  PaymentMethod,
+  PaymentStatus,
+} from '@prisma/client';
 import { CategorySeeds } from './category.seed';
 import * as bcrypt from 'bcrypt';
 import { SBC_LOCATIONS } from './sbc-locations';
@@ -71,7 +78,7 @@ async function main() {
           },
         },
       });
-    })
+    }),
   );
 
   // cria 10 prestadores com serviços
@@ -105,18 +112,18 @@ async function main() {
               },
             },
           },
-          locations:{
+          locations: {
             create: {
               lat: location.lat,
               lng: location.lng,
-            }
+            },
           },
           bio: `Sou o prestador ${i + 1}, especializado em serviços gerais.`,
           verified: i % 2 === 0,
-          acceptPix:  i % 2 === 0,
-          acceptsCard:  i % 2 === 0,
-          emergencyCare:  i % 2 === 0,
-          isAvailable24h:  i % 2 === 0,
+          acceptPix: i % 2 === 0,
+          acceptsCard: i % 2 === 0,
+          emergencyCare: i % 2 === 0,
+          isAvailable24h: i % 2 === 0,
           services: {
             create: [
               {
@@ -143,7 +150,7 @@ async function main() {
           services: true,
         },
       });
-    })
+    }),
   );
 
   // cria pedidos ligando clientes e serviços
@@ -158,11 +165,14 @@ async function main() {
         serviceId: servico.id,
         status: OrderStatus.AGUARDANDO_APROVACAO,
         finalPrice: servico.basePrice,
-        scheduledFor: new Date(SEED_NOW.getTime() + (i + 1) * 24 * 60 * 60 * 1000),
+        priceAdjusted: false,
+        scheduledFor: new Date(
+          SEED_NOW.getTime() + (i + 1) * 24 * 60 * 60 * 1000,
+        ),
         payment: {
           create: {
             method: PaymentMethod.PIX,
-            status: PaymentStatus.PENDENTE,
+            status: PaymentStatus.CREATED,
             amount: servico.basePrice,
           },
         },

@@ -234,7 +234,7 @@ describe('ProviderService', () => {
     });
   });
 
-  it('existing PENDENTE order removes the matching slot', async () => {
+  it('existing blocking order removes the matching slot', async () => {
     prisma.order.findMany.mockResolvedValue([
       {
         serviceId: 101n,
@@ -260,13 +260,22 @@ describe('ProviderService', () => {
     expect(prisma.order.findMany).toHaveBeenCalledWith(
       expect.objectContaining({
         where: expect.objectContaining({
-          status: { in: ['PENDENTE', 'CONFIRMADO'] },
+          status: {
+            in: [
+              'AGUARDANDO_APROVACAO',
+              'AGUARDANDO_PAGAMENTO',
+              'AGENDADO',
+              'EM_DESLOCAMENTO',
+              'EM_ANDAMENTO',
+              'AGUARDANDO_CONFIRMACAO_CLIENTE',
+            ],
+          },
         }),
       }),
     );
   });
 
-  it('existing CONFIRMADO order removes the matching slot', async () => {
+  it('existing scheduled order removes the matching slot', async () => {
     prisma.order.findMany.mockResolvedValue([
       {
         serviceId: 101n,
@@ -306,7 +315,14 @@ describe('ProviderService', () => {
           in: [101n],
         },
         status: {
-          in: ['PENDENTE', 'CONFIRMADO'],
+          in: [
+            'AGUARDANDO_APROVACAO',
+            'AGUARDANDO_PAGAMENTO',
+            'AGENDADO',
+            'EM_DESLOCAMENTO',
+            'EM_ANDAMENTO',
+            'AGUARDANDO_CONFIRMACAO_CLIENTE',
+          ],
         },
         scheduledFor: {
           gte: new Date('2026-06-22T03:00:00.000Z'),

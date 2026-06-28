@@ -1,6 +1,6 @@
 import { BadRequestException } from '@nestjs/common';
 import { Test, TestingModule } from '@nestjs/testing';
-import { OrderStatus } from '@prisma/client';
+import { OrderStatus, PaymentStatus } from '@prisma/client';
 
 import { PrismaService } from '../../prisma/prisma.service';
 import { ProviderService } from '../provider/provider.service';
@@ -60,7 +60,7 @@ describe('OrderService', () => {
         ),
         findUnique: jest.fn(async ({ where, include }) => ({
           id: where.id,
-          status: OrderStatus.PENDENTE,
+          status: OrderStatus.AGUARDANDO_APROVACAO,
           serviceId: 101n,
           clientId: 7n,
           finalPrice: 150,
@@ -143,13 +143,13 @@ describe('OrderService', () => {
         data: expect.objectContaining({
           clientId: 7n,
           serviceId: 101n,
-          status: OrderStatus.PENDENTE,
+          status: OrderStatus.AGUARDANDO_APROVACAO,
           finalPrice: 150,
           scheduledFor: new Date('2026-06-22T12:00:00.000Z'),
           payment: {
             create: {
               method: 'PIX',
-              status: 'PENDENTE',
+              status: PaymentStatus.CREATED,
               amount: 150,
             },
           },
@@ -240,7 +240,7 @@ describe('OrderService', () => {
           payment: {
             create: {
               method: 'PIX',
-              status: 'PENDENTE',
+              status: PaymentStatus.CREATED,
               amount: 125,
             },
           },
@@ -258,7 +258,13 @@ describe('OrderService', () => {
         const conflicts = await prisma.order.findMany({
           where: {
             serviceId: BigInt(query.serviceId),
-            status: { in: [OrderStatus.PENDENTE, OrderStatus.CONFIRMADO] },
+            status: {
+              in: [
+                OrderStatus.AGUARDANDO_APROVACAO,
+                OrderStatus.AGUARDANDO_PAGAMENTO,
+                OrderStatus.AGENDADO,
+              ],
+            },
             scheduledFor: { equals: slot },
           },
         });
@@ -321,7 +327,7 @@ describe('OrderService', () => {
   it('returns an order summary with client and service data', async () => {
     await expect(service.getSummary(1n)).resolves.toEqual({
       id: 1n,
-      status: OrderStatus.PENDENTE,
+      status: OrderStatus.AGUARDANDO_APROVACAO,
       finalPrice: 150,
       client: { id: 7n },
       service: { id: 101n, providerId: 42n },
@@ -378,14 +384,14 @@ describe('OrderService', () => {
     );
   });
 
-  it('schedules an order as confirmed', async () => {
+  it('schedules an order', async () => {
     await expect(
       service.schedule(1n, { scheduledFor: '2026-06-22T12:00:00.000Z' }),
     ).resolves.toEqual(
       expect.objectContaining({
         id: 1n,
         scheduledFor: new Date('2026-06-22T12:00:00.000Z'),
-        status: OrderStatus.CONFIRMADO,
+        status: OrderStatus.AGENDADO,
       }),
     );
   });
@@ -397,7 +403,7 @@ describe('OrderService', () => {
   it('confirms a pending order when the provider owns the service', async () => {
     await expect(service.confirmByProvider(1n, 42n)).resolves.toEqual({
       id: 1n,
-      status: OrderStatus.CONFIRMADO,
+      status: OrderStatus.AGUARDANDO_PAGAMENTO,
     });
   });
 
@@ -418,12 +424,12 @@ describe('OrderService', () => {
   it('rejects provider confirmation when the order is not pending', async () => {
     prisma.order.findUnique.mockResolvedValueOnce({
       id: 1n,
-      status: OrderStatus.CONFIRMADO,
+      status: OrderStatus.AGENDADO,
       service: { id: 101n, providerId: 42n },
     });
 
     await expect(service.confirmByProvider(1n, 42n)).rejects.toThrow(
-      'Only PENDENTE orders can be confirmed',
+      'Only AGUARDANDO_APROVACAO orders can be confirmed',
     );
   });
 
@@ -456,7 +462,7 @@ describe('OrderService', () => {
     });
 
     await expect(service.cancelByProvider(1n, 42n)).rejects.toThrow(
-      'Only PENDENTE or CONFIRMADO orders can be cancelled by provider',
+      'Only orders awaiting approval, awaiting payment, or scheduled can be cancelled by provider',
     );
   });
 });

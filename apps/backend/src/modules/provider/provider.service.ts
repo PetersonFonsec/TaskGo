@@ -201,7 +201,14 @@ export class ProviderService {
           in: selectedServices.map((service) => service.id),
         },
         status: {
-          in: [OrderStatus.PENDENTE, OrderStatus.CONFIRMADO],
+          in: [
+            OrderStatus.AGUARDANDO_APROVACAO,
+            OrderStatus.AGUARDANDO_PAGAMENTO,
+            OrderStatus.AGENDADO,
+            OrderStatus.EM_DESLOCAMENTO,
+            OrderStatus.EM_ANDAMENTO,
+            OrderStatus.AGUARDANDO_CONFIRMACAO_CLIENTE,
+          ],
         },
         scheduledFor: {
           gte: this.startOfDate(query.from),

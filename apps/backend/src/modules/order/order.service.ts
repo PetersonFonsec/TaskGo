@@ -4,7 +4,7 @@ import {
   BadRequestException,
   ForbiddenException,
 } from '@nestjs/common';
-import { Order, OrderStatus } from '@prisma/client';
+import { Order, OrderStatus, PaymentStatus } from '@prisma/client';
 
 import { CreateOrderDto } from './dto/create-order.dto';
 import { UpdateOrderDto } from './dto/update-order.dto';
@@ -70,13 +70,14 @@ export class OrderService extends PaginationService<Order> {
         data: {
           clientId: cliId,
           serviceId: svcId,
-          status: OrderStatus.PENDENTE,
+          status: OrderStatus.AGUARDANDO_APROVACAO,
           finalPrice: price,
           scheduledFor: scheduledAt,
+          priceAdjusted: false,
           payment: {
             create: {
               method: (paymentMethod as any) || 'PIX',
-              status: 'PENDENTE',
+              status: PaymentStatus.CREATED,
               amount: price,
             },
           },
@@ -260,7 +261,7 @@ export class OrderService extends PaginationService<Order> {
   }
 
   /**
-   * Schedule an order: set its scheduledFor and change status to CONFIRMADO.
+   * Schedule an order: set its scheduledFor and change status to AGENDADO.
    * body may include scheduledFor as ISO string.
    */
   async schedule(id: bigint, body: { scheduledFor: string }) {
@@ -269,7 +270,7 @@ export class OrderService extends PaginationService<Order> {
       where: { id },
       data: {
         scheduledFor: scheduledAt,
-        status: OrderStatus.CONFIRMADO,
+        status: OrderStatus.AGENDADO,
       },
     });
   }
@@ -298,13 +299,15 @@ export class OrderService extends PaginationService<Order> {
       );
     }
 
-    if (order.status !== OrderStatus.PENDENTE) {
-      throw new BadRequestException('Only PENDENTE orders can be confirmed');
+    if (order.status !== OrderStatus.AGUARDANDO_APROVACAO) {
+      throw new BadRequestException(
+        'Only AGUARDANDO_APROVACAO orders can be confirmed',
+      );
     }
 
     return await this.prisma.order.update({
       where: { id },
-      data: { status: OrderStatus.CONFIRMADO },
+      data: { status: OrderStatus.AGUARDANDO_PAGAMENTO },
     });
   }
 
@@ -323,13 +326,14 @@ export class OrderService extends PaginationService<Order> {
       throw new ForbiddenException('Provider not allowed to cancel this order');
     }
 
-    // allow cancel from PENDENTE or CONFIRMADO
+    // Allow cancellation before execution starts.
     if (
-      order.status !== OrderStatus.PENDENTE &&
-      order.status !== OrderStatus.CONFIRMADO
+      order.status !== OrderStatus.AGUARDANDO_APROVACAO &&
+      order.status !== OrderStatus.AGUARDANDO_PAGAMENTO &&
+      order.status !== OrderStatus.AGENDADO
     ) {
       throw new BadRequestException(
-        'Only PENDENTE or CONFIRMADO orders can be cancelled by provider',
+        'Only orders awaiting approval, awaiting payment, or scheduled can be cancelled by provider',
       );
     }
 

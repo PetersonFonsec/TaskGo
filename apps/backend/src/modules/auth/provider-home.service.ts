@@ -4,7 +4,20 @@ import { OrderStatus, PaymentStatus } from '@prisma/client';
 import { PrismaService } from '../../prisma/prisma.service';
 
 const DASHBOARD_TIMEZONE = 'America/Sao_Paulo';
-const MONTH_LABELS = ['Jan', 'Fev', 'Mar', 'Abr', 'Mai', 'Jun', 'Jul', 'Ago', 'Set', 'Out', 'Nov', 'Dez'];
+const MONTH_LABELS = [
+  'Jan',
+  'Fev',
+  'Mar',
+  'Abr',
+  'Mai',
+  'Jun',
+  'Jul',
+  'Ago',
+  'Set',
+  'Out',
+  'Nov',
+  'Dez',
+];
 
 @Injectable()
 export class ProviderHomeService {
@@ -26,17 +39,37 @@ export class ProviderHomeService {
         include: {
           client: { select: { name: true } },
           service: { select: { title: true } },
-          payment: { select: { amount: true, providerAmount: true, status: true, paidAt: true } },
-          addressSnap: { select: { neighborhood: true, city: true, state: true } },
+          payment: {
+            select: {
+              amount: true,
+              providerAmount: true,
+              status: true,
+              paidAt: true,
+            },
+          },
+          addressSnap: {
+            select: { neighborhood: true, city: true, state: true },
+          },
           review: { select: { rating: true } },
         },
       }),
     ]);
 
-    const completed = orders.filter(({ status }) => status === OrderStatus.CONCLUIDO);
-    const paid = completed.filter(({ payment }) => payment?.status === PaymentStatus.PAGO);
+    const completed = orders.filter(
+      ({ status }) => status === OrderStatus.CONCLUIDO,
+    );
+    const paid = completed.filter(
+      ({ payment }) =>
+        payment?.status === PaymentStatus.CAPTURED ||
+        payment?.status === PaymentStatus.RELEASED,
+    );
     const revenueFor = (order: (typeof paid)[number]) =>
-      Number(order.payment?.providerAmount ?? order.payment?.amount ?? order.finalPrice ?? 0);
+      Number(
+        order.payment?.providerAmount ??
+          order.payment?.amount ??
+          order.finalPrice ??
+          0,
+      );
     const revenueDateFor = (order: (typeof paid)[number]) =>
       order.payment?.paidAt ?? order.scheduledFor ?? order.requestedAt;
 
@@ -53,7 +86,7 @@ export class ProviderHomeService {
       .reduce((total, order) => total + revenueFor(order), 0);
 
     const pendingRequests = orders
-      .filter(({ status }) => status === OrderStatus.PENDENTE)
+      .filter(({ status }) => status === OrderStatus.AGUARDANDO_APROVACAO)
       .slice(0, 10)
       .map((order) => ({
         id: order.id.toString(),
@@ -70,17 +103,27 @@ export class ProviderHomeService {
       clientName: order.client.name,
       service: order.service.title,
       completedAt: (order.scheduledFor ?? order.requestedAt).toISOString(),
-      amount: Number(order.payment?.providerAmount ?? order.payment?.amount ?? order.finalPrice ?? 0),
+      amount: Number(
+        order.payment?.providerAmount ??
+          order.payment?.amount ??
+          order.finalPrice ??
+          0,
+      ),
       rating: order.review?.rating ?? null,
     }));
 
-    const mostRequested = this.mostFrequent(orders.map((order) => order.service.title));
-    const mostServedNeighborhood = this.mostFrequent(
-      completed.map((order) => order.addressSnap?.neighborhood).filter(Boolean) as string[],
+    const mostRequested = this.mostFrequent(
+      orders.map((order) => order.service.title),
     );
-    const monthlyGrowth = previousMonthRevenue > 0
-      ? ((monthRevenue - previousMonthRevenue) / previousMonthRevenue) * 100
-      : null;
+    const mostServedNeighborhood = this.mostFrequent(
+      completed
+        .map((order) => order.addressSnap?.neighborhood)
+        .filter(Boolean) as string[],
+    );
+    const monthlyGrowth =
+      previousMonthRevenue > 0
+        ? ((monthRevenue - previousMonthRevenue) / previousMonthRevenue) * 100
+        : null;
 
     return {
       earnings: {
@@ -92,7 +135,10 @@ export class ProviderHomeService {
       services: {
         completedTotal: completed.length,
         completedThisWeek: completed.filter((order) => {
-          const age = this.daysAgo(order.scheduledFor ?? order.requestedAt, now);
+          const age = this.daysAgo(
+            order.scheduledFor ?? order.requestedAt,
+            now,
+          );
           return age >= 0 && age < 7;
         }).length,
       },
@@ -105,7 +151,10 @@ export class ProviderHomeService {
       insights: {
         mostRequestedService: mostRequested,
         averageTicket: completed.length
-          ? completed.reduce((total, order) => total + Number(order.finalPrice ?? 0), 0) / completed.length
+          ? completed.reduce(
+              (total, order) => total + Number(order.finalPrice ?? 0),
+              0,
+            ) / completed.length
           : 0,
         mostServedNeighborhood,
         monthlyGrowth,
@@ -116,7 +165,9 @@ export class ProviderHomeService {
   private dateKey(date: Date): string {
     return new Intl.DateTimeFormat('en-CA', {
       timeZone: DASHBOARD_TIMEZONE,
-      year: 'numeric', month: '2-digit', day: '2-digit',
+      year: 'numeric',
+      month: '2-digit',
+      day: '2-digit',
     }).format(date);
   }
 
@@ -126,19 +177,40 @@ export class ProviderHomeService {
 
   private lastMonthKeys(now: Date, count: number) {
     return Array.from({ length: count }, (_, index) => {
-      const date = new Date(now.getFullYear(), now.getMonth() - (count - 1 - index), 1);
-      return { key: `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}`, label: MONTH_LABELS[date.getMonth()] };
+      const date = new Date(
+        now.getFullYear(),
+        now.getMonth() - (count - 1 - index),
+        1,
+      );
+      return {
+        key: `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}`,
+        label: MONTH_LABELS[date.getMonth()],
+      };
     });
   }
 
-  private formatAddress(address: { neighborhood: string | null; city: string | null; state: string | null } | null): string {
+  private formatAddress(
+    address: {
+      neighborhood: string | null;
+      city: string | null;
+      state: string | null;
+    } | null,
+  ): string {
     if (!address) return '';
-    return [address.neighborhood, [address.city, address.state].filter(Boolean).join(' - ')].filter(Boolean).join(', ');
+    return [
+      address.neighborhood,
+      [address.city, address.state].filter(Boolean).join(' - '),
+    ]
+      .filter(Boolean)
+      .join(', ');
   }
 
   private mostFrequent(values: string[]): string | null {
     if (!values.length) return null;
-    const counts = values.reduce((map, value) => map.set(value, (map.get(value) ?? 0) + 1), new Map<string, number>());
+    const counts = values.reduce(
+      (map, value) => map.set(value, (map.get(value) ?? 0) + 1),
+      new Map<string, number>(),
+    );
     return [...counts.entries()].sort((a, b) => b[1] - a[1])[0][0];
   }
 
