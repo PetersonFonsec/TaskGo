@@ -156,7 +156,7 @@ async function main() {
       data: {
         clientId: cliente.id,
         serviceId: servico.id,
-        status: OrderStatus.PENDENTE,
+        status: OrderStatus.AGUARDANDO_APROVACAO,
         finalPrice: servico.basePrice,
         scheduledFor: new Date(SEED_NOW.getTime() + (i + 1) * 24 * 60 * 60 * 1000),
         payment: {

@@ -24,11 +24,16 @@ enum ServiceStatus {
 }
 
 enum OrderStatus {
-  PENDENTE
-  CONFIRMADO
+  AGUARDANDO_APROVACAO
+  REJEITADO
+  AGUARDANDO_PAGAMENTO
+  AGENDADO
+  EM_DESLOCAMENTO
   EM_ANDAMENTO
+  AGUARDANDO_CONFIRMACAO_CLIENTE
   CONCLUIDO
   CANCELADO
+  DISPUTA
 }
 
 enum PaymentMethod {
@@ -38,10 +43,13 @@ enum PaymentMethod {
 }
 
 enum PaymentStatus {
-  PENDENTE
-  PAGO
-  FALHOU
-  CANCELADO
+  CREATED
+  AUTHORIZED
+  CAPTURED
+  RELEASED
+  REFUNDED
+  FAILED
+  CANCELED
 }
 
 enum ServiceAreaMode {
@@ -49,23 +57,46 @@ enum ServiceAreaMode {
   POLYGON
 }
 
+enum OrderEventType {
+  REQUESTED
+  ACCEPTED
+  PAYMENT_AUTHORIZED
+  PROVIDER_ON_THE_WAY
+  SERVICE_STARTED
+  PRICE_UPDATED
+  SERVICE_FINISHED
+  CLIENT_CONFIRMED
+  PAYMENT_CAPTURED
+  PAYMENT_RELEASED
+  CANCELED
+}
+
+enum OrderPhotoType {
+  BEFORE
+  AFTER
+  RECEIPT
+  DAMAGE
+}
+
 // ---------- Models ----------
 
 model User {
-  id            BigInt   @id @default(autoincrement())
-  name          String   @map("nome")
-  email         String   @unique
-  passwordHash  String   @map("senha_hash")
-  phone         String?  @map("telefone")
-  emailVerified Boolean  @default(false) @map("email_verified")
-  phoneVerified Boolean  @default(false) @map("phone_verified")
-  pendingEmail  String?  @map("pending_email")
-  pendingPhone  String?  @map("pending_phone")
-  type          UserType @map("tipo")
-  photoUrl      String?  @map("foto_url")
-  createdAt     DateTime @default(now()) @map("created_at")
-  updatedAt     DateTime @updatedAt @map("updated_at")
-  cpf           String   @unique @map("cpf")
+  id                 BigInt    @id @default(autoincrement())
+  name               String    @map("nome")
+  email              String    @unique
+  passwordHash       String    @map("senha_hash")
+  phone              String?   @map("telefone")
+  emailVerified      Boolean   @default(false) @map("email_verified")
+  phoneVerified      Boolean   @default(false) @map("phone_verified")
+  pendingEmail       String?   @map("pending_email")
+  pendingPhone       String?   @map("pending_phone")
+  type               UserType  @map("tipo")
+  photoUrl           String?   @map("foto_url")
+  createdAt          DateTime  @default(now()) @map("created_at")
+  updatedAt          DateTime  @updatedAt @map("updated_at")
+  cpf                String    @unique @map("cpf")
+  providerFinishedAt DateTime?
+  clientConfirmedAt  DateTime?
 
   // Relations
   provider  Provider?
@@ -141,24 +172,55 @@ model Service {
 }
 
 model Order {
-  id           BigInt      @id @default(autoincrement())
-  clientId     BigInt      @map("cliente_id")
-  serviceId    BigInt      @map("servico_id")
-  status       OrderStatus
-  finalPrice   Decimal?    @map("preco_final")
-  requestedAt  DateTime    @default(now()) @map("solicitado_em")
-  scheduledFor DateTime?   @map("executar_em")
+  id                    BigInt      @id @default(autoincrement())
+  clientId              BigInt      @map("cliente_id")
+  serviceId             BigInt      @map("servico_id")
+  status                OrderStatus
+  finalPrice            Decimal?    @map("preco_final")
+  requestedAt           DateTime    @default(now()) @map("solicitado_em")
+  scheduledFor          DateTime?   @map("executar_em")
+  estimatedPrice        Decimal?
+  priceAdjusted         Boolean     @map("preco_ajustado")
+  priceAdjustmentReason String?     @map("motivo_ajuste_preco")
 
   // Relations
-  client      User          @relation("UserOrders", fields: [clientId], references: [id])
-  service     Service       @relation(fields: [serviceId], references: [id])
-  payment     Payment?
-  review      Avaliacao?
-  addressSnap OrderAddress?
+  client        User           @relation("UserOrders", fields: [clientId], references: [id])
+  service       Service        @relation(fields: [serviceId], references: [id])
+  payment       Payment?
+  review        Avaliacao?
+  addressSnap   OrderAddress?
+  orderTimeline OrderTimeline?
+  orderPhoto    OrderPhoto?
 
   @@index([clientId])
   @@index([serviceId])
   @@map("pedidos")
+}
+
+model OrderTimeline {
+  id          BigInt         @id @default(autoincrement())
+  orderId     BigInt         @unique @map("pedido_id")
+  event       OrderEventType
+  description String?
+  createdBy   UserType
+  createdAt   DateTime
+
+  order Order @relation(fields: [orderId], references: [id], onDelete: Cascade)
+
+  @@map("historico_pedido")
+}
+
+model OrderPhoto {
+  id         BigInt         @id @default(autoincrement())
+  orderId    BigInt         @unique @map("pedido_id")
+  uploadedBy UserType
+  url        String
+  type       OrderPhotoType
+  createdAt  DateTime
+
+  order Order @relation(fields: [orderId], references: [id], onDelete: Cascade)
+
+  @@map("evidencia_pedido_executado")
 }
 
 model Payment {
@@ -340,4 +402,14 @@ model FeatureFlag {
 
   @@index([isActive])
   @@map("feature_flags")
+}
+
+model OrderDispute {
+  id BigInt
+  orderId BigInt
+  openedBy UserType
+  reason String
+  description String
+  status DisputeStatus
+  createdAt DateTime
 }
