@@ -6,14 +6,18 @@ import { ScheduleOrderDto } from './dto/schedule-order.dto';
 import { CreateOrderDto } from './dto/create-order.dto';
 import { UpdateOrderDto } from './dto/update-order.dto';
 import { OrderService } from './order.service';
-import { QueryBus } from '@nestjs/cqrs';
+import { CommandBus, QueryBus } from '@nestjs/cqrs';
 import { GetOrderDetailsQuery } from './queries';
+import { FinishOrderCommand } from './commands';
+import { FinishOrderDto } from './dto/finish-order.dto';
+import { User } from '../../shared/decorators/user.decorator';
 
 @Controller(['order', 'orders'])
 export class OrderController {
   constructor(
     private readonly orderService: OrderService,
     private readonly queryBus: QueryBus,
+    private readonly commandBus: CommandBus,
   ) {}
 
   @Post()
@@ -49,6 +53,17 @@ export class OrderController {
   @Patch(':id')
   update(@Param('id') id: string, @Body() updateOrderDto: UpdateOrderDto) {
     return this.orderService.update(BigInt(id), updateOrderDto);
+  }
+
+  @Patch(':id/finish')
+  finish(
+    @Param('id') id: string,
+    @User('id') providerId: string,
+    @Body() payload: FinishOrderDto,
+  ) {
+    return this.commandBus.execute(
+      new FinishOrderCommand(BigInt(id), BigInt(providerId), payload),
+    );
   }
 
   @Delete(':id')

@@ -158,3 +158,17 @@ export interface OrderDetails {
   timeline: OrderTimelineEvent[];
 }
 
+export interface FinishOrderPayload {
+  finalPrice: number;
+  providerNotes?: string;
+  priceAdjustmentReason?: string;
+  photos: { url: string; type: 'AFTER' | 'RECEIPT' | 'DAMAGE' }[];
+}
+
+export interface FinishOrderResponse {
+  id: string;
+  status: 'AGUARDANDO_CONFIRMACAO_CLIENTE';
+  finalPrice: number;
+  providerFinishedAt: string;
+  message: string;
+}

@@ -64,7 +64,7 @@ export class GetOrderDetailsHandler implements IQueryHandler<GetOrderDetailsQuer
         },
         payment: { select: { method: true, status: true, amount: true, paidAt: true } },
         review: { select: { id: true, rating: true, comment: true, reviewedAt: true } },
-        orderTimeline: { select: { event: true, description: true, createdAt: true } },
+        orderTimeline: { select: { event: true, description: true, createdAt: true }, orderBy: { createdAt: 'asc' } },
       },
     });
 
@@ -72,8 +72,8 @@ export class GetOrderDetailsHandler implements IQueryHandler<GetOrderDetailsQuer
 
     const provider = order.service.provider;
     const estimatedAmount = Number(order.estimatedPrice ?? order.service.basePrice);
-    const timeline = order.orderTimeline
-      ? [this.toTimelineEvent(order.orderTimeline)]
+    const timeline = order.orderTimeline.length
+      ? order.orderTimeline.map((event) => this.toTimelineEvent(event))
       : this.deriveTimeline(order.status, order.requestedAt, order.scheduledFor, order.payment?.paidAt);
 
     return {

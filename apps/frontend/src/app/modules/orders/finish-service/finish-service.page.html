@@ -1,0 +1,59 @@
+<main class="finish-page">
+  @if (toast()) { <div class="toast" role="status"><span>✓</span>{{ toast() }}</div> }
+
+  @if (loading()) {
+    <section class="state-card"><span class="spinner"></span><strong>Carregando atendimento…</strong></section>
+  } @else if (!order()) {
+    <section class="state-card"><span class="error-icon">!</span><h1>Não foi possível continuar</h1><p>{{ error() }}</p><button class="button secondary" (click)="backToDetails()">Voltar</button></section>
+  } @else if (order(); as current) {
+    <header class="page-header">
+      <button class="back-button" type="button" aria-label="Voltar" (click)="backToDetails()">←</button>
+      <div><p>Pedido #{{ current.id }}</p><h1>Finalizar serviço</h1></div>
+      <span class="status"><i></i> Em andamento</span>
+    </header>
+
+    @if (current.status !== 'EM_ANDAMENTO') {
+      <section class="state-card"><span class="error-icon">!</span><h2>Este serviço não pode ser finalizado</h2><p>{{ error() }}</p><button class="button primary" (click)="backToDetails()">Ver detalhes do pedido</button></section>
+    } @else {
+      @if (error()) { <div class="inline-error" role="alert">{{ error() }}</div> }
+      <section class="summary-card">
+        <img [src]="current.client.photoUrl || 'https://dummyimage.com/112x112/dbeafe/2563eb&text=C'" [alt]="'Foto de ' + current.client.name">
+        <div class="customer"><small>Atendimento para</small><h2>{{ current.client.name }}</h2><p>{{ current.service.title }}</p></div>
+        <dl><div><dt>Data</dt><dd>{{ formatDate(current.schedule.scheduledFor) }}</dd></div><div><dt>Horário</dt><dd>{{ formatTime(current.schedule.scheduledFor) }}</dd></div><div><dt>Endereço</dt><dd>{{ address() }}</dd></div><div><dt>Valor estimado</dt><dd class="money">{{ formatMoney(estimatedPrice()) }}</dd></div></dl>
+      </section>
+
+      <form [formGroup]="form" (ngSubmit)="submit()" novalidate>
+        <section class="form-card">
+          <div class="section-heading"><span>1</span><div><h2>Informações da conclusão</h2><p>Conte ao cliente como foi o atendimento.</p></div></div>
+          <label for="finalPrice">Valor final <b>*</b></label>
+          <div class="currency-input"><span>R$</span><input id="finalPrice" type="number" min="0.01" step="0.01" formControlName="finalPrice"></div>
+          @if (submitted() && form.controls.finalPrice.invalid) { <p class="field-error">Informe um valor final maior que zero.</p> }
+
+          <label for="providerNotes">Observações do serviço <em>Opcional</em></label>
+          <textarea id="providerNotes" rows="4" formControlName="providerNotes" placeholder="Descreva brevemente o que foi realizado no atendimento."></textarea>
+
+          @if (priceChanged()) {
+            <div class="adjustment"><span>↗</span><p>O valor final foi alterado em <strong>{{ formatMoney(priceDifference()) }}</strong>.</p></div>
+            <label for="priceReason">Justificativa da alteração <b>*</b></label>
+            <textarea id="priceReason" rows="3" formControlName="priceAdjustmentReason" placeholder="Explique por que o valor final foi alterado."></textarea>
+            @if (submitted() && !form.controls.priceAdjustmentReason.value.trim()) { <p class="field-error">A justificativa é obrigatória quando o valor é alterado.</p> }
+          }
+        </section>
+
+        <section class="form-card">
+          <div class="section-heading"><span>2</span><div><h2>Fotos do serviço</h2><p>Adicione até 5 imagens do trabalho realizado. Opcional.</p></div></div>
+          <label class="upload-area" [class.disabled]="photos().length >= 5" for="photos"><span>＋</span><strong>Adicionar fotos</strong><small>PNG, JPG ou WEBP · {{ photos().length }}/5</small></label>
+          <input class="file-input" id="photos" type="file" accept="image/*" multiple [disabled]="photos().length >= 5" (change)="onFilesSelected($event)">
+          @if (photos().length) { <div class="previews">@for (photo of photos(); track photo.url; let index = $index) { <figure><img [src]="photo.url" [alt]="photo.name"><button type="button" (click)="removePhoto(index)" [attr.aria-label]="'Remover ' + photo.name">×</button><figcaption>Depois</figcaption></figure> }</div> }
+        </section>
+
+        <section class="confirmation-card">
+          <div class="section-heading"><span>3</span><div><h2>Confirme os dados</h2><p>Revise antes de enviar ao cliente.</p></div></div>
+          <dl><div><dt>Valor estimado</dt><dd>{{ formatMoney(estimatedPrice()) }}</dd></div><div><dt>Valor final</dt><dd class="final-value">{{ formatMoney(form.controls.finalPrice.value || 0) }}</dd></div><div><dt>Diferença</dt><dd [class.changed]="priceChanged()">{{ priceDifference() >= 0 ? '+' : '' }}{{ formatMoney(priceDifference()) }}</dd></div>@if (form.controls.providerNotes.value) { <div class="notes"><dt>Observações</dt><dd>{{ form.controls.providerNotes.value }}</dd></div> }</dl>
+        </section>
+
+        <div class="actions"><button class="button secondary" type="button" (click)="backToDetails()">Voltar para detalhes</button><button class="button primary" type="submit" [disabled]="submitting()">{{ submitting() ? 'Enviando…' : 'Enviar conclusão' }} <span>→</span></button></div>
+      </form>
+    }
+  }
+</main>

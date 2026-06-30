@@ -1,7 +1,7 @@
 import { Test, TestingModule } from '@nestjs/testing';
 import { OrderController } from './order.controller';
 import { OrderService } from './order.service';
-import { QueryBus } from '@nestjs/cqrs';
+import { CommandBus, QueryBus } from '@nestjs/cqrs';
 
 describe('OrderController', () => {
   let controller: OrderController;
@@ -23,6 +23,10 @@ describe('OrderController', () => {
     const module: TestingModule = await Test.createTestingModule({
       controllers: [OrderController],
       providers: [
+        {
+          provide: CommandBus,
+          useValue: { execute: jest.fn() },
+        },
         {
           provide: QueryBus,
           useValue: { execute: jest.fn() },

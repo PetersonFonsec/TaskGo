@@ -69,6 +69,10 @@ export class OrderDetailsPage implements OnInit {
 
   runAction(action: OrderAction): void {
     if (!action.status || !this.order()) return;
+    if (action.label === 'Finalizar serviço') {
+      void this.#router.navigate(['/orders', this.order()!.id, 'finish']);
+      return;
+    }
     this.actionLoading.set(true);
     this.#orders.updateOrderStatus(this.order()!.id, action.status)
       .pipe(finalize(() => this.actionLoading.set(false)))

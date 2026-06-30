@@ -1,7 +1,7 @@
 import { HttpClient } from '@angular/common/http';
 import { inject, Injectable } from '@angular/core';
 import { environment } from '@environments/environment';
-import { OrderDetails, OrdersResponse } from './order.model';
+import { FinishOrderPayload, FinishOrderResponse, OrderDetails, OrdersResponse } from './order.model';
 
 @Injectable({
   providedIn: 'root'
@@ -28,6 +28,10 @@ export class Order {
 
   updateOrderStatus(orderId: string, status: string) {
     return this.#http.patch<OrderDetails>(`${this.#urlBase}/${orderId}`, { status });
+  }
+
+  finishOrder(orderId: string, payload: FinishOrderPayload) {
+    return this.#http.patch<FinishOrderResponse>(`${environment.url}/orders/${orderId}/finish`, payload);
   }
 
   confirmOrder(orderId: string, providerId: string) {

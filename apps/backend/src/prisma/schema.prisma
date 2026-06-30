@@ -102,8 +102,6 @@ model User {
   createdAt          DateTime  @default(now()) @map("created_at")
   updatedAt          DateTime  @updatedAt @map("updated_at")
   cpf                String    @unique @map("cpf")
-  providerFinishedAt DateTime?
-  clientConfirmedAt  DateTime?
 
   // Relations
   provider  Provider?
@@ -187,8 +185,9 @@ model Order {
   requestedAt           DateTime    @default(now()) @map("solicitado_em")
   scheduledFor          DateTime?   @map("executar_em")
   estimatedPrice        Decimal?
-  priceAdjusted         Boolean     @map("preco_ajustado")
+  priceAdjusted         Boolean     @default(false) @map("preco_ajustado")
   priceAdjustmentReason String?     @map("motivo_ajuste_preco")
+  providerFinishedAt    DateTime?   @map("provider_finished_at")
 
   // Relations
   client        User           @relation("UserOrders", fields: [clientId], references: [id])
@@ -196,8 +195,9 @@ model Order {
   payment       Payment?
   review        Avaliacao?
   addressSnap   OrderAddress?
-  orderTimeline OrderTimeline?
-  orderPhoto    OrderPhoto?
+  orderTimeline OrderTimeline[]
+  orderPhoto    OrderPhoto[]
+  completion    OrderCompletion?
 
   @@index([clientId])
   @@index([serviceId])
@@ -206,7 +206,7 @@ model Order {
 
 model OrderTimeline {
   id          BigInt         @id @default(autoincrement())
-  orderId     BigInt         @unique @map("pedido_id")
+  orderId     BigInt         @map("pedido_id")
   event       OrderEventType
   description String?
   createdBy   UserType
@@ -214,12 +214,13 @@ model OrderTimeline {
 
   order Order @relation(fields: [orderId], references: [id], onDelete: Cascade)
 
+  @@index([orderId])
   @@map("historico_pedido")
 }
 
 model OrderPhoto {
   id         BigInt         @id @default(autoincrement())
-  orderId    BigInt         @unique @map("pedido_id")
+  orderId    BigInt         @map("pedido_id")
   uploadedBy UserType
   url        String
   type       OrderPhotoType
@@ -227,7 +228,23 @@ model OrderPhoto {
 
   order Order @relation(fields: [orderId], references: [id], onDelete: Cascade)
 
+  @@index([orderId])
   @@map("evidencia_pedido_executado")
+}
+
+model OrderCompletion {
+  id                    BigInt    @id @default(autoincrement())
+  orderId               BigInt    @unique @map("order_id")
+  completedByProviderAt DateTime? @map("completed_by_provider_at")
+  confirmedByClientAt   DateTime? @map("confirmed_by_client_at")
+  providerNotes         String?   @map("provider_notes")
+  clientNotes           String?   @map("client_notes")
+  createdAt             DateTime  @default(now()) @map("created_at")
+  updatedAt             DateTime  @updatedAt @map("updated_at")
+
+  order Order @relation(fields: [orderId], references: [id], onDelete: Cascade)
+
+  @@map("order_completions")
 }
 
 model Payment {

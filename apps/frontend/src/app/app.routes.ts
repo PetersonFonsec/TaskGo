@@ -21,6 +21,13 @@ import { NotFound } from '@modules/common/not-found/not-found';
 export const routes: Routes = [
   { path: '', redirectTo: UrlBase.AUTHENTICATE, pathMatch: 'full' },
   {
+    path: 'orders/:id/finish',
+    title: 'Finalizar serviço',
+    canActivate: [unauthorizedGuard, permissionByRoleGuard([RolesBack.PROVIDER])],
+    loadComponent: () =>
+      import('@modules/orders/finish-service/finish-service.page').then((c) => c.FinishServicePage),
+  },
+  {
     path: 'orders/:id',
     title: 'Detalhes do pedido',
     canActivate: [unauthorizedGuard],
