@@ -61,6 +61,14 @@ export interface ProviderHomeData {
     amount: number;
     status: 'pending';
   }>;
+  activeOrders?: Array<{
+    id: string;
+    clientName: string;
+    service: string;
+    scheduledFor: string | null;
+    amount: number;
+    status: string;
+  }>;
   recentServices: Array<{
     id: string;
     clientName: string;

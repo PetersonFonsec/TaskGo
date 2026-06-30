@@ -4,6 +4,13 @@ import { OrderStatus, PaymentStatus } from '@prisma/client';
 import { PrismaService } from '../../prisma/prisma.service';
 
 const DASHBOARD_TIMEZONE = 'America/Sao_Paulo';
+const ACTIVE_ORDER_STATUSES = new Set<OrderStatus>([
+  OrderStatus.AGUARDANDO_PAGAMENTO,
+  OrderStatus.AGENDADO,
+  OrderStatus.EM_DESLOCAMENTO,
+  OrderStatus.EM_ANDAMENTO,
+  OrderStatus.AGUARDANDO_CONFIRMACAO_CLIENTE,
+]);
 const MONTH_LABELS = [
   'Jan',
   'Fev',
@@ -98,6 +105,18 @@ export class ProviderHomeService {
         status: 'pending' as const,
       }));
 
+    const activeOrders = orders
+      .filter(({ status }) => ACTIVE_ORDER_STATUSES.has(status))
+      .slice(0, 10)
+      .map((order) => ({
+        id: order.id.toString(),
+        clientName: order.client.name,
+        service: order.service.title,
+        scheduledFor: order.scheduledFor?.toISOString() ?? null,
+        amount: Number(order.finalPrice ?? order.payment?.amount ?? 0),
+        status: order.status,
+      }));
+
     const recentServices = completed.slice(0, 5).map((order) => ({
       id: order.id.toString(),
       clientName: order.client.name,
@@ -147,6 +166,7 @@ export class ProviderHomeService {
         count: provider?.ratingCount ?? 0,
       },
       pendingRequests,
+      activeOrders,
       recentServices,
       insights: {
         mostRequestedService: mostRequested,

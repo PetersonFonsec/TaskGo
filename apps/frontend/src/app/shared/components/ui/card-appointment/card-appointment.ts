@@ -1,4 +1,5 @@
 import { Component, computed, input } from '@angular/core';
+import { RouterLink } from '@angular/router';
 import { FaIconComponent } from '@fortawesome/angular-fontawesome';
 import { faCalendarDay, faClock, faLocationDot, faUser } from '@fortawesome/free-solid-svg-icons';
 import { OrderModel } from '@shared/service/order/order.model';
@@ -13,7 +14,7 @@ const STATUS_LABELS: Record<string, string> = {
 
 @Component({
   selector: 'app-card-appointment',
-  imports: [FaIconComponent],
+  imports: [FaIconComponent, RouterLink],
   templateUrl: './card-appointment.html',
   styleUrl: './card-appointment.scss',
 })
@@ -27,6 +28,16 @@ export class CardAppointment {
 
   statusLabel = computed(() => STATUS_LABELS[this.order().status] ?? this.order().status);
   statusTone = computed(() => this.order().status.toLowerCase().replaceAll('_', '-'));
+  action = computed(() => {
+    const order = this.order();
+    if (order.status === 'AGUARDANDO_CONFIRMACAO_CLIENTE') {
+      return { label: 'Confirmar conclusão', route: ['/orders', order.id, 'confirm'] };
+    }
+    if (order.status === 'CONCLUIDO' && !order.review) {
+      return { label: 'Avaliar prestador', route: ['/orders', order.id, 'review'] };
+    }
+    return { label: 'Ver detalhes do pedido', route: ['/orders', order.id] };
+  });
 
   scheduledDate = computed(() => {
     const date = this.toDate(this.order().scheduledFor);

@@ -31,8 +31,8 @@
     </ul>
   </div>
 
-  <footer class="appointment-card__footer">
-    <span>Detalhes do agendamento</span>
+  <a class="appointment-card__footer" [routerLink]="action().route">
+    <span>{{ action().label }}</span>
     <span aria-hidden="true">→</span>
-  </footer>
+  </a>
 </article>

@@ -1,5 +1,7 @@
 import { CurrencyPipe } from '@angular/common';
-import { Component, computed, inject, signal } from '@angular/core';
+import { Component, computed, inject, OnInit, signal } from '@angular/core';
+import { HttpErrorResponse } from '@angular/common/http';
+import { RouterLink } from '@angular/router';
 import { FontAwesomeModule } from '@fortawesome/angular-fontawesome';
 import {
   faCalendarDays,
@@ -19,15 +21,18 @@ import {
   RequestStatus,
 } from './data';
 import { UserLoggedService } from '@shared/service/user-logged/user-logged.service';
+import { Order } from '@shared/service/order/order';
+import { finalize } from 'rxjs';
 
 @Component({
   selector: 'app-provider-home',
-  imports: [CurrencyPipe, FontAwesomeModule, ProviderRevenueChartComponent],
+  imports: [CurrencyPipe, FontAwesomeModule, ProviderRevenueChartComponent, RouterLink],
   templateUrl: './home.html',
   styleUrl: './home.scss',
 })
-export class ProviderHomePage {
+export class ProviderHomePage implements OnInit {
   private readonly session = inject(UserLoggedService).user();
+  private readonly orders = inject(Order);
   private readonly home = this.session.providerHome;
 
   readonly providerName = this.session.user?.name?.split(' ')[0] ?? 'Prestador';
@@ -43,9 +48,15 @@ export class ProviderHomePage {
     ...request,
     ...this.formatSchedule(request.scheduledFor),
   })) ?? pendingRequests.map((request) => ({ ...request })));
+  readonly activeOrders = signal(this.home?.activeOrders?.map((order) => ({
+    ...order,
+    ...this.formatSchedule(order.scheduledFor),
+  })) ?? []);
   readonly pendingCount = computed(
     () => this.requests().filter(({ status }) => status === 'pending').length,
   );
+  readonly updatingRequestIds = signal<Set<string | number>>(new Set());
+  readonly requestError = signal('');
 
   readonly icons = {
     calendar: faCalendarDays,
@@ -55,14 +66,84 @@ export class ProviderHomePage {
     star: faStar,
   };
 
+  ngOnInit(): void {
+    this.loadActiveOrders();
+  }
+
   updateRequestStatus(id: string | number, status: Exclude<RequestStatus, 'pending'>): void {
-    this.requests.update((requests) =>
-      requests.map((request) => (request.id === id ? { ...request, status } : request)),
-    );
+    if (this.updatingRequestIds().has(id)) return;
+
+    const providerId = this.session.user?.id;
+    if (!providerId) {
+      this.requestError.set('Não foi possível identificar o prestador logado.');
+      return;
+    }
+
+    this.requestError.set('');
+    this.updatingRequestIds.update((ids) => new Set(ids).add(id));
+    const request = status === 'accepted'
+      ? this.orders.confirmOrder(String(id), String(providerId))
+      : this.orders.cancelOrder(String(id), String(providerId));
+
+    request.pipe(
+      finalize(() => this.updatingRequestIds.update((ids) => {
+        const next = new Set(ids);
+        next.delete(id);
+        return next;
+      })),
+    ).subscribe({
+      next: () => {
+        this.requests.update((requests) =>
+          requests.map((item) => (item.id === id ? { ...item, status } : item)),
+        );
+        this.loadActiveOrders();
+      },
+      error: (error: HttpErrorResponse) => this.requestError.set(
+        error.error?.message ?? 'Não foi possível responder à solicitação. Tente novamente.',
+      ),
+    });
   }
 
   ratingLabel(rating: number): string {
     return `${rating} ${rating === 1 ? 'estrela' : 'estrelas'}`;
+  }
+
+  statusLabel(status: string): string {
+    const labels: Record<string, string> = {
+      AGUARDANDO_PAGAMENTO: 'Aguardando pagamento',
+      AGENDADO: 'Agendado',
+      EM_DESLOCAMENTO: 'Em deslocamento',
+      EM_ANDAMENTO: 'Em andamento',
+      AGUARDANDO_CONFIRMACAO_CLIENTE: 'Aguardando confirmação do cliente',
+    };
+    return labels[status] ?? status.toLowerCase().replaceAll('_', ' ');
+  }
+
+  private loadActiveOrders(): void {
+    const providerId = this.session.user?.id;
+    if (!providerId) return;
+
+    const activeStatuses = new Set([
+      'AGUARDANDO_PAGAMENTO',
+      'AGENDADO',
+      'EM_DESLOCAMENTO',
+      'EM_ANDAMENTO',
+      'AGUARDANDO_CONFIRMACAO_CLIENTE',
+    ]);
+    this.orders.getOrderByProvider(String(providerId)).subscribe({
+      next: (orders) => this.activeOrders.set(orders
+        .filter((order) => activeStatuses.has(order.status))
+        .map((order) => ({
+          id: order.id,
+          clientName: order.client?.name ?? 'Cliente',
+          service: order.service?.title ?? 'Serviço',
+          scheduledFor: order.scheduledFor ? String(order.scheduledFor) : null,
+          amount: Number((order.finalPrice ?? order.payment?.amount ?? 0) as unknown as number),
+          status: order.status,
+          ...this.formatSchedule(order.scheduledFor ? String(order.scheduledFor) : null),
+        }))),
+      error: () => undefined,
+    });
   }
 
   private buildSummary() {

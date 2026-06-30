@@ -55,6 +55,23 @@ describe('ProviderHomeService', () => {
             },
             review: null,
           },
+          {
+            id: 12n,
+            status: OrderStatus.EM_ANDAMENTO,
+            finalPrice: 150,
+            requestedAt: now,
+            scheduledFor: now,
+            client: { name: 'Ana' },
+            service: { title: 'Hidráulica' },
+            payment: {
+              amount: 150,
+              providerAmount: null,
+              status: PaymentStatus.AUTHORIZED,
+              paidAt: null,
+            },
+            addressSnap: null,
+            review: null,
+          },
         ]),
       },
     };
@@ -90,6 +107,11 @@ describe('ProviderHomeService', () => {
         rating: 5,
       }),
     );
+    expect(result.activeOrders[0]).toEqual(expect.objectContaining({
+      id: '12',
+      status: OrderStatus.EM_ANDAMENTO,
+      clientName: 'Ana',
+    }));
     expect(result.insights).toEqual(
       expect.objectContaining({
         mostRequestedService: 'Elétrica',
@@ -116,6 +138,7 @@ describe('ProviderHomeService', () => {
     expect(result.earnings.today).toBe(0);
     expect(result.earnings.lastSixMonths).toHaveLength(6);
     expect(result.pendingRequests).toEqual([]);
+    expect(result.activeOrders).toEqual([]);
     expect(result.recentServices).toEqual([]);
     expect(result.insights.averageTicket).toBe(0);
   });

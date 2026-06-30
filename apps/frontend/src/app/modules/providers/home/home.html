@@ -46,6 +46,10 @@
         }
       </div>
 
+      @if (requestError()) {
+        <p class="request-error" role="alert">{{ requestError() }}</p>
+      }
+
       <div class="request-list">
         @for (request of requests(); track request.id) {
           <article class="request-card" [class.request-card--resolved]="request.status !== 'pending'">
@@ -68,21 +72,25 @@
               </span>
             </div>
 
+            <a class="request-card__details-link" [routerLink]="['/orders', request.id]">Ver detalhes do pedido →</a>
+
             @if (request.status === 'pending') {
               <div class="request-card__actions">
                 <button
                   class="button button--secondary"
                   type="button"
+                  [disabled]="updatingRequestIds().has(request.id)"
                   (click)="updateRequestStatus(request.id, 'declined')"
                 >
-                  Recusar
+                  {{ updatingRequestIds().has(request.id) ? 'Respondendo…' : 'Recusar' }}
                 </button>
                 <button
                   class="button button--primary"
                   type="button"
+                  [disabled]="updatingRequestIds().has(request.id)"
                   (click)="updateRequestStatus(request.id, 'accepted')"
                 >
-                  Aceitar
+                  {{ updatingRequestIds().has(request.id) ? 'Respondendo…' : 'Aceitar' }}
                 </button>
               </div>
             } @else {
@@ -98,6 +106,33 @@
       </div>
     </section>
   </div>
+
+  @if (activeOrders().length) {
+    <section class="panel active-orders-panel" aria-labelledby="active-orders-title">
+      <div class="section-heading">
+        <div>
+          <h2 id="active-orders-title">Pedidos em andamento</h2>
+          <p>Acompanhe os próximos passos e finalize serviços rapidamente.</p>
+        </div>
+      </div>
+      <div class="request-list">
+        @for (order of activeOrders(); track order.id) {
+          <article class="request-card active-order-card">
+            <div><span class="pending-badge">{{ statusLabel(order.status) }}</span><small>Pedido #{{ order.id }}</small></div>
+            <h3>{{ order.service }}</h3>
+            <p>{{ order.clientName }} · {{ order.date }} @if (order.time) { às {{ order.time }} }</p>
+            <strong>{{ order.amount | currency: 'BRL' : 'symbol' : '1.0-0' }}</strong>
+            <footer class="request-card__actions">
+              <a class="button button--secondary" [routerLink]="['/orders', order.id]">Ver detalhes</a>
+              @if (order.status === 'EM_ANDAMENTO') {
+                <a class="button button--primary" [routerLink]="['/orders', order.id, 'finish']">Finalizar serviço</a>
+              }
+            </footer>
+          </article>
+        }
+      </div>
+    </section>
+  }
 
   <div class="details-grid">
     <section class="panel services-panel">
