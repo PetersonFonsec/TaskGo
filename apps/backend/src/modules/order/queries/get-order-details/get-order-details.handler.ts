@@ -17,6 +17,7 @@ const EVENT_COPY: Record<OrderEventType, { title: string; description?: string }
   PAYMENT_CAPTURED: { title: 'Pagamento confirmado' },
   PAYMENT_RELEASED: { title: 'Pagamento liberado' },
   CANCELED: { title: 'Pedido cancelado' },
+  CLIENT_REVIEWED: { title: 'Atendimento avaliado' },
 };
 
 @QueryHandler(GetOrderDetailsQuery)

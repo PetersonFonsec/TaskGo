@@ -69,6 +69,7 @@ enum OrderEventType {
   PAYMENT_CAPTURED
   PAYMENT_RELEASED
   CANCELED
+  CLIENT_REVIEWED
 }
 
 enum OrderPhotoType {

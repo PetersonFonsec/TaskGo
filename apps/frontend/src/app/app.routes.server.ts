@@ -5,6 +5,10 @@ import { RenderMode, ServerRoute } from '@angular/ssr';
 // Mark these to use Server renderMode so they're rendered per-request instead.
 export const serverRoutes: ServerRoute[] = [
   {
+    path: 'orders/:id/review',
+    renderMode: RenderMode.Server,
+  },
+  {
     path: 'orders/:id/confirm',
     renderMode: RenderMode.Server,
   },

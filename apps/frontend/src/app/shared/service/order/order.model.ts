@@ -183,3 +183,21 @@ export interface ConfirmOrderResponse {
   payment: { status: string; paidAt: string };
   message: string;
 }
+
+export interface ReviewRequest {
+  rating: number;
+  comment?: string;
+  tags: string[];
+}
+
+export interface ReviewResponse {
+  id: string;
+  rating: number;
+  comment: string | null;
+  reviewedAt: string;
+  providerRatingAvg: number;
+  providerRatingCount: number;
+}
+
+export interface RatingOption { value: 1 | 2 | 3 | 4 | 5; label: string }
+export interface ReviewTag { label: string; selected: boolean }

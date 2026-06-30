@@ -8,10 +8,11 @@ import { UpdateOrderDto } from './dto/update-order.dto';
 import { OrderService } from './order.service';
 import { CommandBus, QueryBus } from '@nestjs/cqrs';
 import { GetOrderDetailsQuery } from './queries';
-import { ConfirmOrderCompletionCommand, FinishOrderCommand } from './commands';
+import { ConfirmOrderCompletionCommand, CreateOrderReviewCommand, FinishOrderCommand } from './commands';
 import { FinishOrderDto } from './dto/finish-order.dto';
 import { User } from '../../shared/decorators/user.decorator';
 import { ConfirmOrderCompletionDto } from './dto/confirm-order-completion.dto';
+import { CreateOrderReviewDto } from './dto/create-order-review.dto';
 
 @Controller(['order', 'orders'])
 export class OrderController {
@@ -75,6 +76,17 @@ export class OrderController {
   ) {
     return this.commandBus.execute(
       new ConfirmOrderCompletionCommand(BigInt(id), BigInt(clientId), payload),
+    );
+  }
+
+  @Post(':id/review')
+  createReview(
+    @Param('id') id: string,
+    @User('id') clientId: string,
+    @Body() payload: CreateOrderReviewDto,
+  ) {
+    return this.commandBus.execute(
+      new CreateOrderReviewCommand(BigInt(id), BigInt(clientId), payload),
     );
   }
 
