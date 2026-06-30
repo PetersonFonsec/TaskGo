@@ -188,6 +188,7 @@ model Order {
   priceAdjusted         Boolean     @default(false) @map("preco_ajustado")
   priceAdjustmentReason String?     @map("motivo_ajuste_preco")
   providerFinishedAt    DateTime?   @map("provider_finished_at")
+  clientConfirmedAt     DateTime?   @map("client_confirmed_at")
 
   // Relations
   client        User           @relation("UserOrders", fields: [clientId], references: [id])

@@ -156,6 +156,9 @@ export interface OrderDetails {
   payment: OrderPaymentSummary | null;
   review: { id: string; rating: number; comment?: string | null; reviewedAt: string } | null;
   timeline: OrderTimelineEvent[];
+  completion: { providerFinishedAt: string | null; providerNotes: string | null };
+  priceAdjustmentReason: string | null;
+  photos: { id: string; url: string; type: 'BEFORE' | 'AFTER' | 'RECEIPT' | 'DAMAGE' }[];
 }
 
 export interface FinishOrderPayload {
@@ -170,5 +173,13 @@ export interface FinishOrderResponse {
   status: 'AGUARDANDO_CONFIRMACAO_CLIENTE';
   finalPrice: number;
   providerFinishedAt: string;
+  message: string;
+}
+
+export interface ConfirmOrderResponse {
+  id: string;
+  status: 'CONCLUIDO';
+  clientConfirmedAt: string;
+  payment: { status: string; paidAt: string };
   message: string;
 }

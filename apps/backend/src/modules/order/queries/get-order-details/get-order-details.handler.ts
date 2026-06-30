@@ -33,6 +33,8 @@ export class GetOrderDetailsHandler implements IQueryHandler<GetOrderDetailsQuer
         scheduledFor: true,
         estimatedPrice: true,
         finalPrice: true,
+        priceAdjustmentReason: true,
+        providerFinishedAt: true,
         client: { select: { id: true, name: true, photoUrl: true } },
         service: {
           select: {
@@ -64,6 +66,8 @@ export class GetOrderDetailsHandler implements IQueryHandler<GetOrderDetailsQuer
         },
         payment: { select: { method: true, status: true, amount: true, paidAt: true } },
         review: { select: { id: true, rating: true, comment: true, reviewedAt: true } },
+        completion: { select: { providerNotes: true, completedByProviderAt: true } },
+        orderPhoto: { select: { id: true, url: true, type: true }, orderBy: { createdAt: 'asc' } },
         orderTimeline: { select: { event: true, description: true, createdAt: true }, orderBy: { createdAt: 'asc' } },
       },
     });
@@ -107,6 +111,12 @@ export class GetOrderDetailsHandler implements IQueryHandler<GetOrderDetailsQuer
       review: order.review
         ? { ...order.review, id: order.review.id.toString() }
         : null,
+      completion: {
+        providerFinishedAt: order.completion?.completedByProviderAt ?? order.providerFinishedAt,
+        providerNotes: order.completion?.providerNotes ?? null,
+      },
+      priceAdjustmentReason: order.priceAdjustmentReason,
+      photos: order.orderPhoto.map((photo) => ({ ...photo, id: photo.id.toString() })),
       timeline,
     };
   }

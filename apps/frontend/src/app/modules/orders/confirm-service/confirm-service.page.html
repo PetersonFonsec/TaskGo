@@ -1,0 +1,36 @@
+<main class="confirm-page">
+  @if (toast()) { <div class="toast" role="status"><span>✓</span>{{ toast() }}</div> }
+  @if (loading()) {
+    <section class="state-card"><span class="spinner"></span><strong>Carregando serviço…</strong></section>
+  } @else if (!order()) {
+    <section class="state-card"><span class="error-icon">!</span><h1>Não foi possível continuar</h1><p>{{ error() }}</p><button class="button secondary" (click)="back()">Voltar</button></section>
+  } @else if (order(); as current) {
+    <header class="page-header"><button class="back-button" type="button" aria-label="Voltar" (click)="back()">←</button><div><p>Pedido #{{ current.id }}</p><h1>Confirmar conclusão</h1></div><span class="status"><i></i>Aguardando sua confirmação</span></header>
+
+    @if (current.status !== 'AGUARDANDO_CONFIRMACAO_CLIENTE' || error()) {
+      <section class="state-card"><span class="error-icon">!</span><h2>Confirmação indisponível</h2><p>{{ error() }}</p><button class="button primary" (click)="back()">Ver detalhes do pedido</button></section>
+    } @else {
+      @if (error()) { <div class="inline-error" role="alert">{{ error() }}</div> }
+      <section class="provider-card"><img [src]="current.provider.photoUrl || 'https://dummyimage.com/120x120/ede9fe/6d28d9&text=P'" [alt]="'Foto de ' + current.provider.name"><div><small>Serviço realizado por</small><h2>{{ current.provider.name }} @if (current.provider.verified) { <span class="verified" title="Prestador verificado">✓</span> }</h2><p>{{ current.service.title }}</p></div><span class="rating">★ {{ current.provider.ratingAvg?.toFixed(1) }} <em>({{ current.provider.ratingCount }} avaliações)</em></span></section>
+
+      <div class="content-grid">
+        <section class="card"><div class="card-heading"><span>✓</span><div><h2>Resumo do serviço</h2><p>Confira o atendimento realizado</p></div></div><dl class="details"><div><dt>Serviço contratado</dt><dd>{{ current.service.title }}</dd></div><div><dt>Agendamento</dt><dd>{{ formatDate(current.schedule.scheduledFor) }} às {{ formatTime(current.schedule.scheduledFor) }}</dd></div><div class="wide"><dt>Endereço</dt><dd>{{ address() }}</dd></div><div class="wide notes"><dt>Observações do prestador</dt><dd>{{ current.completion.providerNotes || 'O prestador não deixou observações.' }}</dd></div><div class="wide finished"><dt>Conclusão informada em</dt><dd>{{ formatDate(current.completion.providerFinishedAt, true) }}</dd></div></dl></section>
+
+        <section class="card financial"><div class="card-heading"><span>R$</span><div><h2>Resumo financeiro</h2><p>Valores e pagamento</p></div></div><dl><div><dt>Valor estimado</dt><dd>{{ formatMoney(estimatedPrice()) }}</dd></div><div><dt>Valor final</dt><dd class="final-price">{{ formatMoney(finalPrice()) }}</dd></div><div><dt>Diferença</dt><dd [class.adjusted]="priceChanged()">{{ difference() >= 0 ? '+' : '' }}{{ formatMoney(difference()) }}</dd></div></dl>
+          @if (priceChanged()) { <div class="price-message adjusted-box"><strong>O valor final foi ajustado.</strong><p>{{ current.priceAdjustmentReason }}</p></div> } @else { <div class="price-message"><span>✓</span>O valor final permaneceu igual ao estimado.</div> }
+          <div class="payment"><div><small>Forma de pagamento</small><strong>{{ humanize(current.payment?.method || 'Não informado') }}</strong></div><div><small>Status</small><strong>{{ humanize(current.payment?.status || 'Não informado') }}</strong></div></div>
+        </section>
+      </div>
+
+      <section class="card photos-card"><div class="card-heading"><span>▧</span><div><h2>Fotos do serviço</h2><p>Registros enviados pelo prestador</p></div></div>@if (current.photos.length) { <div class="photos">@for (photo of current.photos; track photo.id) { <a [href]="photo.url" target="_blank" rel="noopener"><img [src]="photo.url" alt="Foto do serviço concluído"><span>{{ humanize(photo.type) }}</span></a> }</div> } @else { <div class="empty-photos"><span>▧</span><p>Nenhuma foto foi enviada pelo prestador.</p></div> }</section>
+
+      <section class="confirmation"><span class="shield">✓</span><div><h2>Confirme com segurança</h2><p>Confirme apenas se o serviço foi realizado corretamente. Após confirmar, o pagamento será processado e o prestador será notificado.</p></div><div class="actions"><button class="button secondary danger" type="button" (click)="reportProblem()">Reportar problema</button><button class="button primary" type="button" (click)="modalOpen.set(true)">Confirmar conclusão</button></div></section>
+    }
+  }
+
+  @if (modalOpen()) {
+    <div class="modal-backdrop" (click)="modalOpen.set(false)">
+      <section class="modal" role="dialog" aria-modal="true" aria-labelledby="confirm-title" (click)="$event.stopPropagation()"><span class="modal-icon">✓</span><h2 id="confirm-title">Tem certeza que deseja confirmar a conclusão deste serviço?</h2><p>Depois da confirmação, o pagamento será processado e esta ação não poderá ser desfeita pelo aplicativo.</p><div><button class="button secondary" type="button" [disabled]="confirming()" (click)="modalOpen.set(false)">Cancelar</button><button class="button primary" type="button" [disabled]="confirming()" (click)="confirm()">{{ confirming() ? 'Confirmando…' : 'Confirmar' }}</button></div></section>
+    </div>
+  }
+</main>

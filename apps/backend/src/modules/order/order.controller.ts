@@ -8,9 +8,10 @@ import { UpdateOrderDto } from './dto/update-order.dto';
 import { OrderService } from './order.service';
 import { CommandBus, QueryBus } from '@nestjs/cqrs';
 import { GetOrderDetailsQuery } from './queries';
-import { FinishOrderCommand } from './commands';
+import { ConfirmOrderCompletionCommand, FinishOrderCommand } from './commands';
 import { FinishOrderDto } from './dto/finish-order.dto';
 import { User } from '../../shared/decorators/user.decorator';
+import { ConfirmOrderCompletionDto } from './dto/confirm-order-completion.dto';
 
 @Controller(['order', 'orders'])
 export class OrderController {
@@ -63,6 +64,17 @@ export class OrderController {
   ) {
     return this.commandBus.execute(
       new FinishOrderCommand(BigInt(id), BigInt(providerId), payload),
+    );
+  }
+
+  @Patch(':id/confirm')
+  confirmCompletion(
+    @Param('id') id: string,
+    @User('id') clientId: string,
+    @Body() payload: ConfirmOrderCompletionDto,
+  ) {
+    return this.commandBus.execute(
+      new ConfirmOrderCompletionCommand(BigInt(id), BigInt(clientId), payload),
     );
   }
 

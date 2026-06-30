@@ -73,6 +73,14 @@ export class OrderDetailsPage implements OnInit {
       void this.#router.navigate(['/orders', this.order()!.id, 'finish']);
       return;
     }
+    if (action.label === 'Confirmar conclusão') {
+      void this.#router.navigate(['/orders', this.order()!.id, 'confirm']);
+      return;
+    }
+    if (action.label === 'Reportar problema') {
+      void this.#router.navigate(['/orders', this.order()!.id, 'report-problem']);
+      return;
+    }
     this.actionLoading.set(true);
     this.#orders.updateOrderStatus(this.order()!.id, action.status)
       .pipe(finalize(() => this.actionLoading.set(false)))

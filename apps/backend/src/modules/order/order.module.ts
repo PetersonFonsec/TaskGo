@@ -5,10 +5,11 @@ import { ProviderModule } from '../provider/provider.module';
 import { CqrsModule } from '@nestjs/cqrs';
 import { OrderQueryHandlers } from './queries';
 import { OrderCommandHandlers } from './commands';
+import { PaymentService } from './payment/payment.service';
 
 @Module({
   imports: [ProviderModule, CqrsModule],
   controllers: [OrderController],
-  providers: [OrderService, ...OrderQueryHandlers, ...OrderCommandHandlers],
+  providers: [OrderService, PaymentService, ...OrderQueryHandlers, ...OrderCommandHandlers],
 })
 export class OrderModule {}
