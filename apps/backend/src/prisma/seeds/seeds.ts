@@ -15,6 +15,16 @@ const prisma = new PrismaClient();
 const SEED_EMAIL_DOMAIN = 'teste.com';
 const SEED_PASSWORD = '123456';
 const SEED_NOW = new Date('2026-01-05T12:00:00.000Z');
+const REVIEW_TAGS = [
+  { name: 'Pontual', slug: 'pontual' },
+  { name: 'Preço justo', slug: 'preco-justo' },
+  { name: 'Boa comunicação', slug: 'boa-comunicacao' },
+  { name: 'Serviço limpo', slug: 'servico-limpo' },
+  { name: 'Resolveu o problema', slug: 'resolveu-o-problema' },
+  { name: 'Prestador educado', slug: 'prestador-educado' },
+  { name: 'Voltaria a contratar', slug: 'voltaria-a-contratar' },
+  { name: 'Atendimento rápido', slug: 'atendimento-rapido' },
+];
 
 const defaultServiceAvailability = {
   timezone: 'America/Sao_Paulo',
@@ -28,6 +38,12 @@ const defaultServiceAvailability = {
 };
 
 async function main() {
+  await Promise.all(REVIEW_TAGS.map((tag) => prisma.reviewTag.upsert({
+    where: { slug: tag.slug },
+    update: { name: tag.name, isActive: true },
+    create: tag,
+  })));
+
   // Keep the development dataset repeatable without touching non-seed users.
   // Orders must be removed first because the client relation is restrictive.
   const seedUsers = await prisma.user.findMany({

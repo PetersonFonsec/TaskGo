@@ -1,7 +1,7 @@
 import { HttpClient } from '@angular/common/http';
 import { inject, Injectable } from '@angular/core';
 import { environment } from '@environments/environment';
-import { ConfirmOrderResponse, FinishOrderPayload, FinishOrderResponse, OrderDetails, OrdersResponse, ReviewRequest, ReviewResponse } from './order.model';
+import { ConfirmOrderResponse, CreateReviewRequest, CreateReviewResponse, FinishOrderPayload, FinishOrderResponse, OrderDetails, OrdersResponse, ReviewTag } from './order.model';
 
 @Injectable({
   providedIn: 'root'
@@ -26,6 +26,10 @@ export class Order {
     return this.#http.get<OrderDetails>(`${environment.url}/orders/${orderId}`);
   }
 
+  getReviewTags() {
+    return this.#http.get<ReviewTag[]>(`${environment.url}/review-tags`);
+  }
+
   updateOrderStatus(orderId: string, status: string) {
     return this.#http.patch<OrderDetails>(`${this.#urlBase}/${orderId}`, { status });
   }
@@ -38,8 +42,8 @@ export class Order {
     return this.#http.patch<ConfirmOrderResponse>(`${environment.url}/orders/${orderId}/confirm`, { clientNotes });
   }
 
-  createReview(orderId: string, payload: ReviewRequest) {
-    return this.#http.post<ReviewResponse>(`${environment.url}/orders/${orderId}/review`, payload);
+  createReview(orderId: string, payload: CreateReviewRequest) {
+    return this.#http.post<CreateReviewResponse>(`${environment.url}/orders/${orderId}/review`, payload);
   }
 
   confirmOrder(orderId: string, providerId: string) {

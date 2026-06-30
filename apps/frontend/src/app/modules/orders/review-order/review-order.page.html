@@ -1,25 +1,32 @@
 <main class="review-page">
   @if (loading()) {
     <section class="state-card"><span class="spinner"></span><strong>Carregando atendimento…</strong></section>
-  } @else if (success()) {
-    <section class="success-card"><div class="illustration"><span>★</span><i>✓</i></div><p class="eyebrow">Avaliação enviada</p><h1>Obrigado pela avaliação!</h1><p>Sua opinião ajuda outros clientes a encontrarem excelentes profissionais.</p><button class="button primary" (click)="goHome()">Voltar para Home</button></section>
   } @else if (order(); as current) {
+    @if (success()) { <div class="toast" role="status"><span>✓</span> Obrigado pela avaliação!</div> }
     <header><button class="back" type="button" aria-label="Voltar" (click)="back()">←</button><div><p class="eyebrow">Pedido #{{ current.id }}</p><h1>Avaliar atendimento</h1><p>Conte como foi sua experiência com {{ current.provider.name }}.</p></div></header>
 
     @if (error()) { <div class="inline-error" role="alert">{{ error() }}</div> }
-    <section class="provider-card"><img [src]="current.provider.photoUrl || 'https://dummyimage.com/120x120/ede9fe/6d28d9&text=P'" [alt]="'Foto de ' + current.provider.name"><div><small>Prestador</small><h2>{{ current.provider.name }}</h2><p>{{ current.service.title }}</p></div><dl><div><dt>Realizado em</dt><dd>{{ formatDate(current.schedule.scheduledFor) }}</dd></div><div><dt>Valor pago</dt><dd>{{ formatMoney(current.payment?.finalAmount ?? current.service.estimatedPrice) }}</dd></div></dl></section>
+    <section class="provider-card"><img [src]="current.provider.photoUrl || 'https://dummyimage.com/120x120/ede9fe/6d28d9&text=P'" [alt]="'Foto de ' + current.provider.name"><div><small>Prestador</small><h2>{{ current.provider.name }}</h2><p>{{ current.service.title }}</p></div><dl><div><dt>Realizado em</dt><dd>{{ formatDate(current.completion.providerFinishedAt || current.schedule.scheduledFor) }}</dd></div><div><dt>Valor pago</dt><dd>{{ formatMoney(current.payment?.finalAmount ?? current.service.estimatedPrice) }}</dd></div></dl></section>
 
     <section class="review-card">
       <div class="step"><span>1</span><div><h2>Como foi o atendimento?</h2><p>Sua avaliação será publicada no perfil do prestador.</p></div></div>
       <div class="rating-area"><app-rating [value]="rating()" (valueChange)="rating.set($event)" /><strong [class.selected]="rating()">{{ ratingMessage() }}</strong></div>
 
-      <div class="divider"></div><div class="step"><span>2</span><div><h2>O que mais chamou sua atenção?</h2><p>Selecione quantas opções quiser. Opcional.</p></div></div>
-      <div class="chips">@for (tag of tags; track tag) { <app-review-tag-chip [label]="tag" [selected]="selectedTags().includes(tag)" (selectedChange)="toggleTag(tag, $event)" /> }</div>
+      <div class="divider"></div><div class="step"><span>2</span><div><h2>O que mais se destacou?</h2><p>Selecione quantas opções quiser. Opcional.</p></div></div>
+      @if (tagsLoading()) {
+        <div class="tag-skeleton" aria-label="Carregando tags"><span></span><span></span><span></span></div>
+      } @else if (tags().length) {
+        <div class="chips">
+          @for (tag of tags(); track tag.id) {
+            <app-review-tag-chip [tag]="tag" [selected]="selectedTagIds().includes(tag.id)" (toggle)="toggleTag(tag.id)" />
+          }
+        </div>
+      }
 
       <div class="divider"></div><div class="step"><span>3</span><div><h2>Quer contar mais detalhes?</h2><p>Seu comentário é opcional.</p></div></div>
       <label for="comment">Comentário <span>{{ comment().length }}/500</span></label><textarea id="comment" rows="5" maxlength="500" [ngModel]="comment()" (ngModelChange)="setComment($event)" placeholder="Conte um pouco sobre sua experiência."></textarea>
 
-      <button class="button primary submit" type="button" [disabled]="!rating() || submitting()" (click)="submit()">{{ submitting() ? 'Enviando avaliação…' : 'Enviar avaliação' }} <span>→</span></button>
+      <button class="button primary submit" type="button" [disabled]="!rating() || submitting() || success()" (click)="submit()">{{ submitting() ? 'Enviando avaliação…' : 'Enviar avaliação' }} <span>→</span></button>
     </section>
   } @else {
     <section class="state-card"><span class="error-icon">!</span><h1>Não foi possível avaliar</h1><p>{{ error() }}</p><button class="button secondary" (click)="back()">Voltar para o pedido</button></section>

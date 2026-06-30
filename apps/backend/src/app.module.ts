@@ -14,6 +14,7 @@ import { ProviderModule } from './modules/provider/provider.module';
 import { AuthGuard } from './modules/auth/auth.guard';
 import { FeatureFlagModule } from './feature-flag/feature-flag.module';
 import { BigIntInterceptor } from './shared/interceptors/bigint.interceptor';
+import { ReviewTagModule } from './modules/review-tag/review-tag.module';
 
 @Module({
   imports: [
@@ -25,7 +26,8 @@ import { BigIntInterceptor } from './shared/interceptors/bigint.interceptor';
     ServicesModule,
     CategoriesModule,
     ProviderModule,
-    FeatureFlagModule
+    FeatureFlagModule,
+    ReviewTagModule,
   ],
   controllers: [AppController],
   providers: [

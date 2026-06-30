@@ -10,6 +10,7 @@ export class CreateOrderReviewHandler implements ICommandHandler<CreateOrderRevi
   constructor(private readonly prisma: PrismaService) {}
 
   async execute({ orderId, clientId, payload }: CreateOrderReviewCommand) {
+    const tagIds = this.parseTagIds(payload.tagIds ?? []);
     const order = await this.prisma.order.findUnique({
       where: { id: orderId },
       select: {
@@ -22,11 +23,22 @@ export class CreateOrderReviewHandler implements ICommandHandler<CreateOrderRevi
 
     if (!order) throw new NotFoundException(`Pedido ${orderId.toString()} não encontrado`);
     if (order.clientId !== clientId) throw new ForbiddenException('Apenas o cliente deste pedido pode avaliar o prestador');
+    if (order.service.providerId === clientId) throw new ForbiddenException('O prestador não pode avaliar a si mesmo');
     if (order.status !== OrderStatus.CONCLUIDO) throw new BadRequestException('Somente pedidos concluídos podem ser avaliados');
     if (order.review) throw new ConflictException('Este pedido já possui uma avaliação');
 
     try {
       return await this.prisma.$transaction(async (prisma) => {
+        const activeTags = tagIds.length
+          ? await prisma.reviewTag.findMany({
+              where: { id: { in: tagIds }, isActive: true },
+              select: { id: true },
+            })
+          : [];
+        if (activeTags.length !== tagIds.length) {
+          throw new BadRequestException('Uma ou mais tags são inválidas ou estão inativas');
+        }
+
         const review = await prisma.avaliacao.create({
           data: {
             orderId,
@@ -34,20 +46,31 @@ export class CreateOrderReviewHandler implements ICommandHandler<CreateOrderRevi
             providerId: order.service.providerId,
             rating: payload.rating,
             comment: payload.comment?.trim() || null,
+            tags: tagIds.length
+              ? { create: tagIds.map((tagId) => ({ tagId })) }
+              : undefined,
           },
-          select: { id: true, rating: true, comment: true, reviewedAt: true },
+          select: {
+            id: true,
+            rating: true,
+            comment: true,
+            reviewedAt: true,
+            tags: {
+              select: { tag: { select: { id: true, name: true, slug: true } } },
+            },
+          },
         });
 
         const reputation = await prisma.avaliacao.aggregate({
           where: { providerId: order.service.providerId },
           _avg: { rating: true },
-          _count: { rating: true },
+          _count: { id: true },
         });
         const provider = await prisma.provider.update({
           where: { id: order.service.providerId },
           data: {
             ratingAvg: reputation._avg.rating ?? payload.rating,
-            ratingCount: reputation._count.rating,
+            ratingCount: reputation._count.id,
           },
           select: { ratingAvg: true, ratingCount: true },
         });
@@ -64,11 +87,16 @@ export class CreateOrderReviewHandler implements ICommandHandler<CreateOrderRevi
         // TODO(notification): notify provider: "Você recebeu uma nova avaliação."
         return {
           id: review.id.toString(),
+          orderId: orderId.toString(),
           rating: review.rating,
           comment: review.comment,
           reviewedAt: review.reviewedAt,
-          providerRatingAvg: Number(provider.ratingAvg ?? 0),
-          providerRatingCount: provider.ratingCount,
+          tags: review.tags.map(({ tag }) => ({ ...tag, id: tag.id.toString() })),
+          provider: {
+            id: order.service.providerId.toString(),
+            ratingAvg: Number(provider.ratingAvg ?? 0),
+            ratingCount: provider.ratingCount,
+          },
         };
       }, { isolationLevel: Prisma.TransactionIsolationLevel.Serializable });
     } catch (error) {
@@ -77,5 +105,22 @@ export class CreateOrderReviewHandler implements ICommandHandler<CreateOrderRevi
       }
       throw error;
     }
+  }
+
+  private parseTagIds(values: string[]): bigint[] {
+    let tagIds: bigint[];
+    try {
+      tagIds = values.map((value) => {
+        if (!/^\d+$/.test(value)) throw new Error('invalid tag id');
+        return BigInt(value);
+      });
+    } catch {
+      throw new BadRequestException('Uma ou mais tags possuem id inválido');
+    }
+
+    if (new Set(tagIds.map(String)).size !== tagIds.length) {
+      throw new BadRequestException('Não é permitido enviar tags duplicadas');
+    }
+    return tagIds;
   }
 }

@@ -1,4 +1,14 @@
-import { ArrayMaxSize, IsArray, IsInt, IsOptional, IsString, Max, MaxLength, Min } from 'class-validator';
+import {
+  ArrayUnique,
+  IsArray,
+  IsInt,
+  IsOptional,
+  IsString,
+  Matches,
+  Max,
+  MaxLength,
+  Min,
+} from 'class-validator';
 
 export class CreateOrderReviewDto {
   @IsInt()
@@ -13,8 +23,8 @@ export class CreateOrderReviewDto {
 
   @IsOptional()
   @IsArray()
-  @ArrayMaxSize(7)
+  @ArrayUnique()
   @IsString({ each: true })
-  @MaxLength(60, { each: true })
-  tags: string[] = [];
+  @Matches(/^\d+$/, { each: true })
+  tagIds?: string[];
 }

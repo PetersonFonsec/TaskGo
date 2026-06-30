@@ -184,20 +184,30 @@ export interface ConfirmOrderResponse {
   message: string;
 }
 
-export interface ReviewRequest {
-  rating: number;
-  comment?: string;
-  tags: string[];
+export interface ReviewTag {
+  id: string;
+  name: string;
+  slug: string;
 }
 
-export interface ReviewResponse {
+export interface CreateReviewRequest {
+  rating: number;
+  comment?: string;
+  tagIds?: string[];
+}
+
+export interface CreateReviewResponse {
   id: string;
+  orderId: string;
   rating: number;
   comment: string | null;
   reviewedAt: string;
-  providerRatingAvg: number;
-  providerRatingCount: number;
+  tags: ReviewTag[];
+  provider: {
+    id: string;
+    ratingAvg: number;
+    ratingCount: number;
+  };
 }
 
 export interface RatingOption { value: 1 | 2 | 3 | 4 | 5; label: string }
-export interface ReviewTag { label: string; selected: boolean }
