@@ -6,10 +6,15 @@ import { ScheduleOrderDto } from './dto/schedule-order.dto';
 import { CreateOrderDto } from './dto/create-order.dto';
 import { UpdateOrderDto } from './dto/update-order.dto';
 import { OrderService } from './order.service';
+import { QueryBus } from '@nestjs/cqrs';
+import { GetOrderDetailsQuery } from './queries';
 
-@Controller('order')
+@Controller(['order', 'orders'])
 export class OrderController {
-  constructor(private readonly orderService: OrderService) {}
+  constructor(
+    private readonly orderService: OrderService,
+    private readonly queryBus: QueryBus,
+  ) {}
 
   @Post()
   create(@Body() createOrderDto: CreateOrderDto) {
@@ -23,7 +28,7 @@ export class OrderController {
 
   @Get(':id')
   findOne(@Param('id') id: string) {
-    return this.orderService.findOne(BigInt(id));
+    return this.queryBus.execute(new GetOrderDetailsQuery(BigInt(id)));
   }
 
   @Get(':id/summary')

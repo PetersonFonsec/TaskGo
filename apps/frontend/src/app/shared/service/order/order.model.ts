@@ -109,4 +109,52 @@ export interface OrderModel {
 
 export type OrdersResponse = OrderModel[];
 
+export type OrderUserRole = 'CLIENTE' | 'PRESTADOR';
+
+export interface OrderParticipant {
+  id: string;
+  name: string;
+  photoUrl: string | null;
+  ratingAvg?: number;
+  ratingCount?: number;
+  verified?: boolean;
+}
+
+export interface OrderAddressSummary {
+  street: string | null;
+  number: string | null;
+  complement: string | null;
+  neighborhood: string | null;
+  city: string | null;
+  state: string | null;
+  cep: string | null;
+}
+
+export interface OrderPaymentSummary {
+  method: string;
+  status: string;
+  estimatedAmount: number;
+  finalAmount: number | null;
+}
+
+export interface OrderTimelineEvent {
+  type?: string;
+  title: string;
+  description?: string | null;
+  date: string;
+  completed: boolean;
+}
+
+export interface OrderDetails {
+  id: string;
+  status: string;
+  service: { id: string; title: string; category: string; estimatedPrice: number };
+  provider: OrderParticipant;
+  client: OrderParticipant;
+  schedule: { requestedAt: string; scheduledFor: string | null };
+  address: OrderAddressSummary | null;
+  payment: OrderPaymentSummary | null;
+  review: { id: string; rating: number; comment?: string | null; reviewedAt: string } | null;
+  timeline: OrderTimelineEvent[];
+}
 

@@ -1,0 +1,45 @@
+<main class="order-page">
+  @if (loading()) {
+    <div class="state-card loading" aria-live="polite">
+      <span class="spinner"></span><strong>Carregando detalhes do pedido…</strong>
+    </div>
+  } @else if (error() && !order()) {
+    <div class="state-card error-state">
+      <span class="state-icon">!</span><h1>Ops, algo deu errado</h1><p>{{ error() }}</p>
+      <div><button class="button primary" (click)="load()">Tentar novamente</button><button class="button link" (click)="goBack()">Voltar</button></div>
+    </div>
+  } @else if (order(); as current) {
+    <header class="page-header">
+      <button class="icon-button" type="button" aria-label="Voltar" (click)="goBack()">←</button>
+      <div><p class="eyebrow">Pedido #{{ current.id }}</p><h1>Detalhes do pedido</h1></div>
+      <span class="status" [attr.data-status]="current.status">{{ statusLabel() }}</span>
+      <a class="icon-button help" href="mailto:suporte@proxi.com.br" aria-label="Falar com o suporte">?</a>
+    </header>
+
+    @if (error()) { <div class="inline-error" role="alert">{{ error() }}</div> }
+
+    <section class="hero-card">
+      <div class="service-symbol" aria-hidden="true">⚡</div>
+      <div class="service-copy"><span>{{ current.service.category }}</span><h2>{{ current.service.title }}</h2><p>Solicitado em {{ formatDate(current.schedule.requestedAt) }}</p></div>
+      <div class="participant">
+        <img [src]="current.provider.photoUrl || 'https://dummyimage.com/120x120/ede9fe/6d28d9&text=P'" [alt]="'Foto de ' + current.provider.name">
+        <div><small>Prestador</small><strong>{{ current.provider.name }} @if (current.provider.verified) { <span class="verified" title="Prestador verificado">✓</span> }</strong><span class="rating">★ {{ current.provider.ratingAvg?.toFixed(1) }} <em>({{ current.provider.ratingCount }})</em></span></div>
+      </div>
+      @if (role() === 'PRESTADOR') { <div class="client"><small>Cliente</small><strong>{{ current.client.name }}</strong></div> }
+    </section>
+
+    <div class="content-grid">
+      <div class="cards-column">
+        <section class="card"><div class="card-title"><span>▣</span><div><h2>Agendamento</h2><p>Quando e onde será o atendimento</p></div></div>
+          <dl class="details-grid"><div><dt>Data</dt><dd>{{ formatDate(current.schedule.scheduledFor) }}</dd></div><div><dt>Horário</dt><dd>{{ formatTime(current.schedule.scheduledFor) }}</dd></div><div class="wide"><dt>Endereço</dt><dd>{{ addressLine(current) }}</dd><span>{{ current.address?.city || 'Cidade não informada' }}@if (current.address?.state) { / {{ current.address?.state }}} · CEP {{ current.address?.cep || 'não informado' }}</span></div></dl>
+        </section>
+        <section class="card"><div class="card-title"><span>R$</span><div><h2>Pagamento</h2><p>Resumo financeiro do pedido</p></div></div>
+          @if (current.payment; as payment) { <dl class="details-grid"><div><dt>{{ payment.finalAmount !== null ? 'Valor final' : 'Valor estimado' }}</dt><dd class="price">{{ formatMoney(payment.finalAmount ?? payment.estimatedAmount) }}</dd></div><div><dt>Forma de pagamento</dt><dd>{{ paymentMethod(payment.method) }}</dd></div><div><dt>Status do pagamento</dt><dd><span class="payment-status">{{ humanize(payment.status) }}</span></dd></div></dl> } @else { <p class="muted">Informações de pagamento indisponíveis.</p> }
+        </section>
+      </div>
+      <section class="card timeline-card"><div class="card-title"><span>◷</span><div><h2>Acompanhe seu pedido</h2><p>Atualizações do atendimento</p></div></div><app-order-timeline [events]="current.timeline" /></section>
+    </div>
+
+    @if (actions().length) { <aside class="action-bar"><div><strong>Próximo passo</strong><p>Atualize o pedido para manter todos informados.</p></div><div class="action-buttons">@for (action of actions(); track action.label) { <button class="button" [class.primary]="!action.secondary" [class.secondary]="action.secondary" [disabled]="actionLoading()" (click)="runAction(action)">{{ actionLoading() ? 'Aguarde…' : action.label }}</button> }</div></aside> }
+  }
+</main>

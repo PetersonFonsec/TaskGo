@@ -21,6 +21,13 @@ import { NotFound } from '@modules/common/not-found/not-found';
 export const routes: Routes = [
   { path: '', redirectTo: UrlBase.AUTHENTICATE, pathMatch: 'full' },
   {
+    path: 'orders/:id',
+    title: 'Detalhes do pedido',
+    canActivate: [unauthorizedGuard],
+    loadComponent: () =>
+      import('@modules/orders/order-details/order-details.page').then((c) => c.OrderDetailsPage),
+  },
+  {
     path: UrlBase.INSTITUTIONAL,
     component: InstitutionalPage,
     children: InstitutionalRoutes,

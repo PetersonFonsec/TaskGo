@@ -1,0 +1,21 @@
+@if (events().length === 0) {
+  <div class="timeline-empty">
+    <span aria-hidden="true">◷</span>
+    <p>Nenhuma atualização disponível ainda.</p>
+  </div>
+} @else {
+  <ol class="timeline" aria-label="Histórico do pedido">
+    @for (event of events(); track event.date + event.title; let last = $last) {
+      <li [class.pending]="!event.completed" [class.last]="last">
+        <span class="marker" aria-hidden="true">{{ event.completed ? '✓' : '' }}</span>
+        <div class="event-copy">
+          <div class="event-heading">
+            <strong>{{ event.title }}</strong>
+            <time [attr.datetime]="event.date">{{ formatDate(event.date) }}</time>
+          </div>
+          @if (event.description) { <p>{{ event.description }}</p> }
+        </div>
+      </li>
+    }
+  </ol>
+}
