@@ -1,5 +1,5 @@
 import { Type } from 'class-transformer';
-import { IsEnum, IsInt, IsNotEmpty, IsNumberString, IsOptional, IsString, Length, Max, Min, ValidateNested } from 'class-validator';
+import { IsIn, IsInt, IsNotEmpty, IsNumberString, IsOptional, IsString, Length, Max, Min, ValidateNested } from 'class-validator';
 import { PaymentMethod } from '@prisma/client';
 
 export class CardPaymentDto {
@@ -26,7 +26,7 @@ export class CardPaymentDto {
 }
 
 export class CreateOrderPaymentDto {
-  @IsEnum(PaymentMethod)
+  @IsIn([PaymentMethod.PIX, PaymentMethod.CARTAO])
   method: PaymentMethod;
 
   @IsOptional()
