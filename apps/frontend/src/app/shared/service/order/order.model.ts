@@ -137,6 +137,25 @@ export interface OrderPaymentSummary {
   finalAmount: number | null;
 }
 
+export interface CreateOrderPaymentRequest {
+  method: 'PIX' | 'CARTAO';
+  card?: { number: string; holderName: string; expMonth: number; expYear: number; cvv: string };
+}
+
+export interface OrderPaymentResponse {
+  id: string;
+  paymentId: string;
+  orderId: string;
+  method: 'PIX' | 'CARTAO';
+  status: string;
+  amount: number;
+  platformAmount: number;
+  providerAmount: number;
+  feePct: number;
+  providerChargeId?: string | null;
+  pix?: { qrCode: string | null; qrCodeBase64: string | null; expiresAt: string | null };
+}
+
 export interface OrderTimelineEvent {
   type?: string;
   title: string;

@@ -21,6 +21,12 @@ import { NotFound } from '@modules/common/not-found/not-found';
 export const routes: Routes = [
   { path: '', redirectTo: UrlBase.AUTHENTICATE, pathMatch: 'full' },
   {
+    path: 'orders/:id/payment',
+    title: 'Pagamento do pedido',
+    canActivate: [unauthorizedGuard, permissionByRoleGuard([RolesBack.CUSTOMER])],
+    loadComponent: () => import('@modules/orders/order-payment/order-payment.page').then((c) => c.OrderPaymentPage),
+  },
+  {
     path: 'orders/:id/review',
     title: 'Avaliar atendimento',
     canActivate: [unauthorizedGuard, permissionByRoleGuard([RolesBack.CUSTOMER])],

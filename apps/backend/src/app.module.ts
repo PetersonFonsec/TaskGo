@@ -15,6 +15,7 @@ import { AuthGuard } from './modules/auth/auth.guard';
 import { FeatureFlagModule } from './feature-flag/feature-flag.module';
 import { BigIntInterceptor } from './shared/interceptors/bigint.interceptor';
 import { ReviewTagModule } from './modules/review-tag/review-tag.module';
+import { PaymentsModule } from './modules/payments/payments.module';
 
 @Module({
   imports: [
@@ -28,6 +29,7 @@ import { ReviewTagModule } from './modules/review-tag/review-tag.module';
     ProviderModule,
     FeatureFlagModule,
     ReviewTagModule,
+    PaymentsModule,
   ],
   controllers: [AppController],
   providers: [

@@ -9,7 +9,7 @@ import { UserLoggedService } from '@shared/service/user-logged/user-logged.servi
 import { Roles } from '@shared/enums/roles.enum';
 import { OrderTimelineComponent } from '../order-timeline/order-timeline';
 
-type OrderAction = { label: string; status?: string; secondary?: boolean };
+type OrderAction = { label: string; status?: string; route?: 'payment' | 'review'; secondary?: boolean };
 
 @Component({
   selector: 'app-order-details-page',
@@ -31,10 +31,15 @@ export class OrderDetailsPage implements OnInit {
   statusLabel = computed(() => this.humanize(this.order()?.status ?? ''));
   actions = computed<OrderAction[]>(() => {
     const status = this.order()?.status;
+    const paymentStatus = this.order()?.payment?.status;
     if (this.role() === 'PRESTADOR') {
       if (status === 'AGENDADO') return [{ label: 'Estou a caminho', status: 'EM_DESLOCAMENTO' }];
       if (status === 'EM_DESLOCAMENTO') return [{ label: 'Iniciar serviço', status: 'EM_ANDAMENTO' }];
       if (status === 'EM_ANDAMENTO') return [{ label: 'Finalizar serviço', status: 'AGUARDANDO_CONFIRMACAO_CLIENTE' }];
+    }
+    if (this.role() === 'CLIENTE' && ['AGENDADO', 'AGUARDANDO_PAGAMENTO'].includes(status ?? '') &&
+      !['AUTORIZADO', 'PAGO', 'AUTHORIZED', 'CAPTURED', 'RELEASED'].includes(paymentStatus ?? '')) {
+      return [{ label: paymentStatus === 'PENDENTE' ? 'Ver QR Code' : 'Realizar pagamento', route: 'payment' }];
     }
     if (this.role() === 'CLIENTE' && status === 'AGUARDANDO_CONFIRMACAO_CLIENTE') {
       return [
@@ -43,7 +48,7 @@ export class OrderDetailsPage implements OnInit {
       ];
     }
     if (this.role() === 'CLIENTE' && status === 'CONCLUIDO' && !this.order()?.review) {
-      return [{ label: 'Avaliar prestador' }];
+      return [{ label: 'Avaliar prestador', route: 'review' }];
     }
     return [];
   });
@@ -68,7 +73,12 @@ export class OrderDetailsPage implements OnInit {
   goBack(): void { void this.#router.navigateByUrl(this.role() === 'PRESTADOR' ? '/provider' : '/customer'); }
 
   runAction(action: OrderAction): void {
-    if (!action.status || !this.order()) return;
+    if (!this.order()) return;
+    if (action.route) {
+      void this.#router.navigate(['/orders', this.order()!.id, action.route]);
+      return;
+    }
+    if (!action.status) return;
     if (action.label === 'Finalizar serviço') {
       void this.#router.navigate(['/orders', this.order()!.id, 'finish']);
       return;

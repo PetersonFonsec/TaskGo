@@ -3,7 +3,7 @@ import { CommandHandler, ICommandHandler } from '@nestjs/cqrs';
 import { OrderStatus, PaymentStatus, UserType } from '@prisma/client';
 
 import { PrismaService } from '../../../../prisma/prisma.service';
-import { PaymentService } from '../../payment/payment.service';
+import { PaymentService } from '../../../payments/payment.service';
 import { ConfirmOrderCompletionCommand } from './confirm-order-completion.command';
 
 @CommandHandler(ConfirmOrderCompletionCommand)
@@ -21,7 +21,7 @@ export class ConfirmOrderCompletionHandler implements ICommandHandler<ConfirmOrd
         status: true,
         providerFinishedAt: true,
         finalPrice: true,
-        payment: { select: { id: true, status: true, providerChargeId: true } },
+        payment: { select: { id: true, method: true, status: true, amount: true, providerChargeId: true, paidAt: true, capturedAt: true } },
       },
     });
 
@@ -35,8 +35,13 @@ export class ConfirmOrderCompletionHandler implements ICommandHandler<ConfirmOrd
     if (order.finalPrice === null) throw new BadRequestException('O pedido não possui valor final');
     if (!order.payment) throw new BadRequestException('Pagamento do pedido não encontrado');
 
-    // Capture first. If the gateway rejects, no order state is changed.
-    const capture = await this.paymentService.capturePayment(order.payment);
+    const paidStatuses = [PaymentStatus.PAGO, PaymentStatus.CAPTURED, PaymentStatus.RELEASED];
+    if (order.payment.method === 'PIX' && !paidStatuses.includes(order.payment.status as any)) {
+      throw new BadRequestException('Pagamento ainda não confirmado');
+    }
+    const capture = order.payment.method === 'CARTAO'
+      ? await this.paymentService.capturePayment(order.payment)
+      : { capturedAt: order.payment.capturedAt ?? order.payment.paidAt ?? new Date() };
     const confirmedAt = new Date();
 
     const response = await this.prisma.$transaction(async (prisma) => {
@@ -53,7 +58,7 @@ export class ConfirmOrderCompletionHandler implements ICommandHandler<ConfirmOrd
       });
       const payment = await prisma.payment.update({
         where: { id: order.payment!.id },
-        data: { status: PaymentStatus.CAPTURED, paidAt: capture.capturedAt },
+        data: { status: PaymentStatus.PAGO, capturedAt: capture.capturedAt, paidAt: capture.capturedAt },
         select: { status: true, paidAt: true },
       });
       await prisma.orderTimeline.createMany({

@@ -68,7 +68,8 @@ export class ProviderHomeService {
     const paid = completed.filter(
       ({ payment }) =>
         payment?.status === PaymentStatus.CAPTURED ||
-        payment?.status === PaymentStatus.RELEASED,
+        payment?.status === PaymentStatus.RELEASED ||
+        payment?.status === PaymentStatus.PAGO,
     );
     const revenueFor = (order: (typeof paid)[number]) =>
       Number(

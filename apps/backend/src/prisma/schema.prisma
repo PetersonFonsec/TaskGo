@@ -50,6 +50,12 @@ enum PaymentStatus {
   REFUNDED
   FAILED
   CANCELED
+  PENDENTE
+  AUTORIZADO
+  PAGO
+  FALHOU
+  CANCELADO
+  REEMBOLSADO
 }
 
 enum ServiceAreaMode {
@@ -256,6 +262,11 @@ model Payment {
   status  PaymentStatus @map("status")
   amount  Decimal       @map("valor")
   paidAt  DateTime?     @map("pago_em")
+  authorizedAt DateTime? @map("authorized_at")
+  capturedAt   DateTime? @map("captured_at")
+  canceledAt   DateTime? @map("canceled_at")
+  refundedAt   DateTime? @map("refunded_at")
+  failureReason String?  @map("failure_reason")
 
   provider         String    @default("PAGARME")
   providerOrderId  String?   @unique @map("provider_order_id")
@@ -263,6 +274,8 @@ model Payment {
   pixQrCode        String?   @map("pix_qrcode")
   pixQrCodeBase64  String?   @map("pix_qrcode_base64")
   pixExpiresAt     DateTime? @map("pix_expires_at")
+  paymentUrl       String?   @map("payment_url")
+  rawProviderResponse Json?  @map("raw_provider_response")
 
   // NEW: split amounts (em moeda, não centavos)
   platformAmount Decimal? @map("platform_amount")
@@ -270,8 +283,22 @@ model Payment {
   feePct         Decimal? @map("fee_pct") // 0.12 = 12%
 
   order Order @relation(fields: [orderId], references: [id], onDelete: Cascade)
+  webhookEvents PaymentWebhookEvent[]
 
   @@map("pagamentos")
+}
+
+model PaymentWebhookEvent {
+  id          String   @id
+  paymentId   BigInt?  @map("payment_id")
+  type        String
+  payload     Json
+  processedAt DateTime @default(now()) @map("processed_at")
+
+  payment Payment? @relation(fields: [paymentId], references: [id], onDelete: SetNull)
+
+  @@index([paymentId])
+  @@map("payment_webhook_events")
 }
 
 model Avaliacao {

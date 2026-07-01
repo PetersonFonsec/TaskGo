@@ -1,0 +1,31 @@
+<main class="payment-page">
+  @if (toast()) { <div class="toast" role="status">✓ {{ toast() }}</div> }
+  @if (loading()) {
+    <section class="state"><span class="spinner"></span><strong>Carregando pagamento…</strong></section>
+  } @else if (order(); as current) {
+    <header><button type="button" (click)="back()" aria-label="Voltar">←</button><div><p>Pedido #{{ current.id }}</p><h1>Pagamento do serviço</h1><span>Escolha como deseja garantir seu atendimento</span></div></header>
+    @if (error()) { <p class="error" role="alert">{{ error() }}</p> }
+    <div class="layout">
+      <section class="card summary">
+        <h2>Resumo do pedido</h2>
+        <div class="provider"><img [src]="current.provider.photoUrl || 'https://dummyimage.com/96x96/ede9fe/6d28d9&text=P'" [alt]="current.provider.name"><div><small>Prestador</small><strong>{{ current.provider.name }}</strong><span>{{ current.service.title }}</span></div></div>
+        <dl><div><dt>Data</dt><dd>{{ date(current.schedule.scheduledFor) }}</dd></div><div><dt>Valor do serviço</dt><dd>{{ money(current.payment?.finalAmount ?? current.service.estimatedPrice) }}</dd></div>@if (payment(); as paid) { <div><dt>Taxa da plataforma</dt><dd>{{ money(paid.platformAmount) }}</dd></div> }</dl>
+        <footer><span>Total</span><strong>{{ money(payment()?.amount ?? current.payment?.finalAmount ?? current.service.estimatedPrice) }}</strong></footer>
+      </section>
+
+      <section class="card checkout">
+        <h2>Forma de pagamento</h2>
+        <div class="methods"><button type="button" [class.selected]="method() === 'PIX'" (click)="method.set('PIX')">Pix</button><button type="button" [class.selected]="method() === 'CARTAO'" (click)="method.set('CARTAO')">Cartão</button></div>
+        @if (payment()?.method === 'PIX' && payment()?.pix?.qrCode) {
+          <div class="pix"><span class="status">Aguardando pagamento</span>@if (payment()?.pix?.qrCodeBase64; as qrImage) { <img [src]="qrImage" alt="QR Code Pix"> }<label>Código Pix copia e cola</label><textarea readonly [value]="payment()?.pix?.qrCode"></textarea><button class="primary" type="button" (click)="copyPix()">{{ copied() ? 'Código copiado!' : 'Copiar código' }}</button><small>Expira em {{ date(payment()?.pix?.expiresAt) }}</small></div>
+        } @else if (payment()?.status === 'AUTORIZADO' || payment()?.status === 'PAGO') {
+          <div class="success"><span>✓</span><h3>{{ payment()?.status === 'PAGO' ? 'Pagamento confirmado' : 'Pagamento autorizado' }}</h3><p>Seu pagamento está registrado e protegido pela plataforma.</p></div>
+        } @else if (method() === 'PIX') {
+          <div class="intro"><span class="pix-symbol">PIX</span><p>Gere um QR Code para pagar pelo aplicativo do seu banco.</p><button class="primary" type="button" [disabled]="submitting()" (click)="submit()">{{ submitting() ? 'Gerando…' : 'Gerar Pix' }}</button></div>
+        } @else {
+          <form (ngSubmit)="submit()"><label>Número do cartão<input name="number" inputmode="numeric" maxlength="19" [(ngModel)]="card.number" autocomplete="cc-number"></label><label>Nome impresso<input name="holder" [(ngModel)]="card.holderName" autocomplete="cc-name"></label><div class="row"><label>Mês<input name="month" type="number" min="1" max="12" [(ngModel)]="card.expMonth"></label><label>Ano<input name="year" type="number" [(ngModel)]="card.expYear"></label><label>CVV<input name="cvv" type="password" inputmode="numeric" maxlength="4" [(ngModel)]="card.cvv" autocomplete="cc-csc"></label></div><p class="security">🔒 Os dados são enviados ao gateway e nunca armazenados pelo Proxi.</p><button class="primary" type="submit" [disabled]="submitting()">{{ submitting() ? 'Autorizando…' : 'Autorizar pagamento' }}</button></form>
+        }
+      </section>
+    </div>
+  } @else { <section class="state"><h1>Pagamento indisponível</h1><p>{{ error() }}</p><button (click)="back()">Voltar ao pedido</button></section> }
+</main>

@@ -1,7 +1,7 @@
 import { HttpClient } from '@angular/common/http';
 import { inject, Injectable } from '@angular/core';
 import { environment } from '@environments/environment';
-import { ConfirmOrderResponse, CreateReviewRequest, CreateReviewResponse, FinishOrderPayload, FinishOrderResponse, OrderDetails, OrdersResponse, ReviewTag } from './order.model';
+import { ConfirmOrderResponse, CreateOrderPaymentRequest, CreateReviewRequest, CreateReviewResponse, FinishOrderPayload, FinishOrderResponse, OrderDetails, OrderPaymentResponse, OrdersResponse, ReviewTag } from './order.model';
 
 @Injectable({
   providedIn: 'root'
@@ -24,6 +24,14 @@ export class Order {
 
   getOrderDetails(orderId: string) {
     return this.#http.get<OrderDetails>(`${environment.url}/orders/${orderId}`);
+  }
+
+  getOrderPayment(orderId: string) {
+    return this.#http.get<OrderPaymentResponse>(`${environment.url}/orders/${orderId}/payment`);
+  }
+
+  createOrderPayment(orderId: string, payload: CreateOrderPaymentRequest) {
+    return this.#http.post<OrderPaymentResponse>(`${environment.url}/orders/${orderId}/payment`, payload);
   }
 
   getReviewTags() {

@@ -107,14 +107,14 @@
     </section>
   </div>
 
-  @if (activeOrders().length) {
-    <section class="panel active-orders-panel" aria-labelledby="active-orders-title">
-      <div class="section-heading">
-        <div>
-          <h2 id="active-orders-title">Pedidos em andamento</h2>
-          <p>Acompanhe os próximos passos e finalize serviços rapidamente.</p>
-        </div>
+  <section class="panel active-orders-panel" aria-labelledby="active-orders-title">
+    <div class="section-heading">
+      <div>
+        <h2 id="active-orders-title">Pedidos agendados e em andamento</h2>
+        <p>Acompanhe os próximos passos e finalize serviços rapidamente.</p>
       </div>
+    </div>
+    @if (activeOrders().length) {
       <div class="request-list">
         @for (order of activeOrders(); track order.id) {
           <article class="request-card active-order-card">
@@ -131,8 +131,10 @@
           </article>
         }
       </div>
-    </section>
-  }
+    } @else {
+      <p class="muted">Você ainda não possui pedidos agendados ou em andamento.</p>
+    }
+  </section>
 
   <div class="details-grid">
     <section class="panel services-panel">
