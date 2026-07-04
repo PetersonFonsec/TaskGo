@@ -1,0 +1,62 @@
+<main class="login-page" aria-labelledby="login-title">
+  <section class="login-panel">
+    <p class="eyebrow">Backoffice</p>
+    <h1 id="login-title">Sign in to Proxi Backoffice</h1>
+
+    @if (apiError() || (form.touched && form.invalid)) {
+      <div
+        #formError
+        class="form-error"
+        tabindex="-1"
+        role="alert"
+        aria-live="assertive"
+      >
+        @if (apiError()) {
+          {{ apiError() }}
+        } @else {
+          Enter a valid administrative email and password.
+        }
+      </div>
+    }
+
+    <form [formGroup]="form" (ngSubmit)="submit()" novalidate>
+      <label for="admin-email">Email</label>
+      <input
+        id="admin-email"
+        type="email"
+        autocomplete="username"
+        formControlName="email"
+        [attr.aria-invalid]="form.controls.email.invalid && form.controls.email.touched"
+        aria-describedby="admin-email-error"
+      />
+      <p id="admin-email-error" class="field-error">
+        @if (form.controls.email.invalid && form.controls.email.touched) {
+          Enter a valid administrative email.
+        }
+      </p>
+
+      <label for="admin-password">Password</label>
+      <input
+        id="admin-password"
+        type="password"
+        autocomplete="current-password"
+        formControlName="password"
+        [attr.aria-invalid]="form.controls.password.invalid && form.controls.password.touched"
+        aria-describedby="admin-password-error"
+      />
+      <p id="admin-password-error" class="field-error">
+        @if (form.controls.password.invalid && form.controls.password.touched) {
+          Enter your administrative password.
+        }
+      </p>
+
+      <button type="submit" [disabled]="loading()">
+        @if (loading()) {
+          Signing in...
+        } @else {
+          Sign in
+        }
+      </button>
+    </form>
+  </section>
+</main>

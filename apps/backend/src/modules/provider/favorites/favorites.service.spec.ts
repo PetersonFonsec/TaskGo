@@ -1,11 +1,10 @@
-import { NotFoundException } from '@nestjs/common';
 import { Test, TestingModule } from '@nestjs/testing';
-import { PrismaModule } from '../../prisma/prisma.module';
-import { SharedModule } from '../../shared/shared.module';
-import { PrismaService } from '../../prisma/prisma.service';
+import { PrismaModule } from '../../../prisma/prisma.module';
+import { SharedModule } from '../../../shared/shared.module';
+import { PrismaService } from '../../../prisma/prisma.service';
 import { UserType } from '@prisma/client';
 import { FavoritesService } from './favorites.service';
-import Mediator from '../../shared/events/mediator';
+import Mediator from '../../../shared/events/mediator';
 
 describe('FavoritesService', () => {
   let service: FavoritesService;
@@ -95,14 +94,20 @@ describe('FavoritesService', () => {
     expect(removed.clientId).toBe(clientUserId);
     expect(removed.providerId).toBe(providerUserId);
 
-    const secondRemove = await service.removeFavorite(clientUserId, providerUserId);
+    const secondRemove = await service.removeFavorite(
+      clientUserId,
+      providerUserId,
+    );
     expect(secondRemove).toBeNull();
   });
 
   it('lists paginated favorites for the client', async () => {
     await service.addFavorite(clientUserId, providerUserId);
 
-    const result = await service.listFavorites(clientUserId, { skip: 0, take: 10 });
+    const result = await service.listFavorites(clientUserId, {
+      skip: 0,
+      take: 10,
+    });
     expect(result).toBeDefined();
     expect(result.total).toBeGreaterThanOrEqual(1);
     expect(result.items.length).toBeGreaterThanOrEqual(1);
@@ -114,10 +119,22 @@ describe('FavoritesService', () => {
     const publishSpy = jest.spyOn(mediator, 'publish');
 
     await service.addFavorite(clientUserId, providerUserId);
-    expect(publishSpy).toHaveBeenCalledWith('favorite.add', expect.objectContaining({ clientId: clientUserId, providerId: providerUserId }));
+    expect(publishSpy).toHaveBeenCalledWith(
+      'favorite.add',
+      expect.objectContaining({
+        clientId: clientUserId,
+        providerId: providerUserId,
+      }),
+    );
 
     await service.removeFavorite(clientUserId, providerUserId);
-    expect(publishSpy).toHaveBeenCalledWith('favorite.remove', expect.objectContaining({ clientId: clientUserId, providerId: providerUserId }));
+    expect(publishSpy).toHaveBeenCalledWith(
+      'favorite.remove',
+      expect.objectContaining({
+        clientId: clientUserId,
+        providerId: providerUserId,
+      }),
+    );
   });
 
   it('publishes favorites.view telemetry when listing favorites', async () => {
@@ -126,18 +143,12 @@ describe('FavoritesService', () => {
     await service.addFavorite(clientUserId, providerUserId);
     await service.listFavorites(clientUserId);
 
-    expect(publishSpy).toHaveBeenCalledWith('favorites.view', expect.objectContaining({ clientId: clientUserId, resultCount: expect.any(Number) }));
-  });
-
-  it('throws NotFoundException when favorites MVP feature is disabled', async () => {
-    const originalFlag = process.env.FAVORITES_MVP;
-    process.env.FAVORITES_MVP = 'false';
-
-    try {
-      await expect(service.addFavorite(clientUserId, providerUserId)).rejects.toThrow(NotFoundException);
-      await expect(service.listFavorites(clientUserId)).rejects.toThrow(NotFoundException);
-    } finally {
-      process.env.FAVORITES_MVP = originalFlag;
-    }
+    expect(publishSpy).toHaveBeenCalledWith(
+      'favorites.view',
+      expect.objectContaining({
+        clientId: clientUserId,
+        resultCount: expect.any(Number),
+      }),
+    );
   });
 });

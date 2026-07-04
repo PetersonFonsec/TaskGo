@@ -5,6 +5,7 @@ import {
   OrderStatus,
   PaymentMethod,
   PaymentStatus,
+  ProviderStatus,
 } from '@prisma/client';
 import { CategorySeeds } from './category.seed';
 import * as bcrypt from 'bcrypt';
@@ -38,11 +39,15 @@ const defaultServiceAvailability = {
 };
 
 async function main() {
-  await Promise.all(REVIEW_TAGS.map((tag) => prisma.reviewTag.upsert({
-    where: { slug: tag.slug },
-    update: { name: tag.name, isActive: true },
-    create: tag,
-  })));
+  await Promise.all(
+    REVIEW_TAGS.map((tag) =>
+      prisma.reviewTag.upsert({
+        where: { slug: tag.slug },
+        update: { name: tag.name, isActive: true },
+        create: tag,
+      }),
+    ),
+  );
 
   // Keep the development dataset repeatable without touching non-seed users.
   // Orders must be removed first because the client relation is restrictive.
@@ -101,6 +106,7 @@ async function main() {
   const prestadores: any[] = await Promise.all(
     Array.from({ length: 10 }).map(async (_, i) => {
       const location = SBC_LOCATIONS[i];
+      const verified = i % 2 === 0;
 
       return prisma.provider.create({
         data: {
@@ -135,11 +141,12 @@ async function main() {
             },
           },
           bio: `Sou o prestador ${i + 1}, especializado em serviços gerais.`,
-          verified: i % 2 === 0,
-          acceptPix: i % 2 === 0,
-          acceptsCard: i % 2 === 0,
-          emergencyCare: i % 2 === 0,
-          isAvailable24h: i % 2 === 0,
+          verified,
+          status: verified ? ProviderStatus.APPROVED : ProviderStatus.PENDING,
+          acceptPix: verified,
+          acceptsCard: verified,
+          emergencyCare: verified,
+          isAvailable24h: verified,
           services: {
             create: [
               {

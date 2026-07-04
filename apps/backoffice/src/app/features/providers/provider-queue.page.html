@@ -1,0 +1,128 @@
+<section class="provider-page" aria-labelledby="provider-queue-title">
+  <header class="page-header">
+    <div>
+      <p class="eyebrow">Provider operations</p>
+      <h1 id="provider-queue-title">Provider queue</h1>
+    </div>
+    <p class="page-summary">Review providers by lifecycle status and submission window.</p>
+  </header>
+
+  <form class="filter-bar" aria-label="Provider filters" (ngSubmit)="applyFilters()">
+    <label>
+      <span>Status</span>
+      <select
+        name="status"
+        [ngModel]="filters().status"
+        (ngModelChange)="updateFilter('status', $event)"
+      >
+        <option value="">All statuses</option>
+        @for (status of statuses; track status) {
+          <option [value]="status">{{ statusLabel(status) }}</option>
+        }
+      </select>
+    </label>
+
+    <label>
+      <span>Submitted from</span>
+      <input
+        type="date"
+        name="submittedFrom"
+        [ngModel]="filters().submittedFrom"
+        (ngModelChange)="updateFilter('submittedFrom', $event)"
+      />
+    </label>
+
+    <label>
+      <span>Submitted to</span>
+      <input
+        type="date"
+        name="submittedTo"
+        [ngModel]="filters().submittedTo"
+        (ngModelChange)="updateFilter('submittedTo', $event)"
+      />
+    </label>
+
+    <div class="filter-actions">
+      <button type="submit">Apply filters</button>
+      <button type="button" class="secondary" (click)="clearFilters()">Clear</button>
+    </div>
+  </form>
+
+  @if (error()) {
+    <p class="alert" role="alert">{{ error() }}</p>
+  }
+
+  @if (loading()) {
+    <p class="loading" role="status">Loading providers...</p>
+  } @else if (page(); as providerPage) {
+    <div class="table-shell">
+      <table>
+        <caption>
+          {{ providerPage.meta.total }} providers found
+        </caption>
+        <thead>
+          <tr>
+            <th scope="col">Provider</th>
+            <th scope="col">Status</th>
+            <th scope="col">Submitted</th>
+            <th scope="col">Services</th>
+            <th scope="col">Reviews</th>
+            <th scope="col">Review record</th>
+          </tr>
+        </thead>
+        <tbody>
+          @for (provider of providerPage.data; track provider.id) {
+            <tr>
+              <th scope="row">
+                <strong>{{ provider.identity.name }}</strong>
+                <span>{{ provider.identity.email }}</span>
+              </th>
+              <td>
+                <span
+                  class="status-pill"
+                  [attr.aria-label]="'Status: ' + statusLabel(provider.status.current)"
+                >
+                  <span aria-hidden="true">{{ statusIcon(provider.status.current) }}</span>
+                  {{ statusLabel(provider.status.current) }}
+                </span>
+              </td>
+              <td>{{ provider.submittedAt | date: 'mediumDate' }}</td>
+              <td>{{ provider.serviceSummary.count }}</td>
+              <td>
+                {{ provider.reviewSummary.averageRating ?? 0 | number: '1.1-1' }}
+                <span>({{ provider.reviewSummary.reviewCount }})</span>
+              </td>
+              <td>
+                <a class="text-link" [routerLink]="['/providers', provider.id]">Open details</a>
+              </td>
+            </tr>
+          } @empty {
+            <tr>
+              <td colspan="6">No providers match the selected filters.</td>
+            </tr>
+          }
+        </tbody>
+      </table>
+    </div>
+
+    <nav class="pagination" aria-label="Provider queue pages">
+      <button
+        type="button"
+        class="secondary"
+        [disabled]="providerPage.meta.page <= 1"
+        (click)="goToPage(providerPage.meta.page - 1)"
+      >
+        Previous
+      </button>
+      <span>Page {{ providerPage.meta.page }} of {{ providerPage.meta.totalPages || 1 }}</span>
+      <button
+        type="button"
+        class="secondary"
+        [disabled]="providerPage.meta.page >= providerPage.meta.totalPages"
+        (click)="goToPage(providerPage.meta.page + 1)"
+      >
+        Next
+      </button>
+    </nav>
+  }
+</section>

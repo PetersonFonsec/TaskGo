@@ -1,0 +1,203 @@
+<section class="provider-page" aria-labelledby="provider-details-title">
+  <a class="text-link" routerLink="/providers">Back to provider queue</a>
+
+  @if (loading()) {
+    <p class="loading" role="status">Loading provider review record...</p>
+  } @else if (error()) {
+    <p class="alert" role="alert">{{ error() }}</p>
+  } @else if (provider(); as providerRecord) {
+    <header class="page-header">
+      <div>
+        <p class="eyebrow">Provider review</p>
+        <h1 id="provider-details-title">{{ providerRecord.identity.name }}</h1>
+        <p class="page-summary">{{ providerRecord.identity.email }}</p>
+      </div>
+      <span
+        class="status-pill large"
+        [attr.aria-label]="'Current status: ' + statusLabel(providerRecord.status.current)"
+      >
+        <span aria-hidden="true">{{ statusIcon(providerRecord.status.current) }}</span>
+        {{ statusLabel(providerRecord.status.current) }}
+      </span>
+    </header>
+
+    <div class="live-stack">
+      @if (announcement()) {
+        <p class="success" role="status">{{ announcement() }}</p>
+      }
+      @if (conflict()) {
+        <p class="alert" role="alert">{{ conflict() }}</p>
+      }
+    </div>
+
+    <section class="action-strip" aria-label="Provider decisions">
+      @if (actions().length) {
+        @for (action of actions(); track action.action) {
+          <button type="button" (click)="openDecision(action.action)">{{ action.label }}</button>
+        }
+      } @else {
+        <p role="status">No provider decisions are available for your role and this status.</p>
+      }
+    </section>
+
+    <div class="detail-grid">
+      <section class="panel" aria-labelledby="identity-title">
+        <h2 id="identity-title">Identity</h2>
+        <dl>
+          <div>
+            <dt>Email</dt>
+            <dd>{{ providerRecord.identity.email }}</dd>
+          </div>
+          <div>
+            <dt>Phone</dt>
+            <dd>{{ providerRecord.identity.phone || 'Not provided' }}</dd>
+          </div>
+          <div>
+            <dt>CPF</dt>
+            <dd>{{ providerRecord.identity.cpf || 'Not provided' }}</dd>
+          </div>
+          <div>
+            <dt>Registered</dt>
+            <dd>{{ providerRecord.identity.userCreatedAt | date: 'medium' }}</dd>
+          </div>
+        </dl>
+      </section>
+
+      <section class="panel" aria-labelledby="verification-title">
+        <h2 id="verification-title">Verification</h2>
+        <ul class="check-list">
+          <li>
+            <span aria-hidden="true">{{ providerRecord.verification.providerVerified ? 'OK' : 'NO' }}</span>
+            Provider verified: {{ providerRecord.verification.providerVerified ? 'yes' : 'no' }}
+          </li>
+          <li>
+            <span aria-hidden="true">{{ providerRecord.verification.emailVerified ? 'OK' : 'NO' }}</span>
+            Email verified: {{ providerRecord.verification.emailVerified ? 'yes' : 'no' }}
+          </li>
+          <li>
+            <span aria-hidden="true">{{ providerRecord.verification.phoneVerified ? 'OK' : 'NO' }}</span>
+            Phone verified: {{ providerRecord.verification.phoneVerified ? 'yes' : 'no' }}
+          </li>
+        </ul>
+      </section>
+
+      <section class="panel wide" aria-labelledby="services-title">
+        <h2 id="services-title">Services</h2>
+        <div class="list-stack">
+          @for (service of providerRecord.services; track service.id) {
+            <article class="list-item">
+              <strong>{{ service.title }}</strong>
+              <span>{{ service.category || 'Uncategorized' }}</span>
+              <span>{{ service.basePrice | currency: 'BRL' }}</span>
+              <p>{{ service.description || 'No description provided.' }}</p>
+            </article>
+          } @empty {
+            <p>No services registered.</p>
+          }
+        </div>
+      </section>
+
+      <section class="panel" aria-labelledby="capabilities-title">
+        <h2 id="capabilities-title">Capabilities</h2>
+        <ul class="check-list">
+          <li>Pix: {{ providerRecord.capabilities.acceptsPix ? 'accepted' : 'not accepted' }}</li>
+          <li>Card: {{ providerRecord.capabilities.acceptsCard ? 'accepted' : 'not accepted' }}</li>
+          <li>Emergency: {{ providerRecord.capabilities.emergencyCare ? 'yes' : 'no' }}</li>
+          <li>24h: {{ providerRecord.capabilities.available24h ? 'yes' : 'no' }}</li>
+        </ul>
+      </section>
+
+      <section class="panel" aria-labelledby="operations-title">
+        <h2 id="operations-title">Operational history</h2>
+        <dl>
+          <div>
+            <dt>Average rating</dt>
+            <dd>{{ providerRecord.reviewSummary.averageRating || 0 }}</dd>
+          </div>
+          <div>
+            <dt>Reviews</dt>
+            <dd>{{ providerRecord.reviewSummary.reviewCount }}</dd>
+          </div>
+          <div>
+            <dt>First decision</dt>
+            <dd>
+              {{
+                providerRecord.decisionContext.firstDecisionAt
+                  ? (providerRecord.decisionContext.firstDecisionAt | date: 'medium')
+                  : 'No decision yet'
+              }}
+            </dd>
+          </div>
+        </dl>
+      </section>
+
+      <section class="panel wide" aria-labelledby="history-title">
+        <h2 id="history-title">Lifecycle history</h2>
+        <ol class="timeline">
+          @for (decision of history()?.data ?? []; track decision.id) {
+            <li>
+              <div>
+                <strong>{{ decisionLabel(decision.action) }}</strong>
+                <span>{{ decision.fromStatus }} to {{ decision.toStatus }}</span>
+              </div>
+              <p>{{ decision.reason || 'No reason required.' }}</p>
+              <small>
+                {{ decision.createdAt | date: 'medium' }} by {{ decision.actor.name }}
+                ({{ decision.actor.role }})
+              </small>
+            </li>
+          } @empty {
+            <li>No lifecycle decisions recorded.</li>
+          }
+        </ol>
+      </section>
+    </div>
+  }
+
+  @if (dialog(); as decisionDialog) {
+    <div class="modal-backdrop" role="presentation">
+      <section
+        class="decision-dialog"
+        role="dialog"
+        aria-modal="true"
+        aria-labelledby="decision-dialog-title"
+        aria-describedby="decision-dialog-description"
+      >
+        <h2 id="decision-dialog-title" tabindex="-1" #dialogTitle>
+          Confirm {{ decisionDialog.action.label }}
+        </h2>
+        <p id="decision-dialog-description">{{ decisionDialog.action.consequence }}</p>
+
+        @if (decisionDialog.action.requiresReason) {
+          <label>
+            <span>Operational reason</span>
+            <textarea
+              rows="4"
+              [ngModel]="decisionDialog.reason"
+              (ngModelChange)="updateReason($event)"
+              [attr.aria-invalid]="decisionDialog.validation ? 'true' : 'false'"
+              aria-describedby="decision-validation"
+            ></textarea>
+          </label>
+        }
+
+        @if (decisionDialog.validation) {
+          <p id="decision-validation" class="alert" role="alert">{{ decisionDialog.validation }}</p>
+        } @else {
+          <p id="decision-validation" class="hint">
+            This command writes a lifecycle event and audit record.
+          </p>
+        }
+
+        <div class="dialog-actions">
+          <button type="button" (click)="submitDecision()" [disabled]="submitting()">
+            Confirm {{ decisionDialog.action.label }}
+          </button>
+          <button type="button" class="secondary" (click)="closeDialog()" [disabled]="submitting()">
+            Cancel
+          </button>
+        </div>
+      </section>
+    </div>
+  }
+</section>

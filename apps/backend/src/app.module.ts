@@ -16,6 +16,7 @@ import { FeatureFlagModule } from './feature-flag/feature-flag.module';
 import { BigIntInterceptor } from './shared/interceptors/bigint.interceptor';
 import { ReviewTagModule } from './modules/review-tag/review-tag.module';
 import { PaymentsModule } from './modules/payments/payments.module';
+import { AdminModule } from './modules/admin/admin.module';
 
 @Module({
   imports: [
@@ -30,6 +31,7 @@ import { PaymentsModule } from './modules/payments/payments.module';
     FeatureFlagModule,
     ReviewTagModule,
     PaymentsModule,
+    AdminModule,
   ],
   controllers: [AppController],
   providers: [
@@ -44,4 +46,4 @@ import { PaymentsModule } from './modules/payments/payments.module';
     },
   ],
 })
-export class AppModule { }
+export class AppModule {}

@@ -1,0 +1,132 @@
+:host {
+  display: block;
+  min-height: 100vh;
+  background: #f7f8fa;
+  color: #14171f;
+}
+
+.admin-shell {
+  display: grid;
+  min-height: 100vh;
+  grid-template-columns: minmax(14rem, 17rem) 1fr;
+}
+
+.skip-link {
+  position: fixed;
+  top: 0.75rem;
+  left: 0.75rem;
+  z-index: 10;
+  padding: 0.75rem 1rem;
+  transform: translateY(-150%);
+  border-radius: 6px;
+  background: #14171f;
+  color: #ffffff;
+}
+
+.skip-link:focus {
+  transform: translateY(0);
+}
+
+.sidebar {
+  display: flex;
+  flex-direction: column;
+  gap: 2rem;
+  padding: 1.5rem;
+  border-right: 1px solid #d9dee7;
+  background: #ffffff;
+}
+
+.brand span,
+.eyebrow {
+  display: block;
+  color: #596273;
+  font-size: 0.75rem;
+  font-weight: 700;
+  text-transform: uppercase;
+}
+
+.brand strong {
+  display: block;
+  margin-top: 0.25rem;
+  font-size: 1.25rem;
+}
+
+nav {
+  display: grid;
+  gap: 0.35rem;
+}
+
+nav a {
+  display: grid;
+  gap: 0.2rem;
+  padding: 0.75rem;
+  border-radius: 6px;
+  color: #283142;
+  text-decoration: none;
+}
+
+nav a:hover,
+nav a:focus-visible,
+nav a.active {
+  outline: 2px solid transparent;
+  background: #e8f1ff;
+  color: #0d3b77;
+}
+
+nav small {
+  color: #596273;
+  font-size: 0.75rem;
+  line-height: 1.3;
+}
+
+.workspace {
+  min-width: 0;
+}
+
+.topbar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+  min-height: 4.5rem;
+  padding: 1rem 1.5rem;
+  border-bottom: 1px solid #d9dee7;
+  background: #ffffff;
+}
+
+button {
+  min-height: 2.5rem;
+  padding: 0 1rem;
+  border: 1px solid #9ca6b8;
+  border-radius: 6px;
+  background: #ffffff;
+  color: #14171f;
+  font: inherit;
+  font-weight: 700;
+  cursor: pointer;
+}
+
+button:hover,
+button:focus-visible {
+  outline: 3px solid #8ab4f8;
+  outline-offset: 2px;
+}
+
+main {
+  padding: clamp(1rem, 3vw, 2rem);
+}
+
+@media (max-width: 760px) {
+  .admin-shell {
+    grid-template-columns: 1fr;
+  }
+
+  .sidebar {
+    border-right: 0;
+    border-bottom: 1px solid #d9dee7;
+  }
+
+  nav {
+    grid-template-columns: repeat(auto-fit, minmax(9rem, 1fr));
+  }
+}

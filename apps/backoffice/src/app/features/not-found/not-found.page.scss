@@ -1,0 +1,33 @@
+.not-found {
+  display: grid;
+  align-content: center;
+  min-height: 100%;
+  padding: clamp(2rem, 5vw, 4rem);
+}
+
+.eyebrow {
+  margin: 0 0 0.75rem;
+  color: #4b5563;
+  font-size: 0.875rem;
+  font-weight: 700;
+  text-transform: uppercase;
+}
+
+h1 {
+  margin: 0;
+  color: #111827;
+  font-size: clamp(2.25rem, 4vw, 4rem);
+  line-height: 1;
+}
+
+p {
+  margin: 1rem 0;
+  color: #374151;
+  font-size: 1.125rem;
+}
+
+a {
+  width: fit-content;
+  color: #075985;
+  font-weight: 700;
+}

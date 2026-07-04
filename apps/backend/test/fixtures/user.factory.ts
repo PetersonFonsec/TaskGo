@@ -1,4 +1,5 @@
-import { addressFixture } from "./address.factory"
+import { addressFixture } from './address.factory';
+import { ProviderStatus } from '@prisma/client';
 
 export const userFixture = {
   name: 'Peterson',
@@ -7,8 +8,8 @@ export const userFixture = {
   type: 'CLIENTE',
   cpf: '12345678900',
   phone: '11999999999',
-  address: { ...addressFixture }
-}
+  address: { ...addressFixture },
+};
 
 export const userProviderFixture = {
   name: 'Peterson',
@@ -18,8 +19,16 @@ export const userProviderFixture = {
   cpf: '12345678900',
   phone: '11999999999',
   address: { ...addressFixture },
-  services: [1, 2, 3]
-}
+  services: [1, 2, 3],
+};
+
+export const providerLifecycleFixture = (
+  overrides: Partial<{ status: ProviderStatus; verified: boolean }> = {},
+) => ({
+  status: ProviderStatus.PENDING,
+  verified: false,
+  ...overrides,
+});
 
 export const CUSTOMER_VALID = userFixture;
 

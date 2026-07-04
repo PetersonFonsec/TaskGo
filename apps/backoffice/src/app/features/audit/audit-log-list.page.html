@@ -1,0 +1,162 @@
+<section class="audit-page" aria-labelledby="audit-log-title">
+  <header class="page-header">
+    <div>
+      <p class="eyebrow">Audit investigation</p>
+      <h1 id="audit-log-title">Audit log</h1>
+    </div>
+    <p class="page-summary">Search immutable administrative activity by actor, action, target, and time.</p>
+  </header>
+
+  <form class="filter-bar audit-filters" aria-label="Audit filters" (ngSubmit)="applyFilters()">
+    <label>
+      <span>Operator ID</span>
+      <input
+        type="text"
+        name="operatorId"
+        inputmode="numeric"
+        [ngModel]="filters().operatorId"
+        (ngModelChange)="updateFilter('operatorId', $event)"
+      />
+    </label>
+
+    <label>
+      <span>Action</span>
+      <input
+        type="text"
+        name="action"
+        placeholder="PROVIDER_APPROVED"
+        [ngModel]="filters().action"
+        (ngModelChange)="updateFilter('action', $event)"
+      />
+    </label>
+
+    <label>
+      <span>Entity</span>
+      <input
+        type="text"
+        name="entityType"
+        placeholder="Provider"
+        [ngModel]="filters().entityType"
+        (ngModelChange)="updateFilter('entityType', $event)"
+      />
+    </label>
+
+    <label>
+      <span>Identifier</span>
+      <input
+        type="text"
+        name="entityId"
+        [ngModel]="filters().entityId"
+        (ngModelChange)="updateFilter('entityId', $event)"
+      />
+    </label>
+
+    <label>
+      <span>Request ID</span>
+      <input
+        type="text"
+        name="requestId"
+        [ngModel]="filters().requestId"
+        (ngModelChange)="updateFilter('requestId', $event)"
+      />
+    </label>
+
+    <label>
+      <span>From</span>
+      <input
+        type="date"
+        name="from"
+        [ngModel]="filters().from"
+        (ngModelChange)="updateFilter('from', $event)"
+      />
+    </label>
+
+    <label>
+      <span>To</span>
+      <input
+        type="date"
+        name="to"
+        [ngModel]="filters().to"
+        (ngModelChange)="updateFilter('to', $event)"
+      />
+    </label>
+
+    <div class="filter-actions">
+      <button type="submit">Apply filters</button>
+      <button type="button" class="secondary" (click)="clearFilters()">Clear</button>
+    </div>
+  </form>
+
+  @if (error()) {
+    <p class="alert" role="alert">{{ error() }}</p>
+  }
+
+  @if (loading()) {
+    <p class="loading" role="status">Loading audit records...</p>
+  } @else if (page(); as auditPage) {
+    <div class="table-shell">
+      <table>
+        <caption>
+          {{ auditPage.meta.total }} audit records found
+        </caption>
+        <thead>
+          <tr>
+            <th scope="col">Timestamp</th>
+            <th scope="col">Actor snapshot</th>
+            <th scope="col">Action</th>
+            <th scope="col">Target</th>
+            <th scope="col">Request</th>
+            <th scope="col">Detail</th>
+          </tr>
+        </thead>
+        <tbody>
+          @for (event of auditPage.data; track event.id) {
+            <tr>
+              <td>{{ event.createdAt | date: 'medium' }}</td>
+              <th scope="row">
+                <strong>{{ event.actor.name }}</strong>
+                <span>{{ event.actor.role }} #{{ event.actor.id }}</span>
+              </th>
+              <td><code>{{ event.action }}</code></td>
+              <td>{{ event.target.type }} #{{ event.target.id }}</td>
+              <td><code>{{ event.requestId }}</code></td>
+              <td>
+                <a
+                  class="text-link"
+                  [routerLink]="['/audit-logs', event.id]"
+                  [queryParams]="detailQueryParams()"
+                >
+                  Open details
+                </a>
+              </td>
+            </tr>
+          } @empty {
+            <tr>
+              <td colspan="6">No audit records match the selected filters.</td>
+            </tr>
+          }
+        </tbody>
+      </table>
+    </div>
+
+    <nav class="pagination" aria-label="Audit log pages">
+      <button
+        type="button"
+        class="secondary"
+        [disabled]="auditPage.meta.page <= 1"
+        (click)="goToPage(auditPage.meta.page - 1)"
+      >
+        Previous
+      </button>
+      <span>Page {{ auditPage.meta.page }} of {{ auditPage.meta.totalPages || 1 }}</span>
+      <button
+        type="button"
+        class="secondary"
+        [disabled]="auditPage.meta.page >= auditPage.meta.totalPages"
+        (click)="goToPage(auditPage.meta.page + 1)"
+      >
+        Next
+      </button>
+    </nav>
+  }
+</section>

@@ -1,0 +1,76 @@
+<section class="audit-page" aria-labelledby="audit-detail-title">
+  <a class="text-link" routerLink="/audit-logs" [queryParams]="returnQueryParams()">
+    Back to audit log
+  </a>
+
+  @if (loading()) {
+    <p class="loading" role="status">Loading audit record...</p>
+  } @else if (error()) {
+    <p class="alert" role="alert">{{ error() }}</p>
+  } @else if (event(); as auditEvent) {
+    <header class="page-header detail-header">
+      <div>
+        <p class="eyebrow">Immutable audit event</p>
+        <h1 id="audit-detail-title">{{ auditEvent.action }}</h1>
+      </div>
+      <p class="page-summary">{{ auditEvent.createdAt | date: 'medium' }}</p>
+    </header>
+
+    <section class="summary-grid" aria-label="Audit event summary">
+      <div>
+        <span>Actor snapshot</span>
+        <strong>{{ auditEvent.actor.name }}</strong>
+        <small>{{ auditEvent.actor.email }} · {{ auditEvent.actor.role }} #{{ auditEvent.actor.id }}</small>
+      </div>
+      <div>
+        <span>Target</span>
+        <strong>{{ auditEvent.target.type }} #{{ auditEvent.target.id }}</strong>
+        <small>Read-only audit record</small>
+      </div>
+      <div>
+        <span>Request ID</span>
+        <strong>{{ auditEvent.requestId }}</strong>
+        <small>{{ auditEvent.context.ipAddress || 'IP not captured' }}</small>
+      </div>
+      <div>
+        <span>Reason</span>
+        <strong>{{ auditEvent.reason || 'No reason recorded' }}</strong>
+        <small>{{ auditEvent.context.userAgent || 'User agent not captured' }}</small>
+      </div>
+    </section>
+
+    <section class="delta-grid" aria-label="State delta">
+      <article>
+        <h2>Previous state</h2>
+        @if (beforeEntries().length) {
+          <dl class="delta-list">
+            @for (entry of beforeEntries(); track trackEntry($index, entry)) {
+              <div>
+                <dt>{{ entry.path }}</dt>
+                <dd>{{ entry.value }}</dd>
+              </div>
+            }
+          </dl>
+        } @else {
+          <p>No previous state was recorded.</p>
+        }
+      </article>
+
+      <article>
+        <h2>Resulting state</h2>
+        @if (afterEntries().length) {
+          <dl class="delta-list">
+            @for (entry of afterEntries(); track trackEntry($index, entry)) {
+              <div>
+                <dt>{{ entry.path }}</dt>
+                <dd>{{ entry.value }}</dd>
+              </div>
+            }
+          </dl>
+        } @else {
+          <p>No resulting state was recorded.</p>
+        }
+      </article>
+    </section>
+  }
+</section>

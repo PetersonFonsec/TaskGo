@@ -1,12 +1,16 @@
 import request = require('supertest');
 import { Test } from '@nestjs/testing';
-import { INestApplication, ValidationPipe, ExecutionContext } from '@nestjs/common';
-import { AuthGuard, TOKEN_KEY } from '../auth/auth.guard';
-import { AuthTokenService } from '../auth/auth-token.service';
-import { ProviderModule } from './provider.module';
-import { PrismaModule } from '../../prisma/prisma.module';
-import { PrismaService } from '../../prisma/prisma.service';
-import { BigIntInterceptor } from '../../shared/interceptors/bigint.interceptor';
+import {
+  INestApplication,
+  ValidationPipe,
+  ExecutionContext,
+} from '@nestjs/common';
+import { AuthGuard, TOKEN_KEY } from '../../auth/auth.guard';
+import { AuthTokenService } from '../../auth/auth-token.service';
+import { ProviderModule } from '../provider.module';
+import { PrismaModule } from '../../../prisma/prisma.module';
+import { PrismaService } from '../../../prisma/prisma.service';
+import { BigIntInterceptor } from '../../../shared/interceptors/bigint.interceptor';
 import { UserType } from '@prisma/client';
 
 const validToken = 'VALID_TOKEN';
@@ -14,11 +18,12 @@ const authTokenServiceMock = {
   checkToken: jest.fn(() => ({ id: 1 })),
   decodeToken: jest.fn(() => ({ id: 1 })),
 };
+let authenticatedClientId = '1';
 
 class AuthGuardMock {
   canActivate(context: ExecutionContext) {
     const req = context.switchToHttp().getRequest();
-    req[TOKEN_KEY] = { id: '1' };
+    req[TOKEN_KEY] = { id: authenticatedClientId };
     return true;
   }
 }
@@ -63,6 +68,7 @@ describe('FavoritesController (integration)', () => {
       },
     });
 
+    authenticatedClientId = client.id.toString();
     authTokenServiceMock.decodeToken = jest.fn(() => ({ id: client.id }));
     authTokenServiceMock.checkToken = jest.fn(() => true);
 
@@ -104,7 +110,7 @@ describe('FavoritesController (integration)', () => {
 
   it('adds, lists, and removes favorites via controller endpoints', async () => {
     await request(app.getHttpServer())
-      .post(`/clients/${Number(clientId)}/favorites`)
+      .post('/favorites')
       .set('Authorization', `Bearer ${validToken}`)
       .send({ providerId: Number(providerId) })
       .expect(201)
@@ -114,7 +120,7 @@ describe('FavoritesController (integration)', () => {
       });
 
     await request(app.getHttpServer())
-      .get(`/clients/${Number(clientId)}/favorites`)
+      .get('/favorites')
       .set('Authorization', `Bearer ${validToken}`)
       .expect(200)
       .expect((res: any) => {
@@ -123,22 +129,29 @@ describe('FavoritesController (integration)', () => {
       });
 
     await request(app.getHttpServer())
-      .post(`/clients/${Number(clientId)}/favorites`)
+      .post('/favorites')
       .set('Authorization', `Bearer ${validToken}`)
       .send({ providerId: 0 })
       .expect(400);
 
     await request(app.getHttpServer())
-      .delete(`/clients/${clientId}/favorites/${providerId}`)
+      .delete(`/favorites/${providerId}`)
       .set('Authorization', `Bearer ${validToken}`)
+      .send({ providerId: Number(providerId) })
       .expect(200);
   });
 
   it('filters provider listing to only favorited providers when onlyFavorites=true', async () => {
-    await prismaService.clientFavorite.create({ data: { clientId, providerId } });
+    await prismaService.clientFavorite.create({
+      data: { clientId, providerId },
+    });
 
-    await prismaService.clientFavorite.deleteMany({ where: { clientId, providerId } });
-    await prismaService.clientFavorite.create({ data: { clientId, providerId } });
+    await prismaService.clientFavorite.deleteMany({
+      where: { clientId, providerId },
+    });
+    await prismaService.clientFavorite.create({
+      data: { clientId, providerId },
+    });
 
     await request(app.getHttpServer())
       .get('/provider?onlyFavorites=true')

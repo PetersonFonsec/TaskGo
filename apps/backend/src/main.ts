@@ -1,4 +1,4 @@
-import otelSDK from "./tracing";
+import otelSDK from './tracing';
 import { NestFactory } from '@nestjs/core';
 import { ValidationPipe } from '@nestjs/common';
 import { DocumentBuilder, SwaggerModule } from '@nestjs/swagger';
@@ -7,7 +7,8 @@ import helmet from 'helmet';
 // import * as compression from 'compression';
 
 import { AppModule } from './app.module';
-import { CustomExceptionFilter } from "./shared/filters/http-exception.filter";
+import { CustomExceptionFilter } from './shared/filters/http-exception.filter';
+import { requestCorrelationMiddleware } from './shared/http/request-correlation.middleware';
 
 async function bootstrap() {
   await otelSDK.start();
@@ -15,6 +16,7 @@ async function bootstrap() {
 
   app.enableCors();
   app.use(helmet());
+  app.use(requestCorrelationMiddleware);
   app.useGlobalPipes(new ValidationPipe());
   app.useGlobalFilters(new CustomExceptionFilter());
   // app.use(compression());

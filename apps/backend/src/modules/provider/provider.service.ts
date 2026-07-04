@@ -51,6 +51,8 @@ export class ProviderService {
         data: {
           id: user.id,
           bio: payload.provider?.bio,
+          status: 'PENDING',
+          verified: false,
           services: {
             connect: payload.services.map((id) => ({ id })),
           },

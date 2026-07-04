@@ -6,26 +6,38 @@ import Mediator from '@taskgo/backend/shared/events/mediator';
 export class FavoritesService {
   constructor(
     private prisma: PrismaService,
-    private mediator: Mediator
-  ) { }
+    private mediator: Mediator,
+  ) {}
 
-  async addFavorite(clientId: number, providerId: number) {
+  private getClientId(
+    client: number | string | bigint | { id?: number | string | bigint },
+  ) {
+    const clientId =
+      typeof client === 'object' && client !== null ? client.id : client;
+    return BigInt(clientId as number | string | bigint);
+  }
+
+  async addFavorite(
+    clientId: number | string | bigint | { id?: number | string | bigint },
+    providerId: number,
+  ) {
+    const normalizedClientId = this.getClientId(clientId);
     const favorite = await this.prisma.clientFavorite.upsert({
       where: {
         clientId_providerId: {
-          clientId,
+          clientId: normalizedClientId,
           providerId,
         },
       },
       update: {},
       create: {
-        clientId,
+        clientId: normalizedClientId,
         providerId,
       },
     });
 
     await this.mediator.publish('favorite.add', {
-      clientId,
+      clientId: normalizedClientId,
       providerId,
       favoriteId: favorite.id,
       timestamp: new Date().toISOString(),
@@ -35,11 +47,15 @@ export class FavoritesService {
     return favorite;
   }
 
-  async removeFavorite(clientId: number, providerId: number) {
+  async removeFavorite(
+    clientId: number | string | bigint | { id?: number | string | bigint },
+    providerId: number,
+  ) {
+    const normalizedClientId = this.getClientId(clientId);
     const favorite = await this.prisma.clientFavorite.findUnique({
       where: {
         clientId_providerId: {
-          clientId,
+          clientId: normalizedClientId,
           providerId,
         },
       },
@@ -56,7 +72,7 @@ export class FavoritesService {
     });
 
     await this.mediator.publish('favorite.remove', {
-      clientId,
+      clientId: normalizedClientId,
       providerId,
       favoriteId: favorite.id,
       timestamp: new Date().toISOString(),
@@ -65,13 +81,17 @@ export class FavoritesService {
     return favorite;
   }
 
-  async listFavorites(clientId: any, paging?: { skip?: number; take?: number }) {
+  async listFavorites(
+    clientId: any,
+    paging?: { skip?: number; take?: number },
+  ) {
+    const normalizedClientId = this.getClientId(clientId);
     const skip = paging?.skip ?? 0;
     const take = paging?.take ?? 20;
     const [items, total] = await Promise.all([
       this.prisma.clientFavorite.findMany({
         where: {
-          clientId: BigInt(clientId.id),
+          clientId: normalizedClientId,
         },
         skip,
         take,
@@ -87,13 +107,13 @@ export class FavoritesService {
       }),
       this.prisma.clientFavorite.count({
         where: {
-          clientId: BigInt(clientId.id),
-        }
+          clientId: normalizedClientId,
+        },
       }),
     ]);
 
     await this.mediator.publish('favorites.view', {
-      clientId,
+      clientId: normalizedClientId,
       resultCount: total,
       timestamp: new Date().toISOString(),
     });

@@ -1,0 +1,100 @@
+:host {
+  display: block;
+  min-height: 100vh;
+  background: #f7f8fa;
+}
+
+.login-page {
+  display: grid;
+  min-height: 100vh;
+  place-items: center;
+  padding: 1.25rem;
+}
+
+.login-panel {
+  width: min(100%, 26rem);
+  padding: clamp(1.25rem, 4vw, 2rem);
+  border: 1px solid #d9dee7;
+  border-radius: 8px;
+  background: #ffffff;
+}
+
+.eyebrow {
+  margin: 0 0 0.5rem;
+  color: #596273;
+  font-size: 0.75rem;
+  font-weight: 700;
+  text-transform: uppercase;
+}
+
+h1 {
+  margin: 0 0 1.5rem;
+  color: #14171f;
+  font-size: 1.75rem;
+  line-height: 1.15;
+}
+
+form {
+  display: grid;
+  gap: 0.5rem;
+}
+
+label {
+  font-weight: 700;
+}
+
+input {
+  min-height: 2.75rem;
+  padding: 0 0.75rem;
+  border: 1px solid #9ca6b8;
+  border-radius: 6px;
+  font: inherit;
+}
+
+input:focus-visible,
+.form-error:focus {
+  outline: 3px solid #8ab4f8;
+  outline-offset: 2px;
+}
+
+input[aria-invalid='true'] {
+  border-color: #b42318;
+}
+
+.field-error {
+  min-height: 1.25rem;
+  margin: 0 0 0.5rem;
+  color: #b42318;
+  font-size: 0.875rem;
+}
+
+.form-error {
+  margin-bottom: 1rem;
+  padding: 0.75rem;
+  border-left: 4px solid #b42318;
+  background: #fff1f0;
+  color: #7a271a;
+  font-weight: 700;
+}
+
+button {
+  min-height: 2.75rem;
+  border: 0;
+  border-radius: 6px;
+  background: #0d3b77;
+  color: #ffffff;
+  font: inherit;
+  font-weight: 700;
+  cursor: pointer;
+}
+
+button:hover,
+button:focus-visible {
+  outline: 3px solid #8ab4f8;
+  outline-offset: 2px;
+}
+
+button:disabled {
+  cursor: wait;
+  opacity: 0.7;
+}

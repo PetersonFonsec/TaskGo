@@ -1,0 +1,148 @@
+<section class="dashboard-shell" aria-labelledby="provider-dashboard-title">
+  <header class="page-header">
+    <div>
+      <p class="eyebrow">Provider operations</p>
+      <h1 id="provider-dashboard-title">Provider dashboard</h1>
+    </div>
+    @if (allowed()) {
+      <label class="period-control">
+        <span>Reporting period</span>
+        <select
+          name="period"
+          [ngModel]="selectedPeriod()"
+          (ngModelChange)="changePeriod($event)"
+          aria-describedby="period-help"
+        >
+          @for (option of periodOptions; track option.value) {
+            <option [value]="option.value">{{ option.label }}</option>
+          }
+        </select>
+      </label>
+    }
+  </header>
+
+  @if (!allowed()) {
+    <section class="denial-state" role="status" aria-live="polite">
+      <p class="state-icon" aria-hidden="true">Denied</p>
+      <h2>Dashboard unavailable for {{ operator()?.role }}</h2>
+      <p>Provider dashboard access is limited to Administrator and Support roles during the MVP.</p>
+    </section>
+  } @else {
+    <p id="period-help" class="sr-only">
+      Changing the reporting period reloads provider dashboard metrics from the API.
+    </p>
+
+    @if (loading()) {
+      <p class="loading" role="status" aria-live="polite">Loading provider dashboard metrics...</p>
+    }
+
+    @if (error()) {
+      <section class="alert" role="alert" tabindex="-1">
+        <p>{{ error() }}</p>
+        <button type="button" (click)="retry()">Retry</button>
+      </section>
+    }
+
+    @if (!loading() && dashboard(); as metrics) {
+      <section class="period-summary" aria-label="Current reporting window">
+        <span>Window</span>
+        <strong>
+          {{ metrics.period.from | date: 'mediumDate' }} to
+          {{ metrics.period.to | date: 'mediumDate' }}
+        </strong>
+        <small
+          >Default {{ metrics.period.defaultDays }} days, maximum
+          {{ metrics.period.maxDays }} days</small
+        >
+      </section>
+
+      <section class="metric-grid" aria-label="Provider operational metrics">
+        @for (card of metricCards(metrics); track card.label) {
+          <a class="metric-card" routerLink="/providers" [queryParams]="card.queryParams">
+            <span class="metric-icon">{{ card.icon }}</span>
+            <span class="metric-label">{{ card.label }}</span>
+            <strong>{{ card.value | number: '1.0-0' }}</strong>
+            <span class="metric-status">{{ card.status }}</span>
+          </a>
+        }
+      </section>
+
+      <section class="review-summary" aria-labelledby="review-duration-title">
+        <div>
+          <p class="eyebrow">Review time</p>
+          <h2 id="review-duration-title">Average provider review time</h2>
+          <p>
+            {{ averageReviewLabel(metrics) }} across
+            {{ metrics.reviewDuration.reviewedProviders | number: '1.0-0' }} reviewed providers.
+          </p>
+        </div>
+        <a
+          class="text-link"
+          routerLink="/providers"
+          [queryParams]="{
+            status: 'PENDING',
+            submittedFrom: metrics.period.from,
+            submittedTo: metrics.period.to,
+          }"
+        >
+          Open pending queue
+        </a>
+      </section>
+
+      <section class="actions-panel" aria-labelledby="recent-actions-title">
+        <div class="panel-heading">
+          <div>
+            <p class="eyebrow">Sensitive actions</p>
+            <h2 id="recent-actions-title">Recent sensitive administrative actions</h2>
+          </div>
+          <strong>{{ metrics.decisions.total | number: '1.0-0' }} total actions</strong>
+        </div>
+
+        <dl class="decision-totals" aria-label="Decision totals">
+          <div>
+            <dt>Approve</dt>
+            <dd>{{ metrics.decisions.approve }}</dd>
+          </div>
+          <div>
+            <dt>Reject</dt>
+            <dd>{{ metrics.decisions.reject }}</dd>
+          </div>
+          <div>
+            <dt>Block</dt>
+            <dd>{{ metrics.decisions.block }}</dd>
+          </div>
+          <div>
+            <dt>Unblock</dt>
+            <dd>{{ metrics.decisions.unblock }}</dd>
+          </div>
+        </dl>
+
+        @if (metrics.recentSensitiveActions.length) {
+          <ol class="action-list">
+            @for (action of metrics.recentSensitiveActions; track action.id) {
+              <li>
+                <span class="action-type">{{ actionLabel(action.action) }}</span>
+                <div>
+                  <a class="text-link" [routerLink]="providerLink(action)">
+                    {{ action.provider.name }}
+                  </a>
+                  <p>
+                    {{ actionStatus(action) }} by {{ action.actor.name }} on
+                    {{ action.createdAt | date: 'medium' }}.
+                  </p>
+                  @if (action.reason) {
+                    <small>Reason: {{ action.reason }}</small>
+                  }
+                </div>
+              </li>
+            }
+          </ol>
+        } @else {
+          <p class="empty-state">
+            No sensitive provider actions were recorded in this reporting period.
+          </p>
+        }
+      </section>
+    }
+  }
+</section>

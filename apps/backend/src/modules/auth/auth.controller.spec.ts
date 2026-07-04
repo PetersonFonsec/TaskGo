@@ -1,54 +1,31 @@
-import { TestingModule, Test } from "@nestjs/testing";
-import { JwtService } from "@nestjs/jwt";
+import { TestingModule, Test } from '@nestjs/testing';
+import { CommandBus, QueryBus } from '@nestjs/cqrs';
 
-import { AuthController } from "./auth.controller";
-import { UserService } from "../user/user.service";
-import Mediator from "../../shared/events/mediator";
-import { AuthService } from "./auth.service";
-import { AuthGuard } from "./auth.guard";
+import { AuthController } from './auth.controller';
+import { AuthTokenService } from './auth-token.service';
+import { ProviderHomeService } from './provider-home.service';
 
-describe("Auth Controller", () => {
+describe('Auth Controller', () => {
   let authControler: AuthController;
-  let authService: AuthService;
-  let userServiceMock;
-  let jwtServiceMock;
 
   beforeEach(async () => {
-    const USER = () => ({});
-
-    userServiceMock = {
-      updatePassword: jest.fn(() => USER()),
-      deleteUser: jest.fn(() => USER()),
-      updateUser: jest.fn(() => USER()),
-      getAllUser: jest.fn(() => Array(3).fill(USER())),
-      createUser: jest.fn().mockImplementation((user) => Promise.resolve(user)),
-      find: jest.fn(() => USER()),
-    }
-
-    jwtServiceMock = {
-      sign: jest.fn(() => "TOKEN"),
-      verify: jest.fn(),
-      decode: jest.fn()
-    }
-
     const module: TestingModule = await Test.createTestingModule({
       controllers: [AuthController],
       providers: [
-        Mediator,
-        AuthService,
-        { provide: JwtService, useValue: jwtServiceMock },
-        { provide: UserService, useValue: userServiceMock },
-      ]
-    }).overrideGuard(AuthGuard).useValue({
-      canActive: jest.fn(() => true)
+        { provide: AuthTokenService, useValue: { createToken: jest.fn() } },
+        { provide: CommandBus, useValue: { execute: jest.fn() } },
+        { provide: QueryBus, useValue: { execute: jest.fn() } },
+        {
+          provide: ProviderHomeService,
+          useValue: { getForProvider: jest.fn() },
+        },
+      ],
     }).compile();
 
     authControler = module.get<AuthController>(AuthController);
-    authService = module.get<AuthService>(AuthService);
   });
 
-  it("Smoke test", () => {
-    expect(authControler).toBeDefined()
-    expect(authService).toBeDefined()
+  it('Smoke test', () => {
+    expect(authControler).toBeDefined();
   });
 });

@@ -1,0 +1,37 @@
+<div class="admin-shell">
+  <a class="skip-link" href="#backoffice-content">Skip to content</a>
+
+  <aside class="sidebar" aria-label="Backoffice">
+    <div class="brand">
+      <span>Proxi</span>
+      <strong>Backoffice</strong>
+    </div>
+
+    <nav aria-label="Administrative navigation">
+      @for (item of navigation(); track item.path) {
+        <a
+          [routerLink]="item.path"
+          routerLinkActive="active"
+          [routerLinkActiveOptions]="{ exact: item.path === '/' }"
+        >
+          <span>{{ item.label }}</span>
+          <small>{{ item.capability }}</small>
+        </a>
+      }
+    </nav>
+  </aside>
+
+  <div class="workspace">
+    <header class="topbar">
+      <div>
+        <span class="eyebrow">{{ operator()?.role }}</span>
+        <strong>{{ operator()?.name }}</strong>
+      </div>
+      <button type="button" (click)="logout()">Log out</button>
+    </header>
+
+    <main id="backoffice-content" tabindex="-1">
+      <router-outlet />
+    </main>
+  </div>
+</div>

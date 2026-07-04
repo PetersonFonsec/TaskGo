@@ -1,0 +1,264 @@
+<section class="operator-page" aria-labelledby="operator-admin-title">
+  <header class="page-header">
+    <div>
+      <p class="eyebrow">Administrative users</p>
+      <h1 id="operator-admin-title">Operators</h1>
+    </div>
+    <p class="page-summary">
+      Manage fixed Backoffice roles and account access for internal operators.
+    </p>
+  </header>
+
+  @if (announcement()) {
+    <p class="notice" role="status">{{ announcement() }}</p>
+  }
+  @if (conflict()) {
+    <p class="alert" role="alert">{{ conflict() }}</p>
+  }
+  @if (error()) {
+    <p class="alert" role="alert">{{ error() }}</p>
+  }
+
+  <section class="invite-panel" aria-labelledby="invite-operator-title">
+    <h2 id="invite-operator-title">Invite operator</h2>
+    <form (ngSubmit)="submitInvitation()" aria-describedby="invite-security-note">
+      <label>
+        <span>Name</span>
+        <input
+          name="name"
+          type="text"
+          autocomplete="name"
+          [ngModel]="inviteForm().name"
+          (ngModelChange)="updateInviteField('name', $event)"
+          required
+        />
+      </label>
+      <label>
+        <span>Email</span>
+        <input
+          name="email"
+          type="email"
+          autocomplete="email"
+          [ngModel]="inviteForm().email"
+          (ngModelChange)="updateInviteField('email', $event)"
+          required
+        />
+      </label>
+      <fieldset>
+        <legend>Fixed role</legend>
+        <div class="role-grid">
+          @for (role of roles; track role.value) {
+            <label class="role-option">
+              <input
+                type="radio"
+                name="inviteRole"
+                [value]="role.value"
+                [ngModel]="inviteForm().role"
+                (ngModelChange)="updateInviteField('role', $event)"
+              />
+              <strong>{{ role.label }}</strong>
+              <span>{{ role.description }}</span>
+            </label>
+          }
+        </div>
+      </fieldset>
+      <p id="invite-security-note" class="security-note">
+        Operators receive exactly one fixed role. Invitations remain inactive until activation.
+      </p>
+      @if (formError()) {
+        <p class="field-error" role="alert">{{ formError() }}</p>
+      }
+      <button type="submit" [disabled]="submitting()">Send invitation</button>
+    </form>
+  </section>
+
+  <form class="filter-bar" aria-label="Operator filters" (ngSubmit)="applyFilters()">
+    <label>
+      <span>Search</span>
+      <input
+        name="search"
+        type="search"
+        [ngModel]="filters().search"
+        (ngModelChange)="updateFilter('search', $event)"
+      />
+    </label>
+    <label>
+      <span>Role</span>
+      <select name="role" [ngModel]="filters().role" (ngModelChange)="updateFilter('role', $event)">
+        <option value="">All roles</option>
+        @for (role of roles; track role.value) {
+          <option [value]="role.value">{{ role.label }}</option>
+        }
+      </select>
+    </label>
+    <label>
+      <span>Status</span>
+      <select
+        name="active"
+        [ngModel]="filters().active"
+        (ngModelChange)="updateFilter('active', $event)"
+      >
+        <option value="">All statuses</option>
+        <option value="true">Active</option>
+        <option value="false">Inactive</option>
+      </select>
+    </label>
+    <div class="filter-actions">
+      <button type="submit">Apply filters</button>
+      <button type="button" class="secondary" (click)="clearFilters()">Clear</button>
+    </div>
+  </form>
+
+  @if (loading()) {
+    <p class="loading" role="status">Loading operators...</p>
+  } @else if (page(); as operatorPage) {
+    <div class="table-shell">
+      <table>
+        <caption>
+          {{ operatorPage.meta.total }} operators found
+        </caption>
+        <thead>
+          <tr>
+            <th scope="col">Operator</th>
+            <th scope="col">Status</th>
+            <th scope="col">Role</th>
+            <th scope="col">Activated</th>
+            <th scope="col">Actions</th>
+          </tr>
+        </thead>
+        <tbody>
+          @for (operator of operatorPage.data; track operator.id) {
+            <tr>
+              <th scope="row">
+                <strong>{{ operator.name }}</strong>
+                <span>{{ operator.email }}</span>
+              </th>
+              <td>
+                <span class="status-pill" [class.inactive]="!operator.active">
+                  <span aria-hidden="true">{{ operator.active ? 'OK' : 'x' }}</span>
+                  {{ operator.active ? 'Active' : 'Inactive' }}
+                </span>
+              </td>
+              <td>
+                <label class="inline-control">
+                  <span class="sr-only">Role for {{ operator.name }}</span>
+                  <select
+                    [name]="'role-' + operator.id"
+                    [ngModel]="selectedRole(operator)"
+                    (ngModelChange)="updateSelectedRole(operator, $event)"
+                  >
+                    @for (role of roles; track role.value) {
+                      <option [value]="role.value">{{ role.label }}</option>
+                    }
+                  </select>
+                </label>
+                <button
+                  type="button"
+                  class="secondary compact"
+                  [disabled]="selectedRole(operator) === operator.role || submitting()"
+                  (click)="openRoleChange(operator)"
+                >
+                  Change role
+                </button>
+              </td>
+              <td>
+                @if (operator.activatedAt) {
+                  {{ operator.activatedAt | date: 'mediumDate' }}
+                } @else {
+                  Invitation pending
+                }
+              </td>
+              <td class="row-actions">
+                @if (operator.active) {
+                  <button
+                    type="button"
+                    class="danger"
+                    [disabled]="submitting()"
+                    (click)="openDeactivation(operator)"
+                  >
+                    Deactivate
+                  </button>
+                } @else if (operator.activatedAt) {
+                  <button
+                    type="button"
+                    class="secondary"
+                    [disabled]="submitting()"
+                    (click)="openActivation(operator)"
+                  >
+                    Activate
+                  </button>
+                } @else {
+                  <button
+                    type="button"
+                    class="secondary"
+                    [disabled]="submitting()"
+                    (click)="openResend(operator)"
+                  >
+                    Resend invitation
+                  </button>
+                }
+              </td>
+            </tr>
+          } @empty {
+            <tr>
+              <td colspan="5">No operators match the selected filters.</td>
+            </tr>
+          }
+        </tbody>
+      </table>
+    </div>
+
+    <nav class="pagination" aria-label="Operator pages">
+      <button
+        type="button"
+        class="secondary"
+        [disabled]="operatorPage.meta.page <= 1"
+        (click)="goToPage(operatorPage.meta.page - 1)"
+      >
+        Previous
+      </button>
+      <span>Page {{ operatorPage.meta.page }} of {{ operatorPage.meta.totalPages || 1 }}</span>
+      <button
+        type="button"
+        class="secondary"
+        [disabled]="operatorPage.meta.page >= operatorPage.meta.totalPages"
+        (click)="goToPage(operatorPage.meta.page + 1)"
+      >
+        Next
+      </button>
+    </nav>
+  }
+
+  @if (confirmation(); as dialog) {
+    <div class="modal-backdrop" role="presentation">
+      <section
+        class="modal"
+        role="dialog"
+        aria-modal="true"
+        aria-labelledby="operator-confirm-title"
+        aria-describedby="operator-confirm-description"
+      >
+        <h2 id="operator-confirm-title" tabindex="-1" #dialogTitle>{{ dialog.title }}</h2>
+        <p id="operator-confirm-description">{{ dialog.consequence }}</p>
+        @if (dialog.command === 'ROLE' && dialog.nextRole) {
+          <p class="security-note">
+            Current role: {{ roleLabel(dialog.operator.role) }}. New role:
+            {{ roleLabel(dialog.nextRole) }}.
+          </p>
+        }
+        @if (dialog.command === 'DEACTIVATE' && dialog.operator.role === 'ADMINISTRATOR') {
+          <p class="security-note">
+            If this is the final active Administrator, the API will reject the action and this list
+            will refresh without changing the displayed state.
+          </p>
+        }
+        <div class="modal-actions">
+          <button type="button" class="secondary" (click)="closeConfirmation()">Cancel</button>
+          <button type="button" class="danger" [disabled]="submitting()" (click)="confirmCommand()">
+            Confirm
+          </button>
+        </div>
+      </section>
+    </div>
+  }
+</section>

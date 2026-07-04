@@ -4,12 +4,17 @@
   "private": true,
   "workspaces": [
     "apps/backend",
+    "apps/backoffice",
     "apps/frontend",
     "libs/*"
   ],
   "scripts": {
     "nx": "nx",
     "backend": "nx serve backend",
+    "backoffice": "nx serve backoffice",
+    "backoffice:build": "nx build backoffice",
+    "backoffice:test": "nx test backoffice",
+    "backoffice:e2e": "nx e2e backoffice",
     "frontend": "nx serve frontend",
     "build": "nx run-many -t build",
     "test": "nx run-many -t test",

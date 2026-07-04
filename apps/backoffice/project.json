@@ -1,0 +1,40 @@
+{
+  "name": "backoffice",
+  "$schema": "../../node_modules/nx/schemas/project-schema.json",
+  "projectType": "application",
+  "sourceRoot": "apps/backoffice/src",
+  "targets": {
+    "serve": {
+      "executor": "nx:run-commands",
+      "options": {
+        "cwd": "apps/backoffice",
+        "command": "npm run start"
+      }
+    },
+    "build": {
+      "executor": "nx:run-commands",
+      "outputs": ["{projectRoot}/dist"],
+      "options": {
+        "cwd": "apps/backoffice",
+        "command": "npm run build"
+      }
+    },
+    "test": {
+      "executor": "nx:run-commands",
+      "outputs": ["{projectRoot}/coverage"],
+      "options": {
+        "cwd": "apps/backoffice",
+        "command": "npm run test"
+      }
+    },
+    "e2e": {
+      "executor": "nx:run-commands",
+      "outputs": ["{projectRoot}/cypress/results"],
+      "options": {
+        "cwd": "apps/backoffice",
+        "command": "npm run e2e"
+      }
+    }
+  },
+  "tags": ["scope:backoffice", "type:app"]
+}
