@@ -1,0 +1,10 @@
+{
+  "compilerOptions": {
+    "baseUrl": "./src/app",
+    "paths": {
+      "@taskgo/backend/shared/*": ["src/shared/*"],
+      "@shared/*": ["src/shared/*"],
+      "@PrismaDir/*": ["src/prisma/*"]
+    }
+  }
+}

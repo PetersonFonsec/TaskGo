@@ -1,0 +1,42 @@
+groups:
+  - name: proxi-backoffice
+    rules:
+      - alert: BackofficeAuditWriteFailure
+        expr: increase(admin_audit_write_failures_total[1m]) > 0
+        for: 0m
+        labels:
+          severity: critical
+          service: backoffice
+        annotations:
+          summary: Backoffice audit write failed
+          description: Audit writes must remain transactional with privileged state changes.
+
+      - alert: BackofficeRepeatedAdminLoginFailure
+        expr: sum(increase(admin_login_attempts_total{result="failure"}[5m])) >= 5
+        for: 0m
+        labels:
+          severity: warning
+          service: backoffice
+        annotations:
+          summary: Repeated administrative login failures
+          description: Five or more failed Backoffice logins occurred in five minutes.
+
+      - alert: BackofficeElevated5xx
+        expr: sum(increase(admin_http_requests_total{status=~"5.."}[5m])) >= 3
+        for: 0m
+        labels:
+          severity: critical
+          service: backoffice
+        annotations:
+          summary: Elevated Backoffice API 5xx responses
+          description: Three or more administrative API 5xx responses occurred in five minutes.
+
+      - alert: BackofficeSustainedP95LatencyBreach
+        expr: admin_list_endpoint_duration_ms_p95 > 500
+        for: 3m
+        labels:
+          severity: warning
+          service: backoffice
+        annotations:
+          summary: Backoffice list p95 latency exceeded 500 ms
+          description: Provider or audit list p95 has exceeded 500 ms for three consecutive one-minute windows.

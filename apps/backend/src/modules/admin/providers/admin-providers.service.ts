@@ -3,6 +3,7 @@ import {
   ConflictException,
   Injectable,
   NotFoundException,
+  Optional,
   UnprocessableEntityException,
 } from '@nestjs/common';
 import { Prisma, ProviderDecisionAction, ProviderStatus } from '@prisma/client';
@@ -15,6 +16,7 @@ import {
 } from '../audit/admin-audit.contracts';
 import { AdminAuditService } from '../audit/admin-audit.service';
 import { AdminActor } from '../auth/admin-actor';
+import { AdminTelemetryService } from '../../../observability/admin-telemetry.service';
 import { AdminProviderDashboardQueryDto } from './dto/admin-provider-dashboard-query.dto';
 import { AdminProviderQueryDto } from './dto/admin-provider-query.dto';
 import { ProviderDecisionReasonDto } from './dto/provider-decision-command.dto';
@@ -247,6 +249,7 @@ export class AdminProvidersService {
   constructor(
     private readonly prisma: PrismaService,
     private readonly audit: AdminAuditService,
+    @Optional() private readonly telemetry?: AdminTelemetryService,
   ) {}
 
   buildWhere(query: AdminProviderQueryDto): Prisma.ProviderWhereInput {
@@ -269,6 +272,7 @@ export class AdminProvidersService {
     const { page, limit } = this.getPageBounds(query);
     const where = this.buildWhere(query);
 
+    const startedAt = process.hrtime.bigint();
     const [total, providers] = await this.prisma.$transaction([
       this.prisma.provider.count({ where }),
       this.prisma.provider.findMany({
@@ -279,6 +283,10 @@ export class AdminProvidersService {
         take: limit,
       }),
     ]);
+    this.telemetry?.observeDatabaseQuery(
+      '/admin/providers',
+      Number(process.hrtime.bigint() - startedAt) / Number(1_000_000n),
+    );
 
     return this.toPage(
       providers.map((provider) => this.toQueueItem(provider)),
@@ -528,81 +536,94 @@ export class AdminProvidersService {
     const reason = this.normalizeReason(body?.reason, transition);
     const changedAt = new Date();
 
-    const provider = await this.prisma.$transaction(async (tx) => {
-      const current = await tx.provider.findUnique({
-        where: { id: providerId },
-        select: {
-          id: true,
-          verified: true,
-          status: true,
-          statusChangedAt: true,
-        },
-      });
+    try {
+      const provider = await this.prisma.$transaction(async (tx) => {
+        const current = await tx.provider.findUnique({
+          where: { id: providerId },
+          select: {
+            id: true,
+            verified: true,
+            status: true,
+            statusChangedAt: true,
+          },
+        });
 
-      if (!current) {
-        throw new NotFoundException('Provider not found');
-      }
-      if (current.status !== transition.fromStatus) {
-        throw new ConflictException('Provider state transition conflict');
-      }
+        if (!current) {
+          throw new NotFoundException('Provider not found');
+        }
+        if (current.status !== transition.fromStatus) {
+          throw new ConflictException('Provider state transition conflict');
+        }
 
-      const updated = await tx.provider.updateMany({
-        where: { id: providerId, status: transition.fromStatus },
-        data: {
-          status: transition.toStatus,
-          verified: transition.toStatus === ProviderStatus.APPROVED,
-          statusChangedAt: changedAt,
-        },
-      });
+        const updated = await tx.provider.updateMany({
+          where: { id: providerId, status: transition.fromStatus },
+          data: {
+            status: transition.toStatus,
+            verified: transition.toStatus === ProviderStatus.APPROVED,
+            statusChangedAt: changedAt,
+          },
+        });
 
-      if (updated.count !== 1) {
-        throw new ConflictException('Provider state transition conflict');
-      }
+        if (updated.count !== 1) {
+          throw new ConflictException('Provider state transition conflict');
+        }
 
-      const saved = await tx.provider.findUniqueOrThrow({
-        where: { id: providerId },
-        select: {
-          id: true,
-          verified: true,
-          status: true,
-          statusChangedAt: true,
-        },
-      });
+        const saved = await tx.provider.findUniqueOrThrow({
+          where: { id: providerId },
+          select: {
+            id: true,
+            verified: true,
+            status: true,
+            statusChangedAt: true,
+          },
+        });
 
-      await tx.providerDecision.create({
-        data: {
-          providerId,
-          action: transition.action,
-          fromStatus: transition.fromStatus,
-          toStatus: transition.toStatus,
+        await tx.providerDecision.create({
+          data: {
+            providerId,
+            action: transition.action,
+            fromStatus: transition.fromStatus,
+            toStatus: transition.toStatus,
+            reason,
+            actorAdminId: actor.id,
+            actorRole: actor.role,
+          },
+        });
+
+        await this.audit.append(tx, {
+          actor,
+          action: transition.auditAction,
+          target: { type: PROVIDER_ENTITY, id: providerId },
+          before: {
+            status: current.status,
+            verified: current.verified,
+            statusChangedAt: current.statusChangedAt,
+          },
+          after: {
+            status: saved.status,
+            verified: saved.verified,
+            statusChangedAt: saved.statusChangedAt,
+          },
           reason,
-          actorAdminId: actor.id,
-          actorRole: actor.role,
-        },
+          ...requestContext,
+        });
+
+        return saved;
       });
 
-      await this.audit.append(tx, {
-        actor,
-        action: transition.auditAction,
-        target: { type: PROVIDER_ENTITY, id: providerId },
-        before: {
-          status: current.status,
-          verified: current.verified,
-          statusChangedAt: current.statusChangedAt,
-        },
-        after: {
-          status: saved.status,
-          verified: saved.verified,
-          statusChangedAt: saved.statusChangedAt,
-        },
-        reason,
-        ...requestContext,
-      });
-
-      return saved;
-    });
-
-    return { provider: this.toLifecycleState(provider) };
+      this.telemetry?.recordProviderDecision(transition.action, 'success');
+      return { provider: this.toLifecycleState(provider) };
+    } catch (error) {
+      this.telemetry?.recordProviderDecision(transition.action, 'failure');
+      if (error instanceof ConflictException) {
+        this.telemetry?.recordTransactionRollback('provider_conflict');
+      } else {
+        this.telemetry?.recordTransactionRollback(
+          'provider_transition_failure',
+        );
+      }
+      throw error;
+    }
   }
 
   private normalizeReason(

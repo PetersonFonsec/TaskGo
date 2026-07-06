@@ -6,6 +6,7 @@ import {
   PaymentMethod,
   PaymentStatus,
   ProviderStatus,
+  AdminRole,
 } from '@prisma/client';
 import { CategorySeeds } from './category.seed';
 import * as bcrypt from 'bcrypt';
@@ -15,6 +16,7 @@ const prisma = new PrismaClient();
 
 const SEED_EMAIL_DOMAIN = 'teste.com';
 const SEED_PASSWORD = '123456';
+const SEED_ADMIN_EMAIL = 'admin@teste.com';
 const SEED_NOW = new Date('2026-01-05T12:00:00.000Z');
 const REVIEW_TAGS = [
   { name: 'Pontual', slug: 'pontual' },
@@ -39,6 +41,30 @@ const defaultServiceAvailability = {
 };
 
 async function main() {
+  const adminPasswordHash = await bcrypt.hash(SEED_PASSWORD, 10);
+
+  await prisma.adminUser.upsert({
+    where: { email: SEED_ADMIN_EMAIL },
+    update: {
+      name: 'Administrador Proxi',
+      passwordHash: adminPasswordHash,
+      role: AdminRole.ADMINISTRATOR,
+      active: true,
+      tokenVersion: 0,
+      invitationTokenHash: null,
+      invitationExpiresAt: null,
+      activatedAt: SEED_NOW,
+    },
+    create: {
+      name: 'Administrador Proxi',
+      email: SEED_ADMIN_EMAIL,
+      passwordHash: adminPasswordHash,
+      role: AdminRole.ADMINISTRATOR,
+      active: true,
+      activatedAt: SEED_NOW,
+    },
+  });
+
   await Promise.all(
     REVIEW_TAGS.map((tag) =>
       prisma.reviewTag.upsert({
@@ -231,6 +257,7 @@ async function main() {
   }
 
   console.log('✅ Seeds inseridos com sucesso!');
+  console.log(`🔐 Backoffice: ${SEED_ADMIN_EMAIL} / ${SEED_PASSWORD}`);
 }
 
 main()

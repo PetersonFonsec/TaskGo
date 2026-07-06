@@ -1,6 +1,7 @@
 import {
   ForbiddenException,
   Injectable,
+  Optional,
   UnauthorizedException,
 } from '@nestjs/common';
 import { AdminUser } from '@prisma/client';
@@ -19,6 +20,7 @@ import {
   AdminAuthTokenService,
   AdminTokenPayload,
 } from './admin-auth-token.service';
+import { AdminTelemetryService } from '../../../observability/admin-telemetry.service';
 
 const ADMIN_LOGIN_ERROR = 'Invalid administrative credentials';
 
@@ -28,31 +30,51 @@ export class AdminAuthService {
     private readonly prisma: PrismaService,
     private readonly tokenService: AdminAuthTokenService,
     private readonly audit: AdminAuditService,
+    @Optional() private readonly telemetry?: AdminTelemetryService,
   ) {}
 
   async login(email: string, password: string) {
-    const operator = await this.prisma.adminUser.findUnique({
-      where: { email: this.normalizeEmail(email) },
-    });
+    const normalizedEmail = this.normalizeEmail(email);
 
-    if (!operator?.passwordHash || !operator.active || !operator.activatedAt) {
-      throw new ForbiddenException(ADMIN_LOGIN_ERROR);
+    try {
+      const operator = await this.prisma.adminUser.findUnique({
+        where: { email: normalizedEmail },
+      });
+
+      if (
+        !operator?.passwordHash ||
+        !operator.active ||
+        !operator.activatedAt
+      ) {
+        throw new ForbiddenException(ADMIN_LOGIN_ERROR);
+      }
+
+      const passwordMatches = await bcrypt.compare(
+        password,
+        operator.passwordHash,
+      );
+      if (!passwordMatches) {
+        throw new ForbiddenException(ADMIN_LOGIN_ERROR);
+      }
+
+      const { access_token } = this.tokenService.createToken(operator);
+      this.telemetry?.recordLogin('success', {
+        adminId: operator.id.toString(),
+        role: operator.role,
+      });
+
+      return {
+        operator: this.toResponse(operator),
+        access_token,
+      };
+    } catch (error) {
+      this.telemetry?.recordLogin('failure', {
+        emailDomain: normalizedEmail.split('@')[1] ?? 'unknown',
+        reason:
+          error instanceof ForbiddenException ? 'invalid_credentials' : 'error',
+      });
+      throw error;
     }
-
-    const passwordMatches = await bcrypt.compare(
-      password,
-      operator.passwordHash,
-    );
-    if (!passwordMatches) {
-      throw new ForbiddenException(ADMIN_LOGIN_ERROR);
-    }
-
-    const { access_token } = this.tokenService.createToken(operator);
-
-    return {
-      operator: this.toResponse(operator),
-      access_token,
-    };
   }
 
   async validatePayload(payload: AdminTokenPayload) {

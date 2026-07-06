@@ -2,6 +2,7 @@ import {
   BadRequestException,
   Injectable,
   NotFoundException,
+  Optional,
 } from '@nestjs/common';
 import { AuditLog, Prisma } from '@prisma/client';
 
@@ -12,6 +13,7 @@ import {
   AdminAuditAppendInput,
 } from './admin-audit.contracts';
 import { AdminAuditLogQueryDto } from './dto/admin-audit-log-query.dto';
+import { AdminTelemetryService } from '../../../observability/admin-telemetry.service';
 
 type JsonValue = string | number | boolean | null | JsonObject | JsonArray;
 interface JsonObject {
@@ -75,7 +77,10 @@ const auditLogSelect = {
 
 @Injectable()
 export class AdminAuditService {
-  constructor(private readonly prisma: PrismaService) {}
+  constructor(
+    private readonly prisma: PrismaService,
+    @Optional() private readonly telemetry?: AdminTelemetryService,
+  ) {}
 
   async append(
     tx: Prisma.TransactionClient,
@@ -83,21 +88,26 @@ export class AdminAuditService {
   ): Promise<AuditLog> {
     const actor = this.snapshotActor(input);
 
-    return tx.auditLog.create({
-      data: {
-        actorAdminId: actor.id,
-        actorRole: actor.role,
-        action: input.action,
-        entityType: input.target.type,
-        entityId: String(input.target.id),
-        before: this.toPrismaJson(this.sanitizeDelta(input.before, 'before')),
-        after: this.toPrismaJson(this.sanitizeDelta(input.after, 'after')),
-        reason: input.reason ?? null,
-        requestId: input.requestId,
-        ipAddress: input.ipAddress ?? null,
-        userAgent: input.userAgent ?? null,
-      },
-    });
+    try {
+      return await tx.auditLog.create({
+        data: {
+          actorAdminId: actor.id,
+          actorRole: actor.role,
+          action: input.action,
+          entityType: input.target.type,
+          entityId: String(input.target.id),
+          before: this.toPrismaJson(this.sanitizeDelta(input.before, 'before')),
+          after: this.toPrismaJson(this.sanitizeDelta(input.after, 'after')),
+          reason: input.reason ?? null,
+          requestId: input.requestId,
+          ipAddress: input.ipAddress ?? null,
+          userAgent: input.userAgent ?? null,
+        },
+      });
+    } catch (error) {
+      this.telemetry?.recordAuditWriteFailure(input.action);
+      throw error;
+    }
   }
 
   buildWhere(query: AdminAuditLogQueryDto): Prisma.AuditLogWhereInput {
@@ -134,6 +144,7 @@ export class AdminAuditService {
     const { page, limit } = this.getPageBounds(query);
     const where = this.buildWhere(query);
 
+    const startedAt = process.hrtime.bigint();
     const [total, rows] = await this.prisma.$transaction([
       this.prisma.auditLog.count({ where }),
       this.prisma.auditLog.findMany({
@@ -144,6 +155,10 @@ export class AdminAuditService {
         take: limit,
       }),
     ]);
+    this.telemetry?.observeDatabaseQuery(
+      '/admin/audit-logs',
+      Number(process.hrtime.bigint() - startedAt) / Number(1_000_000n),
+    );
 
     return this.toPage(
       rows.map((row) => this.toListItem(row)),

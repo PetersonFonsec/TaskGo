@@ -17,6 +17,8 @@ import { BigIntInterceptor } from './shared/interceptors/bigint.interceptor';
 import { ReviewTagModule } from './modules/review-tag/review-tag.module';
 import { PaymentsModule } from './modules/payments/payments.module';
 import { AdminModule } from './modules/admin/admin.module';
+import { ObservabilityModule } from './observability/observability.module';
+import { AdminTelemetryInterceptor } from './observability/admin-telemetry.interceptor';
 
 @Module({
   imports: [
@@ -32,6 +34,7 @@ import { AdminModule } from './modules/admin/admin.module';
     ReviewTagModule,
     PaymentsModule,
     AdminModule,
+    ObservabilityModule,
   ],
   controllers: [AppController],
   providers: [
@@ -43,6 +46,10 @@ import { AdminModule } from './modules/admin/admin.module';
     {
       provide: APP_INTERCEPTOR,
       useClass: BigIntInterceptor,
+    },
+    {
+      provide: APP_INTERCEPTOR,
+      useClass: AdminTelemetryInterceptor,
     },
   ],
 })

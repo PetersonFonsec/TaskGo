@@ -7,4 +7,4 @@
 -- AlterTable
 ALTER TABLE "pedidos" ADD COLUMN     "estimatedPrice" DECIMAL(65,30),
 ADD COLUMN     "motivo_ajuste_preco" TEXT,
-ADD COLUMN     "preco_ajustado" BOOLEAN NOT NULL;
+ADD COLUMN     "preco_ajustado" BOOLEAN NOT NULL DEFAULT false;

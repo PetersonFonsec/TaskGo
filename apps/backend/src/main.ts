@@ -7,6 +7,7 @@ import helmet from 'helmet';
 // import * as compression from 'compression';
 
 import { AppModule } from './app.module';
+import { buildCorsOptions } from './config/cors.config';
 import { CustomExceptionFilter } from './shared/filters/http-exception.filter';
 import { requestCorrelationMiddleware } from './shared/http/request-correlation.middleware';
 
@@ -14,7 +15,7 @@ async function bootstrap() {
   await otelSDK.start();
   const app = await NestFactory.create(AppModule);
 
-  app.enableCors();
+  app.enableCors(buildCorsOptions());
   app.use(helmet());
   app.use(requestCorrelationMiddleware);
   app.useGlobalPipes(new ValidationPipe());

@@ -2,6 +2,7 @@ import {
   CanActivate,
   ExecutionContext,
   Injectable,
+  Optional,
   UnauthorizedException,
 } from '@nestjs/common';
 import { Reflector } from '@nestjs/core';
@@ -15,6 +16,7 @@ import {
 import { IS_ADMIN_PUBLIC_KEY } from '../authorization/admin-public.decorator';
 import { AdminAuthService } from './admin-auth.service';
 import { AdminAuthTokenService } from './admin-auth-token.service';
+import { AdminTelemetryService } from '../../../observability/admin-telemetry.service';
 
 @Injectable()
 export class AdminAuthGuard implements CanActivate {
@@ -22,6 +24,7 @@ export class AdminAuthGuard implements CanActivate {
     private readonly tokenService: AdminAuthTokenService,
     private readonly authService: AdminAuthService,
     private readonly reflector: Reflector,
+    @Optional() private readonly telemetry?: AdminTelemetryService,
   ) {}
 
   async canActivate(context: ExecutionContext) {
@@ -33,7 +36,13 @@ export class AdminAuthGuard implements CanActivate {
 
     const request = context.switchToHttp().getRequest<AdminRequest>();
     const token = this.extractBearerToken(request);
-    const payload = this.tokenService.verify(token);
+    let payload;
+    try {
+      payload = this.tokenService.verify(token);
+    } catch (error) {
+      this.telemetry?.recordOrdinaryTokenRejected(request.path);
+      throw error;
+    }
     const operator = await this.authService.validatePayload(payload);
     const actor = toAdminActor(operator);
 

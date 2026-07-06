@@ -16,7 +16,7 @@ diag.setLogger(new DiagConsoleLogger(), DiagLogLevel.ERROR);
 const otelSDK = new NodeSDK({
   serviceName: 'taskgo-backend-nest',
   traceExporter: new OTLPTraceExporter({
-    url: 'http://localhost:4317',
+    url: process.env.OTEL_EXPORTER_OTLP_ENDPOINT ?? 'http://localhost:4317',
     compression: 'gzip',
   } as any),
   instrumentations: [

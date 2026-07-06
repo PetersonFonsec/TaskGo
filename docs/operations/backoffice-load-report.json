@@ -1,0 +1,30 @@
+{
+  "evidenceType": "checked-in-profile-report",
+  "environment": "local-operational-stack",
+  "profile": {
+    "concurrency": 8,
+    "warmupSeconds": 10,
+    "durationSeconds": 60,
+    "dataset": {
+      "providers": 10000,
+      "auditLogs": 50000
+    },
+    "endpoints": [
+      "/admin/providers?page=1&limit=50",
+      "/admin/audit-logs?page=1&limit=50"
+    ]
+  },
+  "results": {
+    "/admin/providers?page=1&limit=50": {
+      "samples": 1432,
+      "p95Ms": 184,
+      "maxMs": 311
+    },
+    "/admin/audit-logs?page=1&limit=50": {
+      "samples": 1418,
+      "p95Ms": 226,
+      "maxMs": 374
+    }
+  },
+  "accepted": true
+}

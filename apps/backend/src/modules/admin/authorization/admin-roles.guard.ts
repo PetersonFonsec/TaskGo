@@ -3,6 +3,7 @@ import {
   ExecutionContext,
   ForbiddenException,
   Injectable,
+  Optional,
 } from '@nestjs/common';
 import { Reflector } from '@nestjs/core';
 import { AdminRole } from '@prisma/client';
@@ -18,13 +19,17 @@ import {
   ADMIN_CAPABILITIES_KEY,
   ADMIN_ROLES_KEY,
 } from './admin-roles.decorator';
+import { AdminTelemetryService } from '../../../observability/admin-telemetry.service';
 
 const ADMIN_ROLES = new Set(Object.values(AdminRole));
 const ADMIN_CAPABILITIES = new Set(Object.values(AdminCapability));
 
 @Injectable()
 export class AdminRolesGuard implements CanActivate {
-  constructor(private readonly reflector: Reflector) {}
+  constructor(
+    private readonly reflector: Reflector,
+    @Optional() private readonly telemetry?: AdminTelemetryService,
+  ) {}
 
   canActivate(context: ExecutionContext) {
     const isAdminPublic = this.reflector.getAllAndOverride<boolean>(
@@ -67,6 +72,7 @@ export class AdminRolesGuard implements CanActivate {
       return true;
     }
 
+    this.telemetry?.recordAuthorizationDenied(actor.role, request.path);
     throw new ForbiddenException('Administrative role is not authorized');
   }
 

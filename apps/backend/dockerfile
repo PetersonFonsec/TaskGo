@@ -18,6 +18,11 @@ RUN npm install
 # Agora copia o restante do código
 COPY . .
 
+# O tsconfig do backend estende ../../tsconfig.base.json. Como o contexto desta
+# imagem é apps/backend, fornecemos uma configuração equivalente no caminho
+# esperado dentro do container.
+COPY tsconfig.docker-base.json /usr/tsconfig.base.json
+
 # Gera o Prisma Client na build (usa o schema configurado no package.json)
 RUN npx prisma generate
 
