@@ -8,9 +8,9 @@ import {
   requireAdminSessionGuard,
   requireAnonymousAdminGuard
 } from './admin-auth.guards';
-import { AdminOperator } from './admin-session.model';
+import type { AdminOperatorProfile } from '@taskgo/shared';
 
-const adminOperator: AdminOperator = {
+const adminOperator: AdminOperatorProfile = {
   id: '42',
   name: 'Admin Operator',
   email: 'admin@example.com',
@@ -22,7 +22,7 @@ const adminOperator: AdminOperator = {
 describe('admin auth guards', () => {
   let auth: jasmine.SpyObj<AdminAuthService>;
   let isAuthenticated: WritableSignal<boolean>;
-  let operator: WritableSignal<AdminOperator | null>;
+  let operator: WritableSignal<AdminOperatorProfile | null>;
   let router: Router;
 
   beforeEach(() => {

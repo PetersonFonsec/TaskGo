@@ -1,6 +1,10 @@
 import { inject, Injectable, signal } from '@angular/core';
+import type { UserRegistrationRequest } from '@taskgo/shared';
 
-import { UserRegisterRequest, UserRegister as User } from '@shared/service/users/user-register.model';
+import {
+  UserRegister as UserRegisterDraftState,
+  UserRegisterDraft,
+} from '@shared/service/users/user-register.model';
 import { UserRegister } from '@shared/service/users/user-register';
 import { UserStorage } from '@shared/service/users/user-storage';
 import { RolesBack } from '@shared/enums/roles.enum';
@@ -19,7 +23,7 @@ export class RegisterUser {
   #userRegister = inject(UserRegister);
   #userStorage = inject(UserStorage);
 
-  user = signal<UserRegisterRequest>(new User());
+  user = signal<UserRegisterDraft>(new UserRegisterDraftState());
   completeSteps = signal(steps);
 
   addAddress(address: any) {
@@ -88,10 +92,46 @@ export class RegisterUser {
   }
 
   register() {
-    const payload = {
-      ...this.user(),
-      type: RolesBack[this.#userStorage.type()]
+    const user = this.user();
+    const payload: UserRegistrationRequest = {
+      name: user.name,
+      email: user.email,
+      password: user.password,
+      phone: user.phone,
+      cpf: user.cpf,
+      type: RolesBack[this.#userStorage.type()],
+      address: {
+        label: user.address.label,
+        street: user.address.street,
+        number: user.address.number,
+        complement: user.address.complement,
+        neighborhood: user.address.neighborhood,
+        city: user.address.city,
+        state: user.address.state,
+        cep: user.address.cep,
+        lat: user.address.lat,
+        lng: user.address.lng,
+      },
+      social: {
+        whatsapp: user.social.whatsapp,
+        instagram: user.social.instagram,
+        facebook: user.social.facebook,
+        linkdin: user.social.linkdin,
+      },
+      services: user.services.map((service) => this.toJsonId(service)),
     }
     return this.#userRegister.registerUser(payload);
+  }
+
+  private toJsonId(service: unknown): string {
+    if (typeof service === 'string' || typeof service === 'number') {
+      return service.toString();
+    }
+
+    if (service && typeof service === 'object' && 'id' in service) {
+      return String(service.id);
+    }
+
+    return String(service);
   }
 }

@@ -1,9 +1,9 @@
-import { AdminRole } from '@app/core/auth/admin-session.model';
+import type { TaskGoAdminRole } from '@taskgo/shared';
 
 export interface OperatorPageQuery {
   readonly page?: number;
   readonly limit?: number;
-  readonly role?: AdminRole;
+  readonly role?: TaskGoAdminRole;
   readonly active?: boolean;
   readonly search?: string;
 }
@@ -24,7 +24,7 @@ export interface AdminOperatorRecord {
   readonly id: string;
   readonly name: string;
   readonly email: string;
-  readonly role: AdminRole;
+  readonly role: TaskGoAdminRole;
   readonly active: boolean;
   readonly activatedAt: string | null;
 }
@@ -36,7 +36,7 @@ export interface OperatorMutationResponse {
 export interface InviteOperatorRequest {
   readonly name: string;
   readonly email: string;
-  readonly role: AdminRole;
+  readonly role: TaskGoAdminRole;
 }
 
 export interface InviteOperatorResponse extends OperatorMutationResponse {
@@ -47,7 +47,7 @@ export interface InviteOperatorResponse extends OperatorMutationResponse {
 }
 
 export interface OperatorRoleOption {
-  readonly value: AdminRole;
+  readonly value: TaskGoAdminRole;
   readonly label: string;
   readonly description: string;
 }
@@ -75,6 +75,6 @@ export const OPERATOR_ROLE_OPTIONS: readonly OperatorRoleOption[] = [
   }
 ];
 
-export function roleLabel(role: AdminRole): string {
+export function roleLabel(role: TaskGoAdminRole): string {
   return OPERATOR_ROLE_OPTIONS.find((option) => option.value === role)?.label ?? role;
 }

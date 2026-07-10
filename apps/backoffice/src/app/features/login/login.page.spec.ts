@@ -5,11 +5,11 @@ import { ActivatedRoute, convertToParamMap, Router } from '@angular/router';
 import { of, throwError } from 'rxjs';
 
 import { AdminAuthService } from '@app/core/auth/admin-auth.service';
-import { AdminOperator } from '@app/core/auth/admin-session.model';
+import type { AdminOperatorProfile } from '@taskgo/shared';
 
 import { LoginPage } from './login.page';
 
-const operator: AdminOperator = {
+const operator: AdminOperatorProfile = {
   id: '42',
   name: 'Admin Operator',
   email: 'admin@example.com',

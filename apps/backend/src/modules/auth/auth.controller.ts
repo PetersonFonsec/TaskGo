@@ -2,6 +2,7 @@ import { CommandBus } from '@nestjs/cqrs/dist/command-bus';
 import { Body, Controller, Post } from '@nestjs/common';
 import { QueryBus } from '@nestjs/cqrs/dist/query-bus';
 import { plainToClass } from 'class-transformer';
+import type { CustomerAuthSession } from '@taskgo/shared';
 
 import { ForgotPasswordCommand } from './commands/forgot-password/forgot-password.command';
 import { CreateUserCommand } from '../user/commands/create-user/create-user.command';
@@ -28,7 +29,6 @@ export class AuthController {
   async login(@Body() body: AuthLoginDTO) {
     const query = plainToClass(LoginQuery, body);
     const result = await this.queryBus.execute(query);
-    result.id = result.id.toString();
 
     const { access_token } = await this.tokenService.createToken(
       result.id.toString(),
@@ -38,9 +38,13 @@ export class AuthController {
         ? await this.providerHomeService.getForProvider(BigInt(result.id))
         : undefined;
 
-    return {
+    const session: CustomerAuthSession = {
       user: result,
       access_token,
+    };
+
+    return {
+      ...session,
       ...(providerHome ? { providerHome } : {}),
     };
   }
@@ -53,10 +57,11 @@ export class AuthController {
 
     const query = plainToClass(GetUserQuery, { id: BigInt(userId) });
     const user = await this.queryBus.execute(query);
-    user.id = user.id.toString();
 
     const { access_token } = await this.tokenService.createToken(userId);
-    return { user, access_token };
+    const session: CustomerAuthSession = { user, access_token };
+
+    return session;
   }
 
   @Public()

@@ -1,12 +1,12 @@
 import { TestBed } from '@angular/core/testing';
 
 import { BACKOFFICE_ENVIRONMENT } from '@app/core/config/backoffice-environment.token';
+import type { AdminOperatorProfile } from '@taskgo/shared';
 
 import { adminJwt } from './admin-auth.service.spec';
-import { AdminOperator } from './admin-session.model';
 import { AdminSessionStorageService } from './admin-session-storage.service';
 
-const operator: AdminOperator = {
+const operator: AdminOperatorProfile = {
   id: '42',
   name: 'Admin Operator',
   email: 'admin@example.com',
@@ -57,8 +57,35 @@ describe('AdminSessionStorageService', () => {
     expect(localStorage.getItem('proxi.backoffice.test.adminToken')).toBeNull();
   });
 
+  it('clears sessions with a missing token or identity', () => {
+    localStorage.setItem('proxi.backoffice.test.adminToken.identity', JSON.stringify(operator));
+
+    expect(service.restore()).toBeNull();
+    expect(localStorage.getItem('proxi.backoffice.test.adminToken.identity')).toBeNull();
+  });
+
+  it('rejects inactive operators when saving a Backoffice session', () => {
+    const token = adminJwt({ tokenKind: 'admin', role: 'ADMINISTRATOR' });
+
+    expect(() =>
+      service.save({ token, operator: { ...operator, active: false } })
+    ).toThrowError(/active administrative token/);
+    expect(localStorage.getItem('proxi.backoffice.test.adminToken')).toBeNull();
+  });
+
   it('returns null for malformed token payloads', () => {
     expect(service.decodeTokenPayload('not-a-token')).toBeNull();
+    expect(service.decodeTokenPayload('header.%%%.signature')).toBeNull();
     expect(service.isAdministrativeToken('not-a-token')).toBeFalse();
+  });
+
+  it('returns null for restored identities with invalid public operator shape', () => {
+    localStorage.setItem('proxi.backoffice.test.adminToken', adminJwt({ tokenKind: 'admin' }));
+    localStorage.setItem(
+      'proxi.backoffice.test.adminToken.identity',
+      JSON.stringify({ ...operator, active: 'yes' })
+    );
+
+    expect(service.restore()).toBeNull();
   });
 });

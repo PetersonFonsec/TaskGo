@@ -1,24 +1,21 @@
 import { IQueryHandler, QueryHandler } from "@nestjs/cqrs";
 import { NotFoundException } from "@nestjs/common/exceptions/not-found.exception";
-import { plainToClass } from "class-transformer";
+import type { PublicUserProfile } from '@taskgo/shared';
 
 import { PrismaService } from '../../../../prisma/prisma.service';
 import { GetUserQuery } from "./get-user.query";
-import { UserDto } from "./get-user.dto";
+import { toPublicUserProfile } from "../../mappers/public-user-profile.mapper";
 
 @QueryHandler(GetUserQuery)
-export class GetUserQueryHandler implements IQueryHandler<GetUserQuery, UserDto> {
+export class GetUserQueryHandler implements IQueryHandler<GetUserQuery, PublicUserProfile> {
 
   constructor(private prisma: PrismaService) { }
 
-  async execute(query: GetUserQuery): Promise<UserDto> {
+  async execute(query: GetUserQuery): Promise<PublicUserProfile> {
     const user = await this.prisma.user.findUnique({
       where: { id: query.id },
       include: {
         addresses: true,
-        orders: true,
-        reviews: true,
-        provider: true
       },
     });
 
@@ -26,6 +23,6 @@ export class GetUserQueryHandler implements IQueryHandler<GetUserQuery, UserDto>
       throw new NotFoundException(`User with id ${query.id} not found`);
     }
 
-    return plainToClass(UserDto, user);
+    return toPublicUserProfile(user);
   }
 }

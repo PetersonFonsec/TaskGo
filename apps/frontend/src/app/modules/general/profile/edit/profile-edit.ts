@@ -4,7 +4,7 @@ import { FormsModule, NgForm } from '@angular/forms';
 import { NgIf } from '@angular/common';
 import { InputTextComponent } from '@shared/components/forms/input-text/input-text.component';
 import { User } from '@shared/service/users/user';
-import { UserResponse } from '@shared/service/users/user.model';
+import type { PublicUserProfile, UserProfileUpdateRequest } from '@taskgo/shared';
 
 @Component({
   selector: 'app-profile-edit',
@@ -18,7 +18,7 @@ export class ProfileEdit implements OnInit {
   #router = inject(Router);
   #userService = inject(User);
 
-  user = signal<UserResponse | null>(null);
+  user = signal<PublicUserProfile | null>(null);
   error = signal('');
   success = signal('');
   loading = signal(true);
@@ -83,11 +83,13 @@ export class ProfileEdit implements OnInit {
     this.error.set('');
     this.success.set('');
 
-    this.#userService.updateUser(userId, {
+    const payload: UserProfileUpdateRequest = {
       name: this.nameValue,
       email: this.emailValue,
       phone: this.phoneValue,
-    }).subscribe({
+    };
+
+    this.#userService.updateUser(userId, payload).subscribe({
       next: () => {
         this.success.set('Perfil salvo com sucesso');
         this.error.set('');

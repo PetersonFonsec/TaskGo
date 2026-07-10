@@ -21,6 +21,7 @@ import {
   AdminTokenPayload,
 } from './admin-auth-token.service';
 import { AdminTelemetryService } from '../../../observability/admin-telemetry.service';
+import type { AdminAuthSession, AdminOperatorProfile } from '@taskgo/shared';
 
 const ADMIN_LOGIN_ERROR = 'Invalid administrative credentials';
 
@@ -33,7 +34,7 @@ export class AdminAuthService {
     @Optional() private readonly telemetry?: AdminTelemetryService,
   ) {}
 
-  async login(email: string, password: string) {
+  async login(email: string, password: string): Promise<AdminAuthSession> {
     const normalizedEmail = this.normalizeEmail(email);
 
     try {
@@ -158,7 +159,7 @@ export class AdminAuthService {
       AdminUser,
       'id' | 'name' | 'email' | 'role' | 'active' | 'activatedAt'
     >,
-  ) {
+  ): AdminOperatorProfile {
     return new AdminOperatorResponseDto(operator);
   }
 

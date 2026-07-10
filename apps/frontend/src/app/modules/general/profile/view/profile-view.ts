@@ -3,7 +3,7 @@ import { ActivatedRoute, Router } from '@angular/router';
 import { NgFor, NgIf } from '@angular/common';
 import { ButtonComponent } from '@shared/components/ui/button/button.component';
 import { User } from '@shared/service/users/user';
-import { UserResponse } from '@shared/service/users/user.model';
+import type { PublicUserProfile } from '@taskgo/shared';
 
 @Component({
   selector: 'app-profile-view',
@@ -17,7 +17,7 @@ export class ProfileView implements OnInit {
   #router = inject(Router);
   #userService = inject(User);
 
-  user = signal<UserResponse | null>(null);
+  user = signal<PublicUserProfile | null>(null);
   error = signal('');
   loading = signal(true);
 

@@ -7,14 +7,14 @@ import { provideRouter } from '@angular/router';
 import { of, Subject } from 'rxjs';
 
 import { AdminAuthService } from '@app/core/auth/admin-auth.service';
-import { AdminOperator } from '@app/core/auth/admin-session.model';
+import type { AdminOperatorProfile } from '@taskgo/shared';
 import { adminJwt } from '@app/core/auth/admin-auth.service.spec';
 import { ProviderDashboard } from '@app/features/providers/provider-admin.models';
 import { ProviderAdminService } from '@app/features/providers/provider-admin.service';
 
 import { DashboardPage } from './dashboard.page';
 
-const operator: AdminOperator = {
+const operator: AdminOperatorProfile = {
   id: '42',
   name: 'Admin Operator',
   email: 'admin@example.com',
@@ -99,7 +99,7 @@ describe('DashboardPage', () => {
   });
 
   function setup(
-    role: AdminOperator['role'],
+    role: AdminOperatorProfile['role'],
     response: ProviderDashboard | Subject<ProviderDashboard>,
   ): { fixture: ComponentFixture<DashboardPage> } {
     localStorage.clear();

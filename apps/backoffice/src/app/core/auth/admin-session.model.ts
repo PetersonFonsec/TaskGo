@@ -1,31 +1,9 @@
-export type AdminRole = 'ADMINISTRATOR' | 'SUPPORT' | 'FINANCE' | 'MODERATOR';
+import type { AdminOperatorProfile } from '@taskgo/shared';
 
-export interface AdminOperator {
-  readonly id: string;
-  readonly name: string;
-  readonly email: string;
-  readonly role: AdminRole;
-  readonly active: boolean;
-  readonly activatedAt: string | null;
-}
-
-export interface AdminLoginRequest {
-  readonly email: string;
-  readonly password: string;
-}
-
-export interface AdminLoginResponse {
-  readonly access_token: string;
-  readonly operator: AdminOperator;
-}
-
-export interface AdminMeResponse {
-  readonly operator: AdminOperator;
-}
-
+// Local storage shape: token payload internals stay out of shared public contracts.
 export interface AdminSession {
   readonly token: string;
-  readonly operator: AdminOperator;
+  readonly operator: AdminOperatorProfile;
 }
 
 export interface AdminTokenPayload {

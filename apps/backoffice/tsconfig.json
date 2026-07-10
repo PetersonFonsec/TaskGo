@@ -15,7 +15,9 @@
     "baseUrl": "./src",
     "paths": {
       "@app/*": ["./app/*"],
-      "@environments/*": ["./environments/*"]
+      "@environments/*": ["./environments/*"],
+      "@taskgo/shared": ["../../../libs/shared/src/index.ts"],
+      "@taskgo/shared/*": ["../../../libs/shared/src/*"]
     }
   },
   "angularCompilerOptions": {

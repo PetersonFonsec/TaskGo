@@ -5,7 +5,7 @@ import { FormsModule } from '@angular/forms';
 import { RouterLink } from '@angular/router';
 
 import { AdminAuthService } from '@app/core/auth/admin-auth.service';
-import { AdminRole } from '@app/core/auth/admin-session.model';
+import type { TaskGoAdminRole } from '@taskgo/shared';
 import {
   PROVIDER_ACTIONS,
   ProviderDashboard,
@@ -155,7 +155,7 @@ const DASHBOARD_PERIODS: readonly DashboardPeriodOption[] = [
   { value: '90', label: 'Last 90 days' },
 ];
 
-function canReadDashboard(role: AdminRole | undefined): boolean {
+function canReadDashboard(role: TaskGoAdminRole | undefined): boolean {
   return role === 'ADMINISTRATOR' || role === 'SUPPORT';
 }
 

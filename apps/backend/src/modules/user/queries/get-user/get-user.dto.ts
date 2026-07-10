@@ -1,16 +1,12 @@
 import { Exclude, Expose, Type } from "class-transformer";
 
 import { CreateAddressDto } from "../../../address/dto/create-address.dto";
-import { Order } from "../../../../modules/order/entities/order.entity";
 import { UserType } from "../../../../shared/enums/user-type.enum";
 
 @Exclude()
 export class UserDto {
   @Expose()
   id: string;
-
-  @Expose()
-  password: string;
 
   @Expose()
   phone: string;
@@ -36,8 +32,4 @@ export class UserDto {
   @Type(() => CreateAddressDto)
   @Expose()
   address: CreateAddressDto[];
-
-  @Type(() => Order)
-  @Expose()
-  orders: Order[];
 }

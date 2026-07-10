@@ -24,8 +24,14 @@
       ],
       "@environments/*": [
         "./environments/*"
+      ],
+      "@taskgo/shared": [
+        "../../../libs/shared/src/index.ts"
+      ],
+      "@taskgo/shared/*": [
+        "../../../libs/shared/src/*"
       ]
-    },
+    }
   },
   "angularCompilerOptions": {
     "enableI18nLegacyMessageIdFormat": false,

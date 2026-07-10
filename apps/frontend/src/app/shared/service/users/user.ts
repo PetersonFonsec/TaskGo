@@ -1,7 +1,8 @@
 import { HttpClient } from '@angular/common/http';
 import { inject, Injectable } from '@angular/core';
 import { environment } from '@environments/environment';
-import { UserResponse } from './user.model';
+import type { PublicUserProfile, UserProfileUpdateRequest } from '@taskgo/shared';
+import type { ProviderProfileResponse } from './user.model';
 
 @Injectable({
   providedIn: 'root'
@@ -11,14 +12,14 @@ export class User {
   #urlbase = environment.url;
 
   getUser(userId: string) {
-    return this.#http.get<UserResponse>(this.#urlbase + `/user/${userId}`);
+    return this.#http.get<PublicUserProfile>(this.#urlbase + `/user/${userId}`);
   }
 
   getProvider(userId: string) {
-    return this.#http.get<UserResponse>(this.#urlbase + `/provider/${userId}`);
+    return this.#http.get<ProviderProfileResponse>(this.#urlbase + `/provider/${userId}`);
   }
 
-  updateUser(userId: string, payload: { name: string; email: string; phone: string }) {
-    return this.#http.patch<UserResponse>(this.#urlbase + `/user/${userId}`, payload);
+  updateUser(userId: string, payload: UserProfileUpdateRequest) {
+    return this.#http.patch<PublicUserProfile>(this.#urlbase + `/user/${userId}`, payload);
   }
 }

@@ -6,6 +6,7 @@ import { PrismaService } from '../../../prisma/prisma.service';
 import { AdminAuditService } from '../audit/admin-audit.service';
 import { AdminAuthTokenService } from './admin-auth-token.service';
 import { AdminAuthService } from './admin-auth.service';
+import type { AdminAuthSession, AdminOperatorProfile } from '@taskgo/shared';
 
 describe('AdminAuthService', () => {
   let service: AdminAuthService;
@@ -54,22 +55,25 @@ describe('AdminAuthService', () => {
     jest.restoreAllMocks();
   });
 
-  it('produces a token and sanitized operator response for a valid active operator', async () => {
+  it('returns access_token and a shared admin operator shape for a valid active operator', async () => {
     prisma.adminUser.findUnique.mockResolvedValue({
       ...activeOperator,
       passwordHash: await bcrypt.hash('correct-password', 10),
     });
 
-    await expect(
-      service.login('ADMIN@EXAMPLE.COM', 'correct-password'),
-    ).resolves.toEqual({
+    const result: AdminAuthSession = await service.login(
+      'ADMIN@EXAMPLE.COM',
+      'correct-password',
+    );
+
+    expect(result).toEqual({
       operator: {
         id: '42',
         name: 'Admin Operator',
         email: 'admin@example.com',
         role: AdminRole.ADMINISTRATOR,
         active: true,
-        activatedAt: activeOperator.activatedAt,
+        activatedAt: '2026-07-02T00:00:00.000Z',
       },
       access_token: 'ADMIN_TOKEN',
     });
@@ -84,6 +88,19 @@ describe('AdminAuthService', () => {
         tokenVersion: 3,
       }),
     );
+  });
+
+  it('serializes operator id and activated timestamp as JSON-safe values', () => {
+    const result: AdminOperatorProfile = service.toResponse(activeOperator);
+
+    expect(result).toEqual({
+      id: '42',
+      name: 'Admin Operator',
+      email: 'admin@example.com',
+      role: AdminRole.ADMINISTRATOR,
+      active: true,
+      activatedAt: '2026-07-02T00:00:00.000Z',
+    });
   });
 
   it('rejects wrong passwords without issuing a token', async () => {

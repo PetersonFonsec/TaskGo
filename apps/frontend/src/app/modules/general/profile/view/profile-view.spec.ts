@@ -1,9 +1,9 @@
 import { ComponentFixture, TestBed } from '@angular/core/testing';
 import { ActivatedRoute, Router } from '@angular/router';
 import { of } from 'rxjs';
+import type { PublicUserProfile } from '@taskgo/shared';
 import { ProfileView } from './profile-view';
 import { User } from '@shared/service/users/user';
-import { UserResponse } from '@shared/service/users/user.model';
 import { RouterTestingModule } from '@angular/router/testing';
 
 describe('ProfileView', () => {
@@ -14,30 +14,31 @@ describe('ProfileView', () => {
 
   beforeEach(async () => {
     mockUserService = {
-      getUser: jest.fn().mockReturnValue(of({
+      getUser: jasmine.createSpy('getUser').and.returnValue(of({
         id: '1',
         name: 'Test User',
         email: 'test@example.com',
         phone: '+5511999999999',
-        type: 'client',
+        cpf: '12345678900',
+        type: 'CLIENTE',
         photoUrl: '',
         addresses: [
           {
             id: '1',
             label: 'Home',
             street: 'Rua Exemplo',
-            city: 'São Paulo',
+            city: 'Sao Paulo',
             state: 'SP',
             postalCode: '01000-000',
             country: 'BR',
             isPrimary: true,
           },
         ],
-      } as UserResponse)),
+      } satisfies PublicUserProfile)),
     };
 
     mockRouter = {
-      navigate: jest.fn(),
+      navigate: jasmine.createSpy('navigate'),
     };
 
     await TestBed.configureTestingModule({
@@ -73,11 +74,18 @@ describe('ProfileView', () => {
     expect(html).toContain('Test User');
     expect(html).toContain('test@example.com');
     expect(html).toContain('Rua Exemplo');
+    expect(component.user() as any).not.toEqual(jasmine.objectContaining({
+      orders: jasmine.anything(),
+      reviews: jasmine.anything(),
+      provider: jasmine.anything(),
+    }));
   });
 
   it('navigates to edit when edit button is clicked', () => {
     const button = fixture.nativeElement.querySelector('[data-cy="edit-profile"]');
     button.click();
-    expect(mockRouter.navigate).toHaveBeenCalledWith(['profile/edit'], { relativeTo: expect.anything() });
+    expect(mockRouter.navigate).toHaveBeenCalledWith(['profile/edit'], {
+      relativeTo: jasmine.anything(),
+    });
   });
 });

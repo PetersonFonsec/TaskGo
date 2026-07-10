@@ -1,8 +1,9 @@
 import { inject, Injectable } from '@angular/core';
 
 import { BACKOFFICE_ENVIRONMENT } from '@app/core/config/backoffice-environment.token';
+import type { AdminOperatorProfile } from '@taskgo/shared';
 
-import { AdminOperator, AdminSession, AdminTokenPayload } from './admin-session.model';
+import { AdminSession, AdminTokenPayload } from './admin-session.model';
 
 @Injectable({
   providedIn: 'root'
@@ -67,7 +68,7 @@ export class AdminSessionStorageService {
     }
   }
 
-  #readOperator(): AdminOperator | null {
+  #readOperator(): AdminOperatorProfile | null {
     const value = this.#getItem(this.identityStorageKey);
 
     if (!value) {
@@ -75,7 +76,7 @@ export class AdminSessionStorageService {
     }
 
     try {
-      const operator = JSON.parse(value) as AdminOperator;
+      const operator = JSON.parse(value) as AdminOperatorProfile;
       if (
         typeof operator.id !== 'string' ||
         typeof operator.email !== 'string' ||

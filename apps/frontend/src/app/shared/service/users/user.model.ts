@@ -1,29 +1,19 @@
-export interface UserAddress {
-  id: string;
-  label: string;
-  street: string;
-  city: string;
-  state: string;
-  postalCode: string;
-  country: string;
-  isPrimary: boolean;
-}
+import type { PublicUserProfile } from '@taskgo/shared';
 
-export interface UserResponse {
+export interface ProviderProfileResponse {
   id: string;
-  name: string;
-  email: string;
-  phone: string;
-  type: string;
-  photoUrl: string;
-  emailVerified?: boolean;
-  phoneVerified?: boolean;
-  pendingEmail?: string | null;
-  pendingPhone?: string | null;
-  createdAt: {};
-  updatedAt: {};
-  cpf: string;
-  addresses: UserAddress[];
+  name?: string;
+  email?: string;
+  phone?: string;
+  photoUrl?: string | null;
+  bio?: string;
+  ratingAvg?: number | { s?: number; value?: number };
+  verified?: boolean;
+  createdAt?: string;
+  user?: PublicUserProfile & {
+    reviews?: unknown[];
+  };
+  services?: unknown[];
   orders: any[];
   reviews: any[];
   provider: {
@@ -36,8 +26,8 @@ export interface UserResponse {
     };
     ratingCount: any;
     verified: boolean;
-    createdAt: {};
-    updatedAt: {};
+    createdAt: string;
+    updatedAt: string;
     pagarmeRecipientId: null;
   };
 }

@@ -6,7 +6,7 @@ import { provideRouter } from '@angular/router';
 import { RouterTestingHarness } from '@angular/router/testing';
 
 import { AdminAuthService } from './core/auth/admin-auth.service';
-import { AdminOperator } from './core/auth/admin-session.model';
+import type { AdminOperatorProfile } from '@taskgo/shared';
 import { adminJwt } from './core/auth/admin-auth.service.spec';
 import { BACKOFFICE_ENVIRONMENT } from './core/config/backoffice-environment.token';
 import { DashboardPage } from './features/dashboard/dashboard.page';
@@ -17,7 +17,7 @@ import { routes } from './app.routes';
 import { environment as developmentEnvironment } from '../environments/environment.development';
 import { environment as productionEnvironment } from '../environments/environment';
 
-const operator: AdminOperator = {
+const operator: AdminOperatorProfile = {
   id: '42',
   name: 'Admin Operator',
   email: 'admin@example.com',

@@ -5,7 +5,7 @@ import { ActivatedRoute, convertToParamMap } from '@angular/router';
 import { BehaviorSubject, of, throwError } from 'rxjs';
 
 import { AdminAuthService } from '@app/core/auth/admin-auth.service';
-import { AdminOperator } from '@app/core/auth/admin-session.model';
+import type { AdminOperatorProfile } from '@taskgo/shared';
 
 import { ProviderDetails, ProviderPage, ProviderDecision, ProviderStatus } from './provider-admin.models';
 import { ProviderAdminService } from './provider-admin.service';
@@ -15,7 +15,7 @@ describe('ProviderDetailsPage', () => {
   let fixture: ComponentFixture<ProviderDetailsPage>;
   let component: ProviderDetailsPage;
   let service: jasmine.SpyObj<ProviderAdminService>;
-  let operatorSignal: ReturnType<typeof signal<AdminOperator | null>>;
+  let operatorSignal: ReturnType<typeof signal<AdminOperatorProfile | null>>;
 
   beforeEach(() => {
     const params = new BehaviorSubject(convertToParamMap({ id: '42' }));
@@ -33,7 +33,7 @@ describe('ProviderDetailsPage', () => {
     service.reject.and.returnValue(of(lifecycle('REJECTED')));
     service.block.and.returnValue(of(lifecycle('BLOCKED')));
     service.unblock.and.returnValue(of(lifecycle('APPROVED')));
-    operatorSignal = signal<AdminOperator | null>(adminOperator('ADMINISTRATOR'));
+    operatorSignal = signal<AdminOperatorProfile | null>(adminOperator('ADMINISTRATOR'));
 
     TestBed.configureTestingModule({
       imports: [ProviderDetailsPage],
@@ -123,7 +123,7 @@ describe('ProviderDetailsPage', () => {
   });
 });
 
-function adminOperator(role: AdminOperator['role']): AdminOperator {
+function adminOperator(role: AdminOperatorProfile['role']): AdminOperatorProfile {
   return {
     id: '7',
     name: 'Admin Operator',

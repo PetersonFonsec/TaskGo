@@ -1,6 +1,7 @@
 import { Controller, Get, Post, Body, Patch, Param, Delete, Query } from '@nestjs/common';
 import { CommandBus, QueryBus } from '@nestjs/cqrs';
 import { plainToClass } from 'class-transformer';
+import type { PublicUserProfile } from '@taskgo/shared';
 import { Public } from '../../shared/decorators/public.decorator';
 
 import { PaginationQuery } from '../../shared/services/pagination/pagination.interface';
@@ -13,6 +14,7 @@ import { RequestPhoneVerificationDto } from './dto/request-phone-verification.dt
 import { ConfirmEmailVerificationDto } from './dto/confirm-email-verification.dto';
 import { ConfirmPhoneVerificationDto } from './dto/confirm-phone-verification.dto';
 import { UserService } from './user.service';
+import { toPublicUserProfile } from './mappers/public-user-profile.mapper';
 @Controller('user')
 export class UserController {
   constructor(
@@ -35,14 +37,15 @@ export class UserController {
   }
 
   @Get(':id')
-  async findOne(@Param('id') id: string) {
+  async findOne(@Param('id') id: string): Promise<PublicUserProfile> {
     const query = plainToClass(GetUserQuery, { id: BigInt(id) });
     return await this.queryBus.execute(query);
   }
 
   @Patch(':id')
-  update(@Param('id') id: string, @Body() updateUserDto: UpdateUserDto) {
-    return this.userService.update(BigInt(id), updateUserDto);
+  async update(@Param('id') id: string, @Body() updateUserDto: UpdateUserDto): Promise<PublicUserProfile> {
+    const user = await this.userService.update(BigInt(id), updateUserDto);
+    return toPublicUserProfile(user);
   }
 
   @Post(':id/verify-email')

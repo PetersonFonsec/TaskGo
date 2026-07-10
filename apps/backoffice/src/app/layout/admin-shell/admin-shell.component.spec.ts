@@ -3,11 +3,11 @@ import { signal } from '@angular/core';
 import { provideRouter } from '@angular/router';
 
 import { AdminAuthService } from '@app/core/auth/admin-auth.service';
-import { AdminOperator } from '@app/core/auth/admin-session.model';
+import type { AdminOperatorProfile } from '@taskgo/shared';
 
 import { AdminShellComponent } from './admin-shell.component';
 
-const supportOperator: AdminOperator = {
+const supportOperator: AdminOperatorProfile = {
   id: '43',
   name: 'Support Operator',
   email: 'support@example.com',

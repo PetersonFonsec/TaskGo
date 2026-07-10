@@ -5,7 +5,7 @@ import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { FormsModule } from '@angular/forms';
 import { ActivatedRoute, ParamMap, Router } from '@angular/router';
 
-import { AdminRole } from '@app/core/auth/admin-session.model';
+import type { TaskGoAdminRole } from '@taskgo/shared';
 
 import {
   AdminOperatorRecord,
@@ -22,7 +22,7 @@ type OperatorCommand = 'ROLE' | 'ACTIVATE' | 'DEACTIVATE' | 'RESEND';
 interface ConfirmationState {
   readonly command: OperatorCommand;
   readonly operator: AdminOperatorRecord;
-  readonly nextRole?: AdminRole;
+  readonly nextRole?: TaskGoAdminRole;
   readonly title: string;
   readonly consequence: string;
 }
@@ -55,7 +55,7 @@ export class OperatorAdminPage {
     email: '',
     role: 'SUPPORT'
   });
-  readonly pendingRole = signal<Record<string, AdminRole>>({});
+  readonly pendingRole = signal<Record<string, TaskGoAdminRole>>({});
   readonly confirmation = signal<ConfirmationState | null>(null);
 
   constructor() {
@@ -160,7 +160,7 @@ export class OperatorAdminPage {
     });
   }
 
-  selectedRole(operator: AdminOperatorRecord): AdminRole {
+  selectedRole(operator: AdminOperatorRecord): TaskGoAdminRole {
     return this.pendingRole()[operator.id] ?? operator.role;
   }
 
@@ -246,7 +246,7 @@ export class OperatorAdminPage {
     });
   }
 
-  roleLabel(role: AdminRole): string {
+  roleLabel(role: TaskGoAdminRole): string {
     return roleLabel(role);
   }
 
@@ -295,7 +295,7 @@ export class OperatorAdminPage {
   }
 }
 
-function isAdminRole(value: string | null): value is AdminRole {
+function isAdminRole(value: string | null): value is TaskGoAdminRole {
   return OPERATOR_ROLE_OPTIONS.some((option) => option.value === value);
 }
 

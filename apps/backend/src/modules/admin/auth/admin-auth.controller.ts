@@ -11,6 +11,7 @@ import { AdminAuthService } from './admin-auth.service';
 import { AdminChangePasswordDto } from './dto/admin-change-password.dto';
 import { AdminAuthLoginDto } from './dto/admin-auth-login.dto';
 import { AdminAuthGuard } from './admin-auth.guard';
+import type { AdminAuthSession, AdminMeResponse } from '@taskgo/shared';
 
 @Public()
 @UseGuards(AdminAuthGuard, AdminRolesGuard)
@@ -20,7 +21,7 @@ export class AdminAuthController {
 
   @AdminPublic()
   @Post('login')
-  login(@Body() body: AdminAuthLoginDto) {
+  login(@Body() body: AdminAuthLoginDto): Promise<AdminAuthSession> {
     return this.authService.login(body.email, body.password);
   }
 
@@ -31,7 +32,7 @@ export class AdminAuthController {
     AdminRole.MODERATOR,
   )
   @Get('me')
-  me(@Req() request: AdminRequest) {
+  me(@Req() request: AdminRequest): AdminMeResponse {
     const actor = request[ADMIN_ACTOR_KEY];
 
     return {

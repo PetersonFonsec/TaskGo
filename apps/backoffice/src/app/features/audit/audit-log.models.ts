@@ -1,4 +1,4 @@
-import { AdminRole } from '@app/core/auth/admin-session.model';
+import type { TaskGoAdminRole } from '@taskgo/shared';
 
 export interface AuditLogQuery {
   readonly page?: number;
@@ -26,7 +26,7 @@ export interface AuditLogPage<T> {
 
 export interface AuditLogActor {
   readonly id: string;
-  readonly role: AdminRole;
+  readonly role: TaskGoAdminRole;
   readonly name: string;
   readonly email: string;
   readonly active: boolean;

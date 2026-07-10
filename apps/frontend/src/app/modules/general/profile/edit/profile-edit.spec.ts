@@ -1,6 +1,7 @@
 import { ComponentFixture, TestBed } from '@angular/core/testing';
 import { ActivatedRoute, Router } from '@angular/router';
 import { of } from 'rxjs';
+import type { PublicUserProfile } from '@taskgo/shared';
 import { ProfileEdit } from './profile-edit';
 import { User } from '@shared/service/users/user';
 import { RouterTestingModule } from '@angular/router/testing';
@@ -12,21 +13,27 @@ describe('ProfileEdit', () => {
   let mockRouter: Partial<Router>;
 
   beforeEach(async () => {
+    const profile: PublicUserProfile = {
+      id: '1',
+      name: 'Test User',
+      email: 'test@example.com',
+      phone: '+5511999999999',
+      cpf: '12345678900',
+      type: 'CLIENTE',
+      photoUrl: '',
+      addresses: [],
+    };
+
     mockUserService = {
-      getUser: jest.fn().mockReturnValue(of({
-        id: '1',
-        name: 'Test User',
-        email: 'test@example.com',
-        phone: '+5511999999999',
-        type: 'client',
-        photoUrl: '',
-        addresses: [],
+      getUser: jasmine.createSpy('getUser').and.returnValue(of(profile)),
+      updateUser: jasmine.createSpy('updateUser').and.returnValue(of({
+        ...profile,
+        name: 'User',
       })),
-      updateUser: jest.fn().mockReturnValue(of({})),
     };
 
     mockRouter = {
-      navigate: jest.fn(),
+      navigate: jasmine.createSpy('navigate'),
     };
 
     await TestBed.configureTestingModule({
@@ -81,6 +88,12 @@ describe('ProfileEdit', () => {
       email: 'test@example.com',
       phone: '+5511999999999',
     });
+    expect((mockUserService.updateUser as jasmine.Spy).calls.mostRecent().args[1] as any)
+      .not.toEqual(jasmine.objectContaining({
+        id: jasmine.anything(),
+        passwordHash: jasmine.anything(),
+        orders: jasmine.anything(),
+      }));
     expect(component.success()).toBe('Perfil salvo com sucesso');
   });
 });

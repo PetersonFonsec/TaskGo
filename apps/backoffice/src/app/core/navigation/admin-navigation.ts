@@ -1,10 +1,10 @@
-import { AdminRole } from '@app/core/auth/admin-session.model';
+import type { TaskGoAdminRole } from '@taskgo/shared';
 
 export interface AdminNavigationItem {
   readonly label: string;
   readonly path: string;
   readonly capability: string;
-  readonly roles: readonly AdminRole[];
+  readonly roles: readonly TaskGoAdminRole[];
 }
 
 export const ADMIN_NAVIGATION: readonly AdminNavigationItem[] = [
@@ -46,6 +46,6 @@ export const ADMIN_NAVIGATION: readonly AdminNavigationItem[] = [
   }
 ];
 
-export function navigationForRole(role: AdminRole): readonly AdminNavigationItem[] {
+export function navigationForRole(role: TaskGoAdminRole): readonly AdminNavigationItem[] {
   return ADMIN_NAVIGATION.filter((item) => item.roles.includes(role));
 }

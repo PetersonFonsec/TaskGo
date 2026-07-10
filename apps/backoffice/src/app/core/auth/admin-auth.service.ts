@@ -4,13 +4,9 @@ import { Router } from '@angular/router';
 import { catchError, map, Observable, tap, throwError } from 'rxjs';
 
 import { BACKOFFICE_ENVIRONMENT } from '@app/core/config/backoffice-environment.token';
+import type { AdminAuthSession, AdminMeResponse, AuthLoginRequest } from '@taskgo/shared';
 
-import {
-  AdminLoginRequest,
-  AdminLoginResponse,
-  AdminMeResponse,
-  AdminSession
-} from './admin-session.model';
+import { AdminSession } from './admin-session.model';
 import { AdminSessionStorageService } from './admin-session-storage.service';
 
 @Injectable({
@@ -29,9 +25,9 @@ export class AdminAuthService {
   readonly token = computed(() => this.#session()?.token ?? '');
   readonly isAuthenticated = computed(() => this.#session() !== null);
 
-  login(credentials: AdminLoginRequest): Observable<AdminSession> {
+  login(credentials: AuthLoginRequest): Observable<AdminSession> {
     return this.#http
-      .post<AdminLoginResponse>(this.#adminUrl('/auth/login'), credentials)
+      .post<AdminAuthSession>(this.#adminUrl('/auth/login'), credentials)
       .pipe(
         map((response) => ({
           token: response.access_token,

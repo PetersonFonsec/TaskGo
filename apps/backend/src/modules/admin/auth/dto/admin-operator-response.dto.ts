@@ -1,4 +1,5 @@
 import { AdminRole } from '@prisma/client';
+import type { AdminOperatorProfile } from '@taskgo/shared';
 
 export interface AdminOperatorRecord {
   id: bigint;
@@ -9,13 +10,13 @@ export interface AdminOperatorRecord {
   activatedAt: Date | null;
 }
 
-export class AdminOperatorResponseDto {
+export class AdminOperatorResponseDto implements AdminOperatorProfile {
   id: string;
   name: string;
   email: string;
   role: AdminRole;
   active: boolean;
-  activatedAt: Date | null;
+  activatedAt: string | null;
 
   constructor(operator: AdminOperatorRecord) {
     this.id = operator.id.toString();
@@ -23,6 +24,6 @@ export class AdminOperatorResponseDto {
     this.email = operator.email;
     this.role = operator.role;
     this.active = operator.active;
-    this.activatedAt = operator.activatedAt;
+    this.activatedAt = operator.activatedAt?.toISOString() ?? null;
   }
 }

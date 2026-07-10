@@ -5,11 +5,11 @@ import { TestBed } from '@angular/core/testing';
 import { provideRouter, Router } from '@angular/router';
 
 import { BACKOFFICE_ENVIRONMENT } from '@app/core/config/backoffice-environment.token';
+import type { AdminOperatorProfile } from '@taskgo/shared';
 
 import { AdminAuthService } from './admin-auth.service';
-import { AdminOperator } from './admin-session.model';
 
-const operator: AdminOperator = {
+const operator: AdminOperatorProfile = {
   id: '42',
   name: 'Admin Operator',
   email: 'admin@example.com',
@@ -99,6 +99,25 @@ describe('AdminAuthService', () => {
     expect(service.isAuthenticated()).toBeFalse();
   });
 
+  it('expires the session when refreshing without a stored token', () => {
+    const router = TestBed.inject(Router);
+    spyOnProperty(router, 'url', 'get').and.returnValue('/operators');
+    spyOn(router, 'navigate').and.returnValue(Promise.resolve(true));
+
+    service.refreshCurrentOperator().subscribe({
+      error: (error) => {
+        expect(error.message).toContain('Missing administrative token');
+      }
+    });
+
+    http.expectOne('http://localhost:3000/admin/auth/me').flush({ operator });
+
+    expect(service.isAuthenticated()).toBeFalse();
+    expect(router.navigate).toHaveBeenCalledOnceWith(['/login'], {
+      queryParams: { returnUrl: '/operators' }
+    });
+  });
+
   it('expires the session once and preserves root return URL on login routes', () => {
     const token = adminJwt({ tokenKind: 'admin', role: 'ADMINISTRATOR' });
     const router = TestBed.inject(Router);
@@ -110,6 +129,20 @@ describe('AdminAuthService', () => {
     service.expireSession();
 
     expect(router.navigate).toHaveBeenCalledOnceWith(['/login'], { queryParams: { returnUrl: '/' } });
+  });
+
+  it('redirects expired non-login sessions back to their current URL', () => {
+    const token = adminJwt({ tokenKind: 'admin', role: 'ADMINISTRATOR' });
+    const router = TestBed.inject(Router);
+    spyOnProperty(router, 'url', 'get').and.returnValue('/providers');
+    spyOn(router, 'navigate').and.returnValue(Promise.resolve(true));
+    service.establishSession({ token, operator });
+
+    service.expireSession();
+
+    expect(router.navigate).toHaveBeenCalledOnceWith(['/login'], {
+      queryParams: { returnUrl: '/providers' }
+    });
   });
 });
 

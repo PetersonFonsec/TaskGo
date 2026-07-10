@@ -1,4 +1,4 @@
-import { AdminRole } from '@app/core/auth/admin-session.model';
+import type { TaskGoAdminRole } from '@taskgo/shared';
 
 export type ProviderStatus = 'PENDING' | 'APPROVED' | 'REJECTED' | 'BLOCKED';
 export type ProviderDecisionAction = 'APPROVE' | 'REJECT' | 'BLOCK' | 'UNBLOCK';
@@ -151,7 +151,7 @@ export interface ProviderDecision {
   readonly createdAt: string;
   readonly actor: {
     readonly id: string;
-    readonly role: AdminRole;
+    readonly role: TaskGoAdminRole;
     readonly name: string;
     readonly email: string;
     readonly active: boolean;
@@ -198,7 +198,7 @@ export interface ProviderDashboardAction {
   };
   readonly actor: {
     readonly id: string;
-    readonly role: AdminRole;
+    readonly role: TaskGoAdminRole;
     readonly name: string;
     readonly email: string;
     readonly active: boolean;
@@ -247,7 +247,7 @@ export const PROVIDER_ACTIONS: Record<ProviderDecisionAction, ProviderActionView
 };
 
 export function availableProviderActions(
-  role: AdminRole | undefined,
+  role: TaskGoAdminRole | undefined,
   status: ProviderStatus | undefined,
 ): readonly ProviderActionView[] {
   if (role !== 'ADMINISTRATOR' || !status) return [];

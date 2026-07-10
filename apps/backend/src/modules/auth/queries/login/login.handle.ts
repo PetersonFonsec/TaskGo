@@ -1,20 +1,20 @@
 import { IQueryHandler } from "@nestjs/cqrs/dist/interfaces/queries/query-handler.interface";
 import { ForbiddenException } from "@nestjs/common";
-import { plainToClass } from "class-transformer";
 import { QueryHandler } from "@nestjs/cqrs";
 import * as bcrypt from 'bcrypt';
+import type { PublicUserProfile } from '@taskgo/shared';
 
-import { UserDto } from "../../../../modules/user/queries/get-user/get-user.dto";
 import { PrismaService } from "../../../../prisma/prisma.service";
 import { ERROR_MESSAGES } from "../../auth.messages";
 import { LoginQuery } from "./login.query";
+import { toPublicUserProfile } from "../../../user/mappers/public-user-profile.mapper";
 
 @QueryHandler(LoginQuery)
-export class LoginQueryHandler implements IQueryHandler<LoginQuery, UserDto> {
+export class LoginQueryHandler implements IQueryHandler<LoginQuery, PublicUserProfile> {
 
   constructor(private prisma: PrismaService) { }
 
-  async execute(query: LoginQuery): Promise<UserDto> {
+  async execute(query: LoginQuery): Promise<PublicUserProfile> {
     const user = await this.prisma.user.findUnique({ where: { email: query.email } });
     if (!user) {
       throw new ForbiddenException(ERROR_MESSAGES.loginError);
@@ -25,6 +25,6 @@ export class LoginQueryHandler implements IQueryHandler<LoginQuery, UserDto> {
       throw new ForbiddenException(ERROR_MESSAGES.loginError);
     }
 
-    return plainToClass(UserDto, user);
+    return toPublicUserProfile(user);
   }
 }
