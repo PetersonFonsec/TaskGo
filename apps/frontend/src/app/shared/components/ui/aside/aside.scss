@@ -26,38 +26,8 @@
     display: flex;
     flex-direction: column;
     gap: 4px;
-  }
-
-  hr {
-    border: 0;
-    border-bottom: 1px solid var(--proxi-border);
+    list-style: none;
     margin: 0;
-  }
-
-  &_banner {
-    align-items: flex-start;
-    background: linear-gradient(145deg, #eff6ff, rgb(var(--color-primary-rgb), 0.2));
-    border: 1px solid #bfdbfe;
-    border-radius: var(--proxi-radius-md);
-    display: flex;
-    flex-direction: column;
-    gap: 12px;
-    padding: 18px;
-
-    &_title {
-      color: var(--proxi-primary);
-      font-size: 15px;
-      font-weight: 800;
-    }
-
-    &_icon { margin-right: 6px; }
-
-    &_text {
-      color: var(--proxi-text-muted);
-      font-size: 12px;
-      font-weight: 500;
-      line-height: 1.55;
-      text-align: left;
-    }
+    padding: 0;
   }
 }

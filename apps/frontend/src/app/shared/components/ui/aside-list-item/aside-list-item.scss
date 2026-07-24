@@ -1,23 +1,31 @@
 .aside-list-item {
+  align-items: center;
+  background: transparent;
+  border: 0;
   border-radius: 11px;
   color: #475569;
   cursor: pointer;
+  display: flex;
+  font: inherit;
   font-size: 13px;
   font-weight: 600;
+  min-height: 42px;
+  padding: 10px 12px;
+  position: relative;
+  text-align: left;
   transition: background-color 160ms ease, color 160ms ease;
+  width: 100%;
 
   &:hover,
+  &:focus-visible,
   &--active {
     background: var(--proxi-primary-soft);
     color: var(--proxi-primary);
   }
 
-  a {
-    align-items: center;
-    display: flex;
-    min-height: 42px;
-    padding: 10px 12px;
-    width: 100%;
+  &:focus-visible {
+    outline: 2px solid var(--proxi-primary);
+    outline-offset: 2px;
   }
 
   &_icon {
@@ -26,5 +34,18 @@
     margin-right: 12px;
     text-align: center;
     width: 18px;
+  }
+
+  &_active-indicator {
+    background: currentColor;
+    border-radius: 999px;
+    display: none;
+    height: 18px;
+    margin-left: auto;
+    width: 3px;
+  }
+
+  &--active &_active-indicator {
+    display: block;
   }
 }

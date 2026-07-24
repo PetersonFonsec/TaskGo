@@ -1,7 +1,11 @@
-import { Component, input } from '@angular/core';
+import { Component, input, output } from '@angular/core';
 import { RouterLink, RouterLinkActive } from '@angular/router';
+import { FontAwesomeModule } from '@fortawesome/angular-fontawesome';
 
-import { FontAwesomeModule, IconDefinition } from '@fortawesome/angular-fontawesome';
+import {
+  NavigationAction,
+  ResolvedNavigationItem,
+} from '../aside/aside.constant';
 
 @Component({
   selector: 'app-aside-list-item',
@@ -10,7 +14,6 @@ import { FontAwesomeModule, IconDefinition } from '@fortawesome/angular-fontawes
   styleUrl: './aside-list-item.scss',
 })
 export class AsideListItem {
-  icon = input<IconDefinition>()
-  routerLink = input('')
-  text = input('')
+  readonly item = input<ResolvedNavigationItem | null>(null);
+  readonly actionSelected = output<NavigationAction>();
 }

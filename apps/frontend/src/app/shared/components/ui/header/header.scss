@@ -1,12 +1,25 @@
+@use "variables/breakpoints";
+
 .header {
   align-items: center;
   background: rgba(255, 255, 255, 0.94);
   border-bottom: 1px solid var(--proxi-border);
   display: flex;
-  height: 72px;
+  height: 64px;
   justify-content: space-between;
   padding: 0 clamp(16px, 3vw, 40px);
 
+  &_leading,
+  &_content {
+    align-items: center;
+    display: flex;
+  }
+
+  &_leading {
+    gap: 10px;
+  }
+
+  &_menu-button,
   &_brand {
     align-items: center;
     background: transparent;
@@ -15,6 +28,28 @@
     cursor: pointer;
     display: flex;
     font: inherit;
+  }
+
+  &_menu-button {
+    border-radius: 10px;
+    font-size: 18px;
+    height: 44px;
+    justify-content: center;
+    width: 44px;
+
+    &:hover,
+    &:focus-visible {
+      background: var(--proxi-primary-soft);
+      color: var(--proxi-primary);
+    }
+
+    &:focus-visible {
+      outline: 2px solid var(--proxi-primary);
+      outline-offset: 2px;
+    }
+  }
+
+  &_brand {
     font-size: 20px;
     font-weight: 800;
     gap: 10px;
@@ -33,14 +68,23 @@
     width: 34px;
   }
 
+  &_brand-name {
+    display: none;
+  }
+
   &_content {
-    align-items: center;
-    display: flex;
     gap: 20px;
   }
-}
 
-@media (max-width: 767px) {
-  .header { height: 64px; }
-  .header_brand-name { display: none; }
+  @media (min-width: breakpoints.$tablet) {
+    height: 72px;
+
+    &_menu-button {
+      display: none;
+    }
+
+    &_brand-name {
+      display: inline;
+    }
+  }
 }

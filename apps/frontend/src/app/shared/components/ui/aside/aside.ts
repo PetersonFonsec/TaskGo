@@ -1,33 +1,27 @@
-import { Component, inject, input } from '@angular/core';
-import { AsideListItem } from '../aside-list-item/aside-list-item';
-import { asideListItems, asideListItemsFooter, asideListItemsSecundary } from './aside.constant';
-import { ButtonComponent } from '../button/button.component';
-import { FaIconComponent, IconDefinition } from "@fortawesome/angular-fontawesome";
-import { faArrowRightFromBracket, faCrown } from '@fortawesome/free-solid-svg-icons';
+import { Component, computed, inject } from '@angular/core';
+
 import { UserLoggedService } from '@shared/service/user-logged/user-logged.service';
+
+import { AsideListItem } from '../aside-list-item/aside-list-item';
+import { NavigationAction, resolveNavigationGroups } from './aside.constant';
 
 @Component({
   selector: 'app-aside',
-  imports: [AsideListItem, ButtonComponent, FaIconComponent],
+  imports: [AsideListItem],
   templateUrl: './aside.html',
   styleUrl: './aside.scss',
 })
 export class Aside {
-  #userLoggedService = inject(UserLoggedService);
+  readonly #userLoggedService = inject(UserLoggedService);
 
-  itemsSecundary = input(asideListItemsSecundary);
-  bannerIcon = input<IconDefinition>(faCrown);
-  itemsFooter = input(asideListItemsFooter);
-  items = input(asideListItems);
+  protected readonly groups = computed(() => {
+    const user = this.#userLoggedService.user()?.user;
+    return resolveNavigationGroups(user?.type, user?.id);
+  });
 
-  exitItem = {
-    text: 'Sair da Conta',
-    routerLink: '/customer/logout',
-    icon: faArrowRightFromBracket,
-    function: (fn: Function) => fn()
-  }
-
-  logout() {
-    this.#userLoggedService.logout();
+  protected handleAction(action: NavigationAction): void {
+    if (action === 'logout') {
+      this.#userLoggedService.logout();
+    }
   }
 }

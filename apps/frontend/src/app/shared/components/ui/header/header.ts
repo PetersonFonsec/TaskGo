@@ -1,5 +1,7 @@
-import { Component, inject } from '@angular/core';
+import { Component, ElementRef, inject, input, output, viewChild } from '@angular/core';
 import { Router } from '@angular/router';
+import { FaIconComponent } from '@fortawesome/angular-fontawesome';
+import { faBars } from '@fortawesome/free-solid-svg-icons';
 
 import { UserLoggedService } from '@shared/service/user-logged/user-logged.service';
 import { Utils } from '@shared/service/utils/utils.service';
@@ -11,7 +13,7 @@ import { Notification } from '@shared/components/functional/notification/notific
 
 @Component({
   selector: 'app-header',
-  imports: [ProfileHeader, Notification],
+  imports: [ProfileHeader, Notification, FaIconComponent],
   templateUrl: './header.html',
   styleUrl: './header.scss',
 })
@@ -19,6 +21,11 @@ export class Header {
   #userLoggedService = inject(UserLoggedService);
   #router = inject(Router);
 
+  readonly menuOpen = input(false);
+  readonly menuToggle = output<void>();
+  private readonly menuTrigger = viewChild<ElementRef<HTMLButtonElement>>('menuTrigger');
+
+  protected readonly menuIcon = faBars;
   userId = this.#userLoggedService.user().user?.id;
 
   get isCustomer() {
@@ -38,5 +45,9 @@ export class Header {
     if (type) {
       this.#router.navigateByUrl(Utils.getRouteByRoleBack(type as any));
     }
+  }
+
+  focusMenuTrigger(): void {
+    this.menuTrigger()?.nativeElement.focus();
   }
 }

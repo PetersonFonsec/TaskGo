@@ -1,83 +1,123 @@
-import { faArrowRightFromBracket, faBell, faBuildingColumns, faChartSimple, faCreditCard, faCrown, faGear, faLocationDot, faLock, faQuestionCircle, faUser, faWallet } from '@fortawesome/free-solid-svg-icons';
+import {
+  faArrowRightFromBracket,
+  faLocationDot,
+  faUser,
+} from '@fortawesome/free-solid-svg-icons';
+import { IconDefinition } from '@fortawesome/fontawesome-svg-core';
 
-export interface AsideListItem {
-    text: string;
-    routerLink: string;
-    icon: any;
-    function?: (fn: Function) => void;
+import { Roles, RolesBack } from '@shared/enums/roles.enum';
+
+export type NavigationMatch = 'exact' | 'prefix';
+export type NavigationAction = 'logout';
+
+interface NavigationItemBase {
+  readonly id: string;
+  readonly label: string;
+  readonly icon: IconDefinition;
+  readonly roles: readonly RolesBack[];
 }
 
-export const asideListItemsSecundary: AsideListItem[] = [
-    {
-        text: 'Dados Profissionais',
-        routerLink: '/customer/professional-info',
-        icon: faUser
-    },
-    {
-        text: 'Conta Bancária',
-        routerLink: '/customer/bank-account',
-        icon: faBuildingColumns
-    },
-    {
-        text: 'Ganhos',
-        routerLink: '/customer/earnings',
-        icon: faChartSimple
-    },
-    {
-        text: 'Plano Premium',
-        routerLink: '/customer/premium-plan',
-        icon: faCrown
-    },
-]
+export interface NavigationLinkItem extends NavigationItemBase {
+  readonly kind: 'link';
+  readonly path: (userId: string) => readonly string[];
+  readonly match: NavigationMatch;
+}
 
-export const asideListItems: AsideListItem[] = [
-    {
-        text: 'Dados Pessoais',
-        routerLink: '/general/1/profile',
-        icon: faUser
-    },
-    {
-        text: 'Endereços',
-        routerLink: '/general/1/addresses',
-        icon: faLocationDot
-    },
-    {
-        text: 'Cartões',
-        routerLink: '/customer/cards',
-        icon: faCreditCard
-    },
-    {
-        text: 'Pagamentos',
-        routerLink: '/customer/payments',
-        icon: faWallet
-    },
-    {
-        text: 'Segurança',
-        routerLink: '/customer/security',
-        icon: faLock
-    },
-    {
-        text: 'Notificações',
-        routerLink: '/customer/notifications',
-        icon: faBell
-    },
-    {
-        text: 'Preferências',
-        routerLink: '/customer/preferences',
-        icon: faGear
-    }
-]
+export interface NavigationActionItem extends NavigationItemBase {
+  readonly kind: 'action';
+  readonly action: NavigationAction;
+}
 
-export const asideListItemsFooter = [
-    {
-        text: 'Ajuda e Suporte',
-        routerLink: '/customer/support',
-        icon: faQuestionCircle
-    }, 
-    // {
-    //     text: 'Sair da Conta',
-    //     routerLink: '/customer/logout',
-    //     icon: faArrowRightFromBracket,
-    //     function: (fn: Function) => fn()
-    // }
-]
+export type NavigationItem = NavigationLinkItem | NavigationActionItem;
+
+export interface NavigationGroup {
+  readonly id: string;
+  readonly label: string;
+  readonly items: readonly NavigationItem[];
+}
+
+export type ResolvedNavigationItem =
+  | (Omit<NavigationLinkItem, 'path'> & { readonly routerLink: readonly string[] })
+  | NavigationActionItem;
+
+export interface ResolvedNavigationGroup {
+  readonly id: string;
+  readonly label: string;
+  readonly items: readonly ResolvedNavigationItem[];
+}
+
+const AUTHENTICATED_ROLES = [RolesBack.CUSTOMER, RolesBack.PROVIDER] as const;
+
+export const NAVIGATION_GROUPS: readonly NavigationGroup[] = [
+  {
+    id: 'account',
+    label: 'Minha conta',
+    items: [
+      {
+        id: 'personal-data',
+        label: 'Dados Pessoais',
+        icon: faUser,
+        roles: AUTHENTICATED_ROLES,
+        kind: 'link',
+        path: (userId) => ['/general', userId, 'profile'],
+        match: 'prefix',
+      },
+      {
+        id: 'addresses',
+        label: 'Endereços',
+        icon: faLocationDot,
+        roles: AUTHENTICATED_ROLES,
+        kind: 'link',
+        path: (userId) => ['/general', userId, 'addresses'],
+        match: 'exact',
+      },
+      {
+        id: 'logout',
+        label: 'Sair da Conta',
+        icon: faArrowRightFromBracket,
+        roles: AUTHENTICATED_ROLES,
+        kind: 'action',
+        action: 'logout',
+      },
+    ],
+  },
+] as const;
+
+export function normalizeNavigationRole(role: Roles | RolesBack | string | undefined): RolesBack | null {
+  if (role === Roles.CUSTOMER || role === RolesBack.CUSTOMER) {
+    return RolesBack.CUSTOMER;
+  }
+
+  if (role === Roles.PROVIDER || role === RolesBack.PROVIDER) {
+    return RolesBack.PROVIDER;
+  }
+
+  return null;
+}
+
+export function resolveNavigationGroups(
+  role: Roles | RolesBack | string | undefined,
+  userId: string | undefined,
+): readonly ResolvedNavigationGroup[] {
+  const normalizedRole = normalizeNavigationRole(role);
+  if (!normalizedRole || !userId) {
+    return [];
+  }
+
+  return NAVIGATION_GROUPS.map((group) => ({
+    id: group.id,
+    label: group.label,
+    items: group.items
+      .filter((item) => item.roles.includes(normalizedRole))
+      .map((item): ResolvedNavigationItem => {
+        if (item.kind === 'action') {
+          return item;
+        }
+
+        return {
+          ...item,
+          routerLink: item.path(userId),
+        };
+      }),
+  })).filter((group) => group.items.length > 0);
+}

@@ -17,6 +17,7 @@ import { userLoggedGuard } from '@shared/guards/userLogged/user-logged.guard';
 import { UrlBase } from '@shared/enums/base-url.enum';
 import { RolesBack } from '@shared/enums/roles.enum';
 import { NotFound } from '@modules/common/not-found/not-found';
+import { AuthenticatedShell } from '@shared/components/ui/authenticated-shell/authenticated-shell';
 
 export const routes: Routes = [
   { path: '', redirectTo: UrlBase.AUTHENTICATE, pathMatch: 'full' },
@@ -66,22 +67,27 @@ export const routes: Routes = [
     canActivate: [userLoggedGuard],
   },
   {
-    path: UrlBase.PROVIDER,
-    component: Provider,
-    canActivate: [unauthorizedGuard, permissionByRoleGuard([RolesBack.PROVIDER])],
-    children: ProvidersRoutes
-  },
-  {
-    path: UrlBase.CUSTOMER,
-    component: Customer,
-    canActivate: [unauthorizedGuard, permissionByRoleGuard([RolesBack.CUSTOMER])],
-    children: CustomerRoutes
-  },
-  {
-    path: UrlBase.GENERAL,
-    component: General,
-    // canActivate: [unauthorizedGuard],
-    children: GeneralRoutes
+    path: '',
+    component: AuthenticatedShell,
+    children: [
+      {
+        path: UrlBase.PROVIDER,
+        component: Provider,
+        canActivate: [unauthorizedGuard, permissionByRoleGuard([RolesBack.PROVIDER])],
+        children: ProvidersRoutes,
+      },
+      {
+        path: UrlBase.CUSTOMER,
+        component: Customer,
+        canActivate: [unauthorizedGuard, permissionByRoleGuard([RolesBack.CUSTOMER])],
+        children: CustomerRoutes,
+      },
+      {
+        path: UrlBase.GENERAL,
+        component: General,
+        children: GeneralRoutes,
+      },
+    ],
   },
   { path: '**', component: NotFound }
 ];

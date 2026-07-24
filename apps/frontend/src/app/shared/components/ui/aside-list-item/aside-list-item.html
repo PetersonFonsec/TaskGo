@@ -1,11 +1,26 @@
-<div
-    class="aside-list-item"
-    routerLinkActive="aside-list-item--active"
-    [routerLinkActiveOptions]="{ exact: true }"
->
-    <a [routerLink]="routerLink()">
-        <fa-icon class="aside-list-item_icon" [icon]="icon()" />
-
-        {{ text() }}
+@if (item(); as navigationItem) {
+  @if (navigationItem.kind === 'link') {
+    <a
+      class="aside-list-item"
+      [routerLink]="navigationItem.routerLink"
+      routerLinkActive="aside-list-item--active"
+      [routerLinkActiveOptions]="{ exact: navigationItem.match === 'exact' }"
+      ariaCurrentWhenActive="page"
+      [attr.data-testid]="'navigation-item-' + navigationItem.id"
+    >
+      <fa-icon class="aside-list-item_icon" [icon]="navigationItem.icon" aria-hidden="true" />
+      <span>{{ navigationItem.label }}</span>
+      <span class="aside-list-item_active-indicator" aria-hidden="true"></span>
     </a>
-</div>
+  } @else {
+    <button
+      class="aside-list-item aside-list-item--action"
+      type="button"
+      [attr.data-testid]="'navigation-item-' + navigationItem.id"
+      (click)="actionSelected.emit(navigationItem.action)"
+    >
+      <fa-icon class="aside-list-item_icon" [icon]="navigationItem.icon" aria-hidden="true" />
+      <span>{{ navigationItem.label }}</span>
+    </button>
+  }
+}
