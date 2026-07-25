@@ -114,6 +114,9 @@
         <p>Acompanhe os próximos passos e finalize serviços rapidamente.</p>
       </div>
     </div>
+    @if (activeOrderError()) {
+      <p class="request-error" role="alert">{{ activeOrderError() }}</p>
+    }
     @if (activeOrders().length) {
       <div class="request-list">
         @for (order of activeOrders(); track order.id) {
@@ -124,7 +127,25 @@
             <strong>{{ order.amount | currency: 'BRL' : 'symbol' : '1.0-0' }}</strong>
             <footer class="request-card__actions">
               <a class="button button--secondary" [routerLink]="['/orders', order.id]">Ver detalhes</a>
-              @if (order.status === 'EM_ANDAMENTO') {
+              @if (order.status === 'AGENDADO') {
+                <button
+                  class="button button--primary"
+                  type="button"
+                  [disabled]="updatingActiveOrderIds().has(order.id)"
+                  (click)="updateActiveOrderStatus(order.id, 'EM_DESLOCAMENTO')"
+                >
+                  {{ updatingActiveOrderIds().has(order.id) ? 'Atualizando…' : 'Estou a caminho' }}
+                </button>
+              } @else if (order.status === 'EM_DESLOCAMENTO') {
+                <button
+                  class="button button--primary"
+                  type="button"
+                  [disabled]="updatingActiveOrderIds().has(order.id)"
+                  (click)="updateActiveOrderStatus(order.id, 'EM_ANDAMENTO')"
+                >
+                  {{ updatingActiveOrderIds().has(order.id) ? 'Iniciando…' : 'Iniciar serviço' }}
+                </button>
+              } @else if (order.status === 'EM_ANDAMENTO') {
                 <a class="button button--primary" [routerLink]="['/orders', order.id, 'finish']">Finalizar serviço</a>
               }
             </footer>

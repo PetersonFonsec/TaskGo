@@ -8,7 +8,7 @@ import { QueryParams } from '../../utils/queryParams';
 export class PaginationService<T> {
   public modelName: any;
 
-  constructor(public prisma: PrismaService) { }
+  constructor(public prisma: PrismaService) {}
 
   private buildSearchFilter(search: string): any {
     if (!search) return {};
@@ -22,9 +22,7 @@ export class PaginationService<T> {
       OR: formatSearch,
     };
 
-    const where: any = search
-      ? searchBy
-      : undefined;
+    const where: any = search ? searchBy : undefined;
 
     return where;
   }
@@ -42,10 +40,17 @@ export class PaginationService<T> {
     };
   }
 
-  async listPaginated(q: any): Promise<PaginationResponse<T>> {
+  async listPaginated(
+    q: any,
+    requiredWhere: Record<string, unknown> = {},
+  ): Promise<PaginationResponse<T>> {
     const { page, limit, sortBy, order, search } = q;
 
-    const where = this.buildSearchFilter(search);
+    const searchWhere = this.buildSearchFilter(search);
+    const where =
+      search && Object.keys(requiredWhere).length > 0
+        ? { AND: [requiredWhere, searchWhere] }
+        : { ...requiredWhere, ...searchWhere };
 
     const [total, data] = await this.prisma.$transaction([
       this.modelName.count({ where }),

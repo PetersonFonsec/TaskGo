@@ -113,6 +113,21 @@ enum ProviderDecisionAction {
   UNBLOCK
 }
 
+enum ProviderPayoutSyncStatus {
+  NOT_CONFIGURED
+  PENDING
+  READY
+  REJECTED
+  UNKNOWN
+}
+
+enum ProviderBankAccountStatus {
+  UNCONFIRMED
+  PROCESSING
+  CONFIRMED
+  ERROR
+}
+
 // ---------- Models ----------
 
 model User {
@@ -159,17 +174,40 @@ model Provider {
   isAvailable24h  Boolean        @default(false) @map("disponivel24h")
 
   pagarmeRecipientId String? @unique @map("pagarme_recipient_id")
+  whatsapp            String?
+  instagram           String?
+  facebook            String?
+  linkedin            String?
 
-  services     Service[]
-  serviceAreas ProviderServiceArea[]
-  locations    ProviderLocation[]
-  reviews      Avaliacao[]
-  favorites    ClientFavorite[]
-  decisions    ProviderDecision[]
+  payoutProfile ProviderPayoutProfile?
+  services      Service[]
+  serviceAreas  ProviderServiceArea[]
+  locations     ProviderLocation[]
+  reviews       Avaliacao[]
+  favorites     ClientFavorite[]
+  decisions     ProviderDecision[]
 
   @@index([status, createdAt])
   @@index([statusChangedAt])
   @@map("prestadores")
+}
+
+model ProviderPayoutProfile {
+  providerId           BigInt                    @id @map("provider_id")
+  provider             Provider                  @relation(fields: [providerId], references: [id], onDelete: Cascade)
+  pagarmeRecipientId   String?                   @unique @map("pagarme_recipient_id")
+  syncStatus           ProviderPayoutSyncStatus  @default(UNKNOWN) @map("sync_status")
+  bankAccountStatus    ProviderBankAccountStatus @default(UNCONFIRMED) @map("bank_account_status")
+  bankName             String?                   @map("bank_name")
+  bankCode             String?                   @map("bank_code")
+  branchLastDigits     String?                   @map("branch_last_digits")
+  accountLastDigits    String?                   @map("account_last_digits")
+  lastSynchronizedAt   DateTime?                 @map("last_synchronized_at")
+  lastErrorCode        String?                   @map("last_error_code")
+  createdAt            DateTime                  @default(now()) @map("created_at")
+  updatedAt            DateTime                  @updatedAt @map("updated_at")
+
+  @@map("provider_payout_profiles")
 }
 
 model AdminUser {

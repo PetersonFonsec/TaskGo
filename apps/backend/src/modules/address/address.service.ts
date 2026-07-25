@@ -1,12 +1,32 @@
-import { BadRequestException, Injectable, NotFoundException } from '@nestjs/common';
-import { PrismaService } from '../../prisma/prisma.service';
+import {
+  ForbiddenException,
+  Injectable,
+  NotFoundException,
+} from '@nestjs/common';
 import { Address } from '@prisma/client';
 
-import { PaginationQuery, PaginationResponse } from '../../shared/services/pagination/pagination.interface';
+import { PrismaService } from '../../prisma/prisma.service';
+import {
+  PaginationQuery,
+  PaginationResponse,
+} from '../../shared/services/pagination/pagination.interface';
 import { PaginationService } from '../../shared/services/pagination/pagination.service';
 import { Address as AddressEntity } from './entities/address.entity';
 import { CreateAddressDto } from './dto/create-address.dto';
 import { UpdateAddressDto } from './dto/update-address.dto';
+
+type AddressWriteData = {
+  label?: string;
+  street?: string;
+  number?: string;
+  city?: string;
+  state?: string;
+  cep?: string;
+  lat?: number;
+  lng?: number;
+  complement?: string;
+  isDefault?: boolean;
+};
 
 @Injectable()
 export class AddressService extends PaginationService<Address> {
@@ -15,49 +35,53 @@ export class AddressService extends PaginationService<Address> {
     this.modelName = this.prisma.address;
   }
 
-  async create(payload: CreateAddressDto) {
-    const address = new AddressEntity(payload);
-
-    if (address.getValue().isDefault && !payload.userId) {
-      throw new BadRequestException('userId is required when setting isDefault on an address');
-    }
+  async create(userId: bigint, payload: CreateAddressDto) {
+    const data = this.sanitizeWrite(payload);
+    const address = new AddressEntity({ ...data, userId });
 
     return this.prisma.$transaction(async (prisma) => {
-      if (address.getValue().isDefault && payload.userId) {
+      if (address.getValue().isDefault) {
         await prisma.address.updateMany({
-          where: { userId: payload.userId, isDefault: true },
+          where: { userId, isDefault: true },
           data: { isDefault: false },
         });
       }
 
-      return prisma.address.create({ data: address.getValue() });
+      return prisma.address.create({
+        data: { ...address.getValue(), userId },
+      });
     });
   }
 
-  async findAll(query: PaginationQuery): Promise<PaginationResponse<Address>> {
-    const queryDefault: PaginationQuery = { page: 1, limit: 10, sortBy: 'id', order: 'asc', search: '' };
-    return await this.listPaginated(Object.assign(queryDefault, query));
+  async findAll(
+    userId: bigint,
+    query: PaginationQuery,
+  ): Promise<PaginationResponse<Address>> {
+    const defaults: Required<PaginationQuery> = {
+      page: 1,
+      limit: 10,
+      sortBy: 'id',
+      order: 'asc',
+      search: '',
+    };
+
+    return this.listPaginated({ ...defaults, ...query }, { userId });
   }
 
-  async findOne(id: bigint) {
-    return this.prisma.address.findUnique({ where: { id } });
+  async findOne(userId: bigint, id: bigint) {
+    await this.assertOwnership(userId, id);
+    return this.prisma.address.findFirst({
+      where: { id, userId },
+    });
   }
 
-  async update(id: bigint, updateAddressDto: UpdateAddressDto) {
+  async update(userId: bigint, id: bigint, updateAddressDto: UpdateAddressDto) {
+    const data = this.sanitizeWrite(updateAddressDto);
+
     return this.prisma.$transaction(async (prisma) => {
-      const existing = await prisma.address.findUnique({ where: { id } });
-      if (!existing) {
-        throw new NotFoundException(`Address with id ${id} not found`);
-      }
+      await this.assertOwnership(userId, id, prisma);
 
-      const userId = updateAddressDto.userId ?? existing.userId;
-      const shouldUpdateDefault = updateAddressDto.isDefault === true;
-
-      if (shouldUpdateDefault && !userId) {
-        throw new BadRequestException('userId is required when setting isDefault on an address');
-      }
-
-      if (shouldUpdateDefault && userId) {
+      if (data.isDefault === true) {
         await prisma.address.updateMany({
           where: { userId, isDefault: true },
           data: { isDefault: false },
@@ -65,13 +89,57 @@ export class AddressService extends PaginationService<Address> {
       }
 
       return prisma.address.update({
-        where: { id },
-        data: updateAddressDto,
+        where: { id, userId },
+        data,
       });
     });
   }
 
-  async remove(id: bigint) {
-    return this.prisma.address.delete({ where: { id }});
+  async remove(userId: bigint, id: bigint) {
+    return this.prisma.$transaction(async (prisma) => {
+      await this.assertOwnership(userId, id, prisma);
+      return prisma.address.delete({ where: { id, userId } });
+    });
+  }
+
+  private async assertOwnership(
+    userId: bigint,
+    id: bigint,
+    prisma: Pick<PrismaService, 'address'> = this.prisma,
+  ) {
+    const target = await prisma.address.findUnique({
+      where: { id },
+      select: { id: true, userId: true },
+    });
+
+    if (!target) {
+      throw new NotFoundException(`Address with id ${id} not found`);
+    }
+    if (target.userId !== userId) {
+      throw new ForbiddenException('Address does not belong to current user');
+    }
+  }
+
+  private sanitizeWrite(payload: Partial<CreateAddressDto>): AddressWriteData {
+    const data: AddressWriteData = {};
+    const keys: readonly (keyof AddressWriteData)[] = [
+      'label',
+      'street',
+      'number',
+      'city',
+      'state',
+      'cep',
+      'lat',
+      'lng',
+      'complement',
+      'isDefault',
+    ];
+
+    for (const key of keys) {
+      if (payload[key] !== undefined) {
+        Object.assign(data, { [key]: payload[key] });
+      }
+    }
+    return data;
   }
 }

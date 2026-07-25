@@ -36,12 +36,18 @@ export class UserServiceValidator implements UserValidations {
       throw new Error('One or more services not found or inactive');
     }
 
+    const social = command.social;
+
     await dataSource.provider.create({
       data: {
         id: BigInt(`${command.id}`),
         bio: command.bio,
         status: 'PENDING',
         verified: false,
+        whatsapp: social?.whatsapp,
+        instagram: social?.instagram,
+        facebook: social?.facebook,
+        linkedin: social?.linkedin ?? social?.linkdin,
         services: {
           connect: command.services.map((id) => ({ id: BigInt(`${id}`) })),
         },

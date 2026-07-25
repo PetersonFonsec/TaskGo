@@ -56,7 +56,9 @@ export class ProviderHomePage implements OnInit {
     () => this.requests().filter(({ status }) => status === 'pending').length,
   );
   readonly updatingRequestIds = signal<Set<string | number>>(new Set());
+  readonly updatingActiveOrderIds = signal<Set<string | number>>(new Set());
   readonly requestError = signal('');
+  readonly activeOrderError = signal('');
 
   readonly icons = {
     calendar: faCalendarDays,
@@ -117,6 +119,27 @@ export class ProviderHomePage implements OnInit {
       AGUARDANDO_CONFIRMACAO_CLIENTE: 'Aguardando confirmação do cliente',
     };
     return labels[status] ?? status.toLowerCase().replaceAll('_', ' ');
+  }
+
+  updateActiveOrderStatus(id: string | number, status: 'EM_DESLOCAMENTO' | 'EM_ANDAMENTO'): void {
+    if (this.updatingActiveOrderIds().has(id)) return;
+
+    this.activeOrderError.set('');
+    this.updatingActiveOrderIds.update((ids) => new Set(ids).add(id));
+    this.orders.updateOrderStatus(String(id), status).pipe(
+      finalize(() => this.updatingActiveOrderIds.update((ids) => {
+        const next = new Set(ids);
+        next.delete(id);
+        return next;
+      })),
+    ).subscribe({
+      next: () => this.activeOrders.update((orders) =>
+        orders.map((order) => order.id === id ? { ...order, status } : order),
+      ),
+      error: (error: HttpErrorResponse) => this.activeOrderError.set(
+        error.error?.message ?? 'Não foi possível atualizar o serviço. Tente novamente.',
+      ),
+    });
   }
 
   private loadActiveOrders(): void {

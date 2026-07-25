@@ -207,12 +207,16 @@ async function main() {
     const cliente = clientes[i];
     const prestador = prestadores[i];
     const servico = prestador.services[0];
+    const isProviderFlowFixture = i === 0;
 
     const order = await prisma.order.create({
       data: {
         clientId: cliente.id,
         serviceId: servico.id,
-        status: OrderStatus.AGUARDANDO_APROVACAO,
+        // Prestador 1 começa com um atendimento pronto para ser iniciado.
+        status: isProviderFlowFixture
+          ? OrderStatus.EM_DESLOCAMENTO
+          : OrderStatus.AGUARDANDO_APROVACAO,
         finalPrice: servico.basePrice,
         priceAdjusted: false,
         scheduledFor: new Date(
@@ -221,8 +225,11 @@ async function main() {
         payment: {
           create: {
             method: PaymentMethod.PIX,
-            status: PaymentStatus.CREATED,
+            status: isProviderFlowFixture
+              ? PaymentStatus.AUTHORIZED
+              : PaymentStatus.CREATED,
             amount: servico.basePrice,
+            authorizedAt: isProviderFlowFixture ? SEED_NOW : null,
           },
         },
         addressSnap: {
@@ -239,9 +246,8 @@ async function main() {
       },
     });
 
-    // Create some reviews for a subset of orders (for realism)
-    // We'll create reviews for half of the orders (i < 5)
-    if (i < 5) {
+    // Mantém as avaliações de exemplo fora do pedido usado no fluxo ativo.
+    if (i > 0 && i < 5) {
       const rating = 3 + (i % 3); // 3..5, deterministic
       await prisma.avaliacao.create({
         data: {
@@ -256,8 +262,49 @@ async function main() {
     }
   }
 
+  // Segundo cenário do Prestador 1: serviço já iniciado e pronto para que ele
+  // finalize o atendimento e solicite a confirmação do cliente.
+  const providerFlowService = prestadores[0].services[1];
+  await prisma.order.create({
+    data: {
+      clientId: clientes[1].id,
+      serviceId: providerFlowService.id,
+      status: OrderStatus.EM_ANDAMENTO,
+      finalPrice: providerFlowService.basePrice,
+      estimatedPrice: providerFlowService.basePrice,
+      priceAdjusted: false,
+      scheduledFor: new Date(SEED_NOW.getTime() + 2 * 24 * 60 * 60 * 1000),
+      payment: {
+        create: {
+          method: PaymentMethod.PIX,
+          status: PaymentStatus.AUTHORIZED,
+          amount: providerFlowService.basePrice,
+          authorizedAt: SEED_NOW,
+        },
+      },
+      addressSnap: {
+        create: {
+          street: 'Rua do Fluxo do Prestador',
+          number: '456',
+          neighborhood: 'Centro',
+          city: 'São Paulo',
+          state: 'SP',
+          cep: '01000-000',
+          lat: -23.5505,
+          lng: -46.6333,
+        },
+      },
+    },
+  });
+
   console.log('✅ Seeds inseridos com sucesso!');
   console.log(`🔐 Backoffice: ${SEED_ADMIN_EMAIL} / ${SEED_PASSWORD}`);
+  console.log(
+    `🛠️ Fluxo do prestador: prestador1@${SEED_EMAIL_DOMAIN} / ${SEED_PASSWORD}`,
+  );
+  console.log(
+    '   Há um pedido para iniciar e outro em andamento para finalizar e solicitar confirmação.',
+  );
 }
 
 main()

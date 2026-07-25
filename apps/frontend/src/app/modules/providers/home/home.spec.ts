@@ -12,12 +12,14 @@ describe('ProviderHomePage', () => {
     confirmOrder: jasmine.createSpy('confirmOrder'),
     cancelOrder: jasmine.createSpy('cancelOrder'),
     getOrderByProvider: jasmine.createSpy('getOrderByProvider'),
+    updateOrderStatus: jasmine.createSpy('updateOrderStatus'),
   };
 
   beforeEach(async () => {
     order.confirmOrder.calls.reset();
     order.cancelOrder.calls.reset();
     order.getOrderByProvider.calls.reset();
+    order.updateOrderStatus.calls.reset();
     order.getOrderByProvider.and.returnValue(of([]));
 
     await TestBed.configureTestingModule({
@@ -69,5 +71,24 @@ describe('ProviderHomePage', () => {
 
     expect(component.requests().find(({ id }) => id === 1)?.status).toBe('pending');
     expect(component.requestError()).toBe('Pedido já respondido');
+  });
+
+  it('should allow starting a service even when its scheduled date has passed', () => {
+    order.updateOrderStatus.and.returnValue(of({}));
+    component.activeOrders.set([{
+      id: '42',
+      clientName: 'Cliente',
+      service: 'Reparo',
+      scheduledFor: '2020-01-01T12:00:00.000Z',
+      amount: 100,
+      status: 'EM_DESLOCAMENTO',
+      date: '01 jan.',
+      time: '09:00',
+    }]);
+
+    component.updateActiveOrderStatus('42', 'EM_ANDAMENTO');
+
+    expect(order.updateOrderStatus).toHaveBeenCalledWith('42', 'EM_ANDAMENTO');
+    expect(component.activeOrders()[0].status).toBe('EM_ANDAMENTO');
   });
 });

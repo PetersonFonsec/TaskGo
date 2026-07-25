@@ -19,6 +19,7 @@ import { PaymentsModule } from './modules/payments/payments.module';
 import { AdminModule } from './modules/admin/admin.module';
 import { ObservabilityModule } from './observability/observability.module';
 import { AdminTelemetryInterceptor } from './observability/admin-telemetry.interceptor';
+import { RolesGuard } from './shared/guards/roles/roles.guard';
 
 @Module({
   imports: [
@@ -42,6 +43,10 @@ import { AdminTelemetryInterceptor } from './observability/admin-telemetry.inter
     {
       provide: APP_GUARD,
       useClass: AuthGuard,
+    },
+    {
+      provide: APP_GUARD,
+      useClass: RolesGuard,
     },
     {
       provide: APP_INTERCEPTOR,

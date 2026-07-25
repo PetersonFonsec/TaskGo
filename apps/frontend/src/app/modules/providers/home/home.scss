@@ -270,6 +270,16 @@
 }
 
 .active-orders-panel { margin-bottom: 22px; }
+.active-order-card > div:first-child {
+  align-items: center;
+  display: flex;
+  gap: 10px;
+}
+.active-order-card .pending-badge {
+  height: auto;
+  padding: 6px 10px;
+  width: auto;
+}
 .active-order-card h3 { margin:14px 0 6px; }
 .active-order-card p { color:var(--provider-muted); font-size:11px; margin-bottom:12px; }
 .active-order-card .button { text-align:center; text-decoration:none; }

@@ -32,6 +32,96 @@ describe('UserServiceValidator', () => {
     });
   });
 
+  it('persists every supported social field using canonical names', async () => {
+    const validator = new UserServiceValidator();
+    const dataSource = {
+      service: {
+        findMany: jest.fn().mockResolvedValue([{ id: BigInt(1) }]),
+      },
+      provider: {
+        create: jest.fn().mockResolvedValue({ id: BigInt(10) }),
+      },
+    };
+
+    await validator.validate(
+      {
+        id: '10',
+        services: [BigInt(1)],
+        social: {
+          whatsapp: '+5511999999999',
+          instagram: '@provider',
+          facebook: 'provider',
+          linkedin: 'canonical-provider',
+        },
+      } as any,
+      dataSource as any,
+    );
+
+    expect(dataSource.provider.create).toHaveBeenCalledWith({
+      data: expect.objectContaining({
+        whatsapp: '+5511999999999',
+        instagram: '@provider',
+        facebook: 'provider',
+        linkedin: 'canonical-provider',
+      }),
+    });
+  });
+
+  it('normalizes legacy linkdin when canonical linkedin is absent', async () => {
+    const validator = new UserServiceValidator();
+    const dataSource = {
+      service: {
+        findMany: jest.fn().mockResolvedValue([{ id: BigInt(1) }]),
+      },
+      provider: {
+        create: jest.fn().mockResolvedValue({ id: BigInt(10) }),
+      },
+    };
+
+    await validator.validate(
+      {
+        id: '10',
+        services: [BigInt(1)],
+        social: { linkdin: 'legacy-provider' },
+      } as any,
+      dataSource as any,
+    );
+
+    expect(dataSource.provider.create).toHaveBeenCalledWith({
+      data: expect.objectContaining({
+        linkedin: 'legacy-provider',
+      }),
+    });
+  });
+
+  it('gives canonical linkedin precedence over legacy linkdin', async () => {
+    const validator = new UserServiceValidator();
+    const dataSource = {
+      service: {
+        findMany: jest.fn().mockResolvedValue([{ id: BigInt(1) }]),
+      },
+      provider: {
+        create: jest.fn().mockResolvedValue({ id: BigInt(10) }),
+      },
+    };
+
+    await validator.validate(
+      {
+        id: '10',
+        services: [BigInt(1)],
+        social: {
+          linkedin: 'canonical-provider',
+          linkdin: 'legacy-provider',
+        },
+      } as any,
+      dataSource as any,
+    );
+
+    const call = dataSource.provider.create.mock.calls[0][0];
+    expect(call.data.linkedin).toBe('canonical-provider');
+    expect(call.data).not.toHaveProperty('linkdin');
+  });
+
   it('rejects providers without at least one service', async () => {
     const validator = new UserServiceValidator();
 

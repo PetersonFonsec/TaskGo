@@ -1,4 +1,9 @@
-import type { AuthLoginRequest, CustomerAuthSession } from '@taskgo/shared';
+import type {
+  AuthLoginRequest,
+  CustomerAuthSession,
+  ProviderPayoutStatusResponse,
+  ProviderProfileCompletionResponse,
+} from '@taskgo/shared';
 
 describe('shared auth/profile contracts', () => {
   it('resolves customer auth contracts from the shared library', () => {
@@ -19,5 +24,34 @@ describe('shared auth/profile contracts', () => {
     };
 
     expect(session.user.email).toBe(request.email);
+  });
+
+  it('resolves focused provider completion contracts from the public barrel', () => {
+    const completion: ProviderProfileCompletionResponse = {
+      payoutReady: false,
+      allComplete: false,
+      required: { completed: 0, total: 1 },
+      recommended: { completed: 2, total: 3 },
+      items: [
+        { id: 'BANK_ACCOUNT', status: 'PENDING', requiredForPayout: true },
+        { id: 'PHOTO', status: 'COMPLETE', requiredForPayout: false },
+        { id: 'SOCIAL_LINKS', status: 'COMPLETE', requiredForPayout: false },
+        { id: 'ADDRESS', status: 'PROCESSING', requiredForPayout: false },
+      ],
+    };
+    const payout: ProviderPayoutStatusResponse = {
+      syncStatus: 'PENDING',
+      payoutReady: false,
+      bankAccount: {
+        bankName: 'Banco',
+        bankCode: '001',
+        branchLastDigits: '34',
+        accountLastDigits: '56',
+      },
+      updatedAt: '2026-07-24T12:00:00.000Z',
+    };
+
+    expect(completion.items).toHaveLength(4);
+    expect(payout.bankAccount?.accountLastDigits).toBe('56');
   });
 });
