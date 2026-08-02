@@ -6,6 +6,7 @@
     "apps/backend",
     "apps/backoffice",
     "apps/frontend",
+    "apps/landing-page",
     "libs/*"
   ],
   "scripts": {
@@ -16,6 +17,8 @@
     "backoffice:test": "nx test backoffice",
     "backoffice:e2e": "nx e2e backoffice",
     "frontend": "nx serve frontend",
+    "landing-page": "nx serve landing-page",
+    "landing-page:build": "nx build landing-page",
     "build": "nx run-many -t build",
     "test": "nx run-many -t test",
     "lint": "nx run-many -t lint",

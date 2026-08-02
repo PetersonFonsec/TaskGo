@@ -1,0 +1,24 @@
+{
+  "name": "landing-page",
+  "$schema": "../../node_modules/nx/schemas/project-schema.json",
+  "projectType": "application",
+  "sourceRoot": "apps/landing-page/src",
+  "targets": {
+    "serve": {
+      "executor": "nx:run-commands",
+      "options": {
+        "cwd": "apps/landing-page",
+        "command": "npm run start"
+      }
+    },
+    "build": {
+      "executor": "nx:run-commands",
+      "outputs": ["{projectRoot}/dist"],
+      "options": {
+        "cwd": "apps/landing-page",
+        "command": "npm run build"
+      }
+    }
+  },
+  "tags": ["scope:landing-page", "type:app"]
+}
