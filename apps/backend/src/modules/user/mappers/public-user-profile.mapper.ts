@@ -36,7 +36,9 @@ type PublicAddressSource = {
   isDefault?: boolean | null;
 };
 
-export function toPublicUserProfile(user: PublicProfileSource): PublicUserProfile {
+export function toPublicUserProfile(
+  user: PublicProfileSource,
+): PublicUserProfile {
   const addresses = user.addresses ?? user.address;
 
   return {
@@ -58,7 +60,9 @@ export function toPublicUserProfile(user: PublicProfileSource): PublicUserProfil
   };
 }
 
-function toPublicAddressSummary(address: PublicAddressSource): PublicAddressSummary {
+function toPublicAddressSummary(
+  address: PublicAddressSource,
+): PublicAddressSummary {
   return {
     id: address.id == null ? undefined : stringifyId(address.id),
     label: address.label ?? undefined,

@@ -49,10 +49,33 @@ describe('AuthGuard', () => {
   }
 
   it('should allow public routes without authentication', async () => {
-    reflectorMock.getAllAndOverride.mockReturnValue(true);
+    reflectorMock.getAllAndOverride.mockImplementation(
+      (key) => key !== 'isOptionalAuth',
+    );
     const result = await authGuard.canActivate(makeContext({}));
     expect(result).toBe(true);
     expect(authTokenServiceMock.checkToken).not.toHaveBeenCalled();
+  });
+
+  it('allows an optional-auth route without a token', async () => {
+    reflectorMock.getAllAndOverride.mockReturnValue(true);
+
+    await expect(authGuard.canActivate(makeContext({}))).resolves.toBe(true);
+    expect(authTokenServiceMock.checkToken).not.toHaveBeenCalled();
+  });
+
+  it('validates a token when optional authentication receives one', async () => {
+    reflectorMock.getAllAndOverride.mockReturnValue(true);
+    authTokenServiceMock.checkToken.mockReturnValue({ id: '1' });
+    prismaMock.user.findUnique.mockResolvedValue({
+      id: 1n,
+      type: UserType.CLIENTE,
+    });
+
+    await expect(
+      authGuard.canActivate(makeContext({ authorization: 'Bearer TOKEN' })),
+    ).resolves.toBe(true);
+    expect(authTokenServiceMock.checkToken).toHaveBeenCalledWith('TOKEN');
   });
 
   it('should accept a valid bearer token and attach the decoded payload', async () => {

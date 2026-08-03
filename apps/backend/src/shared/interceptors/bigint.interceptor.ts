@@ -30,6 +30,6 @@ export function convertBigInt(obj: any): any {
 @Injectable()
 export class BigIntInterceptor implements NestInterceptor {
   intercept(context: ExecutionContext, next: CallHandler): Observable<any> {
-    return next.handle().pipe(map(data => convertBigInt(data)));
+    return next.handle().pipe(map((data) => convertBigInt(data)));
   }
 }

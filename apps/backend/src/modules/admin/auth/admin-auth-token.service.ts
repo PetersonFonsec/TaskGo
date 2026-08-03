@@ -1,5 +1,6 @@
 import { Injectable, UnauthorizedException } from '@nestjs/common';
 import { JwtService } from '@nestjs/jwt';
+import { ConfigService } from '@nestjs/config';
 import { AdminRole } from '@prisma/client';
 
 export const ADMIN_TOKEN_KIND = 'admin';
@@ -15,7 +16,10 @@ const ADMIN_ROLES = new Set(Object.values(AdminRole));
 
 @Injectable()
 export class AdminAuthTokenService {
-  constructor(private readonly jwtService: JwtService) {}
+  constructor(
+    private readonly jwtService: JwtService,
+    private readonly configService: ConfigService,
+  ) {}
 
   createToken(operator: { id: bigint; role: AdminRole; tokenVersion: number }) {
     const subject = operator.id.toString();
@@ -27,7 +31,7 @@ export class AdminAuthTokenService {
     };
 
     const access_token = this.jwtService.sign(payload, {
-      expiresIn: process.env.EXPIRES_IN,
+      expiresIn: this.configService.getOrThrow('auth.expiresIn'),
     });
 
     return { access_token };

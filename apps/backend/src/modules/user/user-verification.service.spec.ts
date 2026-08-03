@@ -18,7 +18,10 @@ describe('UserVerificationService', () => {
 
   it('should verify email code after request', async () => {
     await service.requestEmailVerification(BigInt(1), 'test@example.com');
-    const success = await service.verifyEmailCode(BigInt(1), (service as any).pendingCodes.get('email:1'));
+    const success = await service.verifyEmailCode(
+      BigInt(1),
+      (service as any).pendingCodes.get('email:1'),
+    );
     expect(success).toBe(true);
   });
 
@@ -30,7 +33,10 @@ describe('UserVerificationService', () => {
 
   it('should verify phone code after request', async () => {
     await service.requestPhoneVerification(BigInt(3), '+5511999999999');
-    const success = await service.verifyPhoneCode(BigInt(3), (service as any).pendingCodes.get('phone:3'));
+    const success = await service.verifyPhoneCode(
+      BigInt(3),
+      (service as any).pendingCodes.get('phone:3'),
+    );
     expect(success).toBe(true);
   });
 });

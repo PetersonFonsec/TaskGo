@@ -1,11 +1,13 @@
-import { Injectable, UnauthorizedException } from "@nestjs/common";
-import { JwtService } from "@nestjs/jwt";
+import { Injectable, UnauthorizedException } from '@nestjs/common';
+import { JwtService } from '@nestjs/jwt';
+import { ConfigService } from '@nestjs/config';
 
 @Injectable()
 export class AuthTokenService {
   constructor(
     private readonly jwtService: JwtService,
-  ) { }
+    private readonly configService: ConfigService,
+  ) {}
 
   async createToken(id: bigint) {
     const idString = id.toString();
@@ -13,9 +15,9 @@ export class AuthTokenService {
     const access_token = this.jwtService.sign(
       { id: idString },
       {
-        expiresIn: process.env.EXPIRES_IN,
+        expiresIn: this.configService.getOrThrow('auth.expiresIn'),
         subject: idString,
-      }
+      },
     );
 
     return { access_token };
@@ -24,15 +26,17 @@ export class AuthTokenService {
   checkToken(token: string) {
     try {
       return this.jwtService.verify(token);
-    } catch (error) {
-      throw new UnauthorizedException('Invalid or expired authentication token');
+    } catch {
+      throw new UnauthorizedException(
+        'Invalid or expired authentication token',
+      );
     }
   }
 
   decodeToken(token: string) {
     try {
       return this.jwtService.decode(token);
-    } catch (error) {
+    } catch {
       throw new UnauthorizedException('Invalid authentication token');
     }
   }

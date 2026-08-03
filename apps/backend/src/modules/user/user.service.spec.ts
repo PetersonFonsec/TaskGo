@@ -1,5 +1,5 @@
 import { Test, TestingModule } from '@nestjs/testing';
-import { BadRequestException, NotFoundException } from '@nestjs/common';
+import { BadRequestException } from '@nestjs/common';
 import { UserService } from './user.service';
 import { PrismaService } from '../../prisma/prisma.service';
 import { UserVerificationService } from './user-verification.service';
@@ -34,7 +34,9 @@ describe('UserService', () => {
 
     service = module.get<UserService>(UserService);
     prisma = module.get<PrismaService>(PrismaService);
-    verificationService = module.get<UserVerificationService>(UserVerificationService);
+    verificationService = module.get<UserVerificationService>(
+      UserVerificationService,
+    );
   });
 
   afterEach(() => {
@@ -83,9 +85,14 @@ describe('UserService', () => {
 
   it('throws when no valid profile fields are provided', async () => {
     const userId = BigInt(2);
-    const invalidDto = { address: { street: 'Ignored' }, bio: 'Ignored' } as any;
+    const invalidDto = {
+      address: { street: 'Ignored' },
+      bio: 'Ignored',
+    } as any;
 
-    await expect(service.update(userId, invalidDto)).rejects.toThrow(BadRequestException);
+    await expect(service.update(userId, invalidDto)).rejects.toThrow(
+      BadRequestException,
+    );
     expect(prisma.user.update).not.toHaveBeenCalled();
   });
 
@@ -101,17 +108,33 @@ describe('UserService', () => {
     const userId = BigInt(4);
     const email = 'test@example.com';
     mockPrisma.user.findUnique.mockResolvedValue({ id: userId });
-    mockPrisma.user.update.mockResolvedValue({ id: userId, pendingEmail: email, emailVerified: false });
+    mockPrisma.user.update.mockResolvedValue({
+      id: userId,
+      pendingEmail: email,
+      emailVerified: false,
+    });
 
-    const result = await service.requestEmailVerification(userId, { email } as any);
+    const result = await service.requestEmailVerification(userId, {
+      email,
+    } as any);
 
-    expect(prisma.user.findUnique).toHaveBeenCalledWith({ where: { id: userId }, include: { addresses: true, orders: true, reviews: true, provider: true } });
+    expect(prisma.user.findUnique).toHaveBeenCalledWith({
+      where: { id: userId },
+      include: { addresses: true, orders: true, reviews: true, provider: true },
+    });
     expect(mockPrisma.user.update).toHaveBeenCalledWith({
       where: { id: userId },
       data: { pendingEmail: email, emailVerified: false },
     } as any);
-    expect(verificationService.requestEmailVerification).toHaveBeenCalledWith(userId, email);
-    expect(result).toEqual({ id: userId, pendingEmail: email, emailVerified: false });
+    expect(verificationService.requestEmailVerification).toHaveBeenCalledWith(
+      userId,
+      email,
+    );
+    expect(result).toEqual({
+      id: userId,
+      pendingEmail: email,
+      emailVerified: false,
+    });
   });
 
   it('confirms pending email verification and updates email', async () => {
@@ -119,32 +142,60 @@ describe('UserService', () => {
     const pendingEmail = 'pending@example.com';
     mockPrisma.user.findUnique.mockResolvedValue({ id: userId, pendingEmail });
     mockVerificationService.verifyEmailCode.mockResolvedValue(true);
-    mockPrisma.user.update.mockResolvedValue({ id: userId, email: pendingEmail, pendingEmail: null, emailVerified: true });
+    mockPrisma.user.update.mockResolvedValue({
+      id: userId,
+      email: pendingEmail,
+      pendingEmail: null,
+      emailVerified: true,
+    });
 
-    const result = await service.confirmEmailVerification(userId, { verificationCode: 'ABC123' } as any);
+    const result = await service.confirmEmailVerification(userId, {
+      verificationCode: 'ABC123',
+    } as any);
 
-    expect(mockVerificationService.verifyEmailCode).toHaveBeenCalledWith(userId, 'ABC123');
+    expect(mockVerificationService.verifyEmailCode).toHaveBeenCalledWith(
+      userId,
+      'ABC123',
+    );
     expect(mockPrisma.user.update).toHaveBeenCalledWith({
       where: { id: userId },
       data: { email: pendingEmail, pendingEmail: null, emailVerified: true },
     } as any);
-    expect(result).toEqual({ id: userId, email: pendingEmail, pendingEmail: null, emailVerified: true });
+    expect(result).toEqual({
+      id: userId,
+      email: pendingEmail,
+      pendingEmail: null,
+      emailVerified: true,
+    });
   });
 
   it('requests phone verification and stores pendingPhone', async () => {
     const userId = BigInt(7);
     const phone = '+5511999999999';
     mockPrisma.user.findUnique.mockResolvedValue({ id: userId });
-    mockPrisma.user.update.mockResolvedValue({ id: userId, pendingPhone: phone, phoneVerified: false });
+    mockPrisma.user.update.mockResolvedValue({
+      id: userId,
+      pendingPhone: phone,
+      phoneVerified: false,
+    });
 
-    const result = await service.requestPhoneVerification(userId, { phone } as any);
+    const result = await service.requestPhoneVerification(userId, {
+      phone,
+    } as any);
 
     expect(mockPrisma.user.update).toHaveBeenCalledWith({
       where: { id: userId },
       data: { pendingPhone: '5511999999999', phoneVerified: false },
     } as any);
-    expect(verificationService.requestPhoneVerification).toHaveBeenCalledWith(userId, phone);
-    expect(result).toEqual({ id: userId, pendingPhone: phone, phoneVerified: false });
+    expect(verificationService.requestPhoneVerification).toHaveBeenCalledWith(
+      userId,
+      phone,
+    );
+    expect(result).toEqual({
+      id: userId,
+      pendingPhone: phone,
+      phoneVerified: false,
+    });
   });
 
   it('confirms pending phone verification and updates phone', async () => {
@@ -152,22 +203,41 @@ describe('UserService', () => {
     const pendingPhone = '+5511999999999';
     mockPrisma.user.findUnique.mockResolvedValue({ id: userId, pendingPhone });
     mockVerificationService.verifyPhoneCode.mockResolvedValue(true);
-    mockPrisma.user.update.mockResolvedValue({ id: userId, phone: pendingPhone, pendingPhone: null, phoneVerified: true });
+    mockPrisma.user.update.mockResolvedValue({
+      id: userId,
+      phone: pendingPhone,
+      pendingPhone: null,
+      phoneVerified: true,
+    });
 
-    const result = await service.confirmPhoneVerification(userId, { verificationCode: 'XYZ789' } as any);
+    const result = await service.confirmPhoneVerification(userId, {
+      verificationCode: 'XYZ789',
+    } as any);
 
-    expect(mockVerificationService.verifyPhoneCode).toHaveBeenCalledWith(userId, 'XYZ789');
+    expect(mockVerificationService.verifyPhoneCode).toHaveBeenCalledWith(
+      userId,
+      'XYZ789',
+    );
     expect(mockPrisma.user.update).toHaveBeenCalledWith({
       where: { id: userId },
       data: { phone: pendingPhone, pendingPhone: null, phoneVerified: true },
     } as any);
-    expect(result).toEqual({ id: userId, phone: pendingPhone, pendingPhone: null, phoneVerified: true });
+    expect(result).toEqual({
+      id: userId,
+      phone: pendingPhone,
+      pendingPhone: null,
+      phoneVerified: true,
+    });
   });
 
   it('throws when confirming phone verification with no pending phone', async () => {
     const userId = BigInt(9);
     mockPrisma.user.findUnique.mockResolvedValue({ id: userId });
 
-    await expect(service.confirmPhoneVerification(userId, { verificationCode: 'NOPE' } as any)).rejects.toThrow(BadRequestException);
+    await expect(
+      service.confirmPhoneVerification(userId, {
+        verificationCode: 'NOPE',
+      } as any),
+    ).rejects.toThrow(BadRequestException);
   });
 });

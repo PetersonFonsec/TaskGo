@@ -1,5 +1,3 @@
-import { ForgotPasswordHandler } from "./forgot-password/forgot-password.handle";
+import { ForgotPasswordHandler } from './forgot-password/forgot-password.handle';
 
-export const AuthCommands = [
-  ForgotPasswordHandler
-]
+export const AuthCommands = [ForgotPasswordHandler];

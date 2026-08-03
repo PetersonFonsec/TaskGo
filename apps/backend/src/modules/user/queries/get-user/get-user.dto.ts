@@ -1,7 +1,7 @@
-import { Exclude, Expose, Type } from "class-transformer";
+import { Exclude, Expose, Type } from 'class-transformer';
 
-import { CreateAddressDto } from "../../../address/dto/create-address.dto";
-import { UserType } from "../../../../shared/enums/user-type.enum";
+import { CreateAddressDto } from '../../../address/dto/create-address.dto';
+import { UserType } from '../../../../shared/enums/user-type.enum';
 
 @Exclude()
 export class UserDto {

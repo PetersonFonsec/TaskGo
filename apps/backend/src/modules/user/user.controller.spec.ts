@@ -68,9 +68,11 @@ describe('UserController', () => {
   });
 
   it('returns a shared public profile from findOne', async () => {
-    const result = await controller.findOne('42');
+    const result = await controller.findOne(42n);
 
-    expect(queryBus.execute).toHaveBeenCalledWith(expect.objectContaining({ id: BigInt(42) }));
+    expect(queryBus.execute).toHaveBeenCalledWith(
+      expect.objectContaining({ id: BigInt(42) }),
+    );
     expect(result).toEqual(publicProfile);
     expect(result).not.toHaveProperty('password');
     expect(result).not.toHaveProperty('orders');
@@ -78,7 +80,7 @@ describe('UserController', () => {
   });
 
   it('maps profile updates to a shared public profile with string ids and timestamps', async () => {
-    const result = await controller.update('42', {
+    const result = await controller.update(42n, {
       name: 'Updated User',
       email: 'updated@example.com',
       phone: '5511888888888',
@@ -102,26 +104,46 @@ describe('UserController', () => {
   });
 
   it('should request email verification', async () => {
-    const result = await controller.requestEmailVerification('1', { email: 'test@example.com' } as any);
-    expect(mockUserService.requestEmailVerification).toHaveBeenCalledWith(BigInt(1), { email: 'test@example.com' });
+    const result = await controller.requestEmailVerification(1n, {
+      email: 'test@example.com',
+    } as any);
+    expect(mockUserService.requestEmailVerification).toHaveBeenCalledWith(
+      BigInt(1),
+      { email: 'test@example.com' },
+    );
     expect(result).toEqual({});
   });
 
   it('should confirm email verification', async () => {
-    const result = await controller.confirmEmailVerification('1', { verificationCode: 'CODE' } as any);
-    expect(mockUserService.confirmEmailVerification).toHaveBeenCalledWith(BigInt(1), { verificationCode: 'CODE' });
+    const result = await controller.confirmEmailVerification(1n, {
+      verificationCode: 'CODE',
+    } as any);
+    expect(mockUserService.confirmEmailVerification).toHaveBeenCalledWith(
+      BigInt(1),
+      { verificationCode: 'CODE' },
+    );
     expect(result).toEqual({});
   });
 
   it('should request phone verification', async () => {
-    const result = await controller.requestPhoneVerification('2', { phone: '+5511999999999' } as any);
-    expect(mockUserService.requestPhoneVerification).toHaveBeenCalledWith(BigInt(2), { phone: '+5511999999999' });
+    const result = await controller.requestPhoneVerification(2n, {
+      phone: '+5511999999999',
+    } as any);
+    expect(mockUserService.requestPhoneVerification).toHaveBeenCalledWith(
+      BigInt(2),
+      { phone: '+5511999999999' },
+    );
     expect(result).toEqual({});
   });
 
   it('should confirm phone verification', async () => {
-    const result = await controller.confirmPhoneVerification('2', { verificationCode: 'CODE' } as any);
-    expect(mockUserService.confirmPhoneVerification).toHaveBeenCalledWith(BigInt(2), { verificationCode: 'CODE' });
+    const result = await controller.confirmPhoneVerification(2n, {
+      verificationCode: 'CODE',
+    } as any);
+    expect(mockUserService.confirmPhoneVerification).toHaveBeenCalledWith(
+      BigInt(2),
+      { verificationCode: 'CODE' },
+    );
     expect(result).toEqual({});
   });
 });

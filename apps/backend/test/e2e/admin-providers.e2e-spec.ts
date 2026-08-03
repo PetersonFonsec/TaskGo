@@ -493,7 +493,7 @@ describe('Admin providers reads E2E', () => {
     });
     expect(response.body.reviewDuration).toEqual({
       averageMs: 127_509_677,
-      averageHours: 35.419354722222225,
+      averageHours: Number('35.419354722222225'),
       reviewedProviders: 62,
     });
     expect(response.body.recentSensitiveActions).toHaveLength(10);

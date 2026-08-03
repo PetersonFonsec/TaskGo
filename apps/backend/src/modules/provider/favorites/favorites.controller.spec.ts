@@ -1,4 +1,4 @@
-import request = require('supertest');
+import request from 'supertest';
 import { Test } from '@nestjs/testing';
 import {
   INestApplication,
@@ -12,6 +12,7 @@ import { PrismaModule } from '../../../prisma/prisma.module';
 import { PrismaService } from '../../../prisma/prisma.service';
 import { BigIntInterceptor } from '../../../shared/interceptors/bigint.interceptor';
 import { UserType } from '@prisma/client';
+import { APP_GUARD } from '@nestjs/core';
 
 const validToken = 'VALID_TOKEN';
 const authTokenServiceMock = {
@@ -39,6 +40,7 @@ describe('FavoritesController (integration)', () => {
       imports: [ProviderModule, PrismaModule],
       providers: [
         { provide: AuthTokenService, useValue: authTokenServiceMock },
+        { provide: APP_GUARD, useClass: AuthGuardMock },
       ],
     });
 
@@ -112,7 +114,7 @@ describe('FavoritesController (integration)', () => {
     await request(app.getHttpServer())
       .post('/favorites')
       .set('Authorization', `Bearer ${validToken}`)
-      .send({ providerId: Number(providerId) })
+      .send({ providerId: providerId.toString() })
       .expect(201)
       .expect((res: any) => {
         expect(Number(res.body.clientId)).toBe(Number(clientId));
@@ -137,8 +139,12 @@ describe('FavoritesController (integration)', () => {
     await request(app.getHttpServer())
       .delete(`/favorites/${providerId}`)
       .set('Authorization', `Bearer ${validToken}`)
-      .send({ providerId: Number(providerId) })
       .expect(200);
+
+    await request(app.getHttpServer())
+      .delete('/favorites/not-an-id')
+      .set('Authorization', `Bearer ${validToken}`)
+      .expect(400);
   });
 
   it('filters provider listing to only favorited providers when onlyFavorites=true', async () => {

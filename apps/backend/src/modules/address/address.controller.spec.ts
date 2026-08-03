@@ -56,12 +56,12 @@ describe('AddressController authenticated ownership boundary', () => {
   });
 
   it('passes token-derived identity to read, update, and delete', async () => {
-    await controller.findOne('10', '7');
-    await controller.update('10', '7', {
+    await controller.findOne('10', 7n);
+    await controller.update('10', 7n, {
       city: 'Campinas',
       userId: BigInt(20),
     });
-    await controller.remove('10', '7');
+    await controller.remove('10', 7n);
 
     expect(addressService.findOne).toHaveBeenCalledWith(BigInt(10), BigInt(7));
     expect(addressService.update).toHaveBeenCalledWith(BigInt(10), BigInt(7), {

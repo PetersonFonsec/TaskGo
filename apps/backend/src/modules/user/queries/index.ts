@@ -1,5 +1,3 @@
-import { GetUserQueryHandler } from "./get-user/get-user.handle";
+import { GetUserQueryHandler } from './get-user/get-user.handle';
 
-export const QueryHandlers = [
-  GetUserQueryHandler
-]
+export const QueryHandlers = [GetUserQueryHandler];

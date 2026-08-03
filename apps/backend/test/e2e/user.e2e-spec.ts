@@ -40,11 +40,11 @@ describe('Users E2E', () => {
   });
 
   it('✅ should create user type PROVIDER successfully', async () => {
-    const  payload = {
+    const payload = {
       ...PROVIDER_VALID,
       cpf: '67878080038',
-      email: 'novo_4@email.com'
-    }
+      email: 'novo_4@email.com',
+    };
     const res = await request(app.getHttpServer())
       .post('/user')
       .send(payload)
@@ -54,9 +54,7 @@ describe('Users E2E', () => {
   });
 
   it('❌ should fail if email already exists', async () => {
-    await request(app.getHttpServer())
-      .post('/user')
-      .send(CUSTOMER_VALID);
+    await request(app.getHttpServer()).post('/user').send(CUSTOMER_VALID);
 
     const res = await request(app.getHttpServer())
       .post('/user')
@@ -82,7 +80,7 @@ describe('Users E2E', () => {
   });
 
   it('❌ should fail if required field is missing', async () => {
-    const { email, ...payload } = CUSTOMER_VALID;
+    const { email: _email, ...payload } = CUSTOMER_VALID;
 
     const res = await request(app.getHttpServer())
       .post('/user')

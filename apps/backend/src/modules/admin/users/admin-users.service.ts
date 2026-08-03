@@ -8,6 +8,7 @@ import {
 } from '@nestjs/common';
 import { AdminRole, AdminUser, Prisma } from '@prisma/client';
 import * as bcrypt from 'bcrypt';
+import { ConfigService } from '@nestjs/config';
 
 import { PrismaService } from '../../../prisma/prisma.service';
 import {
@@ -25,14 +26,13 @@ import {
 import { AdminUsersQueryDto } from './dto/admin-users-query.dto';
 
 const ADMIN_USER_ENTITY = 'AdminUser';
-const INVITATION_TTL_HOURS = 48;
-
 @Injectable()
 export class AdminUsersService {
   constructor(
     private readonly prisma: PrismaService,
     private readonly audit: AdminAuditService,
     private readonly invitationDelivery: AdminInvitationDeliveryService,
+    private readonly configService: ConfigService,
   ) {}
 
   async list(query: AdminUsersQueryDto) {
@@ -148,7 +148,7 @@ export class AdminUsersService {
         activationUrl: this.buildActivationUrl(invitation.token),
         expiresAt,
       });
-    } catch (error) {
+    } catch {
       deliveryStatus = 'FAILED';
     }
 
@@ -364,10 +364,7 @@ export class AdminUsersService {
     return { operator: this.toResponse(updated) };
   }
 
-  private async findOperatorOrThrow(
-    tx: Prisma.TransactionClient,
-    id: bigint,
-  ) {
+  private async findOperatorOrThrow(tx: Prisma.TransactionClient, id: bigint) {
     const operator = await tx.adminUser.findUnique({ where: { id } });
     if (!operator) {
       throw new NotFoundException('Administrative operator not found');
@@ -424,19 +421,15 @@ export class AdminUsersService {
   }
 
   private buildInvitationExpiry() {
-    const ttlHours = Number(process.env.ADMIN_INVITATION_TTL_HOURS);
-    const safeTtlHours = Number.isFinite(ttlHours)
-      ? ttlHours
-      : INVITATION_TTL_HOURS;
+    const ttlHours = this.configService.getOrThrow<number>(
+      'auth.invitationTtlHours',
+    );
 
-    return new Date(Date.now() + safeTtlHours * 60 * 60 * 1000);
+    return new Date(Date.now() + ttlHours * 60 * 60 * 1000);
   }
 
   private buildActivationUrl(token: string) {
-    const baseUrl =
-      process.env.ADMIN_INVITATION_URL ||
-      process.env.BACKOFFICE_INVITATION_URL ||
-      'http://localhost:4200/admin/activate';
+    const baseUrl = this.configService.getOrThrow<string>('auth.invitationUrl');
     const url = new URL(baseUrl);
     url.searchParams.set('token', token);
     return url.toString();

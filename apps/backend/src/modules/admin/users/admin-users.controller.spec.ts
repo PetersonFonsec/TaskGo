@@ -59,11 +59,10 @@ describe('AdminUsersController', () => {
   });
 
   it('delegates role changes', async () => {
-    await controller.changeRole(
-      2,
-      { role: AdminRole.FINANCE },
-      { [ADMIN_ACTOR_KEY]: actor, headers: {} } as any,
-    );
+    await controller.changeRole(2, { role: AdminRole.FINANCE }, {
+      [ADMIN_ACTOR_KEY]: actor,
+      headers: {},
+    } as any);
 
     expect(service.changeRole).toHaveBeenCalledWith(
       BigInt(2),
@@ -95,7 +94,9 @@ describe('AdminUsersController', () => {
 describe('AdminInvitationActivationController', () => {
   it('delegates public invitation activation with request context', async () => {
     const service = {
-      activateInvitation: jest.fn().mockResolvedValue({ operator: { id: '2' } }),
+      activateInvitation: jest
+        .fn()
+        .mockResolvedValue({ operator: { id: '2' } }),
     };
     const controller = new AdminInvitationActivationController(
       service as unknown as AdminUsersService,

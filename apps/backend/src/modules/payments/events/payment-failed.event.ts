@@ -1,1 +1,6 @@
-export class PaymentFailedEvent { constructor(public readonly paymentId: bigint, public readonly reason?: string) {} }
+export class PaymentFailedEvent {
+  constructor(
+    public readonly paymentId: bigint,
+    public readonly reason?: string,
+  ) {}
+}

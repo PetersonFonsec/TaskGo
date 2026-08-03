@@ -1,6 +1,6 @@
 import { BadRequestException } from '@nestjs/common';
 
-import { PrismaService } from '../../../../../prisma/prisma.service';
+import { Prisma } from '@prisma/client';
 import { UserValidations } from './user-validations.interface';
 import { CreateUserCommand } from '../create-user.command';
 
@@ -13,7 +13,7 @@ import { CreateUserCommand } from '../create-user.command';
 export class UserAddressValidator implements UserValidations {
   async validate(
     command: CreateUserCommand,
-    dataSource: PrismaService,
+    dataSource: Prisma.TransactionClient,
   ): Promise<void> {
     if (!command.address) {
       throw new BadRequestException('Address is required for client users');

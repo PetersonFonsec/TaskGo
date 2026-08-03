@@ -1,11 +1,12 @@
 import { Module } from '@nestjs/common';
 
-import { PaginationService } from '../shared/services/pagination/pagination.service';
 import Mediator from '../shared/events/mediator';
 import { FeatureFlagService } from './services/feature-flag.service';
+import { ConfigModule } from '../config/config.module';
 
 @Module({
-  providers: [Mediator, PaginationService, FeatureFlagService],
-  exports: [Mediator, PaginationService, FeatureFlagService],
+  imports: [ConfigModule],
+  providers: [Mediator, FeatureFlagService],
+  exports: [Mediator, FeatureFlagService],
 })
-export class SharedModule { }
+export class SharedModule {}

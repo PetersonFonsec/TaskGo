@@ -1,5 +1,5 @@
-import { ErrorTypesEnum } from "../../shared/enums/errors-types.enum";
-import { CustomException } from "./custom.exception";
+import { ErrorTypesEnum } from '../../shared/enums/errors-types.enum';
+import { CustomException } from './custom.exception';
 
 export class PhoneException extends CustomException {
   constructor() {
@@ -8,7 +8,7 @@ export class PhoneException extends CustomException {
       'PhoneException',
       'Número de telefone inválido!',
       'PHONE_ERROR',
-      ErrorTypesEnum.VALIDATION
+      ErrorTypesEnum.VALIDATION,
     );
   }
 }

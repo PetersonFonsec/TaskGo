@@ -1,4 +1,4 @@
-import { ValueObject } from "./value-object.interface";
+import { ValueObject } from './value-object.interface';
 
 export class Email implements ValueObject<Email> {
   private readonly value: string;

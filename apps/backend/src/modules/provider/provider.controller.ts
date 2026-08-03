@@ -7,90 +7,50 @@ import {
   Param,
   Delete,
   Query,
-  Req,
-  UnauthorizedException,
-  NotFoundException,
 } from '@nestjs/common';
-import { Request } from 'express';
-import { ProviderService } from './provider.service';
+import { CommandBus, QueryBus } from '@nestjs/cqrs';
 import { CreateProviderDto } from './dto/create-provider.dto';
 import { UpdateProviderDto } from './dto/update-provider.dto';
 import { ProviderAvailabilityQueryDto } from './dto/provider-availability.dto';
 import { Public } from '../../shared/decorators/public.decorator';
-import { AuthTokenService } from '../auth/auth-token.service';
-import Mediator from '../../shared/events/mediator';
-import { FeatureFlagService } from '../../shared/services/feature-flag.service';
+import { OptionalAuth } from '../../shared/decorators/optional-auth.decorator';
+import { User } from '../../shared/decorators/user.decorator';
+import { ParseBigIntPipe } from '../../shared/pipes/parse-bigint.pipe';
+import {
+  CreateProviderCommand,
+  RemoveProviderCommand,
+  UpdateProviderCommand,
+} from './commands';
+import {
+  GetProviderAvailabilityQuery,
+  GetProviderQuery,
+  GetProvidersByCategoryQuery,
+  ListProvidersQuery,
+} from './queries';
 
 @Controller('provider')
 export class ProviderController {
   constructor(
-    private readonly providerService: ProviderService,
-    private readonly authTokenService: AuthTokenService,
-    private readonly mediator: Mediator,
-    private readonly featureFlagService: FeatureFlagService,
+    private readonly commandBus: CommandBus,
+    private readonly queryBus: QueryBus,
   ) {}
 
   @Post()
   create(@Body() createProviderDto: CreateProviderDto) {
-    return this.providerService.create(createProviderDto);
+    return this.commandBus.execute(
+      new CreateProviderCommand(createProviderDto),
+    );
   }
 
-  @Public()
+  @OptionalAuth()
   @Get()
-  async findAll(
+  findAll(
     @Query('onlyFavorites') onlyFavorites?: string,
-    @Req() req?: Request,
+    @User('id') authenticatedUserId?: string,
   ) {
-    const onlyFavoritesEnabled = onlyFavorites === 'true';
-    let clientId: number | undefined;
-
-    if (
-      onlyFavoritesEnabled &&
-      !this.featureFlagService.isFavoritesMvpEnabled()
-    ) {
-      throw new NotFoundException('Favorites feature disabled');
-    }
-
-    if (onlyFavoritesEnabled) {
-      const authorization =
-        req?.headers?.authorization || req?.headers?.Authorization;
-      if (!authorization || typeof authorization !== 'string') {
-        throw new UnauthorizedException(
-          'Authentication required for favorites filter',
-        );
-      }
-
-      const parts = authorization.split(' ');
-      if (parts.length !== 2 || parts[0] !== 'Bearer') {
-        throw new UnauthorizedException('Authentication token malformed');
-      }
-
-      const token = parts[1];
-      this.authTokenService.checkToken(token);
-      const decoded = this.authTokenService.decodeToken(token);
-      clientId = Number(decoded?.id);
-
-      if (!clientId) {
-        throw new UnauthorizedException(
-          'Authenticated client required for favorites filter',
-        );
-      }
-    }
-
-    const providers = await this.providerService.findAll({
-      onlyFavorites: onlyFavoritesEnabled,
-      clientId,
-    });
-
-    if (onlyFavoritesEnabled) {
-      await this.mediator.publish('favorites.searchFilter.used', {
-        clientId,
-        resultCount: Array.isArray(providers) ? providers.length : undefined,
-        timestamp: new Date().toISOString(),
-      });
-    }
-
-    return providers;
+    return this.queryBus.execute(
+      new ListProvidersQuery(onlyFavorites === 'true', authenticatedUserId),
+    );
   }
 
   @Public()
@@ -99,31 +59,33 @@ export class ProviderController {
     @Param('id') id: string,
     @Query() query: ProviderAvailabilityQueryDto,
   ) {
-    return this.providerService.getAvailability(id, query);
+    return this.queryBus.execute(new GetProviderAvailabilityQuery(id, query));
   }
 
   @Public()
   @Get('by-category/:slug')
   findByCategory(@Param('slug') slug: string) {
-    return this.providerService.findProvidersByCategorySlug(slug);
+    return this.queryBus.execute(new GetProvidersByCategoryQuery(slug));
   }
 
   @Public()
   @Get(':id')
-  findOne(@Param('id') id: string) {
-    return this.providerService.findOne(+id);
+  findOne(@Param('id', ParseBigIntPipe) id: bigint) {
+    return this.queryBus.execute(new GetProviderQuery(id));
   }
 
   @Patch(':id')
   update(
-    @Param('id') id: string,
+    @Param('id', ParseBigIntPipe) id: bigint,
     @Body() updateProviderDto: UpdateProviderDto,
   ) {
-    return this.providerService.update(+id, updateProviderDto);
+    return this.commandBus.execute(
+      new UpdateProviderCommand(id, updateProviderDto),
+    );
   }
 
   @Delete(':id')
-  remove(@Param('id') id: string) {
-    return this.providerService.remove(+id);
+  remove(@Param('id', ParseBigIntPipe) id: bigint) {
+    return this.commandBus.execute(new RemoveProviderCommand(id));
   }
 }

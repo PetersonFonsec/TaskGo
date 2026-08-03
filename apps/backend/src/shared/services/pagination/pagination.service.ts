@@ -1,72 +1,89 @@
-import { Injectable } from '@nestjs/common';
-import { PrismaService } from '../../../prisma/prisma.service';
+import { BadRequestException, Injectable } from '@nestjs/common';
 
-import { PaginationResponse } from './pagination.interface';
+import { PaginationQuery, PaginationResponse } from './pagination.interface';
 import { QueryParams } from '../../utils/queryParams';
+
+export type PaginationDelegate<T> = {
+  count(args: Record<string, unknown>): Promise<number>;
+  findMany(args: Record<string, unknown>): Promise<T[]>;
+};
+
+type PaginationOptions = {
+  defaultSortBy: string;
+  allowedSortFields: readonly string[];
+  allowedSearchFields: readonly string[];
+  defaultOrder?: 'asc' | 'desc';
+};
 
 @Injectable()
 export class PaginationService<T> {
-  public modelName: any;
-
-  constructor(public prisma: PrismaService) {}
-
-  private buildSearchFilter(search: string): any {
-    if (!search) return {};
-
-    const searchParams = QueryParams.extractSearchParams(search);
-    const formatSearch = searchParams.map(({ key, value }: any) => ({
-      [key]: { contains: value, mode: 'insensitive' },
-    }));
-
-    const searchBy = {
-      OR: formatSearch,
-    };
-
-    const where: any = search ? searchBy : undefined;
-
-    return where;
-  }
-
-  private buildPaginationMeta(total: number, page: number, limit: number) {
-    const totalPages = Math.max(1, Math.ceil(total / limit!));
-
-    return {
-      total,
-      page,
-      limit,
-      totalPages,
-      hasPrevPage: page! > 1,
-      hasNextPage: page! < totalPages,
-    };
-  }
+  constructor(
+    private readonly delegate: PaginationDelegate<T>,
+    private readonly options: PaginationOptions,
+  ) {}
 
   async listPaginated(
-    q: any,
+    query: PaginationQuery,
     requiredWhere: Record<string, unknown> = {},
   ): Promise<PaginationResponse<T>> {
-    const { page, limit, sortBy, order, search } = q;
+    const page = query.page ?? 1;
+    const limit = query.limit ?? 10;
+    const sortBy = query.sortBy ?? this.options.defaultSortBy;
+    const order = query.order ?? this.options.defaultOrder ?? 'desc';
 
-    const searchWhere = this.buildSearchFilter(search);
-    const where =
-      search && Object.keys(requiredWhere).length > 0
-        ? { AND: [requiredWhere, searchWhere] }
-        : { ...requiredWhere, ...searchWhere };
+    if (!this.options.allowedSortFields.includes(sortBy)) {
+      throw new BadRequestException(`Unsupported sort field: ${sortBy}`);
+    }
 
-    const [total, data] = await this.prisma.$transaction([
-      this.modelName.count({ where }),
-      this.modelName.findMany({
+    const searchWhere = this.buildSearchFilter(query.search);
+    const where = searchWhere
+      ? { AND: [requiredWhere, searchWhere] }
+      : requiredWhere;
+
+    const [total, data] = await Promise.all([
+      this.delegate.count({ where }),
+      this.delegate.findMany({
         where,
-        orderBy: { [sortBy!]: order },
-        skip: (page! - 1) * limit!,
-        take: -limit,
+        orderBy: { [sortBy]: order },
+        skip: (page - 1) * limit,
+        take: limit,
       }),
     ]);
-
-    const meta = this.buildPaginationMeta(total, page, limit);
+    const totalPages = Math.max(1, Math.ceil(total / limit));
 
     return {
       data,
-      meta,
-    } as PaginationResponse<T>;
+      meta: {
+        total,
+        page,
+        limit,
+        totalPages,
+        hasPrevPage: page > 1,
+        hasNextPage: page < totalPages,
+      },
+    };
+  }
+
+  private buildSearchFilter(search?: string) {
+    if (!search) return undefined;
+
+    const filters = QueryParams.extractSearchParams(search);
+    if (filters.length === 0) {
+      throw new BadRequestException('Invalid search expression');
+    }
+    const unsupported = filters.find(
+      ({ key }) => !this.options.allowedSearchFields.includes(key),
+    );
+    if (unsupported) {
+      throw new BadRequestException(
+        `Unsupported search field: ${unsupported.key}`,
+      );
+    }
+
+    return {
+      OR: filters.map(({ key, value }) => ({
+        [key]: { contains: value, mode: 'insensitive' },
+      })),
+    };
   }
 }

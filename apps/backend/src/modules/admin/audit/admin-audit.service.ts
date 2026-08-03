@@ -19,7 +19,7 @@ type JsonValue = string | number | boolean | null | JsonObject | JsonArray;
 interface JsonObject {
   [key: string]: JsonValue;
 }
-interface JsonArray extends Array<JsonValue> {}
+type JsonArray = JsonValue[];
 
 const SECRET_KEY_PATTERN =
   /(password|senha|token|secret|authorization|cookie|api[-_]?key|credential)/i;

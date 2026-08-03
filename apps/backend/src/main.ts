@@ -2,6 +2,7 @@ import otelSDK from './tracing';
 import { NestFactory } from '@nestjs/core';
 import { ValidationPipe } from '@nestjs/common';
 import { DocumentBuilder, SwaggerModule } from '@nestjs/swagger';
+import { ConfigService } from '@nestjs/config';
 
 import helmet from 'helmet';
 // import * as compression from 'compression';
@@ -14,11 +15,24 @@ import { requestCorrelationMiddleware } from './shared/http/request-correlation.
 async function bootstrap() {
   await otelSDK.start();
   const app = await NestFactory.create(AppModule);
+  const configService = app.get(ConfigService);
 
-  app.enableCors(buildCorsOptions());
+  app.enableCors(
+    buildCorsOptions({
+      nodeEnv: configService.getOrThrow<string>('app.nodeEnv'),
+      publicOrigins: configService.get<string>('app.publicOrigins'),
+      backofficeOrigins: configService.get<string>('app.backofficeOrigins'),
+    }),
+  );
   app.use(helmet());
   app.use(requestCorrelationMiddleware);
-  app.useGlobalPipes(new ValidationPipe());
+  app.useGlobalPipes(
+    new ValidationPipe({
+      forbidNonWhitelisted: true,
+      transform: true,
+      whitelist: true,
+    }),
+  );
   app.useGlobalFilters(new CustomExceptionFilter());
   // app.use(compression());
 
@@ -33,7 +47,7 @@ async function bootstrap() {
   const document = SwaggerModule.createDocument(app, config);
   SwaggerModule.setup('api', app, document);
 
-  await app.listen(3000);
+  await app.listen(configService.getOrThrow<number>('app.port'));
 }
 
 bootstrap();

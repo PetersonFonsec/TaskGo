@@ -1,4 +1,13 @@
-import { Controller, Get, Post, Body, Patch, Param, Delete, Query } from '@nestjs/common';
+import {
+  Controller,
+  Get,
+  Post,
+  Body,
+  Patch,
+  Param,
+  Delete,
+  Query,
+} from '@nestjs/common';
 import { CommandBus, QueryBus } from '@nestjs/cqrs';
 import { plainToClass } from 'class-transformer';
 import type { PublicUserProfile } from '@taskgo/shared';
@@ -15,12 +24,13 @@ import { ConfirmEmailVerificationDto } from './dto/confirm-email-verification.dt
 import { ConfirmPhoneVerificationDto } from './dto/confirm-phone-verification.dto';
 import { UserService } from './user.service';
 import { toPublicUserProfile } from './mappers/public-user-profile.mapper';
+import { ParseBigIntPipe } from '../../shared/pipes/parse-bigint.pipe';
 @Controller('user')
 export class UserController {
   constructor(
     private readonly userService: UserService,
     private readonly queryBus: QueryBus,
-    private readonly commandBus: CommandBus
+    private readonly commandBus: CommandBus,
   ) {}
 
   @Public()
@@ -37,39 +47,56 @@ export class UserController {
   }
 
   @Get(':id')
-  async findOne(@Param('id') id: string): Promise<PublicUserProfile> {
-    const query = plainToClass(GetUserQuery, { id: BigInt(id) });
+  async findOne(
+    @Param('id', ParseBigIntPipe) id: bigint,
+  ): Promise<PublicUserProfile> {
+    const query = plainToClass(GetUserQuery, { id });
     return await this.queryBus.execute(query);
   }
 
   @Patch(':id')
-  async update(@Param('id') id: string, @Body() updateUserDto: UpdateUserDto): Promise<PublicUserProfile> {
-    const user = await this.userService.update(BigInt(id), updateUserDto);
+  async update(
+    @Param('id', ParseBigIntPipe) id: bigint,
+    @Body() updateUserDto: UpdateUserDto,
+  ): Promise<PublicUserProfile> {
+    const user = await this.userService.update(id, updateUserDto);
     return toPublicUserProfile(user);
   }
 
   @Post(':id/verify-email')
-  requestEmailVerification(@Param('id') id: string, @Body() payload: RequestEmailVerificationDto) {
-    return this.userService.requestEmailVerification(BigInt(id), payload);
+  requestEmailVerification(
+    @Param('id', ParseBigIntPipe) id: bigint,
+    @Body() payload: RequestEmailVerificationDto,
+  ) {
+    return this.userService.requestEmailVerification(id, payload);
   }
 
   @Post(':id/verify-phone')
-  requestPhoneVerification(@Param('id') id: string, @Body() payload: RequestPhoneVerificationDto) {
-    return this.userService.requestPhoneVerification(BigInt(id), payload);
+  requestPhoneVerification(
+    @Param('id', ParseBigIntPipe) id: bigint,
+    @Body() payload: RequestPhoneVerificationDto,
+  ) {
+    return this.userService.requestPhoneVerification(id, payload);
   }
 
   @Post(':id/confirm-email')
-  confirmEmailVerification(@Param('id') id: string, @Body() payload: ConfirmEmailVerificationDto) {
-    return this.userService.confirmEmailVerification(BigInt(id), payload);
+  confirmEmailVerification(
+    @Param('id', ParseBigIntPipe) id: bigint,
+    @Body() payload: ConfirmEmailVerificationDto,
+  ) {
+    return this.userService.confirmEmailVerification(id, payload);
   }
 
   @Post(':id/confirm-phone')
-  confirmPhoneVerification(@Param('id') id: string, @Body() payload: ConfirmPhoneVerificationDto) {
-    return this.userService.confirmPhoneVerification(BigInt(id), payload);
+  confirmPhoneVerification(
+    @Param('id', ParseBigIntPipe) id: bigint,
+    @Body() payload: ConfirmPhoneVerificationDto,
+  ) {
+    return this.userService.confirmPhoneVerification(id, payload);
   }
 
   @Delete(':id')
-  remove(@Param('id') id: string) {
-    return this.userService.remove(BigInt(id));
+  remove(@Param('id', ParseBigIntPipe) id: bigint) {
+    return this.userService.remove(id);
   }
 }

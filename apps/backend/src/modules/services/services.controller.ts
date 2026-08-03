@@ -1,39 +1,61 @@
-import { Controller, Get, Post, Body, Patch, Param, Delete, Query } from '@nestjs/common';
-import { PaginationQuery } from '@taskgo/backend/shared/services/pagination/pagination.interface';
+import {
+  Body,
+  Controller,
+  Delete,
+  Get,
+  Param,
+  Patch,
+  Post,
+  Query,
+} from '@nestjs/common';
+import { CommandBus, QueryBus } from '@nestjs/cqrs';
 
-import { ServicesService } from './services.service';
+import { PaginationQuery } from '../../shared/services/pagination/pagination.interface';
+import { Public } from '../../shared/decorators/public.decorator';
+import { ParseBigIntPipe } from '../../shared/pipes/parse-bigint.pipe';
+import {
+  CreateServiceCommand,
+  RemoveServiceCommand,
+  UpdateServiceCommand,
+} from './commands';
 import { CreateServiceDto } from './dto/create-service.dto';
 import { UpdateServiceDto } from './dto/update-service.dto';
-import { Public } from '../../shared/decorators/public.decorator';
+import { GetServiceQuery, ListServicesQuery } from './queries';
 
 @Controller('services')
 export class ServicesController {
-  constructor(private readonly servicesService: ServicesService) {}
+  constructor(
+    private readonly commandBus: CommandBus,
+    private readonly queryBus: QueryBus,
+  ) {}
 
   @Post()
-  create(@Body() createServiceDto: CreateServiceDto) {
-    return this.servicesService.create(createServiceDto);
+  create(@Body() payload: CreateServiceDto) {
+    return this.commandBus.execute(new CreateServiceCommand(payload));
   }
 
   @Public()
   @Get()
-  findAll(@Query() query: PaginationQuery) {
-    return this.servicesService.findAll(query);
+  findAll(@Query() pagination: PaginationQuery) {
+    return this.queryBus.execute(new ListServicesQuery(pagination));
   }
 
   @Public()
   @Get(':id')
-  findOne(@Param('id') id: string) {
-    return this.servicesService.findOne(+id);
+  findOne(@Param('id', ParseBigIntPipe) id: bigint) {
+    return this.queryBus.execute(new GetServiceQuery(id));
   }
 
   @Patch(':id')
-  update(@Param('id') id: string, @Body() updateServiceDto: UpdateServiceDto) {
-    return this.servicesService.update(+id, updateServiceDto);
+  update(
+    @Param('id', ParseBigIntPipe) id: bigint,
+    @Body() payload: UpdateServiceDto,
+  ) {
+    return this.commandBus.execute(new UpdateServiceCommand(id, payload));
   }
 
   @Delete(':id')
-  remove(@Param('id') id: string) {
-    return this.servicesService.remove(+id);
+  remove(@Param('id', ParseBigIntPipe) id: bigint) {
+    return this.commandBus.execute(new RemoveServiceCommand(id));
   }
 }

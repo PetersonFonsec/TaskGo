@@ -1,4 +1,12 @@
-import { Controller, Get, Post, Body, Patch, Param, Delete } from '@nestjs/common';
+import {
+  Controller,
+  Get,
+  Post,
+  Body,
+  Patch,
+  Param,
+  Delete,
+} from '@nestjs/common';
 import { FeatureFlagService } from './feature-flag.service';
 import { CreateFeatureFlagDto } from './dto/create-feature-flag.dto';
 import { UpdateFeatureFlagDto } from './dto/update-feature-flag.dto';
@@ -23,7 +31,10 @@ export class FeatureFlagController {
   }
 
   @Patch(':id')
-  update(@Param('id') id: string, @Body() updateFeatureFlagDto: UpdateFeatureFlagDto) {
+  update(
+    @Param('id') id: string,
+    @Body() updateFeatureFlagDto: UpdateFeatureFlagDto,
+  ) {
     return this.featureFlagService.update(+id, updateFeatureFlagDto);
   }
 

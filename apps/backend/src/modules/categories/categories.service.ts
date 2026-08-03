@@ -1,7 +1,13 @@
 import { Injectable } from '@nestjs/common';
 
-import { PaginationQuery, PaginationResponse } from '../../shared/services/pagination/pagination.interface';
-import { PaginationService } from '../../shared/services/pagination/pagination.service';
+import {
+  PaginationQuery,
+  PaginationResponse,
+} from '../../shared/services/pagination/pagination.interface';
+import {
+  PaginationDelegate,
+  PaginationService,
+} from '../../shared/services/pagination/pagination.service';
 import { PrismaService } from '../../prisma/prisma.service';
 import { Category } from '@prisma/client';
 
@@ -11,22 +17,25 @@ import { UpdateCategoryDto } from './dto/update-category.dto';
 @Injectable()
 export class CategoriesService extends PaginationService<Category> {
   constructor(public prismaService: PrismaService) {
-    super(prismaService);
-    this.modelName = this.prismaService.category;
+    super(prismaService.category as unknown as PaginationDelegate<Category>, {
+      defaultSortBy: 'id',
+      allowedSortFields: ['id', 'name', 'slug', 'sortOrder', 'createdAt'],
+      allowedSearchFields: ['name', 'slug', 'description'],
+    });
   }
 
   create(createCategoryDto: CreateFullCategoryDto) {
     const { category, subcategories } = createCategoryDto;
 
-    this.prismaService.$transaction(async prisma => {
+    this.prismaService.$transaction(async (prisma) => {
       const { id: categoryId } = await prisma.category.create({
-        data: category
+        data: category,
       });
 
       if (!subcategories || !subcategories.length) return;
 
       await prisma.subcategory.createMany({
-        data: subcategories.map(subcategory => ({
+        data: subcategories.map((subcategory) => ({
           ...subcategory,
           name: String(subcategory.name),
           description: String(subcategory.description),
@@ -35,13 +44,11 @@ export class CategoriesService extends PaginationService<Category> {
           categoryId,
         })),
       });
-
     });
   }
 
   async findAll(query: PaginationQuery): Promise<PaginationResponse<Category>> {
-    const queryDefault: PaginationQuery = { page: 1, limit: 10, sortBy: 'id', order: 'desc', search: '' };
-    return await this.listPaginated(Object.assign(queryDefault, query));
+    return this.listPaginated(query);
   }
 
   findOne(id: number) {

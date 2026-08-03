@@ -13,6 +13,7 @@ import {
   AuthenticatedIdentity,
   isCustomerRole,
 } from '../../shared/auth/authenticated-identity';
+import { IS_OPTIONAL_AUTH_KEY } from '../../shared/decorators/optional-auth.decorator';
 
 export const TOKEN_KEY = 'token';
 
@@ -32,10 +33,15 @@ export class AuthGuard implements CanActivate {
       context.getHandler(),
       context.getClass(),
     ]);
-    if (isPublic) return true;
+    const isOptionalAuth = this.reflector.getAllAndOverride<boolean>(
+      IS_OPTIONAL_AUTH_KEY,
+      [context.getHandler(), context.getClass()],
+    );
 
     const req = context.switchToHttp().getRequest();
     const authorization = req.headers?.authorization;
+    if (isPublic && !isOptionalAuth) return true;
+    if (isOptionalAuth && !authorization) return true;
     if (!authorization || typeof authorization !== 'string') {
       throw new UnauthorizedException('Authentication token required');
     }

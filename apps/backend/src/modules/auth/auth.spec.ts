@@ -1,5 +1,6 @@
 import { Test, TestingModule } from '@nestjs/testing';
 import { JwtService } from '@nestjs/jwt';
+import { ConfigService } from '@nestjs/config';
 
 import { AuthTokenService } from './auth-token.service';
 
@@ -22,6 +23,10 @@ describe('AuthTokenService', () => {
       providers: [
         AuthTokenService,
         { provide: JwtService, useValue: jwtServiceMock },
+        {
+          provide: ConfigService,
+          useValue: { getOrThrow: jest.fn().mockReturnValue('1d') },
+        },
       ],
     }).compile();
 

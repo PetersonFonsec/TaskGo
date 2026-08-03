@@ -4,7 +4,7 @@ import { UpdateFeatureFlagDto } from './dto/update-feature-flag.dto';
 
 @Injectable()
 export class FeatureFlagService {
-  create(createFeatureFlagDto: CreateFeatureFlagDto) {
+  create(_createFeatureFlagDto: CreateFeatureFlagDto) {
     return 'This action adds a new featureFlag';
   }
 
@@ -16,7 +16,7 @@ export class FeatureFlagService {
     return `This action returns a #${id} featureFlag`;
   }
 
-  update(id: number, updateFeatureFlagDto: UpdateFeatureFlagDto) {
+  update(id: number, _updateFeatureFlagDto: UpdateFeatureFlagDto) {
     return `This action updates a #${id} featureFlag`;
   }
 

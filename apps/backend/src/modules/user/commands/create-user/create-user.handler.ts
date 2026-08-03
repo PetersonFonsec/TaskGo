@@ -1,13 +1,15 @@
-import { CommandHandler, EventBus, ICommandHandler } from "@nestjs/cqrs";
+import { CommandHandler, EventBus, ICommandHandler } from '@nestjs/cqrs';
 import * as bcrypt from 'bcrypt';
-import { env } from "process";
+import { env } from 'process';
 
-import { CreateUserCommand } from "./create-user.command";
-import { CreateUserFactory } from "./factories/create-user.factory";
-import { UserCreatedEvent } from "../../events/user-created.event";
+import { CreateUserCommand } from './create-user.command';
+import { CreateUserFactory } from './factories/create-user.factory';
+import { UserCreatedEvent } from '../../events/user-created.event';
 
 @CommandHandler(CreateUserCommand)
-export class CreateUserHandler implements ICommandHandler<CreateUserCommand, string> {
+export class CreateUserHandler
+  implements ICommandHandler<CreateUserCommand, string>
+{
   #saltRounds = env.SALT_ROUNDS || '8';
 
   constructor(

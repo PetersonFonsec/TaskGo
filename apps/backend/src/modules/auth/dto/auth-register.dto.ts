@@ -1,3 +1,3 @@
-import { CreateUserDto } from "../../../modules/user/dto/create-user.dto";
+import { CreateUserDto } from '../../../modules/user/dto/create-user.dto';
 
-export class AuthRegisterDTO extends CreateUserDto { }
+export class AuthRegisterDTO extends CreateUserDto {}

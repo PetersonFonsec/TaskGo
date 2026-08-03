@@ -1,13 +1,31 @@
-export interface PaginationSearchFilter {
-  [key: string]: { contains: string; mode: string; }
-}
+import { Transform, Type } from 'class-transformer';
+import { IsIn, IsInt, IsOptional, IsString, Max, Min } from 'class-validator';
 
-export interface PaginationQuery {
+export class PaginationQuery {
+  @IsOptional()
+  @Type(() => Number)
+  @IsInt()
+  @Min(1)
   page?: number;
+
+  @IsOptional()
+  @Type(() => Number)
+  @IsInt()
+  @Min(1)
+  @Max(100)
   limit?: number;
+
+  @IsOptional()
+  @IsString()
   sortBy?: string;
+
+  @IsOptional()
+  @Transform(({ value }) => String(value).toLowerCase())
+  @IsIn(['asc', 'desc'])
   order?: 'asc' | 'desc';
-  // search?: PaginationSearchFilter[];
+
+  @IsOptional()
+  @IsString()
   search?: string;
 }
 

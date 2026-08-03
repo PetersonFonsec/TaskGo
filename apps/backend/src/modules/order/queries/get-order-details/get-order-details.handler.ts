@@ -5,14 +5,26 @@ import { OrderEventType, OrderStatus } from '@prisma/client';
 import { PrismaService } from '../../../../prisma/prisma.service';
 import { GetOrderDetailsQuery } from './get-order-details.query';
 
-const EVENT_COPY: Record<OrderEventType, { title: string; description?: string }> = {
-  REQUESTED: { title: 'Solicitação enviada', description: 'O cliente solicitou o atendimento.' },
-  ACCEPTED: { title: 'Prestador aceitou', description: 'O atendimento foi confirmado pelo prestador.' },
+const EVENT_COPY: Record<
+  OrderEventType,
+  { title: string; description?: string }
+> = {
+  REQUESTED: {
+    title: 'Solicitação enviada',
+    description: 'O cliente solicitou o atendimento.',
+  },
+  ACCEPTED: {
+    title: 'Prestador aceitou',
+    description: 'O atendimento foi confirmado pelo prestador.',
+  },
   PAYMENT_AUTHORIZED: { title: 'Pagamento autorizado' },
   PROVIDER_ON_THE_WAY: { title: 'Prestador a caminho' },
   SERVICE_STARTED: { title: 'Serviço iniciado' },
   PRICE_UPDATED: { title: 'Valor do serviço atualizado' },
-  SERVICE_FINISHED: { title: 'Serviço finalizado', description: 'Aguardando a confirmação do cliente.' },
+  SERVICE_FINISHED: {
+    title: 'Serviço finalizado',
+    description: 'Aguardando a confirmação do cliente.',
+  },
   CLIENT_CONFIRMED: { title: 'Cliente confirmou' },
   PAYMENT_CAPTURED: { title: 'Pagamento confirmado' },
   PAYMENT_RELEASED: { title: 'Pagamento liberado' },
@@ -21,7 +33,9 @@ const EVENT_COPY: Record<OrderEventType, { title: string; description?: string }
 };
 
 @QueryHandler(GetOrderDetailsQuery)
-export class GetOrderDetailsHandler implements IQueryHandler<GetOrderDetailsQuery> {
+export class GetOrderDetailsHandler
+  implements IQueryHandler<GetOrderDetailsQuery>
+{
   constructor(private readonly prisma: PrismaService) {}
 
   async execute({ id }: GetOrderDetailsQuery) {
@@ -65,21 +79,41 @@ export class GetOrderDetailsHandler implements IQueryHandler<GetOrderDetailsQuer
             cep: true,
           },
         },
-        payment: { select: { method: true, status: true, amount: true, paidAt: true } },
-        review: { select: { id: true, rating: true, comment: true, reviewedAt: true } },
-        completion: { select: { providerNotes: true, completedByProviderAt: true } },
-        orderPhoto: { select: { id: true, url: true, type: true }, orderBy: { createdAt: 'asc' } },
-        orderTimeline: { select: { event: true, description: true, createdAt: true }, orderBy: { createdAt: 'asc' } },
+        payment: {
+          select: { method: true, status: true, amount: true, paidAt: true },
+        },
+        review: {
+          select: { id: true, rating: true, comment: true, reviewedAt: true },
+        },
+        completion: {
+          select: { providerNotes: true, completedByProviderAt: true },
+        },
+        orderPhoto: {
+          select: { id: true, url: true, type: true },
+          orderBy: { createdAt: 'asc' },
+        },
+        orderTimeline: {
+          select: { event: true, description: true, createdAt: true },
+          orderBy: { createdAt: 'asc' },
+        },
       },
     });
 
-    if (!order) throw new NotFoundException(`Pedido ${id.toString()} não encontrado`);
+    if (!order)
+      throw new NotFoundException(`Pedido ${id.toString()} não encontrado`);
 
     const provider = order.service.provider;
-    const estimatedAmount = Number(order.estimatedPrice ?? order.service.basePrice);
+    const estimatedAmount = Number(
+      order.estimatedPrice ?? order.service.basePrice,
+    );
     const timeline = order.orderTimeline.length
       ? order.orderTimeline.map((event) => this.toTimelineEvent(event))
-      : this.deriveTimeline(order.status, order.requestedAt, order.scheduledFor, order.payment?.paidAt);
+      : this.deriveTimeline(
+          order.status,
+          order.requestedAt,
+          order.scheduledFor,
+          order.payment?.paidAt,
+        );
 
     return {
       id: order.id.toString(),
@@ -99,30 +133,42 @@ export class GetOrderDetailsHandler implements IQueryHandler<GetOrderDetailsQuer
         verified: provider.verified,
       },
       client: { ...order.client, id: order.client.id.toString() },
-      schedule: { requestedAt: order.requestedAt, scheduledFor: order.scheduledFor },
+      schedule: {
+        requestedAt: order.requestedAt,
+        scheduledFor: order.scheduledFor,
+      },
       address: order.addressSnap,
       payment: order.payment
         ? {
             method: order.payment.method,
             status: order.payment.status,
             estimatedAmount,
-            finalAmount: order.finalPrice === null ? null : Number(order.finalPrice),
+            finalAmount:
+              order.finalPrice === null ? null : Number(order.finalPrice),
           }
         : null,
       review: order.review
         ? { ...order.review, id: order.review.id.toString() }
         : null,
       completion: {
-        providerFinishedAt: order.completion?.completedByProviderAt ?? order.providerFinishedAt,
+        providerFinishedAt:
+          order.completion?.completedByProviderAt ?? order.providerFinishedAt,
         providerNotes: order.completion?.providerNotes ?? null,
       },
       priceAdjustmentReason: order.priceAdjustmentReason,
-      photos: order.orderPhoto.map((photo) => ({ ...photo, id: photo.id.toString() })),
+      photos: order.orderPhoto.map((photo) => ({
+        ...photo,
+        id: photo.id.toString(),
+      })),
       timeline,
     };
   }
 
-  private toTimelineEvent(event: { event: OrderEventType; description: string | null; createdAt: Date }) {
+  private toTimelineEvent(event: {
+    event: OrderEventType;
+    description: string | null;
+    createdAt: Date;
+  }) {
     const copy = EVENT_COPY[event.event];
     return {
       type: event.event,
@@ -133,16 +179,50 @@ export class GetOrderDetailsHandler implements IQueryHandler<GetOrderDetailsQuer
     };
   }
 
-  private deriveTimeline(status: OrderStatus, requestedAt: Date, scheduledFor: Date | null, paidAt?: Date | null) {
+  private deriveTimeline(
+    status: OrderStatus,
+    requestedAt: Date,
+    scheduledFor: Date | null,
+    paidAt?: Date | null,
+  ) {
     const events = [
-      { type: 'REQUESTED', title: 'Solicitação enviada', description: 'O cliente solicitou o atendimento.', date: requestedAt, completed: true },
+      {
+        type: 'REQUESTED',
+        title: 'Solicitação enviada',
+        description: 'O cliente solicitou o atendimento.',
+        date: requestedAt,
+        completed: true,
+      },
     ];
 
-    if (status !== OrderStatus.AGUARDANDO_APROVACAO && status !== OrderStatus.REJEITADO) {
-      events.push({ type: 'ACCEPTED', title: 'Prestador aceitou', description: 'O atendimento foi confirmado.', date: scheduledFor ?? requestedAt, completed: true });
+    if (
+      status !== OrderStatus.AGUARDANDO_APROVACAO &&
+      status !== OrderStatus.REJEITADO
+    ) {
+      events.push({
+        type: 'ACCEPTED',
+        title: 'Prestador aceitou',
+        description: 'O atendimento foi confirmado.',
+        date: scheduledFor ?? requestedAt,
+        completed: true,
+      });
     }
-    if (paidAt) events.push({ type: 'PAYMENT_AUTHORIZED', title: 'Pagamento autorizado', description: 'O pagamento foi autorizado.', date: paidAt, completed: true });
-    if (scheduledFor) events.push({ type: 'SCHEDULED', title: 'Atendimento agendado', description: 'Data e horário reservados.', date: scheduledFor, completed: true });
+    if (paidAt)
+      events.push({
+        type: 'PAYMENT_AUTHORIZED',
+        title: 'Pagamento autorizado',
+        description: 'O pagamento foi autorizado.',
+        date: paidAt,
+        completed: true,
+      });
+    if (scheduledFor)
+      events.push({
+        type: 'SCHEDULED',
+        title: 'Atendimento agendado',
+        description: 'Data e horário reservados.',
+        date: scheduledFor,
+        completed: true,
+      });
 
     const statusEvents: Partial<Record<OrderStatus, string>> = {
       EM_DESLOCAMENTO: 'Prestador a caminho',
@@ -154,7 +234,14 @@ export class GetOrderDetailsHandler implements IQueryHandler<GetOrderDetailsQuer
       DISPUTA: 'Problema reportado',
     };
     const title = statusEvents[status];
-    if (title) events.push({ type: status, title, description: 'Status atual do pedido.', date: new Date(), completed: true });
+    if (title)
+      events.push({
+        type: status,
+        title,
+        description: 'Status atual do pedido.',
+        date: new Date(),
+        completed: true,
+      });
     return events;
   }
 }

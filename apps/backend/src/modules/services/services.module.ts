@@ -1,14 +1,13 @@
-import { forwardRef, Module } from '@nestjs/common';
-import { ServicesService } from './services.service';
+import { Module } from '@nestjs/common';
+import { CqrsModule } from '@nestjs/cqrs';
+
+import { ServiceCommandHandlers } from './commands';
+import { ServiceQueryHandlers } from './queries';
 import { ServicesController } from './services.controller';
-import { UserModule } from '../user/user.module';
 
 @Module({
-  imports: [
-    forwardRef(() => UserModule),
-  ],
+  imports: [CqrsModule],
   controllers: [ServicesController],
-  providers: [ServicesService],
-  exports: [ServicesService],
+  providers: [...ServiceCommandHandlers, ...ServiceQueryHandlers],
 })
 export class ServicesModule {}

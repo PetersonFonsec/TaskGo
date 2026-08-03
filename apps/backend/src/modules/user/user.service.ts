@@ -1,6 +1,10 @@
-import { BadRequestException, Injectable, NotFoundException } from '@nestjs/common';
+import {
+  BadRequestException,
+  Injectable,
+  NotFoundException,
+} from '@nestjs/common';
 import * as bcrypt from 'bcrypt';
-
+import { Prisma } from '@prisma/client';
 
 import { PrismaService } from '../../prisma/prisma.service';
 import { CreateUserDto } from './dto/create-user.dto';
@@ -10,39 +14,53 @@ import { RequestPhoneVerificationDto } from './dto/request-phone-verification.dt
 import { ConfirmEmailVerificationDto } from './dto/confirm-email-verification.dto';
 import { ConfirmPhoneVerificationDto } from './dto/confirm-phone-verification.dto';
 
-import { AddressService } from '../address/address.service';
 import { Address } from '../address/entities/address.entity';
 
 import { Email } from '../../shared/entities/email.entity';
 import { Phone } from '../../shared/entities/phone.entity';
 import { User } from '../../shared/entities/user.entity';
-import { PaginationQuery, PaginationResponse } from '../../shared/services/pagination/pagination.interface';
-import { PaginationService } from '../../shared/services/pagination/pagination.service';
+import {
+  PaginationQuery,
+  PaginationResponse,
+} from '../../shared/services/pagination/pagination.interface';
+import {
+  PaginationDelegate,
+  PaginationService,
+} from '../../shared/services/pagination/pagination.service';
 import { UserExistException } from '../../shared/exceptions/user-exist.exception';
 import { UserVerificationService } from './user-verification.service';
 
 @Injectable()
 export class UserService extends PaginationService<User> {
-
   constructor(
     public prisma: PrismaService,
     private readonly userVerificationService: UserVerificationService,
   ) {
-    super(prisma);
-    this.modelName = this.prisma.user;
+    super(prisma.user as unknown as PaginationDelegate<User>, {
+      defaultSortBy: 'id',
+      allowedSortFields: ['id', 'name', 'email', 'createdAt', 'updatedAt'],
+      allowedSearchFields: ['name', 'email', 'cpf', 'phone'],
+    });
   }
 
-  async create(payload: CreateUserDto): Promise<User> {
+  async create(
+    payload: CreateUserDto,
+    transaction?: Prisma.TransactionClient,
+  ): Promise<User> {
     const user = new User(payload as any);
     user.validate();
 
     user.password = bcrypt.hashSync(user.password, 8);
 
-    return await this.prisma.$transaction(async (prisma) => {
-      const existingUser = await this.findByUserByKeys(user.cpf.getValue(), user.email.getValue());
+    const createUser = async (prisma: Prisma.TransactionClient) => {
+      const existingUser = await prisma.user.findFirst({
+        where: {
+          OR: [{ cpf: user.cpf.getValue() }, { email: user.email.getValue() }],
+        },
+      });
       if (existingUser) throw new UserExistException();
 
-      const newUser = await prisma.user.create({
+      const newUser = (await prisma.user.create({
         data: {
           name: user.name,
           email: user.email.getValue(),
@@ -52,7 +70,7 @@ export class UserService extends PaginationService<User> {
           cpf: user.cpf.getValue(),
           type: user.type,
         },
-      }) as any as User;
+      })) as any as User;
 
       if (!payload.address) return newUser;
 
@@ -62,27 +80,27 @@ export class UserService extends PaginationService<User> {
       await prisma.address.create({
         data: {
           ...address.getValue(),
-          user: { connect: { id: newUser.id } }
-        } as any
+          user: { connect: { id: newUser.id } },
+        } as any,
       });
       return newUser;
-    });
+    };
+
+    return transaction
+      ? createUser(transaction)
+      : this.prisma.$transaction(createUser);
   }
 
   async findByUserByKeys(cpf: string, email: string) {
     return await this.prisma.user.findFirst({
       where: {
-        OR: [
-          { cpf },
-          { email },
-        ],
+        OR: [{ cpf }, { email }],
       },
     });
   }
 
   async findAll(query: PaginationQuery): Promise<PaginationResponse<User>> {
-    const queryDefault: PaginationQuery = { page: 1, limit: 10, sortBy: 'id', order: 'desc', search: '' };
-    return await this.listPaginated(Object.assign(queryDefault, query));
+    return this.listPaginated(query);
   }
 
   async findOne(id: bigint) {
@@ -92,14 +110,14 @@ export class UserService extends PaginationService<User> {
         addresses: true,
         orders: true,
         reviews: true,
-        provider: true
+        provider: true,
       },
     });
   }
 
   async findOneByField(where: any) {
     return await this.prisma.user.findUnique({
-      where
+      where,
     });
   }
 
@@ -107,7 +125,9 @@ export class UserService extends PaginationService<User> {
     const updateData = this.buildUserUpdateData(updateUserDto);
 
     if (!Object.keys(updateData).length) {
-      throw new BadRequestException('No valid profile fields provided for update.');
+      throw new BadRequestException(
+        'No valid profile fields provided for update.',
+      );
     }
 
     return await this.prisma.user.update({
@@ -152,7 +172,10 @@ export class UserService extends PaginationService<User> {
     return data;
   }
 
-  async requestEmailVerification(id: bigint, payload: RequestEmailVerificationDto) {
+  async requestEmailVerification(
+    id: bigint,
+    payload: RequestEmailVerificationDto,
+  ) {
     new Email(payload.email);
 
     const user: any = await this.findOne(id);
@@ -168,17 +191,28 @@ export class UserService extends PaginationService<User> {
       } as any,
     });
 
-    await this.userVerificationService.requestEmailVerification(id, payload.email);
+    await this.userVerificationService.requestEmailVerification(
+      id,
+      payload.email,
+    );
     return updatedUser;
   }
 
-  async confirmEmailVerification(id: bigint, payload: ConfirmEmailVerificationDto) {
+  async confirmEmailVerification(
+    id: bigint,
+    payload: ConfirmEmailVerificationDto,
+  ) {
     const user: any = await this.findOne(id);
     if (!user || !user.pendingEmail) {
-      throw new BadRequestException('No pending email verification found for this user.');
+      throw new BadRequestException(
+        'No pending email verification found for this user.',
+      );
     }
 
-    const verified = await this.userVerificationService.verifyEmailCode(id, payload.verificationCode);
+    const verified = await this.userVerificationService.verifyEmailCode(
+      id,
+      payload.verificationCode,
+    );
     if (!verified) {
       throw new BadRequestException('Invalid verification code.');
     }
@@ -193,7 +227,10 @@ export class UserService extends PaginationService<User> {
     });
   }
 
-  async requestPhoneVerification(id: bigint, payload: RequestPhoneVerificationDto) {
+  async requestPhoneVerification(
+    id: bigint,
+    payload: RequestPhoneVerificationDto,
+  ) {
     const phone = new Phone(payload.phone);
 
     const user: any = await this.findOne(id);
@@ -209,17 +246,28 @@ export class UserService extends PaginationService<User> {
       } as any,
     });
 
-    await this.userVerificationService.requestPhoneVerification(id, payload.phone);
+    await this.userVerificationService.requestPhoneVerification(
+      id,
+      payload.phone,
+    );
     return updatedUser;
   }
 
-  async confirmPhoneVerification(id: bigint, payload: ConfirmPhoneVerificationDto) {
+  async confirmPhoneVerification(
+    id: bigint,
+    payload: ConfirmPhoneVerificationDto,
+  ) {
     const user: any = await this.findOne(id);
     if (!user || !user.pendingPhone) {
-      throw new BadRequestException('No pending phone verification found for this user.');
+      throw new BadRequestException(
+        'No pending phone verification found for this user.',
+      );
     }
 
-    const verified = await this.userVerificationService.verifyPhoneCode(id, payload.verificationCode);
+    const verified = await this.userVerificationService.verifyPhoneCode(
+      id,
+      payload.verificationCode,
+    );
     if (!verified) {
       throw new BadRequestException('Invalid verification code.');
     }

@@ -1,5 +1,5 @@
-import { ErrorTypesEnum } from "../../shared/enums/errors-types.enum";
-import { CustomException } from "./custom.exception";
+import { ErrorTypesEnum } from '../../shared/enums/errors-types.enum';
+import { CustomException } from './custom.exception';
 
 export class UserException extends CustomException {
   constructor() {
@@ -8,7 +8,7 @@ export class UserException extends CustomException {
       'UserException',
       'Usuário inválido!',
       'USER_ERROR',
-      ErrorTypesEnum.VALIDATION
+      ErrorTypesEnum.VALIDATION,
     );
   }
 }

@@ -170,7 +170,7 @@ export class AdminAuthService {
   private parseSubject(subject: string) {
     try {
       return BigInt(subject);
-    } catch (error) {
+    } catch {
       throw new UnauthorizedException(
         'Invalid administrative authentication token subject',
       );

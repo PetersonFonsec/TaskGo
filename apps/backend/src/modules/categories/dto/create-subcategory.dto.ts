@@ -1,9 +1,9 @@
-import { IsNotEmpty, IsOptional, IsString, IsUUID } from "class-validator"
+import { IsNotEmpty, IsOptional, IsString, IsUUID } from 'class-validator';
 
 export class CreateSubCategoryDto {
-  @IsOptional() @IsString() description: String;
-  @IsNotEmpty() @IsUUID() categoryId: BigInt;
-  @IsNotEmpty() @IsString() name: String;
-  @IsNotEmpty() @IsString() slug: String;
-  @IsOptional() @IsString() icon: String;
+  @IsOptional() @IsString() description: string;
+  @IsNotEmpty() @IsUUID() categoryId: bigint;
+  @IsNotEmpty() @IsString() name: string;
+  @IsNotEmpty() @IsString() slug: string;
+  @IsOptional() @IsString() icon: string;
 }

@@ -17,7 +17,10 @@ export class AdminInvitationActivationController {
 
   @AdminPublic()
   @Post('activate')
-  activate(@Body() body: ActivateAdminInvitationDto, @Req() request: AdminRequest) {
+  activate(
+    @Body() body: ActivateAdminInvitationDto,
+    @Req() request: AdminRequest,
+  ) {
     return this.adminUsersService.activateInvitation(
       body,
       buildRequestAuditContext(request),

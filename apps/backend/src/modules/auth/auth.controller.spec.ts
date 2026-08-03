@@ -68,7 +68,10 @@ describe('Auth Controller', () => {
   });
 
   it('keeps providerHome outside the shared customer session contract', async () => {
-    const providerUser: PublicUserProfile = { ...publicUser, type: 'PRESTADOR' };
+    const providerUser: PublicUserProfile = {
+      ...publicUser,
+      type: 'PRESTADOR',
+    };
     const providerHome = { nextOrders: [], revenue: { total: 0 } };
     queryBus.execute.mockResolvedValue(providerUser);
     tokenService.createToken.mockResolvedValue({ access_token: 'TOKEN' });

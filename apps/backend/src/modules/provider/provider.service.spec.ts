@@ -1,18 +1,15 @@
 import { Test, TestingModule } from '@nestjs/testing';
 import { ProviderService } from './provider.service';
 import { PrismaService } from '../../prisma/prisma.service';
-import { UserService } from '../user/user.service';
-import { ServicesService } from '../services/services.service';
-import { FavoritesService } from './favorites/favorites.service';
 
 describe('ProviderService', () => {
   let service: ProviderService;
   let prisma: {
+    $transaction: jest.Mock;
     service: { findMany: jest.Mock };
     order: { findMany: jest.Mock };
-    provider: { findMany: jest.Mock; findUnique: jest.Mock };
+    provider: { findMany: jest.Mock; findUnique: jest.Mock; create: jest.Mock };
   };
-  let favoritesService: { listFavorites: jest.Mock };
 
   const serviceAvailability = {
     timezone: 'America/Sao_Paulo',
@@ -35,6 +32,7 @@ describe('ProviderService', () => {
 
   beforeEach(async () => {
     prisma = {
+      $transaction: jest.fn(async (callback) => callback(prisma)),
       service: {
         findMany: jest.fn().mockResolvedValue([activeService]),
       },
@@ -44,30 +42,15 @@ describe('ProviderService', () => {
       provider: {
         findMany: jest.fn().mockResolvedValue([]),
         findUnique: jest.fn().mockResolvedValue(null),
+        create: jest.fn(),
       },
     };
-    favoritesService = {
-      listFavorites: jest.fn().mockResolvedValue({ items: [] }),
-    };
-
     const module: TestingModule = await Test.createTestingModule({
       providers: [
         ProviderService,
         {
           provide: PrismaService,
           useValue: prisma,
-        },
-        {
-          provide: UserService,
-          useValue: {},
-        },
-        {
-          provide: ServicesService,
-          useValue: {},
-        },
-        {
-          provide: FavoritesService,
-          useValue: favoritesService,
         },
       ],
     }).compile();
@@ -77,77 +60,6 @@ describe('ProviderService', () => {
 
   it('should be defined', () => {
     expect(service).toBeDefined();
-  });
-
-  it('returns all providers with user and services by default', async () => {
-    prisma.provider.findMany.mockResolvedValue([{ id: 1n }]);
-
-    await expect(service.findAll()).resolves.toEqual([{ id: 1n }]);
-
-    expect(prisma.provider.findMany).toHaveBeenCalledWith({
-      include: {
-        user: true,
-        services: true,
-      },
-    });
-  });
-
-  it('returns favorite providers when onlyFavorites is enabled', async () => {
-    favoritesService.listFavorites.mockResolvedValue({
-      items: [{ provider: { id: 42n } }],
-    });
-
-    await expect(
-      service.findAll({ onlyFavorites: true, clientId: 7 }),
-    ).resolves.toEqual([{ id: 42n }]);
-
-    expect(favoritesService.listFavorites).toHaveBeenCalledWith(7, {
-      skip: 0,
-      take: 100,
-    });
-  });
-
-  it('requires a client id for favorite provider filtering', async () => {
-    await expect(service.findAll({ onlyFavorites: true })).rejects.toThrow(
-      'Authenticated client required for favorites filter',
-    );
-  });
-
-  it('normalizes basePrice values when finding providers by category', async () => {
-    const categoryProvider = {
-      id: 42n,
-      services: [{ id: 101n, basePrice: '120.50' }],
-    };
-    prisma.provider.findMany.mockResolvedValue([categoryProvider]);
-
-    await expect(
-      service.findProvidersByCategorySlug('limpeza'),
-    ).resolves.toEqual([
-      {
-        id: 42n,
-        services: [{ id: 101n, basePrice: 120.5 }],
-      },
-    ]);
-
-    expect(prisma.provider.findMany).toHaveBeenCalledWith({
-      where: {
-        services: {
-          some: {
-            category: 'limpeza',
-            status: 'ATIVO',
-          },
-        },
-      },
-      include: {
-        user: true,
-        locations: true,
-        reviews: true,
-        serviceAreas: true,
-        services: {
-          where: { category: 'limpeza', status: 'ATIVO' },
-        },
-      },
-    });
   });
 
   it('active service availability produces expected slots for a three-day range', async () => {
@@ -405,24 +317,5 @@ describe('ProviderService', () => {
         },
       }),
     );
-  });
-
-  it('delegates findOne to Prisma with provider profile includes', async () => {
-    prisma.provider.findUnique.mockResolvedValue({ id: 42n });
-
-    await expect(service.findOne(42)).resolves.toEqual({ id: 42n });
-
-    expect(prisma.provider.findUnique).toHaveBeenCalledWith({
-      where: {
-        id: 42,
-      },
-      include: {
-        user: true,
-        locations: true,
-        reviews: true,
-        serviceAreas: true,
-        services: true,
-      },
-    });
   });
 });

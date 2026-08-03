@@ -1,6 +1,6 @@
-import { HttpStatus } from "@nestjs/common";
-import { ErrorTypesEnum } from "../../shared/enums/errors-types.enum";
-import { ExceptionInterface } from "../../shared/interfaces/exception.interface";
+import { HttpStatus } from '@nestjs/common';
+import { ErrorTypesEnum } from '../../shared/enums/errors-types.enum';
+import { ExceptionInterface } from '../../shared/interfaces/exception.interface';
 
 export class CustomException extends Error implements ExceptionInterface {
   name = 'CustomException';
@@ -15,7 +15,7 @@ export class CustomException extends Error implements ExceptionInterface {
     errorTitle = 'User Error',
     errorCode = 'USER_ERROR',
     errorType = ErrorTypesEnum.INTERNAL_SERVER,
-    status = HttpStatus.BAD_REQUEST
+    status = HttpStatus.BAD_REQUEST,
   ) {
     super(message);
     this.name = name;

@@ -1,10 +1,9 @@
-import { UserType } from "@prisma/client";
-import { Cpf } from "./cpf.entity";
-import { Email } from "./email.entity";
-import { Phone } from "./phone.entity";
-import { ValueObject } from "./value-object.interface";
-import { UserException } from "../../shared/exceptions/user.exception";
-import { CustomException } from "../../shared/exceptions/custom.exception";
+import { UserType } from '@prisma/client';
+import { Cpf } from './cpf.entity';
+import { Email } from './email.entity';
+import { Phone } from './phone.entity';
+import { ValueObject } from './value-object.interface';
+import { UserException } from '../../shared/exceptions/user.exception';
 
 export class User implements ValueObject<User> {
   id: bigint;
@@ -53,8 +52,12 @@ export class User implements ValueObject<User> {
 
   validate(): boolean {
     try {
-      return !!this.email?.validate() && !!this.phone?.validate() && !!this.cpf?.validate();
-    } catch (error: CustomException | any) {
+      return (
+        !!this.email?.validate() &&
+        !!this.phone?.validate() &&
+        !!this.cpf?.validate()
+      );
+    } catch {
       throw new UserException();
     }
   }

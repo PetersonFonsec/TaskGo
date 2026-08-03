@@ -1,4 +1,8 @@
-import { BadRequestException, ForbiddenException, NotFoundException } from '@nestjs/common';
+import {
+  BadRequestException,
+  ForbiddenException,
+  NotFoundException,
+} from '@nestjs/common';
 import { CommandHandler, ICommandHandler } from '@nestjs/cqrs';
 import { OrderStatus, PaymentStatus, UserType } from '@prisma/client';
 
@@ -7,7 +11,9 @@ import { PaymentService } from '../../../payments/payment.service';
 import { ConfirmOrderCompletionCommand } from './confirm-order-completion.command';
 
 @CommandHandler(ConfirmOrderCompletionCommand)
-export class ConfirmOrderCompletionHandler implements ICommandHandler<ConfirmOrderCompletionCommand> {
+export class ConfirmOrderCompletionHandler
+  implements ICommandHandler<ConfirmOrderCompletionCommand>
+{
   constructor(
     private readonly prisma: PrismaService,
     private readonly paymentService: PaymentService,
@@ -21,50 +27,113 @@ export class ConfirmOrderCompletionHandler implements ICommandHandler<ConfirmOrd
         status: true,
         providerFinishedAt: true,
         finalPrice: true,
-        payment: { select: { id: true, method: true, status: true, amount: true, providerChargeId: true, paidAt: true, capturedAt: true } },
+        payment: {
+          select: {
+            id: true,
+            method: true,
+            status: true,
+            amount: true,
+            providerChargeId: true,
+            paidAt: true,
+            capturedAt: true,
+          },
+        },
       },
     });
 
-    if (!order) throw new NotFoundException(`Pedido ${orderId.toString()} não encontrado`);
-    if (order.clientId !== clientId) throw new ForbiddenException('Apenas o cliente deste pedido pode confirmar a conclusão');
-    if (order.status === OrderStatus.CONCLUIDO) throw new BadRequestException('Este serviço já foi confirmado');
+    if (!order)
+      throw new NotFoundException(
+        `Pedido ${orderId.toString()} não encontrado`,
+      );
+    if (order.clientId !== clientId)
+      throw new ForbiddenException(
+        'Apenas o cliente deste pedido pode confirmar a conclusão',
+      );
+    if (order.status === OrderStatus.CONCLUIDO)
+      throw new BadRequestException('Este serviço já foi confirmado');
     if (order.status !== OrderStatus.AGUARDANDO_CONFIRMACAO_CLIENTE) {
-      throw new BadRequestException('Este pedido não está aguardando confirmação');
+      throw new BadRequestException(
+        'Este pedido não está aguardando confirmação',
+      );
     }
-    if (!order.providerFinishedAt) throw new BadRequestException('O prestador ainda não informou a conclusão');
-    if (order.finalPrice === null) throw new BadRequestException('O pedido não possui valor final');
-    if (!order.payment) throw new BadRequestException('Pagamento do pedido não encontrado');
+    if (!order.providerFinishedAt)
+      throw new BadRequestException(
+        'O prestador ainda não informou a conclusão',
+      );
+    if (order.finalPrice === null)
+      throw new BadRequestException('O pedido não possui valor final');
+    if (!order.payment)
+      throw new BadRequestException('Pagamento do pedido não encontrado');
 
-    const paidStatuses = [PaymentStatus.PAGO, PaymentStatus.CAPTURED, PaymentStatus.RELEASED];
-    if (order.payment.method === 'PIX' && !paidStatuses.includes(order.payment.status as any)) {
+    const paidStatuses = [
+      PaymentStatus.PAGO,
+      PaymentStatus.CAPTURED,
+      PaymentStatus.RELEASED,
+    ];
+    if (
+      order.payment.method === 'PIX' &&
+      !paidStatuses.includes(order.payment.status as any)
+    ) {
       throw new BadRequestException('Pagamento ainda não confirmado');
     }
-    const capture = order.payment.method === 'CARTAO'
-      ? await this.paymentService.capturePayment(order.payment)
-      : { capturedAt: order.payment.capturedAt ?? order.payment.paidAt ?? new Date() };
+    const capture =
+      order.payment.method === 'CARTAO'
+        ? await this.paymentService.capturePayment(order.payment)
+        : {
+            capturedAt:
+              order.payment.capturedAt ?? order.payment.paidAt ?? new Date(),
+          };
     const confirmedAt = new Date();
 
     const response = await this.prisma.$transaction(async (prisma) => {
       const changed = await prisma.order.updateMany({
-        where: { id: orderId, clientId, status: OrderStatus.AGUARDANDO_CONFIRMACAO_CLIENTE },
+        where: {
+          id: orderId,
+          clientId,
+          status: OrderStatus.AGUARDANDO_CONFIRMACAO_CLIENTE,
+        },
         data: { clientConfirmedAt: confirmedAt, status: OrderStatus.CONCLUIDO },
       });
-      if (changed.count !== 1) throw new BadRequestException('Este pedido já foi confirmado');
+      if (changed.count !== 1)
+        throw new BadRequestException('Este pedido já foi confirmado');
 
       await prisma.orderCompletion.upsert({
         where: { orderId },
-        create: { orderId, confirmedByClientAt: confirmedAt, clientNotes: payload.clientNotes?.trim() || null },
-        update: { confirmedByClientAt: confirmedAt, clientNotes: payload.clientNotes?.trim() || null },
+        create: {
+          orderId,
+          confirmedByClientAt: confirmedAt,
+          clientNotes: payload.clientNotes?.trim() || null,
+        },
+        update: {
+          confirmedByClientAt: confirmedAt,
+          clientNotes: payload.clientNotes?.trim() || null,
+        },
       });
       const payment = await prisma.payment.update({
         where: { id: order.payment!.id },
-        data: { status: PaymentStatus.PAGO, capturedAt: capture.capturedAt, paidAt: capture.capturedAt },
+        data: {
+          status: PaymentStatus.PAGO,
+          capturedAt: capture.capturedAt,
+          paidAt: capture.capturedAt,
+        },
         select: { status: true, paidAt: true },
       });
       await prisma.orderTimeline.createMany({
         data: [
-          { orderId, event: 'CLIENT_CONFIRMED', description: 'Cliente confirmou a conclusão do serviço.', createdBy: UserType.CLIENTE, createdAt: confirmedAt },
-          { orderId, event: 'PAYMENT_CAPTURED', description: 'Pagamento capturado com sucesso.', createdBy: UserType.CLIENTE, createdAt: capture.capturedAt },
+          {
+            orderId,
+            event: 'CLIENT_CONFIRMED',
+            description: 'Cliente confirmou a conclusão do serviço.',
+            createdBy: UserType.CLIENTE,
+            createdAt: confirmedAt,
+          },
+          {
+            orderId,
+            event: 'PAYMENT_CAPTURED',
+            description: 'Pagamento capturado com sucesso.',
+            createdBy: UserType.CLIENTE,
+            createdAt: capture.capturedAt,
+          },
         ],
       });
       return payment;

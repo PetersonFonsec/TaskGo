@@ -1,5 +1,5 @@
-import { PhoneException } from "../../shared/exceptions/phone.exception";
-import { ValueObject } from "./value-object.interface";
+import { PhoneException } from '../../shared/exceptions/phone.exception';
+import { ValueObject } from './value-object.interface';
 
 export class Phone implements ValueObject<Phone> {
   private readonly value: string;

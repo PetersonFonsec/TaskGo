@@ -107,11 +107,13 @@ describe('ProviderHomeService', () => {
         rating: 5,
       }),
     );
-    expect(result.activeOrders[0]).toEqual(expect.objectContaining({
-      id: '12',
-      status: OrderStatus.EM_ANDAMENTO,
-      clientName: 'Ana',
-    }));
+    expect(result.activeOrders[0]).toEqual(
+      expect.objectContaining({
+        id: '12',
+        status: OrderStatus.EM_ANDAMENTO,
+        clientName: 'Ana',
+      }),
+    );
     expect(result.insights).toEqual(
       expect.objectContaining({
         mostRequestedService: 'Elétrica',

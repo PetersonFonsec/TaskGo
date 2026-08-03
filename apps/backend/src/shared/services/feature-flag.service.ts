@@ -1,9 +1,11 @@
 import { Injectable } from '@nestjs/common';
+import { ConfigService } from '@nestjs/config';
 
 @Injectable()
 export class FeatureFlagService {
+  constructor(private readonly configService: ConfigService) {}
+
   isFavoritesMvpEnabled(): boolean {
-    const flag = process.env.FAVORITES_MVP ?? process.env.favorites_mvp;
-    return flag !== 'false';
+    return this.configService.getOrThrow<boolean>('app.favoritesMvpEnabled');
   }
 }

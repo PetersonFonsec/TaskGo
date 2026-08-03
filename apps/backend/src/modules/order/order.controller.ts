@@ -1,112 +1,152 @@
-import { Controller, Get, Post, Body, Patch, Param, Delete, Query } from '@nestjs/common';
+import {
+  Controller,
+  Get,
+  Post,
+  Body,
+  Patch,
+  Param,
+  Delete,
+  Query,
+} from '@nestjs/common';
 
 import { PaginationQuery } from '../../shared/services/pagination/pagination.interface';
 
 import { ScheduleOrderDto } from './dto/schedule-order.dto';
 import { CreateOrderDto } from './dto/create-order.dto';
 import { UpdateOrderDto } from './dto/update-order.dto';
-import { OrderService } from './order.service';
 import { CommandBus, QueryBus } from '@nestjs/cqrs';
-import { GetOrderDetailsQuery } from './queries';
-import { ConfirmOrderCompletionCommand, CreateOrderReviewCommand, FinishOrderCommand } from './commands';
+import {
+  GetOrderDetailsQuery,
+  GetOrderSummaryQuery,
+  ListClientOrdersQuery,
+  ListOrdersQuery,
+  ListProviderOrdersQuery,
+} from './queries';
+import {
+  CancelOrderByProviderCommand,
+  ConfirmOrderByProviderCommand,
+  ConfirmOrderCompletionCommand,
+  CreateOrderCommand,
+  CreateOrderReviewCommand,
+  FinishOrderCommand,
+  RemoveOrderCommand,
+  ScheduleOrderCommand,
+  UpdateOrderCommand,
+} from './commands';
 import { FinishOrderDto } from './dto/finish-order.dto';
 import { User } from '../../shared/decorators/user.decorator';
 import { ConfirmOrderCompletionDto } from './dto/confirm-order-completion.dto';
 import { CreateOrderReviewDto } from './dto/create-order-review.dto';
+import { ParseBigIntPipe } from '../../shared/pipes/parse-bigint.pipe';
 
 @Controller(['order', 'orders'])
 export class OrderController {
   constructor(
-    private readonly orderService: OrderService,
     private readonly queryBus: QueryBus,
     private readonly commandBus: CommandBus,
   ) {}
 
   @Post()
   create(@Body() createOrderDto: CreateOrderDto) {
-    return this.orderService.create(createOrderDto);
+    return this.commandBus.execute(new CreateOrderCommand(createOrderDto));
   }
 
   @Get()
   findAll(@Query() query: PaginationQuery) {
-    return this.orderService.findAll(query);
+    return this.queryBus.execute(new ListOrdersQuery(query));
   }
 
   @Get(':id')
-  findOne(@Param('id') id: string) {
-    return this.queryBus.execute(new GetOrderDetailsQuery(BigInt(id)));
+  findOne(@Param('id', ParseBigIntPipe) id: bigint) {
+    return this.queryBus.execute(new GetOrderDetailsQuery(id));
   }
 
   @Get(':id/summary')
-  getSummary(@Param('id') id: string) {
-    return this.orderService.getSummary(BigInt(id));
+  getSummary(@Param('id', ParseBigIntPipe) id: bigint) {
+    return this.queryBus.execute(new GetOrderSummaryQuery(id));
   }
 
   @Get('client/:clientId')
-  findByClient(@Param('clientId') clientId: string) {
-    return this.orderService.findByClient(BigInt(clientId));
+  findByClient(@Param('clientId', ParseBigIntPipe) clientId: bigint) {
+    return this.queryBus.execute(new ListClientOrdersQuery(clientId));
   }
 
   @Get('provider/:providerId')
-  findByProvider(@Param('providerId') providerId: string) {
-    return this.orderService.findByProvider(BigInt(providerId));
+  findByProvider(@Param('providerId', ParseBigIntPipe) providerId: bigint) {
+    return this.queryBus.execute(new ListProviderOrdersQuery(providerId));
   }
 
   @Patch(':id')
-  update(@Param('id') id: string, @Body() updateOrderDto: UpdateOrderDto) {
-    return this.orderService.update(BigInt(id), updateOrderDto);
+  update(
+    @Param('id', ParseBigIntPipe) id: bigint,
+    @Body() updateOrderDto: UpdateOrderDto,
+  ) {
+    return this.commandBus.execute(new UpdateOrderCommand(id, updateOrderDto));
   }
 
   @Patch(':id/finish')
   finish(
-    @Param('id') id: string,
+    @Param('id', ParseBigIntPipe) id: bigint,
     @User('id') providerId: string,
     @Body() payload: FinishOrderDto,
   ) {
     return this.commandBus.execute(
-      new FinishOrderCommand(BigInt(id), BigInt(providerId), payload),
+      new FinishOrderCommand(id, BigInt(providerId), payload),
     );
   }
 
   @Patch(':id/confirm')
   confirmCompletion(
-    @Param('id') id: string,
+    @Param('id', ParseBigIntPipe) id: bigint,
     @User('id') clientId: string,
     @Body() payload: ConfirmOrderCompletionDto,
   ) {
     return this.commandBus.execute(
-      new ConfirmOrderCompletionCommand(BigInt(id), BigInt(clientId), payload),
+      new ConfirmOrderCompletionCommand(id, BigInt(clientId), payload),
     );
   }
 
   @Post(':id/review')
   createReview(
-    @Param('id') id: string,
+    @Param('id', ParseBigIntPipe) id: bigint,
     @User('id') clientId: string,
     @Body() payload: CreateOrderReviewDto,
   ) {
     return this.commandBus.execute(
-      new CreateOrderReviewCommand(BigInt(id), BigInt(clientId), payload),
+      new CreateOrderReviewCommand(id, BigInt(clientId), payload),
     );
   }
 
   @Delete(':id')
-  remove(@Param('id') id: string) {
-    return this.orderService.remove(BigInt(id));
+  remove(@Param('id', ParseBigIntPipe) id: bigint) {
+    return this.commandBus.execute(new RemoveOrderCommand(id));
   }
 
   @Post(':id/schedule')
-  schedule(@Param('id') id: string, @Body() body: ScheduleOrderDto) {
-    return this.orderService.schedule(BigInt(id), body);
+  schedule(
+    @Param('id', ParseBigIntPipe) id: bigint,
+    @Body() body: ScheduleOrderDto,
+  ) {
+    return this.commandBus.execute(new ScheduleOrderCommand(id, body));
   }
 
   @Post(':id/provider/:providerId/confirm')
-  confirmByProvider(@Param('id') id: string, @Param('providerId') providerId: string) {
-    return this.orderService.confirmByProvider(BigInt(id), BigInt(providerId));
+  confirmByProvider(
+    @Param('id', ParseBigIntPipe) id: bigint,
+    @Param('providerId', ParseBigIntPipe) providerId: bigint,
+  ) {
+    return this.commandBus.execute(
+      new ConfirmOrderByProviderCommand(id, providerId),
+    );
   }
 
   @Post(':id/provider/:providerId/cancel')
-  cancelByProvider(@Param('id') id: string, @Param('providerId') providerId: string) {
-    return this.orderService.cancelByProvider(BigInt(id), BigInt(providerId));
+  cancelByProvider(
+    @Param('id', ParseBigIntPipe) id: bigint,
+    @Param('providerId', ParseBigIntPipe) providerId: bigint,
+  ) {
+    return this.commandBus.execute(
+      new CancelOrderByProviderCommand(id, providerId),
+    );
   }
 }

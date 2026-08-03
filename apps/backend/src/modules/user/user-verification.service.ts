@@ -12,13 +12,17 @@ export class UserVerificationService {
   async requestEmailVerification(userId: bigint, email: string): Promise<void> {
     const code = this.generateVerificationCode();
     this.pendingCodes.set(this.buildKey(userId, 'email'), code);
-    this.logger.debug(`Email verification requested for user ${userId} and email ${email}`);
+    this.logger.debug(
+      `Email verification requested for user ${userId} and email ${email}`,
+    );
   }
 
   async requestPhoneVerification(userId: bigint, phone: string): Promise<void> {
     const code = this.generateVerificationCode();
     this.pendingCodes.set(this.buildKey(userId, 'phone'), code);
-    this.logger.debug(`Phone verification requested for user ${userId} and phone ${phone}`);
+    this.logger.debug(
+      `Phone verification requested for user ${userId} and phone ${phone}`,
+    );
   }
 
   async verifyEmailCode(userId: bigint, code: string): Promise<boolean> {
@@ -30,10 +34,18 @@ export class UserVerificationService {
   }
 
   private generateVerificationCode(): string {
-    return Math.random().toString(36).replace(/[^A-Z0-9]/gi, '').slice(0, 6).toUpperCase();
+    return Math.random()
+      .toString(36)
+      .replace(/[^A-Z0-9]/gi, '')
+      .slice(0, 6)
+      .toUpperCase();
   }
 
-  private verifyCode(userId: bigint, type: 'email' | 'phone', code: string): boolean {
+  private verifyCode(
+    userId: bigint,
+    type: 'email' | 'phone',
+    code: string,
+  ): boolean {
     const key = this.buildKey(userId, type);
     const expected = this.pendingCodes.get(key);
     if (!expected || expected !== code) {

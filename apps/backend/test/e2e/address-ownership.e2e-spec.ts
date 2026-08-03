@@ -14,7 +14,6 @@ describe('Authenticated address ownership E2E', () => {
   let userId: bigint;
   let otherUserId: bigint;
   let userToken: string;
-  let otherUserToken: string;
   const suffix = Date.now();
   const emailPrefix = `address.ownership.${suffix}`;
 
@@ -57,7 +56,6 @@ describe('Authenticated address ownership E2E', () => {
     userId = user.id;
     otherUserId = otherUser.id;
     userToken = (await tokens.createToken(userId)).access_token;
-    otherUserToken = (await tokens.createToken(otherUserId)).access_token;
   });
 
   beforeEach(async () => {

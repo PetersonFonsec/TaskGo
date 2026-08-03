@@ -1,11 +1,11 @@
 import { BadRequestException, ConflictException } from '@nestjs/common';
 import { AdminRole } from '@prisma/client';
-import * as bcrypt from 'bcrypt';
 
 import { PrismaService } from '../../../prisma/prisma.service';
 import { AdminAuditService } from '../audit/admin-audit.service';
 import { AdminUsersService } from './admin-users.service';
 import { AdminInvitationDeliveryService } from './invitations/admin-invitation-delivery.service';
+import { ConfigService } from '@nestjs/config';
 
 describe('AdminUsersService', () => {
   let service: AdminUsersService;
@@ -67,6 +67,13 @@ describe('AdminUsersService', () => {
       prisma as PrismaService,
       audit as unknown as AdminAuditService,
       delivery as unknown as AdminInvitationDeliveryService,
+      {
+        getOrThrow: jest.fn((key: string) =>
+          key === 'auth.invitationTtlHours'
+            ? 48
+            : 'http://localhost:4200/admin/activate',
+        ),
+      } as unknown as ConfigService,
     );
   });
 

@@ -1,1 +1,3 @@
-export class PaymentAuthorizedEvent { constructor(public readonly paymentId: bigint) {} }
+export class PaymentAuthorizedEvent {
+  constructor(public readonly paymentId: bigint) {}
+}

@@ -32,7 +32,11 @@ describe('CORS runtime configuration', () => {
     });
     const callback = jest.fn();
 
-    (options.origin as Function)('https://evil.example', callback);
+    const origin = options.origin as (
+      origin: string,
+      callback: (error: Error | null, allowed?: boolean) => void,
+    ) => void;
+    origin('https://evil.example', callback);
 
     expect(callback).toHaveBeenCalledWith(expect.any(Error), false);
   });

@@ -7,45 +7,53 @@ import {
   HttpCode,
   UseGuards,
   UseInterceptors,
+  Param,
 } from '@nestjs/common';
-import { FavoritesService } from './favorites.service';
+import { CommandBus, QueryBus } from '@nestjs/cqrs';
 import { User } from '@taskgo/backend/shared/decorators/user.decorator';
 import { FeatureFlagInterceptor } from '@taskgo/backend/shared/interceptors/feature-flag/feature-flag.interceptor';
 import { AuthGuard } from '../../auth/auth.guard';
 import { CreateFavoriteDto } from '../dto/create-favorite.dto';
+import { AddFavoriteCommand, RemoveFavoriteCommand } from './commands';
+import { ListFavoritesQuery } from './queries';
+import { ParseBigIntPipe } from '../../../shared/pipes/parse-bigint.pipe';
 
 @Controller('/favorites')
 @UseGuards(AuthGuard)
 export class FavoritesController {
-  constructor(private readonly favoritesService: FavoritesService) {}
+  constructor(
+    private readonly commandBus: CommandBus,
+    private readonly queryBus: QueryBus,
+  ) {}
 
   @Post()
   @HttpCode(201)
   @UseInterceptors(FeatureFlagInterceptor)
   async addFavorite(
-    @User('id') clientId: number,
+    @User('id') clientId: string,
     @Body() createFavoriteDto: CreateFavoriteDto,
   ) {
-    return this.favoritesService.addFavorite(
-      clientId,
-      createFavoriteDto.providerId,
+    return this.commandBus.execute(
+      new AddFavoriteCommand(
+        BigInt(clientId),
+        BigInt(createFavoriteDto.providerId),
+      ),
     );
   }
 
   @Delete(':providerId')
   @UseInterceptors(FeatureFlagInterceptor)
   async removeFavorite(
-    @User('id') clientId: number,
-    @Body() createFavoriteDto: CreateFavoriteDto,
+    @User('id') clientId: string,
+    @Param('providerId', ParseBigIntPipe) providerId: bigint,
   ) {
-    return this.favoritesService.removeFavorite(
-      clientId,
-      createFavoriteDto.providerId,
+    return this.commandBus.execute(
+      new RemoveFavoriteCommand(BigInt(clientId), providerId),
     );
   }
 
   @Get()
-  async listFavorites(@User('id') clientId: number) {
-    return this.favoritesService.listFavorites(clientId);
+  async listFavorites(@User('id') clientId: string) {
+    return this.queryBus.execute(new ListFavoritesQuery(BigInt(clientId)));
   }
 }

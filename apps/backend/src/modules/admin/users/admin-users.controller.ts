@@ -62,7 +62,10 @@ export class AdminUsersController {
 
   @AdminPermissions(AdminCapability.ManageAdministrativeUsers)
   @Post(':id/activate')
-  activate(@Param('id', ParseIntPipe) id: number, @Req() request: AdminRequest) {
+  activate(
+    @Param('id', ParseIntPipe) id: number,
+    @Req() request: AdminRequest,
+  ) {
     return this.adminUsersService.reactivate(
       BigInt(id),
       request[ADMIN_ACTOR_KEY]!,

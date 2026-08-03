@@ -1,5 +1,3 @@
-import { LoginQueryHandler } from "./login/login.handle";
+import { LoginQueryHandler } from './login/login.handle';
 
-export const AuthQueries = [
-  LoginQueryHandler
-]
+export const AuthQueries = [LoginQueryHandler];

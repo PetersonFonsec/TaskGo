@@ -1,12 +1,36 @@
-import { ServiceStatus } from "@prisma/client"
-import { IsString, IsEnum, IsNumber, IsOptional, IsUUID } from "class-validator"
+import { Type } from 'class-transformer';
+import {
+  IsEnum,
+  IsNumber,
+  IsNumberString,
+  IsObject,
+  IsOptional,
+  IsString,
+} from 'class-validator';
+import { ServiceStatus } from '@prisma/client';
 
 export class CreateServiceDto {
-  @IsUUID() providerId: BigInt
-  @IsString() title: String
-  @IsOptional() @IsString() description?: String
-  @IsString() category: String
-  @IsNumber() basePrice: number
-  @IsOptional() availability?: any
-  @IsEnum(ServiceStatus) status: ServiceStatus
+  @IsNumberString()
+  providerId: string;
+
+  @IsString()
+  title: string;
+
+  @IsOptional()
+  @IsString()
+  description?: string;
+
+  @IsString()
+  category: string;
+
+  @Type(() => Number)
+  @IsNumber()
+  basePrice: number;
+
+  @IsOptional()
+  @IsObject()
+  availability?: Record<string, unknown>;
+
+  @IsEnum(ServiceStatus)
+  status: ServiceStatus;
 }

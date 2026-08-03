@@ -1,4 +1,4 @@
 export enum Roles {
-  PROVIDER = "PROVIDER",
-  CONSUMER = "CONSUMER",
+  PROVIDER = 'PROVIDER',
+  CONSUMER = 'CONSUMER',
 }

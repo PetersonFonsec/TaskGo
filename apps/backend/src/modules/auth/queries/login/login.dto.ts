@@ -1,4 +1,4 @@
-import { IsEmail, IsNotEmpty, IsString } from "class-validator";
+import { IsEmail, IsNotEmpty, IsString } from 'class-validator';
 import type { AuthLoginRequest } from '@taskgo/shared';
 
 export class AuthLoginDTO implements AuthLoginRequest {

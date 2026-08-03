@@ -5,7 +5,7 @@ import { JwtService } from '@nestjs/jwt';
 import { AdminRole } from '@prisma/client';
 import * as bcrypt from 'bcrypt';
 
-import { CUSTOMER_VALID, PROVIDER_VALID } from '../fixtures/user.factory';
+import { PROVIDER_VALID } from '../fixtures/user.factory';
 import { AppModule } from '../../src/app.module';
 import { PrismaService } from '../../src/prisma/prisma.service';
 

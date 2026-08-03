@@ -10,7 +10,10 @@ import {
   PaginationQuery,
   PaginationResponse,
 } from '../../shared/services/pagination/pagination.interface';
-import { PaginationService } from '../../shared/services/pagination/pagination.service';
+import {
+  PaginationDelegate,
+  PaginationService,
+} from '../../shared/services/pagination/pagination.service';
 import { Address as AddressEntity } from './entities/address.entity';
 import { CreateAddressDto } from './dto/create-address.dto';
 import { UpdateAddressDto } from './dto/update-address.dto';
@@ -31,8 +34,12 @@ type AddressWriteData = {
 @Injectable()
 export class AddressService extends PaginationService<Address> {
   constructor(public prisma: PrismaService) {
-    super(prisma);
-    this.modelName = this.prisma.address;
+    super(prisma.address as unknown as PaginationDelegate<Address>, {
+      defaultSortBy: 'id',
+      defaultOrder: 'asc',
+      allowedSortFields: ['id', 'createdAt', 'updatedAt', 'label'],
+      allowedSearchFields: ['label', 'street', 'city', 'state', 'cep'],
+    });
   }
 
   async create(userId: bigint, payload: CreateAddressDto) {
@@ -57,15 +64,7 @@ export class AddressService extends PaginationService<Address> {
     userId: bigint,
     query: PaginationQuery,
   ): Promise<PaginationResponse<Address>> {
-    const defaults: Required<PaginationQuery> = {
-      page: 1,
-      limit: 10,
-      sortBy: 'id',
-      order: 'asc',
-      search: '',
-    };
-
-    return this.listPaginated({ ...defaults, ...query }, { userId });
+    return this.listPaginated(query, { userId });
   }
 
   async findOne(userId: bigint, id: bigint) {

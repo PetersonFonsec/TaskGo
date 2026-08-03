@@ -61,7 +61,7 @@ describe('AddressService ownership', () => {
       expect.objectContaining({
         where: { userId: BigInt(10) },
         skip: 0,
-        take: -10,
+        take: 10,
       }),
     );
     expect(result.meta.total).toBe(1);

@@ -8,11 +8,16 @@ import { AdminInvitationDeliveryService } from './invitations/admin-invitation-d
 import { AdminInvitationActivationController } from './admin-invitation-activation.controller';
 import { AdminUsersController } from './admin-users.controller';
 import { AdminUsersService } from './admin-users.service';
+import { ConfigModule } from '../../../config/config.module';
 
 @Module({
-  imports: [PrismaModule, AdminAuditModule, AdminAuthModule],
+  imports: [ConfigModule, PrismaModule, AdminAuditModule, AdminAuthModule],
   controllers: [AdminUsersController, AdminInvitationActivationController],
-  providers: [AdminUsersService, AdminInvitationDeliveryService, AdminRolesGuard],
+  providers: [
+    AdminUsersService,
+    AdminInvitationDeliveryService,
+    AdminRolesGuard,
+  ],
   exports: [AdminUsersService, AdminInvitationDeliveryService],
 })
 export class AdminUsersModule {}

@@ -1,8 +1,8 @@
 export interface SubCategory {
-  id: BigInt;
-  name: String;
-  slug: String;
-  description?: String;
-  icon?: String;
-  categoryId: BigInt;
+  id: bigint;
+  name: string;
+  slug: string;
+  description?: string;
+  icon?: string;
+  categoryId: bigint;
 }

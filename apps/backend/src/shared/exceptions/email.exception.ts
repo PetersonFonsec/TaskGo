@@ -1,5 +1,5 @@
-import { ErrorTypesEnum } from "../../shared/enums/errors-types.enum";
-import { CustomException } from "./custom.exception";
+import { ErrorTypesEnum } from '../../shared/enums/errors-types.enum';
+import { CustomException } from './custom.exception';
 
 export class EmailException extends CustomException {
   constructor() {
@@ -8,7 +8,7 @@ export class EmailException extends CustomException {
       'EmailException',
       'Email invalido!',
       'EMAIL_ERROR',
-      ErrorTypesEnum.VALIDATION
+      ErrorTypesEnum.VALIDATION,
     );
   }
 }

@@ -1,6 +1,6 @@
 import { BadRequestException } from '@nestjs/common';
 
-import { PrismaService } from '../../../../../prisma/prisma.service';
+import { Prisma } from '@prisma/client';
 import { UserValidations } from './user-validations.interface';
 import { CreateUserCommand } from '../create-user.command';
 
@@ -13,7 +13,7 @@ import { CreateUserCommand } from '../create-user.command';
 export class UserServiceValidator implements UserValidations {
   async validate(
     command: CreateUserCommand,
-    dataSource: PrismaService,
+    dataSource: Prisma.TransactionClient,
   ): Promise<void> {
     if (!command.services || command.services.length === 0) {
       throw new BadRequestException('Provider must have at least one service');
@@ -33,7 +33,9 @@ export class UserServiceValidator implements UserValidations {
     });
 
     if (services.length !== command.services.length) {
-      throw new Error('One or more services not found or inactive');
+      throw new BadRequestException(
+        'One or more services not found or inactive',
+      );
     }
 
     const social = command.social;

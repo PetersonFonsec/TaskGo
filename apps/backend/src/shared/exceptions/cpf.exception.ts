@@ -1,5 +1,5 @@
-import { ErrorTypesEnum } from "../../shared/enums/errors-types.enum";
-import { CustomException } from "./custom.exception";
+import { ErrorTypesEnum } from '../../shared/enums/errors-types.enum';
+import { CustomException } from './custom.exception';
 
 export class CPFException extends CustomException {
   constructor() {
@@ -8,7 +8,7 @@ export class CPFException extends CustomException {
       'CPFException',
       'CPF invalido!',
       'CPF_ERROR',
-      ErrorTypesEnum.VALIDATION
+      ErrorTypesEnum.VALIDATION,
     );
   }
 }

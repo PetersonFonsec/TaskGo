@@ -1,4 +1,8 @@
-import { BadRequestException, ForbiddenException, NotFoundException } from '@nestjs/common';
+import {
+  BadRequestException,
+  ForbiddenException,
+  NotFoundException,
+} from '@nestjs/common';
 import { CommandHandler, ICommandHandler } from '@nestjs/cqrs';
 import { OrderStatus, UserType } from '@prisma/client';
 
@@ -19,19 +23,30 @@ export class FinishOrderHandler implements ICommandHandler<FinishOrderCommand> {
       },
     });
 
-    if (!order) throw new NotFoundException(`Pedido ${orderId.toString()} não encontrado`);
+    if (!order)
+      throw new NotFoundException(
+        `Pedido ${orderId.toString()} não encontrado`,
+      );
     if (order.service.providerId !== providerId) {
-      throw new ForbiddenException('Apenas o prestador responsável pode finalizar este pedido');
+      throw new ForbiddenException(
+        'Apenas o prestador responsável pode finalizar este pedido',
+      );
     }
     if (order.status !== OrderStatus.EM_ANDAMENTO) {
-      throw new BadRequestException('Somente pedidos em andamento podem ser finalizados');
+      throw new BadRequestException(
+        'Somente pedidos em andamento podem ser finalizados',
+      );
     }
 
-    const estimatedPrice = Number(order.estimatedPrice ?? order.service.basePrice);
+    const estimatedPrice = Number(
+      order.estimatedPrice ?? order.service.basePrice,
+    );
     const priceAdjusted = Math.abs(payload.finalPrice - estimatedPrice) > 0.009;
     const reason = payload.priceAdjustmentReason?.trim();
     if (priceAdjusted && !reason) {
-      throw new BadRequestException('Informe a justificativa da alteração de preço');
+      throw new BadRequestException(
+        'Informe a justificativa da alteração de preço',
+      );
     }
     if ((payload.photos?.length ?? 0) > 5) {
       throw new BadRequestException('É permitido enviar no máximo 5 fotos');
@@ -48,13 +63,25 @@ export class FinishOrderHandler implements ICommandHandler<FinishOrderCommand> {
           providerFinishedAt: finishedAt,
           status: OrderStatus.AGUARDANDO_CONFIRMACAO_CLIENTE,
         },
-        select: { id: true, status: true, finalPrice: true, providerFinishedAt: true },
+        select: {
+          id: true,
+          status: true,
+          finalPrice: true,
+          providerFinishedAt: true,
+        },
       });
 
       await prisma.orderCompletion.upsert({
         where: { orderId },
-        create: { orderId, completedByProviderAt: finishedAt, providerNotes: payload.providerNotes?.trim() || null },
-        update: { completedByProviderAt: finishedAt, providerNotes: payload.providerNotes?.trim() || null },
+        create: {
+          orderId,
+          completedByProviderAt: finishedAt,
+          providerNotes: payload.providerNotes?.trim() || null,
+        },
+        update: {
+          completedByProviderAt: finishedAt,
+          providerNotes: payload.providerNotes?.trim() || null,
+        },
       });
       await prisma.orderTimeline.create({
         data: {
@@ -67,7 +94,13 @@ export class FinishOrderHandler implements ICommandHandler<FinishOrderCommand> {
       });
       if (payload.photos?.length) {
         await prisma.orderPhoto.createMany({
-          data: payload.photos.map((photo) => ({ orderId, uploadedBy: UserType.PRESTADOR, url: photo.url, type: photo.type, createdAt: finishedAt })),
+          data: payload.photos.map((photo) => ({
+            orderId,
+            uploadedBy: UserType.PRESTADOR,
+            url: photo.url,
+            type: photo.type,
+            createdAt: finishedAt,
+          })),
         });
       }
       return result;

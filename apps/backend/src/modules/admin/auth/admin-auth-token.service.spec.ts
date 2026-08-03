@@ -1,6 +1,7 @@
 import { UnauthorizedException } from '@nestjs/common';
 import { JwtService } from '@nestjs/jwt';
 import { AdminRole } from '@prisma/client';
+import { ConfigService } from '@nestjs/config';
 
 import {
   ADMIN_TOKEN_KIND,
@@ -16,7 +17,12 @@ describe('AdminAuthTokenService', () => {
       sign: jest.fn().mockReturnValue('SIGNED_ADMIN_TOKEN'),
       verify: jest.fn(),
     };
-    service = new AdminAuthTokenService(jwtService as unknown as JwtService);
+    service = new AdminAuthTokenService(
+      jwtService as unknown as JwtService,
+      {
+        getOrThrow: jest.fn().mockReturnValue('1d'),
+      } as unknown as ConfigService,
+    );
   });
 
   it('signs administrative tokens with required claims', () => {
@@ -35,7 +41,7 @@ describe('AdminAuthTokenService', () => {
         role: AdminRole.ADMINISTRATOR,
         ver: 3,
       },
-      { expiresIn: process.env.EXPIRES_IN },
+      { expiresIn: '1d' },
     );
   });
 

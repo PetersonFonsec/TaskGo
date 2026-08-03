@@ -1,5 +1,16 @@
 import { Type } from 'class-transformer';
-import { IsIn, IsInt, IsNotEmpty, IsNumberString, IsOptional, IsString, Length, Max, Min, ValidateNested } from 'class-validator';
+import {
+  IsIn,
+  IsInt,
+  IsNotEmpty,
+  IsNumberString,
+  IsOptional,
+  IsString,
+  Length,
+  Max,
+  Min,
+  ValidateNested,
+} from 'class-validator';
 import { PaymentMethod } from '@prisma/client';
 
 export class CardPaymentDto {

@@ -1,5 +1,5 @@
-import { ValueObject } from "./../../../shared/entities/value-object.interface";
-import { Address as IAddress } from "./../../../shared/interfaces/address.interface";
+import { ValueObject } from './../../../shared/entities/value-object.interface';
+import { Address as IAddress } from './../../../shared/interfaces/address.interface';
 export class Address implements ValueObject<IAddress> {
   private label: string;
   private cep: string;
@@ -13,7 +13,9 @@ export class Address implements ValueObject<IAddress> {
   private isDefault?: boolean;
   private userId?: bigint;
 
-  constructor(init?: Partial<IAddress & { isDefault?: boolean; userId?: bigint }>) {
+  constructor(
+    init?: Partial<IAddress & { isDefault?: boolean; userId?: bigint }>,
+  ) {
     Object.assign(this, init);
     this.validate();
   }

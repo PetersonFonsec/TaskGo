@@ -14,6 +14,7 @@ import { AddressService } from './address.service';
 import { CreateAddressDto } from './dto/create-address.dto';
 import { UpdateAddressDto } from './dto/update-address.dto';
 import { User } from '../../shared/decorators/user.decorator';
+import { ParseBigIntPipe } from '../../shared/pipes/parse-bigint.pipe';
 
 @Controller('user/me/addresses')
 export class AddressController {
@@ -39,25 +40,31 @@ export class AddressController {
   }
 
   @Get(':id')
-  findOne(@User('id') authenticatedUserId: string, @Param('id') id: string) {
-    return this.addressService.findOne(BigInt(authenticatedUserId), BigInt(id));
+  findOne(
+    @User('id') authenticatedUserId: string,
+    @Param('id', ParseBigIntPipe) id: bigint,
+  ) {
+    return this.addressService.findOne(BigInt(authenticatedUserId), id);
   }
 
   @Patch(':id')
   update(
     @User('id') authenticatedUserId: string,
-    @Param('id') id: string,
+    @Param('id', ParseBigIntPipe) id: bigint,
     @Body() updateAddressDto: UpdateAddressDto,
   ) {
     return this.addressService.update(
       BigInt(authenticatedUserId),
-      BigInt(id),
+      id,
       updateAddressDto,
     );
   }
 
   @Delete(':id')
-  remove(@User('id') authenticatedUserId: string, @Param('id') id: string) {
-    return this.addressService.remove(BigInt(authenticatedUserId), BigInt(id));
+  remove(
+    @User('id') authenticatedUserId: string,
+    @Param('id', ParseBigIntPipe) id: bigint,
+  ) {
+    return this.addressService.remove(BigInt(authenticatedUserId), id);
   }
 }
