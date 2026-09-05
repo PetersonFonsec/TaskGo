@@ -1,15 +1,25 @@
-<form #form="ngForm" (ngSubmit)="login()" id="login-form">
+<form (submit)="login($event)" id="login-form" novalidate>
   <header id="login-form_header">
     <h2 class="main-title">Login</h2>
     <p class="text">Por favor, insira suas credenciais para acessar sua conta.</p>
   </header>
 
   <div id="login-form_content">
-    <app-input-text name="email" id="email" type="email" label="Email" [autofocus]="true" [required]="true"
-      placeholder="Informe o seu email" #email="ngModel" [(ngModel)]="payload.email" />
+    <app-input-text id="email" type="email" label="Email" [autofocus]="true"
+      placeholder="Informe o seu email" [formField]="loginForm.email"
+      describeBy="email-error"
+      [error]="loginForm.email().touched() && loginForm.email().invalid()" />
+    @if (loginForm.email().touched() && loginForm.email().invalid()) {
+      <p class="field-error" id="email-error">{{ loginForm.email().errors()[0].message }}</p>
+    }
 
-    <app-input-text name="senha" id="senha" [(ngModel)]="payload.password" type="password" label="Senha"
-      #password="ngModel" [required]="true" placeholder="Informe a sua senha" />
+    <app-input-text id="senha" type="password" label="Senha" placeholder="Informe a sua senha"
+      [formField]="loginForm.password"
+      describeBy="senha-error"
+      [error]="loginForm.password().touched() && loginForm.password().invalid()" />
+    @if (loginForm.password().touched() && loginForm.password().invalid()) {
+      <p class="field-error" id="senha-error">{{ loginForm.password().errors()[0].message }}</p>
+    }
   </div>
 
   <div id="login-form_links">
@@ -30,8 +40,8 @@
   }
 
   <footer id="login-form_footer">
-    <app-button type="submit" [disabled]="!!form.invalid" color="primary">
-      Entrar
+    <app-button type="submit" [disabled]="loginForm().invalid() || loginForm().submitting()" color="primary">
+      {{ loginForm().submitting() ? 'Entrando...' : 'Entrar' }}
     </app-button>
   </footer>
 </form>

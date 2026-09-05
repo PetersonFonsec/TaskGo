@@ -1,4 +1,4 @@
-<form #form="ngForm" (submit)="saveSocial()" id="social-form">
+<form (submit)="saveSocial($event)" id="social-form" novalidate>
   <header id="social-form_header">
     <h2 class="main-title">
       Aproveite e divulgue
@@ -14,21 +14,23 @@
     <h3 class="subtitle">Contato</h3>
 
     <app-input-text name="whatsapp" id="whatsapp" type="text" label="WhatsApp" [autofocus]="true"
-      placeholder="Informe o seu WhatsApp" #whatsapp="ngModel" [(ngModel)]="payload.whatsapp"
+      placeholder="Informe o seu WhatsApp" [formField]="socialForm.whatsapp"
       mask="00 00 00000-0000" />
 
     <app-input-text name="instagram" id="instagram" type="text" label="Instagram" placeholder="Informe o seu arrouba no Instagram"
-      #instagram="ngModel" [(ngModel)]="payload.instagram" />
+      [formField]="socialForm.instagram" />
 
     <app-input-text name="facebook" id="facebook" type="text" label="Facebook" placeholder="Informe o seu Facebook"
-      #facebook="ngModel" [(ngModel)]="payload.facebook" />
+      [formField]="socialForm.facebook" />
 
     <app-input-text name="linkedin" id="linkedin" type="text" label="LinkedIn" placeholder="Informe o seu LinkedIn"
-      #linkdin="ngModel" [(ngModel)]="payload.linkdin" />
+      [formField]="socialForm.linkdin" />
   </div>
 
   <footer id="social-form_footer">
     <app-button-back color="primary" />
-    <app-button [disabled]="!!form.invalid" type="submit" color="primary">Salvar</app-button>
+    <app-button [disabled]="socialForm().submitting()" type="submit" color="primary">
+      {{ socialForm().submitting() ? 'Salvando...' : 'Salvar' }}
+    </app-button>
   </footer>
 </form>

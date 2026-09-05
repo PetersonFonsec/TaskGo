@@ -1,5 +1,5 @@
-import { ControlValueAccessor, NG_VALUE_ACCESSOR, FormsModule } from '@angular/forms';
-import { AfterViewInit, Component, ElementRef, OnInit, forwardRef, input, viewChild } from '@angular/core';
+import { ControlValueAccessor, NG_VALUE_ACCESSOR } from '@angular/forms';
+import { AfterViewInit, Component, ElementRef, computed, forwardRef, input, signal, viewChild } from '@angular/core';
 import { NgClass } from '@angular/common';
 import { NgxMaskDirective, provideNgxMask } from 'ngx-mask';
 
@@ -11,7 +11,7 @@ export enum InputTextTypes {
 @Component({
   selector: 'app-input-text',
   standalone: true,
-  imports: [FormsModule, NgClass, NgxMaskDirective],
+  imports: [NgClass, NgxMaskDirective],
   templateUrl: './input-text.component.html',
   styleUrl: './input-text.component.scss',
   providers: [
@@ -23,7 +23,7 @@ export enum InputTextTypes {
     provideNgxMask()
   ]
 })
-export class InputTextComponent implements OnInit, ControlValueAccessor, AfterViewInit {
+export class InputTextComponent implements ControlValueAccessor, AfterViewInit {
   readonly placeholder = input('');
   readonly disabled = input(false);
   readonly success = input(false);
@@ -35,27 +35,14 @@ export class InputTextComponent implements OnInit, ControlValueAccessor, AfterVi
   readonly autofocus = input(false);
   readonly required = input(false);
   readonly describeBy = input("");
-  val = '';
+  protected readonly value = signal('');
+  protected readonly controlDisabled = signal(false);
+  protected readonly isDisabled = computed(() => this.disabled() || this.controlDisabled());
 
   readonly inputHTML = viewChild.required<ElementRef>("inputHTML");
 
-  ngOnInit(): void { }
-
-  onChange: any = () => { };
-
-  onTouched: any = () => { };
-
-  get value() {
-    return this.val;
-  }
-
-  set value(val) {
-    if (val !== undefined && val !== null) {
-      this.val = val;
-      this.onChange(val);
-      this.onTouched(val);
-    }
-  }
+  private onChange: (value: string) => void = () => undefined;
+  private onTouched: () => void = () => undefined;
 
   ngAfterViewInit() {
     if (!this.autofocus()) return;
@@ -64,17 +51,29 @@ export class InputTextComponent implements OnInit, ControlValueAccessor, AfterVi
   }
 
 
-  onBlur() { }
-
-  writeValue(value: any) {
-    this.value = value;
+  protected onInput(event: Event): void {
+    const value = (event.target as HTMLInputElement).value;
+    this.value.set(value);
+    this.onChange(value);
   }
 
-  registerOnChange(fn: any) {
+  protected onBlur(): void {
+    this.onTouched();
+  }
+
+  writeValue(value: string | null | undefined): void {
+    this.value.set(value ?? '');
+  }
+
+  registerOnChange(fn: (value: string) => void): void {
     this.onChange = fn;
   }
 
-  registerOnTouched(fn: any) {
+  registerOnTouched(fn: () => void): void {
     this.onTouched = fn;
+  }
+
+  setDisabledState(disabled: boolean): void {
+    this.controlDisabled.set(disabled);
   }
 }

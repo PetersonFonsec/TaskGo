@@ -1,4 +1,4 @@
-<form #form="ngForm" (submit)="saveProfile()" id="profile-form">
+<form (submit)="saveProfile($event)" id="profile-form" novalidate>
   <header id="profile-form_header">
     <h2 class="main-title">
       Seu perfil
@@ -10,27 +10,59 @@
   </header>
 
   <div id="profile-form_content">
-    <app-input-text name="name" id="name" type="text" label="Nome" [autofocus]="true" [required]="true"
-      placeholder="Informe o seu nome" #email="ngModel" [(ngModel)]="payload.name" />
+    <app-input-text id="name" type="text" label="Nome" [autofocus]="true"
+      placeholder="Informe o seu nome" [formField]="profileForm.name"
+      describeBy="profile-name-error"
+      [error]="profileForm.name().touched() && profileForm.name().invalid()" />
+    @if (profileForm.name().touched() && profileForm.name().invalid()) {
+      <p class="field-error" id="profile-name-error">{{ profileForm.name().errors()[0].message }}</p>
+    }
 
     <app-input-text name="phone" id="phone" type="text" label="Telefone" [autofocus]="true" [required]="true"
-      placeholder="Informe o seu telefone" mask="(00) 0 0000-0000" #email="ngModel" [(ngModel)]="payload.phone" />
+      placeholder="Informe o seu telefone" mask="(00) 0 0000-0000" [formField]="profileForm.phone"
+      describeBy="profile-phone-error"
+      [error]="profileForm.phone().touched() && profileForm.phone().invalid()" />
+    @if (profileForm.phone().touched() && profileForm.phone().invalid()) {
+      <p class="field-error" id="profile-phone-error">{{ profileForm.phone().errors()[0].message }}</p>
+    }
 
     <app-input-text name="email" id="email" type="email" label="Email" [required]="true"
-      placeholder="Informe o seu email" #email="ngModel" [(ngModel)]="payload.email" />
+      placeholder="Informe o seu email" [formField]="profileForm.email"
+      describeBy="profile-email-error"
+      [error]="profileForm.email().touched() && profileForm.email().invalid()" />
+    @if (profileForm.email().touched() && profileForm.email().invalid()) {
+      <p class="field-error" id="profile-email-error">{{ profileForm.email().errors()[0].message }}</p>
+    }
 
-    <app-input-text name="password" id="password" [(ngModel)]="payload.password" type="password" label="Senha"
-      #password="ngModel" [required]="true" placeholder="Informe a sua senha" />
+    <app-input-text id="password" type="password" label="Senha" placeholder="Informe a sua senha"
+      [formField]="profileForm.password"
+      describeBy="profile-password-error"
+      [error]="profileForm.password().touched() && profileForm.password().invalid()" />
+    @if (profileForm.password().touched() && profileForm.password().invalid()) {
+      <p class="field-error" id="profile-password-error">{{ profileForm.password().errors()[0].message }}</p>
+    }
 
-    <app-input-text name="confirmPassword" id="confirmPassword" [(ngModel)]="payload.confirmPassword" type="password"
-      label="Confirmar Senha" #password="ngModel" [required]="true" placeholder="Informe a sua senha novamente" />
+    <app-input-text id="confirmPassword" type="password" label="Confirmar Senha"
+      placeholder="Informe a sua senha novamente" [formField]="profileForm.confirmPassword"
+      describeBy="profile-confirm-password-error"
+      [error]="profileForm.confirmPassword().touched() && profileForm.confirmPassword().invalid()" />
+    @if (profileForm.confirmPassword().touched() && profileForm.confirmPassword().invalid()) {
+      <p class="field-error" id="profile-confirm-password-error">{{ profileForm.confirmPassword().errors()[0].message }}</p>
+    }
 
-    <app-input-text name="documentNumber" id="documentNumber" [(ngModel)]="payload.cpf" type="text" label="CPF"
-      [required]="true" mask="000.000.000-00" placeholder="Informe o seu cpf" />
+    <app-input-text id="documentNumber" type="text" label="CPF" mask="000.000.000-00"
+      placeholder="Informe o seu cpf" [formField]="profileForm.cpf"
+      describeBy="profile-cpf-error"
+      [error]="profileForm.cpf().touched() && profileForm.cpf().invalid()" />
+    @if (profileForm.cpf().touched() && profileForm.cpf().invalid()) {
+      <p class="field-error" id="profile-cpf-error">{{ profileForm.cpf().errors()[0].message }}</p>
+    }
   </div>
 
   <footer id="profile-form_footer">
     <app-button-back id="profile-form_footer_back" color="primary" />
-    <app-button id="profile-form_footer_submit" [disabled]="!!form.invalid" type="submit" color="primary">Salvar</app-button>
+    <app-button id="profile-form_footer_submit" [disabled]="profileForm().submitting()" type="submit" color="primary">
+      {{ profileForm().submitting() ? 'Salvando...' : 'Salvar' }}
+    </app-button>
   </footer>
 </form>

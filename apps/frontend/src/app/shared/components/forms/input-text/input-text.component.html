@@ -1,4 +1,4 @@
-<div class="input-text" [ngClass]="{ 'has-error': error(), success: success(), disabled: disabled() }">
+<div class="input-text" [ngClass]="{ 'has-error': error(), success: success(), disabled: isDisabled() }">
   <div class="input-text_header">
     <label [for]="id()">{{ label() }}</label>
 
@@ -9,8 +9,10 @@
 
   <input
     #inputHTML
-    [(ngModel)]="value"
-    [disabled]="disabled()"
+    [value]="value()"
+    (input)="onInput($event)"
+    (blur)="onBlur()"
+    [disabled]="isDisabled()"
     [id]="id()"
     [required]="required()"
     [name]="id()"
@@ -19,6 +21,6 @@
     [placeholder]="placeholder()"
     [attr.aria-invalid]="error()"
     [attr.aria-label]="label()"
-    [attr.describe-by]="describeBy()"
+    [attr.aria-describedby]="describeBy() || null"
   />
 </div>

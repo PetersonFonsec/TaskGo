@@ -37,7 +37,6 @@ describe('RegisterUser', () => {
       name: 'Provider User',
       email: 'provider@example.com',
       password: 'secret',
-      confirmPassword: 'secret',
       phone: '11999999999',
       cpf: '12345678900',
     });
@@ -84,7 +83,13 @@ describe('RegisterUser', () => {
       service: false,
     });
 
-    service.addPersonalInfo({ name: 'Customer' });
+    service.addPersonalInfo({
+      name: 'Customer',
+      email: 'customer@example.com',
+      password: 'secret',
+      phone: '11999999999',
+      cpf: '12345678900',
+    });
     service.addAddress({ street: 'Rua A' });
 
     expect(service.completeSteps().profile).toBeTrue();
@@ -92,5 +97,17 @@ describe('RegisterUser', () => {
     expect(service.user()).not.toEqual(jasmine.objectContaining({
       completeSteps: jasmine.anything(),
     }));
+  });
+
+  it('updates the draft immutably and preserves existing address fields', () => {
+    const previousUser = service.user();
+    const previousAddress = previousUser.address;
+
+    service.addAddress({ street: 'Rua Nova' });
+
+    expect(service.user()).not.toBe(previousUser);
+    expect(service.user().address).not.toBe(previousAddress);
+    expect(service.user().address.street).toBe('Rua Nova');
+    expect(service.user().address.city).toBe(previousAddress.city);
   });
 });

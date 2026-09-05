@@ -1,4 +1,4 @@
-<form #form="ngForm" (ngSubmit)="saveAddress()" id="address-form">
+<form (submit)="saveAddress($event)" id="address-form" novalidate>
   <header id="address-form_header">
     <h2 class="main-title">
       Nos conte onde você atua.
@@ -14,19 +14,38 @@
 
     <app-input-text name="zipcode" id="zipcode" type="text" label="CEP" [required]="true"
       (change)="getAddressByZipCode()" placeholder="Informe o seu CEP" mask="00000-000" [autofocus]="true"
-      [(ngModel)]="payload.cep" #zipcode="ngModel" />
+      [formField]="addressForm.cep" [disabled]="resolvingZipCode()"
+      describeBy="address-cep-error"
+      [error]="addressForm.cep().touched() && addressForm.cep().invalid()" />
+    @if (addressForm.cep().touched() && addressForm.cep().invalid()) {
+      <p class="field-error" id="address-cep-error">{{ addressForm.cep().errors()[0].message }}</p>
+    }
 
     <app-input-text name="street" id="street" type="text" label="Rua" [required]="true" placeholder="Informe a sua Rua"
-      [(ngModel)]="payload.street" />
+      [formField]="addressForm.street" describeBy="address-street-error"
+      [error]="addressForm.street().touched() && addressForm.street().invalid()" />
+    @if (addressForm.street().touched() && addressForm.street().invalid()) {
+      <p class="field-error" id="address-street-error">{{ addressForm.street().errors()[0].message }}</p>
+    }
 
     <app-input-text name="number" id="number" type="text" label="Número" [required]="true"
-      placeholder="Informe o número da sua residência" [(ngModel)]="payload.number" />
+      placeholder="Informe o número da sua residência" [formField]="addressForm.number"
+      describeBy="address-number-error"
+      [error]="addressForm.number().touched() && addressForm.number().invalid()" />
+    @if (addressForm.number().touched() && addressForm.number().invalid()) {
+      <p class="field-error" id="address-number-error">{{ addressForm.number().errors()[0].message }}</p>
+    }
 
     <app-input-text name="neighborhood" id="neighborhood" type="text" label="Bairro" [required]="true"
-      placeholder="Informe o seu Bairro" [(ngModel)]="payload.neighborhood" />
+      placeholder="Informe o seu Bairro" [formField]="addressForm.neighborhood"
+      describeBy="address-neighborhood-error"
+      [error]="addressForm.neighborhood().touched() && addressForm.neighborhood().invalid()" />
+    @if (addressForm.neighborhood().touched() && addressForm.neighborhood().invalid()) {
+      <p class="field-error" id="address-neighborhood-error">{{ addressForm.neighborhood().errors()[0].message }}</p>
+    }
 
     <app-input-text name="complement" id="complement" type="text" label="Complemento"
-      placeholder="Informe o complemento" [(ngModel)]="payload.complement" />
+      placeholder="Informe o complemento" [formField]="addressForm.complement" />
   </div>
 
   @if (error()) {
@@ -38,8 +57,8 @@
   <footer id="address-form_footer">
     <app-button-back color="primary" />
 
-    <app-button type="submit" [disabled]="!!form.invalid" color="primary">
-      Criar endereço
+    <app-button type="submit" [disabled]="addressForm().submitting() || resolvingZipCode()" color="primary">
+      {{ addressForm().submitting() ? 'Salvando...' : 'Criar endereço' }}
     </app-button>
   </footer>
 </form>

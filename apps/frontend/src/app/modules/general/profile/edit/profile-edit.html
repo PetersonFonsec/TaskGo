@@ -1,49 +1,71 @@
 <div class="profile-edit">
-  <div *ngIf="loading()">Carregando...</div>
+  @if (loading()) {
+    <div>Carregando...</div>
+  }
 
-  <div *ngIf="!loading() && user()">
+  @if (!loading() && user()) {
+  <div>
     <h1>Editar perfil</h1>
 
-    <form #form="ngForm" (ngSubmit)="save(form)">
+    <form (submit)="save($event)" novalidate>
       <app-input-text
         name="name"
         label="Nome"
-        [(ngModel)]="nameValue"
-        [required]="true"
+        [formField]="profileForm.name"
+        describeBy="edit-name-error"
+        [error]="profileForm.name().touched() && profileForm.name().invalid()"
       ></app-input-text>
+      @if (profileForm.name().touched() && profileForm.name().invalid()) {
+        <p class="field-error" id="edit-name-error">{{ profileForm.name().errors()[0].message }}</p>
+      }
 
       <app-input-text
         name="email"
         label="Email"
         type="text"
-        [(ngModel)]="emailValue"
-        [required]="true"
+        [formField]="profileForm.email"
+        describeBy="edit-email-error"
+        [error]="profileForm.email().touched() && profileForm.email().invalid()"
       ></app-input-text>
+      @if (profileForm.email().touched() && profileForm.email().invalid()) {
+        <p class="field-error" id="edit-email-error">{{ profileForm.email().errors()[0].message }}</p>
+      }
 
       <app-input-text
         name="phone"
         label="Telefone"
         type="text"
-        [(ngModel)]="phoneValue"
-        [required]="true"
+        [formField]="profileForm.phone"
+        describeBy="edit-phone-error"
+        [error]="profileForm.phone().touched() && profileForm.phone().invalid()"
       ></app-input-text>
+      @if (profileForm.phone().touched() && profileForm.phone().invalid()) {
+        <p class="field-error" id="edit-phone-error">{{ profileForm.phone().errors()[0].message }}</p>
+      }
 
-      <div class="status-line" *ngIf="user()?.emailVerified === false">
+      @if (user()?.emailVerified === false) {
+      <div class="status-line">
         Email atual pendente de verificação
       </div>
-      <div class="status-line" *ngIf="user()?.phoneVerified === false">
+      }
+      @if (user()?.phoneVerified === false) {
+      <div class="status-line">
         Telefone atual pendente de verificação
       </div>
+      }
 
       <div class="form-messages">
-        <p class="success" *ngIf="success()">{{ success() }}</p>
-        <p class="error" *ngIf="error()">{{ error() }}</p>
+        @if (success()) { <p class="success">{{ success() }}</p> }
+        @if (error()) { <p class="error">{{ error() }}</p> }
       </div>
 
       <div class="actions">
         <button app-button type="button" (click)="cancel()">Cancelar</button>
-        <button app-button type="submit">Salvar</button>
+        <button app-button type="submit" [disabled]="profileForm().submitting()">
+          {{ profileForm().submitting() ? 'Salvando...' : 'Salvar' }}
+        </button>
       </div>
     </form>
   </div>
+  }
 </div>

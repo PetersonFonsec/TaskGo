@@ -1,6 +1,6 @@
 import { Component, inject, signal } from '@angular/core';
 import { LiveAnnouncer } from '@angular/cdk/a11y';
-import { FormsModule } from '@angular/forms';
+import { form, FormField, submit } from '@angular/forms/signals';
 import { Router } from '@angular/router';
 
 import { InputTextComponent } from '@shared/components/forms/input-text/input-text.component';
@@ -25,7 +25,7 @@ export class SocialForm {
     InputTextComponent,
     ButtonComponent,
     ButtonBackComponent,
-    FormsModule
+    FormField
   ],
   templateUrl: './social.html',
   styleUrl: './social.scss',
@@ -34,17 +34,15 @@ export class Social {
   #liveAnnouncer = inject(LiveAnnouncer);
   #registerUser = inject(RegisterUser);
   #router = inject(Router);
-  error = signal("");
+  protected readonly socialModel = signal(new SocialForm(this.#registerUser.user().social));
+  protected readonly socialForm = form(this.socialModel);
 
-  payload!: SocialForm;
-
-  ngOnInit(): void {
-    this.payload = new SocialForm(this.#registerUser.user().social);
-  }
-
-  saveSocial() {
-    this.#registerUser.addSocial(this.payload);
-    this.#liveAnnouncer.announce("Salvo dados pessoais com sucesso");
-    this.#router.navigateByUrl('/authenticate/register');
+  protected async saveSocial(event: SubmitEvent): Promise<void> {
+    event.preventDefault();
+    await submit(this.socialForm, async () => {
+      this.#registerUser.addSocial(this.socialModel());
+      await this.#liveAnnouncer.announce('Redes sociais salvas com sucesso');
+      await this.#router.navigateByUrl('/authenticate/register');
+    });
   }
 }

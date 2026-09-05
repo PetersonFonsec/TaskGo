@@ -1,15 +1,17 @@
 import { Component, inject, OnInit, signal } from '@angular/core';
 import { ActivatedRoute, Router } from '@angular/router';
-import { FormsModule, NgForm } from '@angular/forms';
-import { NgIf } from '@angular/common';
+import { email, form, FormField, pattern, required, submit } from '@angular/forms/signals';
+import { firstValueFrom } from 'rxjs';
 import { InputTextComponent } from '@shared/components/forms/input-text/input-text.component';
 import { User } from '@shared/service/users/user';
 import type { PublicUserProfile, UserProfileUpdateRequest } from '@taskgo/shared';
 
+type EditableProfile = Required<Pick<UserProfileUpdateRequest, 'name' | 'email' | 'phone'>>;
+
 @Component({
   selector: 'app-profile-edit',
   standalone: true,
-  imports: [FormsModule, NgIf, InputTextComponent],
+  imports: [FormField, InputTextComponent],
   templateUrl: './profile-edit.html',
   styleUrl: './profile-edit.scss',
 })
@@ -23,11 +25,20 @@ export class ProfileEdit implements OnInit {
   success = signal('');
   loading = signal(true);
 
-  nameValue = '';
-  emailValue = '';
-  phoneValue = '';
+  protected readonly profileModel = signal<EditableProfile>({
+    name: '',
+    email: '',
+    phone: ''
+  });
+  protected readonly profileForm = form(this.profileModel, (path) => {
+    required(path.name, { message: 'Informe o nome.' });
+    required(path.email, { message: 'Informe o email.' });
+    email(path.email, { message: 'Informe um email válido.' });
+    required(path.phone, { message: 'Informe o telefone.' });
+    pattern(path.phone, /^\+?[0-9]{8,15}$/, { message: 'Informe um telefone válido.' });
+  });
 
-  ngOnInit() {
+  async ngOnInit(): Promise<void> {
     const userId = this.#route.snapshot.paramMap.get('userId');
     if (!userId) {
       this.error.set('Usuário não encontrado');
@@ -35,73 +46,57 @@ export class ProfileEdit implements OnInit {
       return;
     }
 
-    this.#userService.getUser(userId).subscribe({
-      next: (response) => {
-        this.user.set(response);
-        this.nameValue = response.name;
-        this.emailValue = response.email;
-        this.phoneValue = response.phone;
-        this.loading.set(false);
-      },
-      error: (err: any) => {
-        this.error.set(err?.error?.message || 'Erro ao carregar o perfil');
-        this.loading.set(false);
-      },
-    });
+    try {
+      const response = await firstValueFrom(this.#userService.getUser(userId));
+      this.user.set(response);
+      this.profileModel.set({
+        name: response.name,
+        email: response.email,
+        phone: response.phone
+      });
+    } catch (error: unknown) {
+      this.error.set(this.#errorMessage(error, 'Erro ao carregar o perfil'));
+    } finally {
+      this.loading.set(false);
+    }
   }
 
-  validate() {
-    const email = this.emailValue;
-    const phone = this.phoneValue;
-    const errors: string[] = [];
-
-    if (!email || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
-      errors.push('Email inválido');
-    }
-
-    if (!phone || !/^\+?[0-9]{8,15}$/.test(phone)) {
-      errors.push('Telefone inválido');
-    }
-
-    return errors;
-  }
-
-  save(form: NgForm) {
+  protected async save(event: SubmitEvent): Promise<void> {
+    event.preventDefault();
     const userId = this.#route.snapshot.paramMap.get('userId');
     if (!userId) {
       this.error.set('Usuário não encontrado');
       return;
     }
 
-    const errors = this.validate();
-    if (errors.length > 0) {
-      this.error.set(errors.join('. '));
-      this.success.set('');
-      return;
-    }
-
     this.error.set('');
     this.success.set('');
 
-    const payload: UserProfileUpdateRequest = {
-      name: this.nameValue,
-      email: this.emailValue,
-      phone: this.phoneValue,
-    };
-
-    this.#userService.updateUser(userId, payload).subscribe({
-      next: () => {
+    await submit(this.profileForm, async () => {
+      try {
+        const updatedUser = await firstValueFrom(
+          this.#userService.updateUser(userId, this.profileModel())
+        );
+        this.user.set(updatedUser);
         this.success.set('Perfil salvo com sucesso');
-        this.error.set('');
-      },
-      error: (err: any) => {
-        this.error.set(err?.error?.message || 'Erro ao salvar o perfil');
+      } catch (error: unknown) {
+        this.error.set(this.#errorMessage(error, 'Erro ao salvar o perfil'));
         this.success.set('');
-      },
+      }
     });
   }
 
-  cancel() {
-    this.#router.navigate(['../home'], { relativeTo: this.#route });
+  protected cancel(): void {
+    void this.#router.navigate(['../home'], { relativeTo: this.#route });
+  }
+
+  #errorMessage(error: unknown, fallback: string): string {
+    if (error && typeof error === 'object' && 'error' in error) {
+      const response = error.error;
+      if (response && typeof response === 'object' && 'message' in response && typeof response.message === 'string') {
+        return response.message;
+      }
+    }
+    return fallback;
   }
 }

@@ -64,24 +64,20 @@ describe('ProfileEdit', () => {
     expect(component).toBeTruthy();
   });
 
-  it('shows validation error for invalid input', async () => {
-    component.nameValue = 'User';
-    component.emailValue = 'bad-email';
-    component.phoneValue = '123';
-    fixture.detectChanges();
+  it('shows validation feedback for invalid input', async () => {
+    setFormValues(fixture, ['User', 'bad-email', '123']);
 
-    component.save({} as any);
-
-    expect(component.error()).toContain('Email inválido');
+    expect(fixture.nativeElement.textContent).toContain('Informe um email válido.');
+    expect(mockUserService.updateUser).not.toHaveBeenCalled();
   });
 
   it('calls updateUser on valid save', async () => {
-    component.nameValue = 'User';
-    component.emailValue = 'test@example.com';
-    component.phoneValue = '+5511999999999';
+    setFormValues(fixture, ['User', 'test@example.com', '+5511999999999']);
+    fixture.nativeElement.querySelector('form').dispatchEvent(
+      new Event('submit', { bubbles: true, cancelable: true })
+    );
+    await fixture.whenStable();
     fixture.detectChanges();
-
-    component.save({} as any);
 
     expect(mockUserService.updateUser).toHaveBeenCalledWith('1', {
       name: 'User',
@@ -94,6 +90,19 @@ describe('ProfileEdit', () => {
         passwordHash: jasmine.anything(),
         orders: jasmine.anything(),
       }));
-    expect(component.success()).toBe('Perfil salvo com sucesso');
+    expect(fixture.nativeElement.textContent).toContain('Perfil salvo com sucesso');
   });
 });
+
+function setFormValues(fixture: ComponentFixture<ProfileEdit>, values: string[]): void {
+  const inputs = Array.from(
+    fixture.nativeElement.querySelectorAll('app-input-text input') as NodeListOf<HTMLInputElement>
+  );
+
+  inputs.forEach((input, index) => {
+    input.value = values[index];
+    input.dispatchEvent(new Event('input', { bubbles: true }));
+    input.dispatchEvent(new Event('blur', { bubbles: true }));
+  });
+  fixture.detectChanges();
+}

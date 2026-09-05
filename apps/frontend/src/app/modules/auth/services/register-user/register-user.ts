@@ -9,6 +9,10 @@ import { UserRegister } from '@shared/service/users/user-register';
 import { UserStorage } from '@shared/service/users/user-storage';
 import { RolesBack } from '@shared/enums/roles.enum';
 
+type RegistrationAddress = UserRegisterDraft['address'];
+type RegistrationSocial = UserRegisterDraft['social'];
+type PersonalInfo = Pick<UserRegisterDraft, 'name' | 'email' | 'password' | 'phone' | 'cpf'>;
+
 const steps = {
   profile: false,
   contact: false,
@@ -26,10 +30,11 @@ export class RegisterUser {
   user = signal<UserRegisterDraft>(new UserRegisterDraftState());
   completeSteps = signal(steps);
 
-  addAddress(address: any) {
-    const currentUser = this.user();
-    currentUser.address = address;
-    this.user.set(currentUser);
+  addAddress(address: Partial<RegistrationAddress>): void {
+    this.user.update((user) => ({
+      ...user,
+      address: { ...user.address, ...address }
+    }));
 
     this.completeSteps.update((steps) => {
       return {
@@ -39,10 +44,8 @@ export class RegisterUser {
     });
   }
 
-  addPersonalInfo(personalInfo: any) {
-    const currentUser = this.user();
-    Object.assign(currentUser, personalInfo);
-    this.user.set(currentUser);
+  addPersonalInfo(personalInfo: PersonalInfo): void {
+    this.user.update((user) => ({ ...user, ...personalInfo }));
 
     this.completeSteps.update((steps) => {
       return {
@@ -52,10 +55,8 @@ export class RegisterUser {
     });
   }
 
-  addCategory(personalInfo: any) {
-    const currentUser = this.user();
-    Object.assign(currentUser, personalInfo);
-    this.user.set(currentUser);
+  addCategory(personalInfo: Partial<UserRegisterDraft>): void {
+    this.user.update((user) => ({ ...user, ...personalInfo }));
 
     this.completeSteps.update((steps) => {
       return {
@@ -65,10 +66,11 @@ export class RegisterUser {
     });
   }
 
-  addService(services: Set<any> | any[]) {
-    const currentUser = this.user();
-    currentUser.services = Array.isArray(services) ? services : Array.from(services);
-    this.user.set(currentUser);
+  addService(services: Set<unknown> | readonly unknown[]): void {
+    this.user.update((user) => ({
+      ...user,
+      services: Array.isArray(services) ? [...services] : Array.from(services)
+    }));
 
     this.completeSteps.update((steps) => {
       return {
@@ -78,10 +80,11 @@ export class RegisterUser {
     });
   }
 
-  addSocial(social: any) {
-    const currentUser = this.user();
-    Object.assign(currentUser.social, social);
-    this.user.set(currentUser);
+  addSocial(social: Partial<RegistrationSocial>): void {
+    this.user.update((user) => ({
+      ...user,
+      social: { ...user.social, ...social }
+    }));
 
     this.completeSteps.update((steps) => {
       return {
