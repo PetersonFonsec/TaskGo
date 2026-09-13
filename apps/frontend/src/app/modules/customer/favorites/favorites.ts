@@ -1,3 +1,4 @@
+import { finalize } from 'rxjs';
 import { Component, inject, OnInit, signal } from '@angular/core';
 import { HttpErrorResponse } from '@angular/common/http';
 import { NgIf } from '@angular/common';
@@ -75,7 +76,13 @@ export class Favorites implements OnInit {
       ? this.#provider.removeFavorite(String(clientId), providerKey)
       : this.#provider.addFavorite(String(clientId), providerKey);
 
-    request.subscribe({
+    request.pipe(finalize(() => {
+      this.favoriteLoading.update((state) => {
+        const nextState = { ...state };
+        delete nextState[providerKey];
+        return nextState;
+      });
+    })).subscribe({
       next: () => {
         if (currentlyFavorite) {
           this.providers.update((items) => items.filter((provider) => String(provider.id) !== providerKey));
@@ -86,13 +93,6 @@ export class Favorites implements OnInit {
           ...state,
           [providerKey]: error.error?.message || 'Erro ao atualizar favoritos.'
         }));
-      },
-      complete: () => {
-        this.favoriteLoading.update((state) => {
-          const nextState = { ...state };
-          delete nextState[providerKey];
-          return nextState;
-        });
       }
     });
   }

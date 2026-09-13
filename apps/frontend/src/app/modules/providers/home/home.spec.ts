@@ -1,3 +1,4 @@
+import { provideRouter } from '@angular/router';
 import { ComponentFixture, TestBed } from '@angular/core/testing';
 import { of, throwError } from 'rxjs';
 
@@ -25,14 +26,14 @@ describe('ProviderHomePage', () => {
     await TestBed.configureTestingModule({
       imports: [ProviderHomePage],
       providers: [
+        provideRouter([]),
         { provide: Order, useValue: order },
         {
           provide: UserLoggedService,
           useValue: { user: () => ({ user: { id: '17', name: 'João' } }) },
         },
       ],
-    })
-    .compileComponents();
+    }).compileComponents();
 
     fixture = TestBed.createComponent(ProviderHomePage);
     component = fixture.componentInstance;
@@ -63,9 +64,11 @@ describe('ProviderHomePage', () => {
   });
 
   it('should keep the request pending when the backend rejects the operation', () => {
-    order.confirmOrder.and.returnValue(throwError(() => ({
-      error: { message: 'Pedido já respondido' },
-    })));
+    order.confirmOrder.and.returnValue(
+      throwError(() => ({
+        error: { message: 'Pedido já respondido' },
+      })),
+    );
 
     component.updateRequestStatus(1, 'accepted');
 
@@ -75,16 +78,18 @@ describe('ProviderHomePage', () => {
 
   it('should allow starting a service even when its scheduled date has passed', () => {
     order.updateOrderStatus.and.returnValue(of({}));
-    component.activeOrders.set([{
-      id: '42',
-      clientName: 'Cliente',
-      service: 'Reparo',
-      scheduledFor: '2020-01-01T12:00:00.000Z',
-      amount: 100,
-      status: 'EM_DESLOCAMENTO',
-      date: '01 jan.',
-      time: '09:00',
-    }]);
+    component.activeOrders.set([
+      {
+        id: '42',
+        clientName: 'Cliente',
+        service: 'Reparo',
+        scheduledFor: '2020-01-01T12:00:00.000Z',
+        amount: 100,
+        status: 'EM_DESLOCAMENTO',
+        date: '01 jan.',
+        time: '09:00',
+      },
+    ]);
 
     component.updateActiveOrderStatus('42', 'EM_ANDAMENTO');
 

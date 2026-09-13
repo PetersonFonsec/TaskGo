@@ -11,3 +11,15 @@ cypress/results
 *.log
 
 vitest.config.*.timestamp*
+# Configurações locais; exemplos continuam versionados.
+.env
+.env.local
+.env.*.local
+
+# Segredos locais; exemplos permanecem versionáveis.
+*.env
+.env.*
+!*.env.example
+!.env.example
+!config/example.env
+!apps/backend/.env.test

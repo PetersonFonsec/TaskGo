@@ -1,0 +1,72 @@
+name: CI
+
+on:
+  pull_request:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ci-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+env:
+  NX_DAEMON: 'false'
+  NX_ISOLATE_PLUGINS: 'false'
+  NG_BUILD_MAX_WORKERS: '2'
+  CYPRESS_INSTALL_BINARY: '0'
+
+jobs:
+  quality:
+    name: Quality
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    services:
+      postgres:
+        image: postgres:17-alpine
+        env:
+          POSTGRES_USER: taskgo_ci
+          POSTGRES_PASSWORD: taskgo_ci
+          POSTGRES_DB: taskgo_test
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U taskgo_ci -d taskgo_test"
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+    env:
+      DATABASE_URL: postgresql://taskgo_ci:taskgo_ci@localhost:5432/taskgo_test?schema=public
+      JWT_SECRET: ci-only-not-a-secret
+      PAYMENTS_SIMULATION: 'true'
+      SALT_ROUNDS: '1'
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version-file: .nvmrc
+          cache: npm
+      - name: Install dependencies from lockfile
+        run: npm ci
+      - name: Prepare isolated test database
+        run: |
+          node -e 'require("node:fs").writeFileSync("apps/backend/.env.test", ["DATABASE_URL=" + process.env.DATABASE_URL, "JWT_SECRET=" + process.env.JWT_SECRET, "PAYMENTS_SIMULATION=true", "SALT_ROUNDS=1", ""].join(String.fromCharCode(10)))'
+          npm exec --workspace apps/backend -- prisma generate
+          npm run prisma:deploy --workspace apps/backend
+      - name: Lint backend
+        run: npm run lint -- --skip-nx-cache
+      - name: Check shared types
+        run: npx nx run shared:typecheck --skip-nx-cache
+      - name: Test shared contracts
+        run: npx nx run shared:test --skip-nx-cache
+      - name: Test backend including database integrations
+        run: npm run test:ci --workspace apps/backend
+      - name: Test frontend in ChromeHeadless
+        run: npm run test:ci --workspace apps/frontend
+      - name: Test backoffice in ChromeHeadless
+        run: npm run backoffice:test -- --skip-nx-cache
+      - name: Build all applications
+        run: npm run build -- --skip-nx-cache --parallel=1

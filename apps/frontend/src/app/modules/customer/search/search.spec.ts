@@ -6,7 +6,11 @@ import { HttpErrorResponse } from '@angular/common/http';
 import { of, throwError } from 'rxjs';
 
 import { Search } from './search';
-import { ProxiMapComponent, ProxiMapLocation, ProxiMapProvider } from '@shared/components/ui/proxi-map/proxi-map.component';
+import {
+  ProxiMapComponent,
+  ProxiMapLocation,
+  ProxiMapProvider,
+} from '@shared/components/ui/proxi-map/proxi-map.component';
 import { Provider } from '@shared/service/provider/provider';
 import { Geolocalization } from '@shared/service/geolocalization/geolocalization';
 import { UserLoggedService } from '@shared/service/user-logged/user-logged.service';
@@ -53,6 +57,7 @@ describe('Search', () => {
   let providersResponse: any[];
 
   beforeEach(async () => {
+    window.localStorage.removeItem('search.onlyFavorites.client-1');
     providersResponse = [{ ...validProvider }];
 
     providerMock = {
@@ -61,25 +66,31 @@ describe('Search', () => {
         .and.callFake(() => of(providersResponse)),
       addFavorite: jasmine.createSpy('addFavorite').and.returnValue(of(null)),
       removeFavorite: jasmine.createSpy('removeFavorite').and.returnValue(of(null)),
-      listFavorites: jasmine.createSpy('listFavorites').and.returnValue(of({ items: [{ providerId: 'provider-1' }] })),
+      listFavorites: jasmine
+        .createSpy('listFavorites')
+        .and.returnValue(of({ items: [{ providerId: 'provider-1' }] })),
     };
 
     geolocalizationMock = {
-      getCurrentPosition: jasmine.createSpy('getCurrentPosition').and.returnValue(of({
-        latitude: -23.551,
-        longitude: -46.634,
-      })),
+      getCurrentPosition: jasmine.createSpy('getCurrentPosition').and.returnValue(
+        of({
+          latitude: -23.551,
+          longitude: -46.634,
+        }),
+      ),
     };
 
     userLoggedMock = {
       user: jasmine.createSpy('user').and.returnValue({
         user: {
           id: 'client-1',
-          addresses: [{
-            isDefault: true,
-            latitude: -23.552,
-            longitude: -46.635,
-          }],
+          addresses: [
+            {
+              isDefault: true,
+              latitude: -23.552,
+              longitude: -46.635,
+            },
+          ],
         },
       }),
     };
@@ -90,9 +101,11 @@ describe('Search', () => {
     };
 
     categoryServiceMock = {
-      getCategories: jasmine.createSpy('getCategories').and.returnValue(of({
-        data: [{ id: 1, name: 'Encanadores', slug: 'encanadores' }],
-      })),
+      getCategories: jasmine.createSpy('getCategories').and.returnValue(
+        of({
+          data: [{ id: 1, name: 'Encanadores', slug: 'encanadores' }],
+        }),
+      ),
     };
 
     await TestBed.configureTestingModule({
@@ -116,6 +129,8 @@ describe('Search', () => {
     component = fixture.componentInstance;
   });
 
+  afterEach(() => window.localStorage.removeItem('search.onlyFavorites.client-1'));
+
   it('should create', () => {
     fixture.detectChanges();
 
@@ -125,19 +140,21 @@ describe('Search', () => {
   it('should map valid provider data into the map contract', () => {
     fixture.detectChanges();
 
-    expect(component.mapProviders()).toEqual([jasmine.objectContaining({
-      id: 'provider-1',
-      name: 'Ana Martins',
-      service: 'Encanadora',
-      rating: 4.8,
-      priceFrom: 120,
-      lat: -23.55052,
-      lng: -46.633308,
-      distanceKm: 3.5,
-      photoUrl: '/ana.jpg',
-      premium: true,
-      verified: true,
-    })]);
+    expect(component.mapProviders()).toEqual([
+      jasmine.objectContaining({
+        id: 'provider-1',
+        name: 'Ana Martins',
+        service: 'Encanadora',
+        rating: 4.8,
+        priceFrom: 120,
+        lat: -23.55052,
+        lng: -46.633308,
+        distanceKm: 3.5,
+        photoUrl: '/ana.jpg',
+        premium: true,
+        verified: true,
+      }),
+    ]);
   });
 
   it('should filter providers with invalid coordinates from the map contract', () => {
@@ -151,33 +168,40 @@ describe('Search', () => {
 
     fixture.detectChanges();
 
-    expect(component.mapProviders().map((provider: ProxiMapProvider) => provider.id)).toEqual(['valid-provider']);
+    expect(component.mapProviders().map((provider: ProxiMapProvider) => provider.id)).toEqual([
+      'valid-provider',
+    ]);
   });
 
   it('should provide safe fallback values for missing provider display fields', () => {
-    providersResponse = [{
-      id: 'fallback-provider',
-      lat: -23.55,
-      lng: -46.63,
-    }];
+    providersResponse = [
+      {
+        id: 'fallback-provider',
+        lat: -23.55,
+        lng: -46.63,
+      },
+    ];
 
     fixture.detectChanges();
 
-    expect(component.mapProviders()[0]).toEqual(jasmine.objectContaining({
-      id: 'fallback-provider',
-      name: 'Profissional Proxi',
-      service: 'encanadores',
-      rating: 0,
-      priceFrom: 0,
-      premium: false,
-      verified: false,
-    }));
+    expect(component.mapProviders()[0]).toEqual(
+      jasmine.objectContaining({
+        id: 'fallback-provider',
+        name: 'Profissional Proxi',
+        service: 'encanadores',
+        rating: 0,
+        priceFrom: 0,
+        premium: false,
+        verified: false,
+      }),
+    );
   });
 
   it('should navigate to the provider profile when the map emits viewProfile', () => {
     fixture.detectChanges();
 
-    const map = fixture.debugElement.query(By.directive(ProxiMapStubComponent)).componentInstance as ProxiMapStubComponent;
+    const map = fixture.debugElement.query(By.directive(ProxiMapStubComponent))
+      .componentInstance as ProxiMapStubComponent;
     map.viewProfile.emit('provider-1');
 
     expect(routerMock.navigate).toHaveBeenCalledWith(['/customer', 'provider-1']);
@@ -186,7 +210,8 @@ describe('Search', () => {
   it('should render the map host and the provider list together', () => {
     fixture.detectChanges();
 
-    const map = fixture.debugElement.query(By.directive(ProxiMapStubComponent)).componentInstance as ProxiMapStubComponent;
+    const map = fixture.debugElement.query(By.directive(ProxiMapStubComponent))
+      .componentInstance as ProxiMapStubComponent;
     const providerCards = fixture.debugElement.queryAll(By.css('app-card-detail'));
 
     expect(fixture.nativeElement.querySelector('#customer-search_map')).toBeTruthy();
@@ -219,9 +244,12 @@ describe('Search', () => {
 
     component.toggleOnlyFavorites(true);
 
-    expect(routerMock.navigate).toHaveBeenCalledWith([], jasmine.objectContaining({
-      queryParams: jasmine.objectContaining({ onlyFavorites: 'true' }),
-    }));
+    expect(routerMock.navigate).toHaveBeenCalledWith(
+      [],
+      jasmine.objectContaining({
+        queryParams: jasmine.objectContaining({ onlyFavorites: 'true' }),
+      }),
+    );
   });
 
   it('should persist onlyFavorites preference when toggled', () => {
@@ -230,7 +258,10 @@ describe('Search', () => {
 
     component.toggleOnlyFavorites(true);
 
-    expect(window.localStorage.setItem).toHaveBeenCalledWith('search.onlyFavorites.client-1', 'true');
+    expect(window.localStorage.setItem).toHaveBeenCalledWith(
+      'search.onlyFavorites.client-1',
+      'true',
+    );
   });
 
   it('should restore persisted onlyFavorites preference on init', () => {
@@ -238,13 +269,22 @@ describe('Search', () => {
     fixture.detectChanges();
 
     expect(component.onlyFavorites()).toBeTrue();
-    expect(providerMock.findProvidersByCategorySlug).toHaveBeenCalledWith('encanadores', jasmine.objectContaining({ onlyFavorites: true }));
+    expect(providerMock.findProvidersByCategorySlug).toHaveBeenCalledWith(
+      'encanadores',
+      jasmine.objectContaining({ onlyFavorites: true }),
+    );
   });
 
   it('should filter providers by minimum rating, distance and price range', () => {
     providersResponse = [
       { ...validProvider, id: 'match', distanceKm: 4, services: [{ basePrice: 120 }] },
-      { ...validProvider, id: 'low-rating', user: { provider: { ratingAvg: 3.5 } }, distanceKm: 4, services: [{ basePrice: 120 }] },
+      {
+        ...validProvider,
+        id: 'low-rating',
+        user: { provider: { ratingAvg: 3.5 } },
+        distanceKm: 4,
+        services: [{ basePrice: 120 }],
+      },
       { ...validProvider, id: 'far-away', distanceKm: 18, services: [{ basePrice: 120 }] },
       { ...validProvider, id: 'too-expensive', distanceKm: 4, services: [{ basePrice: 300 }] },
     ];
@@ -280,9 +320,12 @@ describe('Search', () => {
 
     expect(component.categories()[0].slug).toBe('encanadores');
     component.updateCategory('limpeza');
-    expect(routerMock.navigate).toHaveBeenCalledWith([], jasmine.objectContaining({
-      queryParams: { categoria: 'limpeza' },
-    }));
+    expect(routerMock.navigate).toHaveBeenCalledWith(
+      [],
+      jasmine.objectContaining({
+        queryParams: { categoria: 'limpeza' },
+      }),
+    );
   });
 
   it('should add a favorite when toggled on', () => {
@@ -306,7 +349,9 @@ describe('Search', () => {
   });
 
   it('should show an error message when favorite update fails', () => {
-    providerMock.addFavorite.and.returnValue(throwError(() => new HttpErrorResponse({ error: { message: 'fail' } })));
+    providerMock.addFavorite.and.returnValue(
+      throwError(() => new HttpErrorResponse({ error: { message: 'fail' } })),
+    );
     component.favorites.set({});
 
     component.toggleFavorite('provider-1');

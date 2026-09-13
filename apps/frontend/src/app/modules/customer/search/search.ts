@@ -13,7 +13,7 @@ import { Geolocalization } from '@shared/service/geolocalization/geolocalization
 import { Provider } from '@shared/service/provider/provider';
 import { UserLoggedService } from '@shared/service/user-logged/user-logged.service';
 import { environment } from '@environments/environment';
-import { switchMap, tap } from 'rxjs';
+import { finalize, switchMap, tap } from 'rxjs';
 import { CardProvider } from '@shared/components/ui/card-provider/card-provider';
 import { FormatedProviderParamPipe } from './pipes/formated-provider-param-pipe';
 import { CategoryService } from '@shared/service/category/category';
@@ -402,7 +402,12 @@ export class Search implements OnInit {
       ? this.#provider.addFavorite(String(clientId), providerKey)
       : this.#provider.removeFavorite(String(clientId), providerKey);
 
-    request.subscribe({
+    request.pipe(finalize(() => {
+      this.favoriteLoading.update((state) => ({
+        ...state,
+        [providerKey]: false
+      }));
+    })).subscribe({
       next: () => {
         this.favorites.update((state) => ({
           ...state,
@@ -413,12 +418,6 @@ export class Search implements OnInit {
         this.favoriteError.update((state) => ({
           ...state,
           [providerKey]: error.error?.message || 'Erro ao atualizar favorito.'
-        }));
-      },
-      complete: () => {
-        this.favoriteLoading.update((state) => ({
-          ...state,
-          [providerKey]: false
         }));
       }
     });

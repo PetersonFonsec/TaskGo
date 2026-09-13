@@ -75,7 +75,8 @@ describe('ProxiMapComponent', () => {
   }
 
   async function settleMap(): Promise<void> {
-    await Promise.resolve();
+    await new Promise<void>((resolve) => setTimeout(resolve, 0));
+    await fixture.whenStable();
     fixture.detectChanges();
   }
 
@@ -161,7 +162,7 @@ describe('ProxiMapComponent', () => {
       'https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png',
       jasmine.objectContaining({
         attribution: jasmine.stringMatching(/OpenStreetMap/),
-      })
+      }),
     );
   });
 
@@ -195,15 +196,21 @@ describe('ProxiMapComponent', () => {
     await settleMap();
 
     expect(leafletMock.marker).toHaveBeenCalledTimes(2);
-    expect(leafletMock.divIcon).toHaveBeenCalledWith(jasmine.objectContaining({
-      className: jasmine.stringMatching(/proxi-map-marker--user/),
-    }));
-    expect(leafletMock.divIcon).toHaveBeenCalledWith(jasmine.objectContaining({
-      className: jasmine.stringMatching(/proxi-map-marker--premium/),
-    }));
-    expect(leafletMock.divIcon).toHaveBeenCalledWith(jasmine.objectContaining({
-      className: jasmine.stringMatching(/proxi-map-marker--verified/),
-    }));
+    expect(leafletMock.divIcon).toHaveBeenCalledWith(
+      jasmine.objectContaining({
+        className: jasmine.stringMatching(/proxi-map-marker--user/),
+      }),
+    );
+    expect(leafletMock.divIcon).toHaveBeenCalledWith(
+      jasmine.objectContaining({
+        className: jasmine.stringMatching(/proxi-map-marker--premium/),
+      }),
+    );
+    expect(leafletMock.divIcon).toHaveBeenCalledWith(
+      jasmine.objectContaining({
+        className: jasmine.stringMatching(/proxi-map-marker--verified/),
+      }),
+    );
   });
 
   it('should emit the provider id from popup profile action', async () => {

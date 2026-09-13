@@ -8,12 +8,18 @@ describe('CardProvider', () => {
 
   beforeEach(async () => {
     await TestBed.configureTestingModule({
-      imports: [CardProvider]
-    })
-    .compileComponents();
+      imports: [CardProvider],
+    }).compileComponents();
 
     fixture = TestBed.createComponent(CardProvider);
     component = fixture.componentInstance;
+    fixture.componentRef.setInput('params', {
+      title: 'Ana',
+      thumb: '',
+      verified: false,
+      favorite: false,
+      price: 120,
+    });
     await fixture.whenStable();
   });
 

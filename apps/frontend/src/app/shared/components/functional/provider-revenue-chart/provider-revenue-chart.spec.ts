@@ -1,19 +1,33 @@
 import { ComponentFixture, TestBed } from '@angular/core/testing';
 
-import { ProviderRevenueChart } from './provider-revenue-chart';
+import { ProviderRevenueChartComponent } from './provider-revenue-chart';
 
-describe('ProviderRevenueChart', () => {
-  let component: ProviderRevenueChart;
-  let fixture: ComponentFixture<ProviderRevenueChart>;
+describe('ProviderRevenueChartComponent', () => {
+  let component: ProviderRevenueChartComponent;
+  let fixture: ComponentFixture<ProviderRevenueChartComponent>;
 
   beforeEach(async () => {
     await TestBed.configureTestingModule({
-      imports: [ProviderRevenueChart],
+      imports: [ProviderRevenueChartComponent],
     }).compileComponents();
 
-    fixture = TestBed.createComponent(ProviderRevenueChart);
+    fixture = TestBed.createComponent(ProviderRevenueChartComponent);
     component = fixture.componentInstance;
-    await fixture.whenStable();
+    fixture.componentRef.setInput('data', [
+      { month: 'Jan', revenue: 100 },
+      { month: 'Fev', revenue: 200 },
+    ]);
+    fixture.detectChanges();
+  });
+
+  it('scales revenue bars relative to the largest month', () => {
+    expect(component.barHeight(100)).toBe(50);
+    expect(component.barHeight(200)).toBe(100);
+  });
+
+  it('handles an empty series without division by zero', () => {
+    fixture.componentRef.setInput('data', []);
+    expect(component.barHeight(0)).toBe(0);
   });
 
   it('should create', () => {

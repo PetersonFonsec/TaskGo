@@ -292,7 +292,8 @@ describe('SingleUser', () => {
 
     expect(pageText).toContain('Test Provider');
     expect(pageText).toContain('Service 1');
-    expect(pageText).toContain('1 avaliações');
+    expect(pageText).toContain('Feedbacks sobre o Test Provider');
+    expect(pageText).toContain('Excelente atendimento.');
     expect(pageText).toContain('09:00');
     expect(pageText).toContain('Solicitar agendamento');
     expect(fixture.nativeElement.querySelector('.appointment-summary')).toBeTruthy();

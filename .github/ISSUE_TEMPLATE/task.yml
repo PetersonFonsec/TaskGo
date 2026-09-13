@@ -1,0 +1,31 @@
+name: Tarefa
+description: Propor uma melhoria ou correção pequena e verificável.
+title: ''
+body:
+  - type: textarea
+    id: problem
+    attributes:
+      label: Problema
+      description: Qual problema precisamos resolver? Para bugs, inclua como reproduzir.
+    validations:
+      required: true
+  - type: textarea
+    id: expected_result
+    attributes:
+      label: Resultado esperado
+      description: Descreva o comportamento que deve existir ao concluir a tarefa.
+    validations:
+      required: true
+  - type: textarea
+    id: acceptance
+    attributes:
+      label: Critérios de aceite
+      description: Liste condições observáveis para verificar o resultado.
+      placeholder: '- [ ] Ao realizar a ação, o resultado esperado acontece.'
+    validations:
+      required: true
+  - type: textarea
+    id: context
+    attributes:
+      label: Contexto adicional
+      description: Opcional. Inclua dependências, arquivos relevantes ou links para especificações, sem segredos ou dados pessoais.
