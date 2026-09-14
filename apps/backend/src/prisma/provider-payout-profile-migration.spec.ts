@@ -19,6 +19,8 @@ const migrationRoot = resolve(backendRoot, 'src/prisma/migrations');
 const prismaBinary = resolve(backendRoot, 'node_modules/.bin/prisma');
 
 function readEnvDatabaseUrl() {
+  if (process.env.PROXI_TEST_DATABASE_URL)
+    return process.env.PROXI_TEST_DATABASE_URL;
   const envFile = readFileSync(resolve(backendRoot, '.env.test'), 'utf8');
   const databaseUrl = envFile
     .split(/\r?\n/)
@@ -235,12 +237,29 @@ describe('provider payout profile migration', () => {
   });
 
   it('persists structured social values through the registration transaction', async () => {
-    const service = await prisma.service.create({
+    // Current application code must run on the current schema, after the historical assertions above.
+    for (const migration of readdirSync(migrationRoot)
+      .filter((name) => /^\d+_/.test(name) && name > migrationName)
+      .sort()) {
+      const sql = readFileSync(
+        join(migrationRoot, migration, 'migration.sql'),
+        'utf8',
+      );
+      executeSql(
+        `SET search_path TO "${schemaName}";\n${sql}`,
+        databaseUrl,
+        tempDir,
+      );
+    }
+
+    const category = await prisma.category.create({
+      data: { name: 'Registration', slug: 'registration-specialty' },
+    });
+    const subcategory = await prisma.subcategory.create({
       data: {
-        providerId: BigInt(9301),
-        title: 'Registration service',
-        category: 'Test',
-        basePrice: 100,
+        name: 'Installation',
+        slug: 'registration-installation',
+        categoryId: category.id,
       },
     });
     const strategy = new CreateProviderStrategy(prisma as never);
@@ -261,7 +280,7 @@ describe('provider payout profile migration', () => {
         lat: -23.55,
         lng: -46.63,
       },
-      services: [service.id],
+      subcategoryIds: [subcategory.id],
       social: {
         whatsapp: '+5511888888888',
         instagram: '@registered',

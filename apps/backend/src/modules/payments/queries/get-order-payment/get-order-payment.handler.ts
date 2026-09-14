@@ -1,5 +1,6 @@
 import { ForbiddenException, NotFoundException } from '@nestjs/common';
 import { IQueryHandler, QueryHandler } from '@nestjs/cqrs';
+import { PaymentService } from '../../payment.service';
 import { PaymentStatus } from '@prisma/client';
 
 import { PrismaService } from '../../../../prisma/prisma.service';
@@ -10,7 +11,10 @@ import { GetOrderPaymentQuery } from './get-order-payment.query';
 export class GetOrderPaymentHandler
   implements IQueryHandler<GetOrderPaymentQuery>
 {
-  constructor(private readonly prisma: PrismaService) {}
+  constructor(
+    private readonly prisma: PrismaService,
+    private readonly payments: PaymentService,
+  ) {}
 
   async execute({ orderId, clientId }: GetOrderPaymentQuery) {
     const order = await this.prisma.order.findUnique({
@@ -24,6 +28,8 @@ export class GetOrderPaymentHandler
     if (!order.payment || order.payment.status === PaymentStatus.CREATED) {
       throw new NotFoundException('Pagamento ainda não iniciado');
     }
-    return toPaymentResponse(order.payment);
+    return toPaymentResponse(
+      await this.payments.reconcilePayment(order.payment.id),
+    );
   }
 }

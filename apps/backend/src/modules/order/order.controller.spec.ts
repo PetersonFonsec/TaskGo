@@ -1,117 +1,86 @@
-import { Test, TestingModule } from '@nestjs/testing';
 import { OrderController } from './order.controller';
-import { CommandBus, QueryBus } from '@nestjs/cqrs';
-import {
-  GetOrderDetailsQuery,
-  GetOrderSummaryQuery,
-  ListClientOrdersQuery,
-  ListOrdersQuery,
-  ListProviderOrdersQuery,
-} from './queries';
-import {
-  CancelOrderByProviderCommand,
-  ConfirmOrderByProviderCommand,
-  ConfirmOrderCompletionCommand,
-  CreateOrderCommand,
-  CreateOrderReviewCommand,
-  FinishOrderCommand,
-  RemoveOrderCommand,
-  ScheduleOrderCommand,
-  UpdateOrderCommand,
-} from './commands';
+import { ForbiddenException, UnauthorizedException } from '@nestjs/common';
 
-describe('OrderController', () => {
+describe('Order authorization', () => {
   let controller: OrderController;
-  let commandBus: { execute: jest.Mock };
-  let queryBus: { execute: jest.Mock };
-  beforeEach(async () => {
-    jest.clearAllMocks();
-    commandBus = { execute: jest.fn() };
-    queryBus = { execute: jest.fn() };
-
-    const module: TestingModule = await Test.createTestingModule({
-      controllers: [OrderController],
-      providers: [
-        {
-          provide: CommandBus,
-          useValue: commandBus,
-        },
-        {
-          provide: QueryBus,
-          useValue: queryBus,
-        },
-      ],
-    }).compile();
-
-    controller = module.get<OrderController>(OrderController);
+  let commands: any;
+  let queries: any;
+  let db: any;
+  const client = { id: '7', role: 'CLIENTE' } as const;
+  const provider = { id: '42', role: 'PRESTADOR' } as const;
+  beforeEach(() => {
+    commands = { execute: jest.fn() };
+    queries = { execute: jest.fn() };
+    db = {
+      order: {
+        findFirst: jest.fn(),
+        updateMany: jest.fn().mockResolvedValue({ count: 1 }),
+      },
+      orderTimeline: { create: jest.fn() },
+    };
+    db.$transaction = jest.fn((fn) => fn(db));
+    controller = new OrderController(queries, commands, db);
   });
-
-  it('should be defined', () => {
-    expect(controller).toBeDefined();
+  it('rejects anonymous and cross-account list requests', () => {
+    expect(() => controller.findByClient(7n, null as any)).toThrow(
+      UnauthorizedException,
+    );
+    expect(() => controller.findByClient(8n, client)).toThrow(
+      ForbiddenException,
+    );
+    expect(() => controller.findByProvider(42n, client)).toThrow(
+      ForbiddenException,
+    );
+    expect(queries.execute).not.toHaveBeenCalled();
   });
-
-  it('delegates all reads to QueryBus', async () => {
-    const pagination = { page: 2, limit: 20 } as never;
-
-    await controller.findAll(pagination);
-    await controller.findOne(10n);
-    await controller.getSummary(11n);
-    await controller.findByClient(12n);
-    await controller.findByProvider(13n);
-
-    const queries = queryBus.execute.mock.calls.map(([query]) => query);
-    expect(queries[0]).toEqual(expect.objectContaining({ pagination }));
-    expect(queries[0]).toBeInstanceOf(ListOrdersQuery);
-    expect(queries[1]).toBeInstanceOf(GetOrderDetailsQuery);
-    expect(queries[2]).toBeInstanceOf(GetOrderSummaryQuery);
-    expect(queries[3]).toBeInstanceOf(ListClientOrdersQuery);
-    expect(queries[4]).toBeInstanceOf(ListProviderOrdersQuery);
+  it('denies nonparticipant detail and summary access', async () => {
+    await expect(controller.findOne(10n, client)).rejects.toThrow(
+      ForbiddenException,
+    );
+    await expect(controller.getSummary(10n, provider)).rejects.toThrow(
+      ForbiddenException,
+    );
+    expect(queries.execute).not.toHaveBeenCalled();
   });
-
-  it('delegates CRUD and scheduling writes to CommandBus', async () => {
-    const createPayload = { serviceId: '2', clientId: '3' } as never;
-    const updatePayload = { finalPrice: 150 } as never;
-    const schedulePayload = { scheduledFor: '2026-08-10T12:00:00.000Z' };
-
-    await controller.create(createPayload);
-    await controller.update(14n, updatePayload);
-    await controller.remove(15n);
-    await controller.schedule(16n, schedulePayload);
-    await controller.confirmByProvider(17n, 18n);
-    await controller.cancelByProvider(19n, 20n);
-
-    const commands = commandBus.execute.mock.calls.map(([command]) => command);
-    expect(commands[0]).toBeInstanceOf(CreateOrderCommand);
-    expect(commands[1]).toBeInstanceOf(UpdateOrderCommand);
-    expect(commands[2]).toBeInstanceOf(RemoveOrderCommand);
-    expect(commands[3]).toBeInstanceOf(ScheduleOrderCommand);
-    expect(commands[4]).toBeInstanceOf(ConfirmOrderByProviderCommand);
-    expect(commands[5]).toBeInstanceOf(CancelOrderByProviderCommand);
+  it('replaces forged client identity on create', () => {
+    controller.create(
+      { clientId: '999', serviceId: '1', addressId: '1' },
+      client,
+    );
+    expect(commands.execute.mock.calls[0][0].payload.clientId).toBe('7');
   });
-
-  it('delegates lifecycle writes to CommandBus with authenticated identities', async () => {
-    const finishPayload = { finalPrice: 120, photos: [] } as never;
-    const confirmationPayload = {} as never;
-    const reviewPayload = { rating: 5 } as never;
-
-    await controller.finish(22n, '23', finishPayload);
-    await controller.confirmCompletion(24n, '25', confirmationPayload);
-    await controller.createReview(26n, '27', reviewPayload);
-
-    const [finish, confirmation, review] = commandBus.execute.mock.calls.map(
-      ([command]) => command,
+  it('disables arbitrary updates, deletion and rescheduling', () => {
+    expect(() => controller.update(1n, {})).toThrow(ForbiddenException);
+    expect(() => controller.remove(1n)).toThrow(ForbiddenException);
+    expect(() =>
+      controller.schedule(1n, { scheduledFor: '2030-01-01' }),
+    ).toThrow(ForbiddenException);
+  });
+  it('rejects forged provider path identity', () => {
+    expect(() => controller.confirmByProvider(1n, 99n, provider)).toThrow(
+      ForbiddenException,
     );
-    expect(finish).toBeInstanceOf(FinishOrderCommand);
-    expect(finish).toEqual(
-      expect.objectContaining({ orderId: 22n, providerId: 23n }),
+    expect(() => controller.cancelByProvider(1n, 99n, provider)).toThrow(
+      ForbiddenException,
     );
-    expect(confirmation).toBeInstanceOf(ConfirmOrderCompletionCommand);
-    expect(confirmation).toEqual(
-      expect.objectContaining({ orderId: 24n, clientId: 25n }),
+  });
+  it('atomically guards lifecycle with ownership, prior state and funded payment', async () => {
+    await controller.start(1n, provider);
+    expect(db.order.updateMany).toHaveBeenCalledWith(
+      expect.objectContaining({
+        where: expect.objectContaining({
+          id: 1n,
+          status: 'EM_DESLOCAMENTO',
+          service: { providerId: 42n, provider: { status: 'APPROVED' } },
+          payment: { method: 'PIX', status: { in: ['CAPTURED', 'PAGO'] } },
+        }),
+      }),
     );
-    expect(review).toBeInstanceOf(CreateOrderReviewCommand);
-    expect(review).toEqual(
-      expect.objectContaining({ orderId: 26n, clientId: 27n }),
+    expect(db.orderTimeline.create).toHaveBeenCalledTimes(1);
+    db.order.updateMany.mockResolvedValue({ count: 0 });
+    await expect(controller.start(1n, provider)).rejects.toThrow(
+      ForbiddenException,
     );
+    expect(db.orderTimeline.create).toHaveBeenCalledTimes(1);
   });
 });

@@ -85,6 +85,32 @@
         <h2 class="subtitle">Solicitar agendamento</h2>
       </div>
 
+      <div class="booking-group">
+        <label
+          >Serviço
+          <select [ngModel]="selectedService()?.id" (ngModelChange)="selectService($event)">
+            @for (service of provider()?.services; track service.id) {
+              <option [value]="service.id">
+                {{ service.title }} — {{ formatPrice(service.basePrice) }}
+              </option>
+            }
+          </select></label
+        >
+        <label
+          >Endereço de atendimento
+          <select [ngModel]="selectedAddressId()" (ngModelChange)="selectedAddressId.set($event)">
+            <option value="">Selecione um endereço</option>
+            @for (address of addresses(); track address.id) {
+              <option [value]="address.id">
+                {{ address.label }} — {{ address.street }}, {{ address.number }}
+              </option>
+            }
+          </select></label
+        >
+        @if (!addresses().length) {
+          <p>Adicione um endereço em Minha conta → Endereços antes de contratar.</p>
+        }
+      </div>
       <div class="booking-state" aria-live="polite">
         @if (availabilityLoading()) {
           <div class="booking-loading" role="status">

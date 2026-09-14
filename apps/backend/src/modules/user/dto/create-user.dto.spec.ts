@@ -23,7 +23,7 @@ describe('CreateUserDto social compatibility boundary', () => {
       lat: -23.55,
       lng: -46.63,
     },
-    services: [BigInt(1)],
+    subcategoryIds: [BigInt(1)],
   };
 
   it('accepts all canonical structured social fields', async () => {

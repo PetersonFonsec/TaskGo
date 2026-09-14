@@ -47,9 +47,14 @@ export class ProviderController {
   findAll(
     @Query('onlyFavorites') onlyFavorites?: string,
     @User('id') authenticatedUserId?: string,
+    @Query('lat') lat?: string,
+    @Query('lng') lng?: string,
   ) {
     return this.queryBus.execute(
-      new ListProvidersQuery(onlyFavorites === 'true', authenticatedUserId),
+      new ListProvidersQuery(onlyFavorites === 'true', authenticatedUserId, {
+        lat,
+        lng,
+      }),
     );
   }
 
@@ -64,8 +69,14 @@ export class ProviderController {
 
   @Public()
   @Get('by-category/:slug')
-  findByCategory(@Param('slug') slug: string) {
-    return this.queryBus.execute(new GetProvidersByCategoryQuery(slug));
+  findByCategory(
+    @Param('slug') slug: string,
+    @Query('lat') lat?: string,
+    @Query('lng') lng?: string,
+  ) {
+    return this.queryBus.execute(
+      new GetProvidersByCategoryQuery(slug, { lat, lng }),
+    );
   }
 
   @Public()

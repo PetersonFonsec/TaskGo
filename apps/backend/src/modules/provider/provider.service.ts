@@ -1,5 +1,5 @@
 import { Injectable } from '@nestjs/common';
-import { OrderStatus } from '@prisma/client';
+import { OrderStatus, Prisma } from '@prisma/client';
 
 import { PrismaService } from '../../prisma/prisma.service';
 import {
@@ -38,6 +38,7 @@ export class ProviderService {
   async getAvailability(
     providerId: string,
     query: ProviderAvailabilityQueryDto,
+    db: Prisma.TransactionClient = this.prisma,
   ): Promise<ProviderAvailabilityResponseDto> {
     const days = this.buildUnavailableDays(query.from, query.to);
     const providerBigIntId = this.parsePositiveBigInt(providerId);
@@ -53,6 +54,7 @@ export class ProviderService {
     const serviceWhere: any = {
       providerId: providerBigIntId,
       status: 'ATIVO',
+      provider: { status: 'APPROVED' },
     };
 
     const requestedServiceId = this.parsePositiveBigInt(query.serviceId);
@@ -68,7 +70,7 @@ export class ProviderService {
       serviceWhere.id = requestedServiceId;
     }
 
-    const services = await this.prisma.service.findMany({
+    const services = await db.service.findMany({
       where: serviceWhere,
       select: {
         id: true,
@@ -102,11 +104,9 @@ export class ProviderService {
       };
     }
 
-    const conflicts = await this.prisma.order.findMany({
+    const conflicts = await db.order.findMany({
       where: {
-        serviceId: {
-          in: selectedServices.map((service) => service.id),
-        },
+        service: { providerId: providerBigIntId },
         status: {
           in: [
             OrderStatus.AGUARDANDO_APROVACAO,
@@ -125,22 +125,36 @@ export class ProviderService {
       select: {
         serviceId: true,
         scheduledFor: true,
+        scheduledEnd: true,
+        service: { select: { id: true, availability: true } },
       },
     });
 
-    const blockedSlots = new Set(
-      conflicts
-        .filter((order) => order.scheduledFor)
-        .map(
-          (order) =>
-            `${order.serviceId.toString()}:${order.scheduledFor!.getTime()}`,
-        ),
-    );
-
     const availableDays = candidateDays.map((day) => {
       const slots = day.slots.filter((slot) => {
-        const startsAt = new Date(slot.startsAt);
-        return !blockedSlots.has(`${slot.serviceId}:${startsAt.getTime()}`);
+        const start = new Date(slot.startsAt).getTime();
+        const end = new Date(slot.endsAt).getTime();
+        return (
+          start > Date.now() &&
+          !conflicts.some((order) => {
+            if (!order.scheduledFor) return false;
+            const bookedStart = order.scheduledFor.getTime();
+            const bookedSlot = this.buildSlotsForService(
+              day.date,
+              order.service,
+            ).find(
+              (candidate) =>
+                new Date(candidate.startsAt).getTime() === bookedStart,
+            );
+            // Existing reservations with edited availability conservatively occupy the remainder of the day.
+            const bookedEnd =
+              order.scheduledEnd?.getTime() ??
+              (bookedSlot
+                ? new Date(bookedSlot.endsAt).getTime()
+                : this.dayAfter(day.date).getTime());
+            return start < bookedEnd && end > bookedStart;
+          })
+        );
       });
 
       return {
@@ -259,7 +273,12 @@ export class ProviderService {
       fromParts.day,
     );
     const toTime = Date.UTC(toParts.year, toParts.month - 1, toParts.day);
-    if (fromTime > toTime) return [];
+    if (
+      fromTime > toTime ||
+      toTime - fromTime > 90 * 86400000 ||
+      toTime > Date.now() + 90 * 86400000
+    )
+      return [];
 
     const days: ProviderAvailabilityDayDto[] = [];
     for (

@@ -28,24 +28,25 @@ export class Services implements OnInit {
   ngOnInit(): void {
     this.#activatedRouter.paramMap
       .pipe(
-        map(params => params.get('categoryId') ?? ''),
-        switchMap(id => this.#categoryService.getCategoryById(id)),
+        map((params) => params.get('categoryId') ?? ''),
+        switchMap((id) => this.#categoryService.getCategoryById(id)),
       )
       .subscribe({
         next: ({ subcategories }) => {
           this.services.update(() => subcategories);
-        }
+        },
       });
   }
 
   addSubCategory(subCategory: ISubCategory) {
     const subCategoryList = new Set(this.serviceSelected());
-    subCategoryList.add(subCategory);
+    if (subCategoryList.has(subCategory)) subCategoryList.delete(subCategory);
+    else subCategoryList.add(subCategory);
     this.serviceSelected.update(() => subCategoryList);
   }
 
   addServiceSelected() {
-    if (!this.serviceSelected()) return;
+    if (!this.serviceSelected().size) return;
     this.#registerUser.addService(this.serviceSelected());
     this.#router.navigateByUrl('authenticate/register');
   }

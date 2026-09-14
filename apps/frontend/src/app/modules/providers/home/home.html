@@ -1,3 +1,4 @@
+<a routerLink="/provider/services" class="button">Gerenciar meus serviços e horários</a>
 <main class="provider-home">
   <header class="welcome">
     <div>
@@ -5,8 +6,19 @@
       <h1>Bom dia, {{ providerName }} <span aria-hidden="true">👋</span></h1>
       <p class="welcome__subtitle">Veja como está seu desempenho hoje</p>
     </div>
-
   </header>
+
+  <button type="button" (click)="refresh()" [disabled]="loading()">Atualizar painel</button>
+  @if (loading()) {
+    <p role="status">Atualizando painel...</p>
+  }
+  @if (dashboardError()) {
+    <p role="alert">{{ dashboardError() }}</p>
+  }
+  @if (loaded() && !requests().length && !activeOrders().length && !services.length) {
+    <p>Você ainda não possui solicitações ou serviços para exibir.</p>
+  }
+  <p>Os valores representam sua parcela em serviços pagos; não confirmam repasse bancário.</p>
 
   <section class="summary-grid" aria-label="Resumo do desempenho">
     @for (item of summary; track item.id) {
@@ -39,7 +51,10 @@
       <div class="section-heading section-heading--requests">
         <div>
           <h2>Solicitações aguardando aprovação</h2>
-          <p>{{ pendingCount() }} {{ pendingCount() === 1 ? 'solicitação pendente' : 'solicitações pendentes' }}</p>
+          <p>
+            {{ pendingCount() }}
+            {{ pendingCount() === 1 ? 'solicitação pendente' : 'solicitações pendentes' }}
+          </p>
         </div>
         @if (pendingCount()) {
           <span class="pending-badge">{{ pendingCount() }}</span>
@@ -52,7 +67,10 @@
 
       <div class="request-list">
         @for (request of requests(); track request.id) {
-          <article class="request-card" [class.request-card--resolved]="request.status !== 'pending'">
+          <article
+            class="request-card"
+            [class.request-card--resolved]="request.status !== 'pending'"
+          >
             <div class="request-card__top">
               <div class="client-avatar">{{ request.clientName.charAt(0) }}</div>
               <div class="request-card__client">
@@ -72,7 +90,9 @@
               </span>
             </div>
 
-            <a class="request-card__details-link" [routerLink]="['/orders', request.id]">Ver detalhes do pedido →</a>
+            <a class="request-card__details-link" [routerLink]="['/orders', request.id]"
+              >Ver detalhes do pedido →</a
+            >
 
             @if (request.status === 'pending') {
               <div class="request-card__actions">
@@ -94,7 +114,10 @@
                 </button>
               </div>
             } @else {
-              <div class="request-card__status" [class.request-card__status--declined]="request.status === 'declined'">
+              <div
+                class="request-card__status"
+                [class.request-card__status--declined]="request.status === 'declined'"
+              >
                 @if (request.status === 'accepted') {
                   <fa-icon [icon]="icons.check" />
                 }
@@ -121,12 +144,22 @@
       <div class="request-list">
         @for (order of activeOrders(); track order.id) {
           <article class="request-card active-order-card">
-            <div><span class="pending-badge">{{ statusLabel(order.status) }}</span><small>Pedido #{{ order.id }}</small></div>
+            <div>
+              <span class="pending-badge">{{ statusLabel(order.status) }}</span
+              ><small>Pedido #{{ order.id }}</small>
+            </div>
             <h3>{{ order.service }}</h3>
-            <p>{{ order.clientName }} · {{ order.date }} @if (order.time) { às {{ order.time }} }</p>
+            <p>
+              {{ order.clientName }} · {{ order.date }}
+              @if (order.time) {
+                às {{ order.time }}
+              }
+            </p>
             <strong>{{ order.amount | currency: 'BRL' : 'symbol' : '1.0-0' }}</strong>
             <footer class="request-card__actions">
-              <a class="button button--secondary" [routerLink]="['/orders', order.id]">Ver detalhes</a>
+              <a class="button button--secondary" [routerLink]="['/orders', order.id]"
+                >Ver detalhes</a
+              >
               @if (order.status === 'AGENDADO') {
                 <button
                   class="button button--primary"
@@ -146,7 +179,9 @@
                   {{ updatingActiveOrderIds().has(order.id) ? 'Iniciando…' : 'Iniciar serviço' }}
                 </button>
               } @else if (order.status === 'EM_ANDAMENTO') {
-                <a class="button button--primary" [routerLink]="['/orders', order.id, 'finish']">Finalizar serviço</a>
+                <a class="button button--primary" [routerLink]="['/orders', order.id, 'finish']"
+                  >Finalizar serviço</a
+                >
               }
             </footer>
           </article>
@@ -185,24 +220,6 @@
           </article>
         }
       </div>
-    </section>
-
-    <section class="panel goal-card">
-      <div class="goal-card__header">
-        <div>
-          <span>Meta do mês</span>
-          <strong>R$ 6.000</strong>
-        </div>
-        <span class="goal-card__percentage">80%</span>
-      </div>
-      <div class="goal-card__progress" role="progressbar" aria-label="Progresso da meta mensal" aria-valuenow="80" aria-valuemin="0" aria-valuemax="100">
-        <span></span>
-      </div>
-      <div class="goal-card__footer">
-        <p><strong>R$ 4.820</strong> arrecadados</p>
-        <p>Faltam R$ 1.180</p>
-      </div>
-      <p class="goal-card__message">Você já atingiu 80% da sua meta. Continue assim!</p>
     </section>
   </div>
 

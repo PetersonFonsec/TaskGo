@@ -7,18 +7,22 @@ import { CommandHandler, ICommandHandler } from '@nestjs/cqrs';
 import { OrderStatus } from '@prisma/client';
 
 import { PrismaService } from '../../../../prisma/prisma.service';
+import { PaymentService } from '../../../payments/payment.service';
 import { CancelOrderByProviderCommand } from './cancel-order-by-provider.command';
 
 @CommandHandler(CancelOrderByProviderCommand)
 export class CancelOrderByProviderHandler
   implements ICommandHandler<CancelOrderByProviderCommand>
 {
-  constructor(private readonly prisma: PrismaService) {}
+  constructor(
+    private readonly prisma: PrismaService,
+    private readonly payments: PaymentService,
+  ) {}
 
   async execute({ orderId, providerId }: CancelOrderByProviderCommand) {
     const order = await this.prisma.order.findUnique({
       where: { id: orderId },
-      include: { service: true },
+      include: { service: true, payment: true },
     });
     if (!order) throw new NotFoundException('Order not found');
     if (!order.service || order.service.providerId !== providerId) {
@@ -34,9 +38,19 @@ export class CancelOrderByProviderHandler
         'Only orders awaiting approval, awaiting payment, or scheduled can be cancelled by provider',
       );
     }
+    if (order.payment) await this.payments.cancelPayment(order.payment);
     return this.prisma.order.update({
-      where: { id: orderId },
-      data: { status: OrderStatus.CANCELADO },
+      where: { id: orderId, status: { in: cancellable } },
+      data: {
+        status: OrderStatus.CANCELADO,
+        orderTimeline: {
+          create: {
+            event: 'CANCELED',
+            createdBy: 'PRESTADOR',
+            createdAt: new Date(),
+          },
+        },
+      },
     });
   }
 }

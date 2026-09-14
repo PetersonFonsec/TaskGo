@@ -13,7 +13,7 @@ import { UserLoggedService } from '../user-logged/user-logged.service';
 import { TokenService } from '../token/token.service';
 
 @Injectable({
-  providedIn: 'root'
+  providedIn: 'root',
 })
 export class UserRegister {
   #userService = inject(UserLoggedService);
@@ -22,19 +22,19 @@ export class UserRegister {
 
   login(data: AuthLoginRequest) {
     return this.#http.post<CustomerAuthSession>(environment.url + '/auth/login', data).pipe(
-      tap(({ access_token }) => this.#tokenService.token = access_token),
-      tap(response => {
+      tap(({ access_token }) => (this.#tokenService.token = access_token)),
+      tap((response) => {
         this.#userService.setUserLogged(response as any);
-      })
+      }),
     );
   }
 
   registerUser(data: UserRegistrationRequest) {
-    return this.#http.post<CustomerAuthSession>(environment.url + '/auth/register', { user: data }).pipe(
-      tap(({ access_token }) => this.#tokenService.token = access_token),
-      tap(response => {
+    return this.#http.post<CustomerAuthSession>(environment.url + '/auth/register', data).pipe(
+      tap(({ access_token }) => (this.#tokenService.token = access_token)),
+      tap((response) => {
         this.#userService.setUserLogged(response as any);
-      })
+      }),
     );
   }
 }

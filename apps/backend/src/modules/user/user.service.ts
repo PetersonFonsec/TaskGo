@@ -122,6 +122,15 @@ export class UserService extends PaginationService<User> {
   }
 
   async update(id: bigint, updateUserDto: UpdateUserDto) {
+    if (
+      ['password', 'passwordHash', 'cpf', 'type'].some(
+        (key) => key in updateUserDto,
+      )
+    ) {
+      throw new BadRequestException(
+        'Credentials and account identity cannot be changed through profile updates.',
+      );
+    }
     const updateData = this.buildUserUpdateData(updateUserDto);
 
     if (!Object.keys(updateData).length) {
@@ -146,27 +155,19 @@ export class UserService extends PaginationService<User> {
     if (updateUserDto.email !== undefined) {
       new Email(updateUserDto.email);
       data.email = updateUserDto.email;
+      data.emailVerified = false;
+      data.pendingEmail = null;
     }
 
     if (updateUserDto.phone !== undefined) {
       const phone = new Phone(updateUserDto.phone);
       data.phone = phone.getValue();
+      data.phoneVerified = false;
+      data.pendingPhone = null;
     }
 
     if (updateUserDto.photoUrl !== undefined) {
       data.photoUrl = updateUserDto.photoUrl;
-    }
-
-    if (updateUserDto.password !== undefined) {
-      data.passwordHash = bcrypt.hashSync(updateUserDto.password, 8);
-    }
-
-    if (updateUserDto.cpf !== undefined) {
-      data.cpf = updateUserDto.cpf;
-    }
-
-    if (updateUserDto.type !== undefined) {
-      data.type = updateUserDto.type;
     }
 
     return data;

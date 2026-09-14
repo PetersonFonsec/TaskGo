@@ -27,12 +27,13 @@ export class CategoriesService extends PaginationService<Category> {
   create(createCategoryDto: CreateFullCategoryDto) {
     const { category, subcategories } = createCategoryDto;
 
-    this.prismaService.$transaction(async (prisma) => {
-      const { id: categoryId } = await prisma.category.create({
+    return this.prismaService.$transaction(async (prisma) => {
+      const created = await prisma.category.create({
         data: category,
       });
 
-      if (!subcategories || !subcategories.length) return;
+      const categoryId = created.id;
+      if (!subcategories || !subcategories.length) return created;
 
       await prisma.subcategory.createMany({
         data: subcategories.map((subcategory) => ({
@@ -44,18 +45,19 @@ export class CategoriesService extends PaginationService<Category> {
           categoryId,
         })),
       });
+      return created;
     });
   }
 
   async findAll(query: PaginationQuery): Promise<PaginationResponse<Category>> {
-    return this.listPaginated(query);
+    return this.listPaginated(query, { isActive: true });
   }
 
   findOne(id: number) {
-    return this.prismaService.category.findUnique({
-      where: { id },
+    return this.prismaService.category.findFirst({
+      where: { id, isActive: true },
       include: {
-        subcategories: true,
+        subcategories: { where: { isActive: true } },
       },
     });
   }
@@ -68,8 +70,9 @@ export class CategoriesService extends PaginationService<Category> {
   }
 
   remove(id: number) {
-    return this.prismaService.category.delete({
+    return this.prismaService.category.update({
       where: { id },
+      data: { isActive: false },
     });
   }
 }

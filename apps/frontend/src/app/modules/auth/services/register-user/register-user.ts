@@ -14,10 +14,10 @@ const steps = {
   contact: false,
   address: false,
   category: false,
-  service: false
-}
+  service: false,
+};
 @Injectable({
-  providedIn: 'root'
+  providedIn: 'root',
 })
 export class RegisterUser {
   #userRegister = inject(UserRegister);
@@ -34,8 +34,8 @@ export class RegisterUser {
     this.completeSteps.update((steps) => {
       return {
         ...steps,
-        address: true
-      }
+        address: true,
+      };
     });
   }
 
@@ -47,8 +47,8 @@ export class RegisterUser {
     this.completeSteps.update((steps) => {
       return {
         ...steps,
-        profile: true
-      }
+        profile: true,
+      };
     });
   }
 
@@ -60,8 +60,8 @@ export class RegisterUser {
     this.completeSteps.update((steps) => {
       return {
         ...steps,
-        category: true
-      }
+        category: true,
+      };
     });
   }
 
@@ -73,8 +73,8 @@ export class RegisterUser {
     this.completeSteps.update((steps) => {
       return {
         ...steps,
-        service: true
-      }
+        service: true,
+      };
     });
   }
 
@@ -86,8 +86,8 @@ export class RegisterUser {
     this.completeSteps.update((steps) => {
       return {
         ...steps,
-        contact: true
-      }
+        contact: true,
+      };
     });
   }
 
@@ -105,7 +105,6 @@ export class RegisterUser {
         street: user.address.street,
         number: user.address.number,
         complement: user.address.complement,
-        neighborhood: user.address.neighborhood,
         city: user.address.city,
         state: user.address.state,
         cep: user.address.cep,
@@ -118,8 +117,8 @@ export class RegisterUser {
         facebook: user.social.facebook,
         linkdin: user.social.linkdin,
       },
-      services: user.services.map((service) => this.toJsonId(service)),
-    }
+      subcategoryIds: user.services.map((service) => this.toJsonId(service)),
+    };
     return this.#userRegister.registerUser(payload);
   }
 

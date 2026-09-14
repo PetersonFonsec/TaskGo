@@ -1,3 +1,6 @@
+import { RecoveryRateLimitGuard } from './recovery-rate-limit.guard';
+import { AccountRecoveryService } from './account-recovery.service';
+import { AccountRecoveryController } from './account-recovery.controller';
 import { Module, forwardRef } from '@nestjs/common';
 import { CqrsModule } from '@nestjs/cqrs';
 import { JwtModule } from '@nestjs/jwt';
@@ -14,8 +17,10 @@ import { ProviderHomeService } from './provider-home.service';
 import { ConfigModule } from '../../config/config.module';
 
 @Module({
-  controllers: [AuthController],
+  controllers: [AuthController, AccountRecoveryController],
   providers: [
+    AccountRecoveryService,
+    RecoveryRateLimitGuard,
     AuthTokenService,
     ProviderHomeService,
     ...AuthCommands,

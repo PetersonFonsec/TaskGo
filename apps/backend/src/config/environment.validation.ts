@@ -43,6 +43,9 @@ export function validateEnvironment(environment: Environment): Environment {
     requireString(environment, 'PUBLIC_FRONTEND_ORIGINS');
     requireString(environment, 'BACKOFFICE_FRONTEND_ORIGINS');
 
+    if (normalized.PAYMENTS_SIMULATION === true) {
+      throw new Error('PAYMENTS_SIMULATION must be false in production');
+    }
     if (normalized.PAYMENTS_SIMULATION !== true) {
       requireString(environment, 'PAGARME_SECRET_KEY');
       requireString(environment, 'PAGARME_PLATFORM_RECIPIENT_ID');

@@ -7,9 +7,8 @@ import { ServiceStatus } from '@prisma/client';
 import { CreateServiceDto } from './create-service.dto';
 
 describe('CreateServiceDto', () => {
-  it('accepts JSON-safe provider IDs and transforms numeric prices', async () => {
+  it('transforms numeric prices', async () => {
     const dto = plainToInstance(CreateServiceDto, {
-      providerId: '9223372036854775807',
       title: 'Instalação',
       category: 'eletrica',
       basePrice: '120.50',
@@ -20,7 +19,7 @@ describe('CreateServiceDto', () => {
     expect(dto.basePrice).toBe(120.5);
   });
 
-  it('rejects UUIDs and non-numeric provider IDs', async () => {
+  it('rejects client-supplied provider ownership', async () => {
     const dto = plainToInstance(CreateServiceDto, {
       providerId: 'not-an-id',
       title: 'Instalação',
@@ -29,7 +28,10 @@ describe('CreateServiceDto', () => {
       status: ServiceStatus.ATIVO,
     });
 
-    const errors = await validate(dto);
+    const errors = await validate(dto, {
+      whitelist: true,
+      forbidNonWhitelisted: true,
+    });
     expect(errors.map(({ property }) => property)).toContain('providerId');
   });
 });

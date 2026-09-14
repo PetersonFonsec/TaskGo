@@ -1,168 +1,145 @@
-import {
-  BadRequestException,
-  ForbiddenException,
-  NotFoundException,
-} from '@nestjs/common';
-import { ConfigService } from '@nestjs/config';
-import { OrderStatus, PaymentMethod, PaymentStatus } from '@prisma/client';
-
-import { CreateOrderPaymentCommand } from './create-order-payment.command';
 import { CreateOrderPaymentHandler } from './create-order-payment.handler';
 
 describe('CreateOrderPaymentHandler', () => {
-  const orderId = 10n;
-  const clientId = 2n;
-  let prisma: any;
-  let gateway: any;
-  let handler: CreateOrderPaymentHandler;
-  const order = {
-    clientId,
-    status: OrderStatus.AGUARDANDO_PAGAMENTO,
-    finalPrice: 120,
-    client: {
-      name: 'Cliente',
-      email: 'cliente@teste.com',
-      cpf: '12345678901',
-    },
-    payment: {
-      id: 5n,
-      orderId,
-      method: PaymentMethod.PIX,
-      status: PaymentStatus.CREATED,
-      amount: 120,
-    },
-    service: {
-      basePrice: 100,
-      platformFeePct: 0.12,
-      category: 'reparo',
-      provider: { pagarmeRecipientId: 'rp_provider' },
-    },
-  };
-
+  let order: any,
+    tx: any,
+    prisma: any,
+    gateway: any,
+    handler: CreateOrderPaymentHandler;
   beforeEach(() => {
-    const tx = {
-      payment: { upsert: jest.fn() },
+    order = {
+      clientId: 2n,
+      status: 'AGUARDANDO_PAGAMENTO',
+      finalPrice: 120,
+      client: {
+        name: 'Cliente',
+        email: 'test@example.com',
+        cpf: '12345678901',
+      },
+      payment: {
+        id: 5n,
+        orderId: 10n,
+        method: 'PIX',
+        status: 'CREATED',
+        amount: 120,
+      },
+      service: {
+        basePrice: 120,
+        platformFeePct: 0.12,
+        category: 'reparo',
+        provider: {
+          payoutProfile: {
+            pagarmeRecipientId: 'rp_1',
+            syncStatus: 'READY',
+            bankAccountStatus: 'CONFIRMED',
+          },
+        },
+      },
+    };
+    let attempt: any;
+    tx = {
+      $queryRaw: jest.fn(),
+      order: {
+        findUniqueOrThrow: jest.fn(async () => order),
+        updateMany: jest.fn(),
+      },
+      paymentAttempt: {
+        upsert: jest.fn(
+          async ({ create }) =>
+            (attempt ??= { ...create, createdAt: new Date() }),
+        ),
+      },
+      payment: {
+        findUnique: jest.fn(async () => order.payment),
+        upsert: jest.fn(async ({ update }) =>
+          Object.assign(order.payment, update),
+        ),
+      },
       orderTimeline: { create: jest.fn() },
-      order: { update: jest.fn() },
     };
     prisma = {
-      order: { findUnique: jest.fn() },
+      order: { findUnique: jest.fn(async () => order) },
       category: { findFirst: jest.fn() },
-      $transaction: jest.fn((callback) => callback(tx)),
-      __tx: tx,
+      $transaction: jest.fn(async (cb) => cb(tx)),
     };
     gateway = {
-      createPixPayment: jest.fn(),
-      authorizeCardPayment: jest.fn(),
+      createPixPayment: jest.fn().mockResolvedValue({
+        orderId: 'or_1',
+        chargeId: 'ch_1',
+        status: 'pending',
+        qrCode: 'pix',
+        raw: { status: 'pending' },
+      }),
     };
     handler = new CreateOrderPaymentHandler(prisma, gateway, {
-      get: jest.fn().mockReturnValue('rp_platform'),
-      getOrThrow: jest.fn().mockReturnValue(0.12),
-    } as unknown as ConfigService);
+      get: () => 'rp_platform',
+      getOrThrow: () => 0.12,
+    } as any);
   });
-
-  it('starts a PIX payment and persists the split transactionally', async () => {
-    prisma.order.findUnique.mockResolvedValue(order);
+  const command = () =>
+    ({ orderId: 10n, clientId: 2n, payload: { method: 'PIX' } }) as any;
+  it('persists idempotency before network and does not schedule pending PIX', async () => {
+    const result = await handler.execute(command());
+    expect(result.status).toBe('PENDENTE');
+    expect(tx.paymentAttempt.upsert.mock.invocationCallOrder[0]).toBeLessThan(
+      gateway.createPixPayment.mock.invocationCallOrder[0],
+    );
+    expect(tx.order.updateMany).not.toHaveBeenCalled();
+    expect(result.platformAmount).toBe(14.4);
+  });
+  it('reuses the immutable key/request after an ambiguous timeout', async () => {
+    gateway.createPixPayment.mockRejectedValueOnce(new Error('timeout'));
+    await expect(handler.execute(command())).rejects.toThrow('timeout');
+    order.finalPrice = 999;
+    await handler.execute(command());
+    expect(gateway.createPixPayment.mock.calls[1][0]).toEqual(
+      gateway.createPixPayment.mock.calls[0][0],
+    );
+    expect(order.payment.amount).toBe(120);
+  });
+  it('never retries beyond the sandbox idempotency retention', async () => {
+    tx.paymentAttempt.upsert.mockResolvedValue({
+      method: 'PIX',
+      createdAt: new Date(Date.now() - 300000),
+    });
+    await expect(handler.execute(command())).rejects.toThrow(
+      'pendente de conciliação',
+    );
+    expect(gateway.createPixPayment).not.toHaveBeenCalled();
+  });
+  it('does not replace a charge or reuse an expired QR', async () => {
+    order.payment.status = 'PENDENTE';
+    order.payment.pixExpiresAt = new Date(0);
+    await expect(handler.execute(command())).rejects.toThrow('PIX expirado');
+    expect(gateway.createPixPayment).not.toHaveBeenCalled();
+  });
+  it('blocks raw card and missing payout readiness before a gateway call', async () => {
+    await expect(
+      handler.execute({
+        ...command(),
+        payload: { method: 'CARTAO', card: { number: '4111111111111111' } },
+      }),
+    ).rejects.toThrow('Somente PIX');
+    order.service.provider.payoutProfile.syncStatus = 'UNKNOWN';
+    await expect(handler.execute(command())).rejects.toThrow(
+      'não está habilitado',
+    );
+    expect(gateway.createPixPayment).not.toHaveBeenCalled();
+  });
+  it('rejects cross-client access', async () => {
+    await expect(
+      handler.execute({ ...command(), clientId: 99n }),
+    ).rejects.toThrow('Apenas o cliente');
+    expect(gateway.createPixPayment).not.toHaveBeenCalled();
+  });
+  it('does not turn an HTTP success with payment failure into scheduling', async () => {
     gateway.createPixPayment.mockResolvedValue({
       orderId: 'or_1',
       chargeId: 'ch_1',
-      qrCode: 'pix-code',
-      qrCodeBase64: null,
-      expiresAt: new Date(),
-      raw: { id: 'or_1' },
+      status: 'failed',
+      raw: {},
     });
-    prisma.__tx.payment.upsert.mockImplementation(({ create }) => ({
-      id: 5n,
-      createdAt: new Date(),
-      updatedAt: new Date(),
-      paidAt: null,
-      capturedAt: null,
-      canceledAt: null,
-      refundedAt: null,
-      failureReason: null,
-      ...create,
-    }));
-
-    const result = await handler.execute(
-      new CreateOrderPaymentCommand(orderId, clientId, {
-        method: PaymentMethod.PIX,
-      }),
-    );
-
-    expect(result.status).toBe(PaymentStatus.PENDENTE);
-    expect(result.pix?.qrCode).toBe('pix-code');
-    expect(prisma.__tx.payment.upsert).toHaveBeenCalledWith(
-      expect.objectContaining({
-        create: expect.objectContaining({
-          platformAmount: 14.4,
-          providerAmount: 105.6,
-        }),
-      }),
-    );
+    expect((await handler.execute(command())).status).toBe('FALHOU');
+    expect(tx.order.updateMany).not.toHaveBeenCalled();
   });
-
-  it('authorizes a card without persisting sensitive card fields', async () => {
-    prisma.order.findUnique.mockResolvedValue(order);
-    gateway.authorizeCardPayment.mockResolvedValue({
-      orderId: 'or_2',
-      chargeId: 'ch_2',
-      qrCode: null,
-      qrCodeBase64: null,
-      expiresAt: null,
-      raw: { id: 'or_2' },
-    });
-    prisma.__tx.payment.upsert.mockImplementation(({ create }) => ({
-      id: 6n,
-      ...create,
-    }));
-    const card = {
-      number: '4111111111111111',
-      holderName: 'CLIENTE TESTE',
-      expMonth: 12,
-      expYear: 2030,
-      cvv: '123',
-    };
-
-    await handler.execute(
-      new CreateOrderPaymentCommand(orderId, clientId, {
-        method: PaymentMethod.CARTAO,
-        card,
-      }),
-    );
-
-    const persisted = JSON.stringify(
-      prisma.__tx.payment.upsert.mock.calls[0][0],
-      (_, value) => (typeof value === 'bigint' ? value.toString() : value),
-    );
-    expect(persisted).not.toContain(card.number);
-    expect(persisted).not.toContain(card.cvv);
-  });
-
-  it.each([
-    [null, clientId, NotFoundException],
-    [order, 99n, ForbiddenException],
-    [
-      {
-        ...order,
-        service: {
-          ...order.service,
-          provider: { pagarmeRecipientId: null },
-        },
-      },
-      clientId,
-      BadRequestException,
-    ],
-  ])(
-    'rejects invalid payment ownership or eligibility',
-    async (value, userId, error) => {
-      prisma.order.findUnique.mockResolvedValue(value);
-      await expect(
-        handler.execute(
-          new CreateOrderPaymentCommand(orderId, userId, {
-            method: PaymentMethod.PIX,
-          }),
-        ),
-      ).rejects.toBeInstanceOf(error);
-    },
-  );
 });

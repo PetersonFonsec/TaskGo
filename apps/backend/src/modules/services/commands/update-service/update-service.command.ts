@@ -4,5 +4,6 @@ export class UpdateServiceCommand {
   constructor(
     public readonly id: bigint,
     public readonly payload: UpdateServiceDto,
+    public readonly providerId: bigint,
   ) {}
 }

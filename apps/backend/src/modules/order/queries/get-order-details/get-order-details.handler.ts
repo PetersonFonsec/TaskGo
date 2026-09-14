@@ -1,6 +1,6 @@
 import { NotFoundException } from '@nestjs/common';
 import { IQueryHandler, QueryHandler } from '@nestjs/cqrs';
-import { OrderEventType, OrderStatus } from '@prisma/client';
+import { OrderEventType } from '@prisma/client';
 
 import { PrismaService } from '../../../../prisma/prisma.service';
 import { GetOrderDetailsQuery } from './get-order-details.query';
@@ -106,14 +106,9 @@ export class GetOrderDetailsHandler
     const estimatedAmount = Number(
       order.estimatedPrice ?? order.service.basePrice,
     );
-    const timeline = order.orderTimeline.length
-      ? order.orderTimeline.map((event) => this.toTimelineEvent(event))
-      : this.deriveTimeline(
-          order.status,
-          order.requestedAt,
-          order.scheduledFor,
-          order.payment?.paidAt,
-        );
+    const timeline = order.orderTimeline.map((event) =>
+      this.toTimelineEvent(event),
+    );
 
     return {
       id: order.id.toString(),
@@ -177,71 +172,5 @@ export class GetOrderDetailsHandler
       date: event.createdAt,
       completed: true,
     };
-  }
-
-  private deriveTimeline(
-    status: OrderStatus,
-    requestedAt: Date,
-    scheduledFor: Date | null,
-    paidAt?: Date | null,
-  ) {
-    const events = [
-      {
-        type: 'REQUESTED',
-        title: 'Solicitação enviada',
-        description: 'O cliente solicitou o atendimento.',
-        date: requestedAt,
-        completed: true,
-      },
-    ];
-
-    if (
-      status !== OrderStatus.AGUARDANDO_APROVACAO &&
-      status !== OrderStatus.REJEITADO
-    ) {
-      events.push({
-        type: 'ACCEPTED',
-        title: 'Prestador aceitou',
-        description: 'O atendimento foi confirmado.',
-        date: scheduledFor ?? requestedAt,
-        completed: true,
-      });
-    }
-    if (paidAt)
-      events.push({
-        type: 'PAYMENT_AUTHORIZED',
-        title: 'Pagamento autorizado',
-        description: 'O pagamento foi autorizado.',
-        date: paidAt,
-        completed: true,
-      });
-    if (scheduledFor)
-      events.push({
-        type: 'SCHEDULED',
-        title: 'Atendimento agendado',
-        description: 'Data e horário reservados.',
-        date: scheduledFor,
-        completed: true,
-      });
-
-    const statusEvents: Partial<Record<OrderStatus, string>> = {
-      EM_DESLOCAMENTO: 'Prestador a caminho',
-      EM_ANDAMENTO: 'Serviço iniciado',
-      AGUARDANDO_CONFIRMACAO_CLIENTE: 'Aguardando confirmação do cliente',
-      CONCLUIDO: 'Serviço concluído',
-      CANCELADO: 'Pedido cancelado',
-      REJEITADO: 'Pedido rejeitado',
-      DISPUTA: 'Problema reportado',
-    };
-    const title = statusEvents[status];
-    if (title)
-      events.push({
-        type: status,
-        title,
-        description: 'Status atual do pedido.',
-        date: new Date(),
-        completed: true,
-      });
-    return events;
   }
 }

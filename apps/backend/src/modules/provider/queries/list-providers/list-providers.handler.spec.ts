@@ -22,9 +22,14 @@ describe('ListProvidersHandler', () => {
   it('lists all providers without consulting favorites', async () => {
     await handler.execute(new ListProvidersQuery(false));
 
-    expect(prisma.provider.findMany).toHaveBeenCalledWith({
-      include: { user: true, services: true },
-    });
+    expect(prisma.provider.findMany).toHaveBeenCalledWith(
+      expect.objectContaining({
+        where: expect.objectContaining({
+          status: 'APPROVED',
+          services: { some: { status: 'ATIVO' } },
+        }),
+      }),
+    );
     expect(prisma.clientFavorite.findMany).not.toHaveBeenCalled();
   });
 

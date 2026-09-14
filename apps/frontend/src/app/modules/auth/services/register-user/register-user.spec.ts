@@ -11,9 +11,7 @@ describe('RegisterUser', () => {
   let userStorage: { type: jasmine.Spy };
 
   beforeEach(() => {
-    registerHttp = jasmine.createSpyObj<UserRegisterHttp>('UserRegisterHttp', [
-      'registerUser',
-    ]);
+    registerHttp = jasmine.createSpyObj<UserRegisterHttp>('UserRegisterHttp', ['registerUser']);
     registerHttp.registerUser.and.returnValue({ subscribe: () => undefined } as any);
     userStorage = {
       type: jasmine.createSpy('type').and.returnValue(Roles.PROVIDER),
@@ -54,7 +52,7 @@ describe('RegisterUser', () => {
       complement: '',
     });
     service.addSocial({ whatsapp: '11999999999', instagram: 'taskgo' });
-    service.addService([{ id: 'service-1' }, { id: 2 }]);
+    service.addService([{ id: '1' }, { id: 2 }]);
 
     service.register();
 
@@ -66,13 +64,14 @@ describe('RegisterUser', () => {
         phone: '11999999999',
         cpf: '12345678900',
         type: 'PRESTADOR',
-        services: ['service-1', '2'],
+        subcategoryIds: ['1', '2'],
       }),
     );
-    expect(registerHttp.registerUser.calls.mostRecent().args[0] as any)
-      .not.toEqual(jasmine.objectContaining({
+    expect(registerHttp.registerUser.calls.mostRecent().args[0] as any).not.toEqual(
+      jasmine.objectContaining({
         confirmPassword: jasmine.anything(),
-      }));
+      }),
+    );
   });
 
   it('keeps registration step completion state local', () => {
@@ -89,8 +88,10 @@ describe('RegisterUser', () => {
 
     expect(service.completeSteps().profile).toBeTrue();
     expect(service.completeSteps().address).toBeTrue();
-    expect(service.user()).not.toEqual(jasmine.objectContaining({
-      completeSteps: jasmine.anything(),
-    }));
+    expect(service.user()).not.toEqual(
+      jasmine.objectContaining({
+        completeSteps: jasmine.anything(),
+      }),
+    );
   });
 });

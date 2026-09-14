@@ -1,9 +1,12 @@
+import { PaymentMethod } from '@prisma/client';
 import {
   IsNotEmpty,
   IsOptional,
   IsString,
   IsISO8601,
   IsNumber,
+  IsEnum,
+  Matches,
   ValidateNested,
 } from 'class-validator';
 import { Type } from 'class-transformer';
@@ -47,7 +50,10 @@ class AddressSnapDto {
 }
 
 export class CreateOrderDto {
-  @IsNotEmpty()
+  @Matches(/^[1-9]\d*$/)
+  addressId!: string;
+
+  @IsOptional()
   @IsString()
   clientId!: string;
 
@@ -55,7 +61,7 @@ export class CreateOrderDto {
   @IsString()
   serviceId!: string;
 
-  @IsOptional()
+  @IsNotEmpty()
   @IsISO8601()
   scheduledFor?: string;
 
@@ -64,8 +70,8 @@ export class CreateOrderDto {
   finalPrice?: number;
 
   @IsOptional()
-  @IsString()
-  paymentMethod?: string;
+  @IsEnum(PaymentMethod)
+  paymentMethod?: PaymentMethod;
 
   @IsOptional()
   @ValidateNested()

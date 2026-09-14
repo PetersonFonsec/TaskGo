@@ -51,6 +51,18 @@ describe('environment validation', () => {
     ).toThrow('PAGARME_SECRET_KEY is required');
   });
 
+  it('forbids simulated money in production', () => {
+    expect(() =>
+      validateEnvironment({
+        ...minimumEnvironment,
+        NODE_ENV: 'production',
+        PUBLIC_FRONTEND_ORIGINS: 'https://proxi.example',
+        BACKOFFICE_FRONTEND_ORIGINS: 'https://admin.proxi.example',
+        PAYMENTS_SIMULATION: 'true',
+      }),
+    ).toThrow('PAYMENTS_SIMULATION must be false in production');
+  });
+
   it.each([
     ['PORT', '0', 'PORT must be greater than or equal to 1'],
     ['PORT', 'invalid', 'PORT must be a number'],

@@ -1,6 +1,8 @@
 import { Type } from 'class-transformer';
 import {
   IsArray,
+  ArrayMaxSize,
+  MaxLength,
   IsEnum,
   IsNumber,
   IsOptional,
@@ -26,14 +28,17 @@ export class FinishOrderDto {
 
   @IsOptional()
   @IsString()
+  @MaxLength(1000)
   providerNotes?: string;
 
   @IsOptional()
   @IsString()
+  @MaxLength(500)
   priceAdjustmentReason?: string;
 
   @IsOptional()
   @IsArray()
+  @ArrayMaxSize(0, { message: 'Fotos ainda não estão disponíveis' })
   @ValidateNested({ each: true })
   @Type(() => FinishOrderPhotoDto)
   photos: FinishOrderPhotoDto[] = [];

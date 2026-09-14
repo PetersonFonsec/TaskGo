@@ -7,8 +7,12 @@ describe('UserServiceValidator', () => {
   it('creates new providers as pending and not verified', async () => {
     const validator = new UserServiceValidator();
     const dataSource = {
-      service: {
-        findMany: jest.fn().mockResolvedValue([{ id: BigInt(1) }]),
+      subcategory: {
+        findMany: jest
+          .fn()
+          .mockResolvedValue([
+            { id: BigInt(1), name: 'Repair', category: { slug: 'repairs' } },
+          ]),
       },
       provider: {
         create: jest.fn().mockResolvedValue({ id: BigInt(10) }),
@@ -18,7 +22,8 @@ describe('UserServiceValidator', () => {
     await validator.validate(
       {
         id: '10',
-        services: [BigInt(1)],
+        address: { lat: -23.5, lng: -46.6 },
+        subcategoryIds: [BigInt(1)],
       } as any,
       dataSource as any,
     );
@@ -28,6 +33,16 @@ describe('UserServiceValidator', () => {
         id: BigInt(10),
         status: ProviderStatus.PENDING,
         verified: false,
+        services: {
+          create: [
+            {
+              title: 'Repair',
+              category: 'repairs',
+              basePrice: 0,
+              status: 'INATIVO',
+            },
+          ],
+        },
       }),
     });
   });
@@ -35,8 +50,12 @@ describe('UserServiceValidator', () => {
   it('persists every supported social field using canonical names', async () => {
     const validator = new UserServiceValidator();
     const dataSource = {
-      service: {
-        findMany: jest.fn().mockResolvedValue([{ id: BigInt(1) }]),
+      subcategory: {
+        findMany: jest
+          .fn()
+          .mockResolvedValue([
+            { id: BigInt(1), name: 'Repair', category: { slug: 'repairs' } },
+          ]),
       },
       provider: {
         create: jest.fn().mockResolvedValue({ id: BigInt(10) }),
@@ -46,7 +65,8 @@ describe('UserServiceValidator', () => {
     await validator.validate(
       {
         id: '10',
-        services: [BigInt(1)],
+        address: { lat: -23.5, lng: -46.6 },
+        subcategoryIds: [BigInt(1)],
         social: {
           whatsapp: '+5511999999999',
           instagram: '@provider',
@@ -70,8 +90,12 @@ describe('UserServiceValidator', () => {
   it('normalizes legacy linkdin when canonical linkedin is absent', async () => {
     const validator = new UserServiceValidator();
     const dataSource = {
-      service: {
-        findMany: jest.fn().mockResolvedValue([{ id: BigInt(1) }]),
+      subcategory: {
+        findMany: jest
+          .fn()
+          .mockResolvedValue([
+            { id: BigInt(1), name: 'Repair', category: { slug: 'repairs' } },
+          ]),
       },
       provider: {
         create: jest.fn().mockResolvedValue({ id: BigInt(10) }),
@@ -81,7 +105,8 @@ describe('UserServiceValidator', () => {
     await validator.validate(
       {
         id: '10',
-        services: [BigInt(1)],
+        address: { lat: -23.5, lng: -46.6 },
+        subcategoryIds: [BigInt(1)],
         social: { linkdin: 'legacy-provider' },
       } as any,
       dataSource as any,
@@ -97,8 +122,12 @@ describe('UserServiceValidator', () => {
   it('gives canonical linkedin precedence over legacy linkdin', async () => {
     const validator = new UserServiceValidator();
     const dataSource = {
-      service: {
-        findMany: jest.fn().mockResolvedValue([{ id: BigInt(1) }]),
+      subcategory: {
+        findMany: jest
+          .fn()
+          .mockResolvedValue([
+            { id: BigInt(1), name: 'Repair', category: { slug: 'repairs' } },
+          ]),
       },
       provider: {
         create: jest.fn().mockResolvedValue({ id: BigInt(10) }),
@@ -108,7 +137,8 @@ describe('UserServiceValidator', () => {
     await validator.validate(
       {
         id: '10',
-        services: [BigInt(1)],
+        address: { lat: -23.5, lng: -46.6 },
+        subcategoryIds: [BigInt(1)],
         social: {
           linkedin: 'canonical-provider',
           linkdin: 'legacy-provider',
@@ -117,7 +147,7 @@ describe('UserServiceValidator', () => {
       dataSource as any,
     );
 
-    const call = dataSource.provider.create.mock.calls[0][0];
+    const call = (dataSource.provider.create as jest.Mock).mock.calls[0][0];
     expect(call.data.linkedin).toBe('canonical-provider');
     expect(call.data).not.toHaveProperty('linkdin');
   });
@@ -126,7 +156,7 @@ describe('UserServiceValidator', () => {
     const validator = new UserServiceValidator();
 
     await expect(
-      validator.validate({ services: [] } as any, {} as any),
+      validator.validate({ subcategoryIds: [] } as any, {} as any),
     ).rejects.toThrow(BadRequestException);
   });
 
@@ -134,14 +164,14 @@ describe('UserServiceValidator', () => {
     const validator = new UserServiceValidator();
 
     await expect(
-      validator.validate({ services: [BigInt(1)] } as any, {} as any),
+      validator.validate({ subcategoryIds: [BigInt(1)] } as any, {} as any),
     ).rejects.toThrow(BadRequestException);
   });
 
-  it('rejects inactive or missing service references', async () => {
+  it('rejects inactive or missing subcategory references', async () => {
     const validator = new UserServiceValidator();
     const dataSource = {
-      service: {
+      subcategory: {
         findMany: jest.fn().mockResolvedValue([]),
       },
     };
@@ -150,10 +180,11 @@ describe('UserServiceValidator', () => {
       validator.validate(
         {
           id: '10',
-          services: [BigInt(1)],
+          address: { lat: -23.5, lng: -46.6 },
+          subcategoryIds: [BigInt(1)],
         } as any,
         dataSource as any,
       ),
-    ).rejects.toThrow('One or more services not found or inactive');
+    ).rejects.toThrow('Especialidade inexistente ou inativa');
   });
 });

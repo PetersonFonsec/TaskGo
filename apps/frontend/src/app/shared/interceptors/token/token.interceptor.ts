@@ -1,5 +1,6 @@
 import { HttpInterceptorFn } from '@angular/common/http';
-import { inject } from "@angular/core";
+import { inject } from '@angular/core';
+import { environment } from '../../../../environments/environment';
 import { TokenService } from '@shared/service/token/token.service';
 
 /**
@@ -10,7 +11,7 @@ import { TokenService } from '@shared/service/token/token.service';
  */
 export const tokenInterceptor: HttpInterceptorFn = (req, next) => {
   const tokenService = inject(TokenService);
-  if (!tokenService.token) return next(req);
+  if (!tokenService.token || !isApiUrl(req.url)) return next(req);
 
   req = req.clone({
     setHeaders: {
@@ -21,3 +22,17 @@ export const tokenInterceptor: HttpInterceptorFn = (req, next) => {
 
   return next(req);
 };
+
+export function isApiUrl(url: string): boolean {
+  try {
+    const base = new URL(environment.url);
+    const target = new URL(url, base);
+    const prefix = base.pathname.replace(/\/$/, '');
+    return (
+      target.origin === base.origin &&
+      (target.pathname === prefix || target.pathname.startsWith(prefix + '/'))
+    );
+  } catch {
+    return false;
+  }
+}

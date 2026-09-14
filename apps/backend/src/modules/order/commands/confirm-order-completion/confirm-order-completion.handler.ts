@@ -65,6 +65,14 @@ export class ConfirmOrderCompletionHandler
     if (!order.payment)
       throw new BadRequestException('Pagamento do pedido não encontrado');
 
+    if (
+      Math.round(Number(order.finalPrice) * 100) !==
+      Math.round(Number(order.payment.amount) * 100)
+    )
+      throw new BadRequestException(
+        'Valor final diverge do pagamento acordado',
+      );
+
     const paidStatuses = [
       PaymentStatus.PAGO,
       PaymentStatus.CAPTURED,
@@ -76,16 +84,39 @@ export class ConfirmOrderCompletionHandler
     ) {
       throw new BadRequestException('Pagamento ainda não confirmado');
     }
-    const capture =
-      order.payment.method === 'CARTAO'
-        ? await this.paymentService.capturePayment(order.payment)
-        : {
-            capturedAt:
-              order.payment.capturedAt ?? order.payment.paidAt ?? new Date(),
-          };
+    const reconciled = await this.paymentService.reconcilePayment(
+      order.payment.id,
+    );
+    if (
+      order.payment.method === 'PIX' &&
+      !paidStatuses.includes(reconciled.status as any)
+    )
+      throw new BadRequestException('Pagamento não confirmado no gateway');
+    if (order.payment.method !== 'PIX')
+      throw new BadRequestException(
+        'Conclusão disponível apenas para PIX neste MVP',
+      );
+    const capture = {
+      capturedAt:
+        order.payment.capturedAt ?? order.payment.paidAt ?? new Date(),
+    };
     const confirmedAt = new Date();
 
     const response = await this.prisma.$transaction(async (prisma) => {
+      await prisma.$queryRaw`SELECT pg_advisory_xact_lock(${order.payment!.id})::text`;
+      const currentPayment = await prisma.payment.findUniqueOrThrow({
+        where: { id: order.payment!.id },
+      });
+      if (!paidStatuses.includes(currentPayment.status as any))
+        throw new BadRequestException('Pagamento não permite conclusão');
+      await prisma.$queryRaw`SELECT id FROM pedidos WHERE id = ${orderId} FOR UPDATE`;
+      const dispute = await prisma.orderDispute.findFirst({
+        where: { orderId, status: { in: ['OPEN', 'UNDER_REVIEW'] } },
+      });
+      if (dispute)
+        throw new BadRequestException(
+          'Aguarde a análise do problema reportado antes de confirmar',
+        );
       const changed = await prisma.order.updateMany({
         where: {
           id: orderId,

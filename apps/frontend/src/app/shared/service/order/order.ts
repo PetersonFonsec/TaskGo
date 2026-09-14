@@ -1,10 +1,21 @@
 import { HttpClient } from '@angular/common/http';
 import { inject, Injectable } from '@angular/core';
 import { environment } from '@environments/environment';
-import { ConfirmOrderResponse, CreateOrderPaymentRequest, CreateReviewRequest, CreateReviewResponse, FinishOrderPayload, FinishOrderResponse, OrderDetails, OrderPaymentResponse, OrdersResponse, ReviewTag } from './order.model';
+import {
+  ConfirmOrderResponse,
+  CreateOrderPaymentRequest,
+  CreateReviewRequest,
+  CreateReviewResponse,
+  FinishOrderPayload,
+  FinishOrderResponse,
+  OrderDetails,
+  OrderPaymentResponse,
+  OrdersResponse,
+  ReviewTag,
+} from './order.model';
 
 @Injectable({
-  providedIn: 'root'
+  providedIn: 'root',
 })
 export class Order {
   readonly #urlBase = environment.url + '/order';
@@ -31,7 +42,10 @@ export class Order {
   }
 
   createOrderPayment(orderId: string, payload: CreateOrderPaymentRequest) {
-    return this.#http.post<OrderPaymentResponse>(`${environment.url}/orders/${orderId}/payment`, payload);
+    return this.#http.post<OrderPaymentResponse>(
+      `${environment.url}/orders/${orderId}/payment`,
+      payload,
+    );
   }
 
   getReviewTags() {
@@ -39,19 +53,30 @@ export class Order {
   }
 
   updateOrderStatus(orderId: string, status: string) {
-    return this.#http.patch<OrderDetails>(`${this.#urlBase}/${orderId}`, { status });
+    const action =
+      status === 'EM_DESLOCAMENTO' ? 'on-the-way' : status === 'EM_ANDAMENTO' ? 'start' : null;
+    if (!action) throw new Error('Unsupported order action');
+    return this.#http.patch<OrderDetails>(`${this.#urlBase}/${orderId}/${action}`, {});
   }
 
   finishOrder(orderId: string, payload: FinishOrderPayload) {
-    return this.#http.patch<FinishOrderResponse>(`${environment.url}/orders/${orderId}/finish`, payload);
+    return this.#http.patch<FinishOrderResponse>(
+      `${environment.url}/orders/${orderId}/finish`,
+      payload,
+    );
   }
 
   confirmOrderCompletion(orderId: string, clientNotes?: string) {
-    return this.#http.patch<ConfirmOrderResponse>(`${environment.url}/orders/${orderId}/confirm`, { clientNotes });
+    return this.#http.patch<ConfirmOrderResponse>(`${environment.url}/orders/${orderId}/confirm`, {
+      clientNotes,
+    });
   }
 
   createReview(orderId: string, payload: CreateReviewRequest) {
-    return this.#http.post<CreateReviewResponse>(`${environment.url}/orders/${orderId}/review`, payload);
+    return this.#http.post<CreateReviewResponse>(
+      `${environment.url}/orders/${orderId}/review`,
+      payload,
+    );
   }
 
   confirmOrder(orderId: string, providerId: string) {

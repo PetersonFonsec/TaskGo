@@ -68,7 +68,7 @@ describe('UserController', () => {
   });
 
   it('returns a shared public profile from findOne', async () => {
-    const result = await controller.findOne(42n);
+    const result = await controller.findOne(42n, '42');
 
     expect(queryBus.execute).toHaveBeenCalledWith(
       expect.objectContaining({ id: BigInt(42) }),
@@ -80,11 +80,15 @@ describe('UserController', () => {
   });
 
   it('maps profile updates to a shared public profile with string ids and timestamps', async () => {
-    const result = await controller.update(42n, {
-      name: 'Updated User',
-      email: 'updated@example.com',
-      phone: '5511888888888',
-    } as any);
+    const result = await controller.update(
+      42n,
+      {
+        name: 'Updated User',
+        email: 'updated@example.com',
+        phone: '5511888888888',
+      } as any,
+      '42',
+    );
 
     expect(mockUserService.update).toHaveBeenCalledWith(BigInt(42), {
       name: 'Updated User',
@@ -104,46 +108,101 @@ describe('UserController', () => {
   });
 
   it('should request email verification', async () => {
-    const result = await controller.requestEmailVerification(1n, {
-      email: 'test@example.com',
-    } as any);
+    const result = await controller.requestEmailVerification(
+      1n,
+      {
+        email: 'test@example.com',
+      } as any,
+      '1',
+    );
     expect(mockUserService.requestEmailVerification).toHaveBeenCalledWith(
       BigInt(1),
       { email: 'test@example.com' },
     );
-    expect(result).toEqual({});
+    expect(result).toEqual({ success: true });
   });
 
   it('should confirm email verification', async () => {
-    const result = await controller.confirmEmailVerification(1n, {
-      verificationCode: 'CODE',
-    } as any);
+    const result = await controller.confirmEmailVerification(
+      1n,
+      {
+        verificationCode: 'CODE',
+      } as any,
+      '1',
+    );
     expect(mockUserService.confirmEmailVerification).toHaveBeenCalledWith(
       BigInt(1),
       { verificationCode: 'CODE' },
     );
-    expect(result).toEqual({});
+    expect(result).toEqual({ success: true });
   });
 
   it('should request phone verification', async () => {
-    const result = await controller.requestPhoneVerification(2n, {
-      phone: '+5511999999999',
-    } as any);
+    const result = await controller.requestPhoneVerification(
+      2n,
+      {
+        phone: '+5511999999999',
+      } as any,
+      '2',
+    );
     expect(mockUserService.requestPhoneVerification).toHaveBeenCalledWith(
       BigInt(2),
       { phone: '+5511999999999' },
     );
-    expect(result).toEqual({});
+    expect(result).toEqual({ success: true });
   });
 
   it('should confirm phone verification', async () => {
-    const result = await controller.confirmPhoneVerification(2n, {
-      verificationCode: 'CODE',
-    } as any);
+    const result = await controller.confirmPhoneVerification(
+      2n,
+      {
+        verificationCode: 'CODE',
+      } as any,
+      '2',
+    );
     expect(mockUserService.confirmPhoneVerification).toHaveBeenCalledWith(
       BigInt(2),
       { verificationCode: 'CODE' },
     );
-    expect(result).toEqual({});
+    expect(result).toEqual({ success: true });
+  });
+});
+
+describe('account isolation', () => {
+  const controller = new UserController({} as any, {} as any, {} as any);
+  it('denies directory enumeration', () => {
+    expect(() => controller.findAll({})).toThrow();
+  });
+  it('rejects every foreign-account operation before accessing storage', async () => {
+    await expect(controller.findOne(2n, '1')).rejects.toThrow();
+    await expect(
+      controller.update(2n, { name: 'attack' }, '1'),
+    ).rejects.toThrow();
+    await expect(
+      controller.requestEmailVerification(
+        2n,
+        { email: 'attacker@example.com' },
+        '1',
+      ),
+    ).rejects.toThrow();
+    await expect(
+      controller.requestPhoneVerification(2n, { phone: '11999999999' }, '1'),
+    ).rejects.toThrow();
+    await expect(
+      controller.confirmEmailVerification(
+        2n,
+        { verificationCode: '123456' },
+        '1',
+      ),
+    ).rejects.toThrow();
+    await expect(
+      controller.confirmPhoneVerification(
+        2n,
+        { verificationCode: '123456' },
+        '1',
+      ),
+    ).rejects.toThrow();
+    await expect(controller.remove(2n, '1')).rejects.toThrow();
+    await expect(controller.remove(1n, '1')).rejects.toThrow();
   });
 });

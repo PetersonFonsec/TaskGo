@@ -1,3 +1,4 @@
+import { ServiceManagementService } from './service-management.service';
 import { Module } from '@nestjs/common';
 import { CqrsModule } from '@nestjs/cqrs';
 
@@ -8,6 +9,10 @@ import { ServicesController } from './services.controller';
 @Module({
   imports: [CqrsModule],
   controllers: [ServicesController],
-  providers: [...ServiceCommandHandlers, ...ServiceQueryHandlers],
+  providers: [
+    ServiceManagementService,
+    ...ServiceCommandHandlers,
+    ...ServiceQueryHandlers,
+  ],
 })
 export class ServicesModule {}

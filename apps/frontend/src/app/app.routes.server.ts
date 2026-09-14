@@ -4,6 +4,8 @@ import { RenderMode, ServerRoute } from '@angular/ssr';
 // prerender requires explicit `getPrerenderParams` to enumerate parameter values.
 // Mark these to use Server renderMode so they're rendered per-request instead.
 export const serverRoutes: ServerRoute[] = [
+  { path: 'orders/:id/report-problem', renderMode: RenderMode.Client },
+  { path: 'authenticate/reset-password', renderMode: RenderMode.Client },
   {
     path: 'customer',
     renderMode: RenderMode.Client,

@@ -56,6 +56,7 @@ export class AuthGuard implements CanActivate {
     const payload = this.authTokenService.checkToken(token) as {
       id?: unknown;
       sub?: unknown;
+      iat?: number;
     };
     const id = payload?.id ?? payload?.sub;
     if (typeof id !== 'string' || !/^[1-9]\d*$/.test(id)) {
@@ -64,10 +65,17 @@ export class AuthGuard implements CanActivate {
 
     const user = await this.prisma.user.findUnique({
       where: { id: BigInt(id) },
-      select: { id: true, type: true },
+      select: { id: true, type: true, passwordChangedAt: true },
     });
     if (!user || !isCustomerRole(user.type)) {
       throw new UnauthorizedException('Invalid authentication identity');
+    }
+
+    if (
+      user.passwordChangedAt &&
+      (!payload.iat || payload.iat * 1000 <= user.passwordChangedAt.getTime())
+    ) {
+      throw new UnauthorizedException('Password changed; sign in again');
     }
 
     const identity: AuthenticatedIdentity = {

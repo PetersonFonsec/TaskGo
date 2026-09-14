@@ -7,14 +7,26 @@ import { IAddressEntity, ResponseAddressList } from './address.model';
   providedIn: 'root',
 })
 export class Address {
-  readonly #urlBase = environment.url + '/address';
+  readonly #urlBase = environment.url + '/user/me/addresses';
   readonly #http = inject(HttpClient);
 
   getAddress(userId: string, limit = 3) {
-    return this.#http.get<ResponseAddressList>(`${this.#urlBase}?userId=${userId}&limit=${limit}`);
+    return this.#http.get<ResponseAddressList>(`${this.#urlBase}?limit=${limit}`);
   }
 
   createAddress(payload: IAddressEntity) {
-    return this.#http.post<ResponseAddressList>(`${this.#urlBase}`, payload);
+    const { label, street, number, complement, city, state, cep, lat, lng, isDefault } = payload;
+    return this.#http.post<ResponseAddressList>(`${this.#urlBase}`, {
+      label,
+      street,
+      number,
+      complement,
+      city,
+      state,
+      cep,
+      lat,
+      lng,
+      isDefault,
+    });
   }
 }

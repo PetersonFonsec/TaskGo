@@ -6,6 +6,7 @@ import {
   RemoveServiceCommand,
   UpdateServiceCommand,
 } from './commands';
+import { ServiceManagementService } from './service-management.service';
 import { ServicesController } from './services.controller';
 import { GetServiceQuery, ListServicesQuery } from './queries';
 
@@ -20,6 +21,10 @@ describe('ServicesController', () => {
     const module = await Test.createTestingModule({
       controllers: [ServicesController],
       providers: [
+        {
+          provide: ServiceManagementService,
+          useValue: { listMine: jest.fn() },
+        },
         { provide: CommandBus, useValue: commandBus },
         { provide: QueryBus, useValue: queryBus },
       ],
@@ -31,17 +36,19 @@ describe('ServicesController', () => {
     const create = { title: 'Service' } as never;
     const update = { title: 'Updated' } as never;
 
-    await controller.create(create);
-    await controller.update(10n, update);
-    await controller.remove(11n);
+    await controller.create(create, '42');
+    await controller.update(10n, update, '42');
+    await controller.remove(11n, '42');
 
     const commands = commandBus.execute.mock.calls.map(([command]) => command);
     expect(commands[0]).toBeInstanceOf(CreateServiceCommand);
     expect(commands[1]).toEqual(
-      expect.objectContaining({ id: 10n, payload: update }),
+      expect.objectContaining({ id: 10n, payload: update, providerId: 42n }),
     );
     expect(commands[1]).toBeInstanceOf(UpdateServiceCommand);
-    expect(commands[2]).toEqual(expect.objectContaining({ id: 11n }));
+    expect(commands[2]).toEqual(
+      expect.objectContaining({ id: 11n, providerId: 42n }),
+    );
     expect(commands[2]).toBeInstanceOf(RemoveServiceCommand);
   });
 

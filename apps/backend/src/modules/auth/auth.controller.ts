@@ -1,5 +1,8 @@
+import { RecoveryRateLimitGuard } from './recovery-rate-limit.guard';
+import { ProviderOnly } from '../../shared/decorators/roles.decorator';
+import { User } from '../../shared/decorators/user.decorator';
 import { CommandBus } from '@nestjs/cqrs/dist/command-bus';
-import { Body, Controller, Post } from '@nestjs/common';
+import { Body, Controller, Get, Post, UseGuards } from '@nestjs/common';
 import { QueryBus } from '@nestjs/cqrs/dist/query-bus';
 import { plainToClass } from 'class-transformer';
 import type { CustomerAuthSession } from '@taskgo/shared';
@@ -23,6 +26,12 @@ export class AuthController {
     private readonly queryBus: QueryBus,
     private readonly providerHomeService: ProviderHomeService,
   ) {}
+
+  @ProviderOnly()
+  @Get('provider-home')
+  providerHome(@User('id') providerId: string) {
+    return this.providerHomeService.getForProvider(BigInt(providerId));
+  }
 
   @Public()
   @Post('login')
@@ -65,6 +74,7 @@ export class AuthController {
   }
 
   @Public()
+  @UseGuards(RecoveryRateLimitGuard)
   @Post('forget')
   async forget(@Body() body: AuthForgetDTO) {
     const command = plainToClass(ForgotPasswordCommand, body);

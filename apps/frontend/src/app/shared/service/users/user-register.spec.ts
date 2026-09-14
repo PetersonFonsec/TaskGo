@@ -98,7 +98,7 @@ describe('UserRegister', () => {
         facebook: '',
         linkdin: '',
       },
-      services: [],
+      subcategoryIds: [],
     };
     const response = buildCustomerSession();
 
@@ -108,8 +108,8 @@ describe('UserRegister', () => {
 
     const request = httpMock.expectOne(`${environment.url}/auth/register`);
     expect(request.request.method).toBe('POST');
-    expect(request.request.body).toEqual({ user: payload });
-    expect(request.request.body.user.completeSteps).toBeUndefined();
+    expect(request.request.body).toEqual(payload);
+    expect(request.request.body.completeSteps).toBeUndefined();
 
     request.flush(response);
 

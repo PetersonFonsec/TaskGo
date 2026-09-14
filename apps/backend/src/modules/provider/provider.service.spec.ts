@@ -30,7 +30,9 @@ describe('ProviderService', () => {
     to: '2026-06-24',
   };
 
+  afterEach(() => jest.restoreAllMocks());
   beforeEach(async () => {
+    jest.spyOn(Date, 'now').mockReturnValue(new Date('2026-06-01').getTime());
     prisma = {
       $transaction: jest.fn(async (callback) => callback(prisma)),
       service: {
@@ -69,6 +71,7 @@ describe('ProviderService', () => {
       where: {
         providerId: 42n,
         status: 'ATIVO',
+        provider: { status: 'APPROVED' },
       },
       select: {
         id: true,
@@ -150,6 +153,7 @@ describe('ProviderService', () => {
     prisma.order.findMany.mockResolvedValue([
       {
         serviceId: 101n,
+        service: activeService,
         scheduledFor: new Date('2026-06-22T12:00:00.000Z'),
       },
     ]);
@@ -187,10 +191,24 @@ describe('ProviderService', () => {
     );
   });
 
+  it('blocks overlapping intervals from a different service using the original booked end', async () => {
+    prisma.order.findMany.mockResolvedValue([
+      {
+        serviceId: 999n,
+        service: { ...activeService, id: 999n },
+        scheduledFor: new Date('2026-06-22T11:30:00Z'),
+        scheduledEnd: new Date('2026-06-22T13:30:00Z'),
+      },
+    ]);
+    const result = await service.getAvailability('42', availabilityQuery);
+    expect(result.days[0].slots).toEqual([]);
+  });
+
   it('existing scheduled order removes the matching slot', async () => {
     prisma.order.findMany.mockResolvedValue([
       {
         serviceId: 101n,
+        service: activeService,
         scheduledFor: new Date('2026-06-23T17:00:00.000Z'),
       },
     ]);
@@ -223,9 +241,7 @@ describe('ProviderService', () => {
 
     expect(prisma.order.findMany).toHaveBeenCalledWith({
       where: {
-        serviceId: {
-          in: [101n],
-        },
+        service: { providerId: 42n },
         status: {
           in: [
             'AGUARDANDO_APROVACAO',
@@ -244,6 +260,8 @@ describe('ProviderService', () => {
       select: {
         serviceId: true,
         scheduledFor: true,
+        scheduledEnd: true,
+        service: { select: { id: true, availability: true } },
       },
     });
   });
@@ -313,6 +331,7 @@ describe('ProviderService', () => {
         where: {
           providerId: 42n,
           status: 'ATIVO',
+          provider: { status: 'APPROVED' },
           id: 101n,
         },
       }),

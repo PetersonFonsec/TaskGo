@@ -112,3 +112,21 @@ describe('Auth Controller', () => {
     expect(result.user).not.toHaveProperty('reviews');
   });
 });
+
+describe('provider dashboard identity', () => {
+  it('uses the authenticated provider id for the fresh query', async () => {
+    const dashboard = {
+      getForProvider: jest.fn().mockResolvedValue({ pendingRequests: [] }),
+    };
+    const controller = new AuthController(
+      {} as any,
+      {} as any,
+      {} as any,
+      dashboard as any,
+    );
+    await expect(controller.providerHome('42')).resolves.toEqual({
+      pendingRequests: [],
+    });
+    expect(dashboard.getForProvider).toHaveBeenCalledWith(42n);
+  });
+});

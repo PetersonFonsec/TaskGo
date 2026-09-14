@@ -18,6 +18,8 @@ const migrationRoot = resolve(backendRoot, 'src/prisma/migrations');
 const prismaBinary = resolve(backendRoot, 'node_modules/.bin/prisma');
 
 function readEnvDatabaseUrl() {
+  if (process.env.PROXI_TEST_DATABASE_URL)
+    return process.env.PROXI_TEST_DATABASE_URL;
   const envPath = resolve(backendRoot, '.env.test');
   const envFile = readFileSync(envPath, 'utf8');
   const databaseUrl = envFile

@@ -15,8 +15,8 @@ export class UserServiceValidator implements UserValidations {
     command: CreateUserCommand,
     dataSource: Prisma.TransactionClient,
   ): Promise<void> {
-    if (!command.services || command.services.length === 0) {
-      throw new BadRequestException('Provider must have at least one service');
+    if (!command.subcategoryIds || command.subcategoryIds.length === 0) {
+      throw new BadRequestException('Selecione pelo menos uma especialidade');
     }
 
     if (!command.id) {
@@ -25,17 +25,17 @@ export class UserServiceValidator implements UserValidations {
       );
     }
 
-    const services = await dataSource.service.findMany({
+    const services = await dataSource.subcategory.findMany({
       where: {
-        id: { in: command.services.map((id) => BigInt(`${id}`)) },
-        status: 'ATIVO',
+        id: { in: command.subcategoryIds.map((id) => BigInt(`${id}`)) },
+        isActive: true,
+        category: { isActive: true },
       },
+      include: { category: { select: { slug: true } } },
     });
 
-    if (services.length !== command.services.length) {
-      throw new BadRequestException(
-        'One or more services not found or inactive',
-      );
+    if (services.length !== command.subcategoryIds.length) {
+      throw new BadRequestException('Especialidade inexistente ou inativa');
     }
 
     const social = command.social;
@@ -50,8 +50,24 @@ export class UserServiceValidator implements UserValidations {
         instagram: social?.instagram,
         facebook: social?.facebook,
         linkedin: social?.linkedin ?? social?.linkdin,
+        locations: {
+          create: { lat: command.address.lat, lng: command.address.lng },
+        },
+        serviceAreas: {
+          create: {
+            mode: 'RADIUS',
+            centerLat: command.address.lat,
+            centerLng: command.address.lng,
+            radiusKm: 10,
+          },
+        },
         services: {
-          connect: command.services.map((id) => ({ id: BigInt(`${id}`) })),
+          create: services.map((subcategory) => ({
+            title: subcategory.name,
+            category: subcategory.category.slug,
+            basePrice: 0,
+            status: 'INATIVO',
+          })),
         },
       },
     });

@@ -14,7 +14,15 @@ export class ListClientOrdersHandler
       where: { clientId },
       orderBy: { requestedAt: 'desc' },
       include: {
-        service: { include: { provider: { include: { user: true } } } },
+        service: {
+          include: {
+            provider: {
+              include: {
+                user: { select: { id: true, name: true, photoUrl: true } },
+              },
+            },
+          },
+        },
         payment: true,
         addressSnap: true,
         review: true,

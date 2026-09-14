@@ -87,6 +87,19 @@ describe('FavoritesController (integration)', () => {
     const provider = await prismaService.provider.create({
       data: {
         id: providerUser.id,
+        status: 'APPROVED',
+        verified: true,
+        services: {
+          create: {
+            title: 'Favorite service',
+            category: 'test',
+            basePrice: 100,
+            status: 'ATIVO',
+          },
+        },
+        serviceAreas: {
+          create: { mode: 'RADIUS', centerLat: 0, centerLng: 0, radiusKm: 10 },
+        },
       },
     });
 
@@ -99,6 +112,10 @@ describe('FavoritesController (integration)', () => {
       await prismaService.clientFavorite.deleteMany({ where: { clientId } });
     }
     if (prismaService?.provider) {
+      await prismaService.service.deleteMany({ where: { providerId } });
+      await prismaService.providerServiceArea.deleteMany({
+        where: { providerId },
+      });
       await prismaService.provider.delete({ where: { id: providerId } });
     }
     if (prismaService?.user) {

@@ -22,10 +22,18 @@ import { AuthenticatedShell } from '@shared/components/ui/authenticated-shell/au
 export const routes: Routes = [
   { path: '', redirectTo: UrlBase.AUTHENTICATE, pathMatch: 'full' },
   {
+    path: 'orders/:id/report-problem',
+    title: 'Reportar problema',
+    canActivate: [unauthorizedGuard],
+    loadComponent: () =>
+      import('@modules/orders/report-problem/report-problem.page').then((c) => c.ReportProblemPage),
+  },
+  {
     path: 'orders/:id/payment',
     title: 'Pagamento do pedido',
     canActivate: [unauthorizedGuard, permissionByRoleGuard([RolesBack.CUSTOMER])],
-    loadComponent: () => import('@modules/orders/order-payment/order-payment.page').then((c) => c.OrderPaymentPage),
+    loadComponent: () =>
+      import('@modules/orders/order-payment/order-payment.page').then((c) => c.OrderPaymentPage),
   },
   {
     path: 'orders/:id/review',
@@ -39,7 +47,9 @@ export const routes: Routes = [
     title: 'Confirmar conclusão',
     canActivate: [unauthorizedGuard, permissionByRoleGuard([RolesBack.CUSTOMER])],
     loadComponent: () =>
-      import('@modules/orders/confirm-service/confirm-service.page').then((c) => c.ConfirmServicePage),
+      import('@modules/orders/confirm-service/confirm-service.page').then(
+        (c) => c.ConfirmServicePage,
+      ),
   },
   {
     path: 'orders/:id/finish',
@@ -89,5 +99,5 @@ export const routes: Routes = [
       },
     ],
   },
-  { path: '**', component: NotFound }
+  { path: '**', component: NotFound },
 ];

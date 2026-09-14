@@ -22,10 +22,10 @@ describe('Address', () => {
   it('should be created', () => {
     expect(service).toBeTruthy();
   });
-  it('requests the addresses for the selected user with the requested limit', () => {
+  it('requests only the authenticated user addresses with the requested limit', () => {
     service.getAddress('customer-1', 5).subscribe();
     const request = TestBed.inject(HttpTestingController).expectOne(
-      `${environment.url}/address?userId=customer-1&limit=5`,
+      `${environment.url}/user/me/addresses?limit=5`,
     );
     expect(request.request.method).toBe('GET');
     request.flush({ data: [] });

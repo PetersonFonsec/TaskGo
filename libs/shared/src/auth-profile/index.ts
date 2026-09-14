@@ -3,7 +3,11 @@ export type JsonDateTime = string;
 
 export type TaskGoUserRole = 'CUSTOMER' | 'PROVIDER';
 export type TaskGoApiUserType = 'CLIENTE' | 'PRESTADOR';
-export type TaskGoAdminRole = 'ADMINISTRATOR' | 'SUPPORT' | 'FINANCE' | 'MODERATOR';
+export type TaskGoAdminRole =
+  | 'ADMINISTRATOR'
+  | 'SUPPORT'
+  | 'FINANCE'
+  | 'MODERATOR';
 
 export interface AuthLoginRequest {
   readonly email: string;
@@ -101,7 +105,7 @@ export interface UserRegistrationRequest {
   readonly type: TaskGoUserRole | TaskGoApiUserType;
   readonly address?: UserRegistrationAddressRequest;
   readonly social?: UserRegistrationSocialRequest;
-  readonly services?: readonly JsonId[];
+  readonly subcategoryIds?: readonly JsonId[];
 }
 
 export interface UserProfileUpdateRequest {

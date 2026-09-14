@@ -1,5 +1,8 @@
 import { CreateServiceDto } from '../../dto/create-service.dto';
 
 export class CreateServiceCommand {
-  constructor(public readonly payload: CreateServiceDto) {}
+  constructor(
+    public readonly payload: CreateServiceDto,
+    public readonly providerId: bigint,
+  ) {}
 }

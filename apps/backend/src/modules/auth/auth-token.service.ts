@@ -13,7 +13,7 @@ export class AuthTokenService {
     const idString = id.toString();
 
     const access_token = this.jwtService.sign(
-      { id: idString },
+      { id: idString, tokenKind: 'customer' },
       {
         expiresIn: this.configService.getOrThrow('auth.expiresIn'),
         subject: idString,
@@ -25,7 +25,9 @@ export class AuthTokenService {
 
   checkToken(token: string) {
     try {
-      return this.jwtService.verify(token);
+      const payload = this.jwtService.verify(token);
+      if (payload?.tokenKind !== 'customer') throw new UnauthorizedException();
+      return payload;
     } catch {
       throw new UnauthorizedException(
         'Invalid or expired authentication token',

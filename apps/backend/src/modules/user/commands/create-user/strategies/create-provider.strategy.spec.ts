@@ -20,7 +20,7 @@ describe('CreateProviderStrategy transaction boundary', () => {
       lng: -46.6,
       isDefault: true,
     },
-    services: [101n],
+    subcategoryIds: [101n],
   };
 
   it('uses only the transaction client for every onboarding write', async () => {
@@ -69,7 +69,13 @@ function transactionClient() {
       create: jest.fn().mockResolvedValue({ id: 42n }),
     },
     address: { create: jest.fn().mockResolvedValue({ id: 7n }) },
-    service: { findMany: jest.fn().mockResolvedValue([{ id: 101n }]) },
+    subcategory: {
+      findMany: jest
+        .fn()
+        .mockResolvedValue([
+          { id: 101n, name: 'Service', category: { slug: 'repairs' } },
+        ]),
+    },
     provider: { create: jest.fn().mockResolvedValue({ id: 42n }) },
   };
 }

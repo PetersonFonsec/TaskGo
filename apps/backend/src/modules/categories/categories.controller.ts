@@ -1,3 +1,7 @@
+import { AdminAuthGuard } from '../admin/auth/admin-auth.guard';
+import { AdminRolesGuard } from '../admin/authorization/admin-roles.guard';
+import { AdminPermissions } from '../admin/authorization/admin-roles.decorator';
+import { AdminCapability } from '../admin/authorization/admin-permissions';
 import {
   Controller,
   Get,
@@ -7,6 +11,7 @@ import {
   Param,
   Delete,
   Query,
+  UseGuards,
 } from '@nestjs/common';
 
 import { CategoriesService } from './categories.service';
@@ -20,6 +25,9 @@ import { PaginationQuery } from '../../shared/services/pagination/pagination.int
 export class CategoriesController {
   constructor(private readonly categoriesService: CategoriesService) {}
 
+  @Public()
+  @UseGuards(AdminAuthGuard, AdminRolesGuard)
+  @AdminPermissions(AdminCapability.ManageCatalog)
   @Post()
   create(@Body() createCategoryDto: CreateFullCategoryDto) {
     return this.categoriesService.create(createCategoryDto);
@@ -37,6 +45,9 @@ export class CategoriesController {
     return this.categoriesService.findOne(+id);
   }
 
+  @Public()
+  @UseGuards(AdminAuthGuard, AdminRolesGuard)
+  @AdminPermissions(AdminCapability.ManageCatalog)
   @Patch(':id')
   update(
     @Param('id') id: string,
@@ -45,6 +56,9 @@ export class CategoriesController {
     return this.categoriesService.update(+id, updateCategoryDto);
   }
 
+  @Public()
+  @UseGuards(AdminAuthGuard, AdminRolesGuard)
+  @AdminPermissions(AdminCapability.ManageCatalog)
   @Delete(':id')
   remove(@Param('id') id: string) {
     return this.categoriesService.remove(+id);

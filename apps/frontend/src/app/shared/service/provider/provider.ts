@@ -10,15 +10,21 @@ export interface ProviderAvailabilityQuery {
 }
 
 @Injectable({
-  providedIn: 'root'
+  providedIn: 'root',
 })
 export class Provider {
   readonly #urlBase = environment.url + '/provider';
   readonly #http = inject(HttpClient);
 
-  findProvidersByCategorySlug(categorySlug: string, options?: { onlyFavorites?: boolean }) {
+  findProvidersByCategorySlug(
+    categorySlug: string,
+    options?: { onlyFavorites?: boolean; lat?: number; lng?: number },
+  ) {
     let params = new HttpParams();
 
+    if (options?.lat != null && options?.lng != null) {
+      params = params.set('lat', options.lat).set('lng', options.lng);
+    }
     if (options?.onlyFavorites) {
       params = params.set('onlyFavorites', 'true');
     }
@@ -39,7 +45,7 @@ export class Provider {
 
     return this.#http.get<ProviderAvailabilityResponse>(
       `${this.#urlBase}/${providerId}/availability`,
-      { params }
+      { params },
     );
   }
 
@@ -49,7 +55,7 @@ export class Provider {
 
   addFavorite(clientId: string, providerId: string) {
     return this.#http.post<any>(`${environment.url}/favorites`, {
-      providerId
+      providerId,
     });
   }
 

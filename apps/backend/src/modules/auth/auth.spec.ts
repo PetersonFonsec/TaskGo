@@ -39,9 +39,27 @@ describe('AuthTokenService', () => {
         access_token: 'TOKEN',
       });
       expect(jwtServiceMock.sign).toHaveBeenCalledWith(
-        { id: '1' },
+        { id: '1', tokenKind: 'customer' },
         expect.objectContaining({ subject: '1' }),
       );
+    });
+  });
+});
+
+describe('token purpose separation with signed tokens', () => {
+  const jwt = new JwtService({ secret: 'unit-test-secret' });
+  const service = new AuthTokenService(jwt, { getOrThrow: () => '1h' } as any);
+  it.each([
+    { sub: '1', tokenKind: 'admin', role: 'ADMINISTRATOR' },
+    { id: '1' },
+  ])('rejects non-customer token %j', (payload) => {
+    expect(() => service.checkToken(jwt.sign(payload))).toThrow();
+  });
+  it('accepts a customer token it issued', async () => {
+    const token = await service.createToken(1n);
+    expect(service.checkToken(token.access_token)).toMatchObject({
+      id: '1',
+      tokenKind: 'customer',
     });
   });
 });

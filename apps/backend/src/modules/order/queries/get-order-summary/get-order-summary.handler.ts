@@ -13,7 +13,11 @@ export class GetOrderSummaryHandler
   async execute({ id }: GetOrderSummaryQuery) {
     const order = await this.prisma.order.findUnique({
       where: { id },
-      include: { client: true, addressSnap: true, service: true },
+      include: {
+        client: { select: { id: true, name: true, photoUrl: true } },
+        addressSnap: true,
+        service: true,
+      },
     });
     if (!order) throw new NotFoundException('Order not found');
     return {

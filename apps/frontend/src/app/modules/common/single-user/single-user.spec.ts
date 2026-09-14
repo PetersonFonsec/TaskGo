@@ -113,7 +113,10 @@ describe('SingleUser', () => {
       imports: [SingleUser],
       providers: [
         { provide: ActivatedRoute, useValue: { params: of({ userId: '1' }) } },
-        { provide: Router, useValue: {} },
+        {
+          provide: Router,
+          useValue: { navigate: jasmine.createSpy('navigate').and.resolveTo(true) },
+        },
         { provide: Provider, useValue: providerMock },
         { provide: UserLoggedService, useValue: userLoggedMock },
         { provide: User, useValue: { getProvider: providerMock.getProvider } },
@@ -311,7 +314,8 @@ describe('SingleUser', () => {
     );
   });
 
-  it('should send scheduledFor when registering with a selected slot', () => {
+  it('should send owned address and scheduledFor without client price or identity', () => {
+    component.selectedAddressId.set('address-1');
     component.selectSlot(availabilityResponse.days[1].slots[0]);
 
     component.register();
@@ -319,33 +323,19 @@ describe('SingleUser', () => {
     expect(providerMock.hireProvider).toHaveBeenCalledWith(
       jasmine.objectContaining({
         serviceId: 's1',
-        clientId: 'client-1',
+        addressId: 'address-1',
         scheduledFor: '2026-06-23T12:00:00.000Z',
-        paymentMethod: 'PIX',
       }),
     );
     expect(component.showModal()).toBeTrue();
   });
 
-  it('should request an appointment when the logged user has no addresses', () => {
-    userLoggedMock.user.and.returnValue({
-      user: {
-        id: 'client-1',
-        type: 'CUSTOMER',
-      },
-    });
+  it('blocks booking without an owned address', () => {
+    component.selectedAddressId.set('');
     component.selectSlot(availabilityResponse.days[1].slots[0]);
-
-    expect(() => component.register()).not.toThrow();
-    expect(providerMock.hireProvider).toHaveBeenCalledWith(
-      jasmine.objectContaining({
-        serviceId: 's1',
-        clientId: 'client-1',
-        scheduledFor: '2026-06-23T12:00:00.000Z',
-      }),
-    );
-    expect(providerMock.hireProvider.calls.mostRecent().args[0].address).toBeUndefined();
-    expect(component.showModal()).toBeTrue();
+    component.register();
+    expect(providerMock.hireProvider).not.toHaveBeenCalled();
+    expect(component.error()).toBe('Selecione um endereço de atendimento.');
   });
 
   it('should call addFavorite when the favorite toggle is activated', () => {
@@ -369,6 +359,7 @@ describe('SingleUser', () => {
   });
 
   it('should show unavailable-slot backend errors without losing provider context', () => {
+    component.selectedAddressId.set('address-1');
     providerMock.hireProvider.and.returnValue(
       throwError(
         () =>

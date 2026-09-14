@@ -54,7 +54,6 @@ describe('UserService', () => {
       email: 'new@example.com',
       phone: '11999999999',
       photoUrl: 'https://example.com/avatar.png',
-      password: 'new-secret',
       address: { street: 'Ignored Street' },
       bio: 'Ignored biography',
       services: [BigInt(1)],
@@ -79,9 +78,23 @@ describe('UserService', () => {
     expect(updateArgs.data.address).toBeUndefined();
     expect(updateArgs.data.bio).toBeUndefined();
     expect(updateArgs.data.services).toBeUndefined();
-    expect(updateArgs.data.passwordHash).toBeDefined();
+    expect(updateArgs.data.passwordHash).toBeUndefined();
+    expect(updateArgs.data.emailVerified).toBe(false);
+    expect(updateArgs.data.phoneVerified).toBe(false);
+    expect(updateArgs.data.pendingEmail).toBeNull();
+    expect(updateArgs.data.pendingPhone).toBeNull();
     expect(result).toEqual(expectedResult);
   });
+
+  it.each(['password', 'passwordHash', 'cpf', 'type'])(
+    'rejects protected field %s',
+    async (key) => {
+      await expect(
+        service.update(1n, { name: 'New', [key]: 'attack' } as any),
+      ).rejects.toThrow(BadRequestException);
+      expect(prisma.user.update).not.toHaveBeenCalled();
+    },
+  );
 
   it('throws when no valid profile fields are provided', async () => {
     const userId = BigInt(2);

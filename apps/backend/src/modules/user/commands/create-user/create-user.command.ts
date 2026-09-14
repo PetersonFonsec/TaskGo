@@ -12,7 +12,7 @@ export class CreateUserCommand {
   type: UserType;
   bio?: string;
   photoUrl?: string;
-  services?: bigint[];
+  subcategoryIds?: bigint[];
   social?: UserRegistrationSocialRequest;
   id?: string;
 }

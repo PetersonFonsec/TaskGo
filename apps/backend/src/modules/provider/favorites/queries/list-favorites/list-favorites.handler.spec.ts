@@ -5,7 +5,9 @@ describe('ListFavoritesHandler', () => {
   it('returns a paginated list and publishes view telemetry', async () => {
     const prisma: any = {
       clientFavorite: {
-        findMany: jest.fn().mockResolvedValue([{ id: 3n }]),
+        findMany: jest
+          .fn()
+          .mockResolvedValue([{ id: 3n, provider: { id: 2n } }]),
         count: jest.fn().mockResolvedValue(1),
       },
     };
@@ -14,9 +16,13 @@ describe('ListFavoritesHandler', () => {
 
     await expect(
       handler.execute(new ListFavoritesQuery(1n, { skip: 5, take: 10 })),
-    ).resolves.toEqual({ items: [{ id: 3n }], total: 1 });
+    ).resolves.toEqual({ items: [{ id: 3n, provider: { id: 2n } }], total: 1 });
     expect(prisma.clientFavorite.findMany).toHaveBeenCalledWith(
-      expect.objectContaining({ where: { clientId: 1n }, skip: 5, take: 10 }),
+      expect.objectContaining({
+        where: expect.objectContaining({ clientId: 1n }),
+        skip: 5,
+        take: 10,
+      }),
     );
     expect(mediator.publish).toHaveBeenCalledWith(
       'favorites.view',

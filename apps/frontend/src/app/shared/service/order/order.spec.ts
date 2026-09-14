@@ -23,12 +23,12 @@ describe('Order', () => {
     expect(service).toBeTruthy();
   });
   it('updates the selected order status without sending unrelated fields', () => {
-    service.updateOrderStatus('order-1', 'CANCELED').subscribe();
+    service.updateOrderStatus('order-1', 'EM_ANDAMENTO').subscribe();
     const request = TestBed.inject(HttpTestingController).expectOne(
-      `${environment.url}/order/order-1`,
+      `${environment.url}/order/order-1/start`,
     );
     expect(request.request.method).toBe('PATCH');
-    expect(request.request.body).toEqual({ status: 'CANCELED' });
+    expect(request.request.body).toEqual({});
     request.flush({});
   });
 });

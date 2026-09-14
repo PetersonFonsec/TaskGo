@@ -41,6 +41,14 @@ const defaultServiceAvailability = {
 };
 
 async function main() {
+  if (
+    process.env.NODE_ENV === 'production' ||
+    process.env.ALLOW_DEMO_SEED !== 'true'
+  ) {
+    throw new Error(
+      'Demo seed requires ALLOW_DEMO_SEED=true and is forbidden in production',
+    );
+  }
   const adminPasswordHash = await bcrypt.hash(SEED_PASSWORD, 10);
 
   await prisma.adminUser.upsert({

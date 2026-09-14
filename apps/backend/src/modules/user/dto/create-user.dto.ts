@@ -36,7 +36,7 @@ export class CreateUserDto {
   @IsOptional()
   @IsArray()
   @Type(() => BigInt)
-  services: bigint[];
+  subcategoryIds: bigint[];
 
   @IsOptional()
   @ValidateNested()

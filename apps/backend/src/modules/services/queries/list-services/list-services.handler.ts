@@ -30,6 +30,9 @@ export class ListServicesHandler implements IQueryHandler<ListServicesQuery> {
   }
 
   execute({ pagination }: ListServicesQuery) {
-    return this.pagination.listPaginated(pagination);
+    return this.pagination.listPaginated(pagination, {
+      status: 'ATIVO',
+      provider: { status: 'APPROVED' },
+    });
   }
 }

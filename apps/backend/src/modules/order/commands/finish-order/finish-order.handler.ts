@@ -14,12 +14,22 @@ export class FinishOrderHandler implements ICommandHandler<FinishOrderCommand> {
   constructor(private readonly prisma: PrismaService) {}
 
   async execute({ orderId, providerId, payload }: FinishOrderCommand) {
+    if (payload.photos?.length)
+      throw new BadRequestException('Fotos ainda não estão disponíveis');
     const order = await this.prisma.order.findUnique({
       where: { id: orderId },
       select: {
         status: true,
         estimatedPrice: true,
-        service: { select: { basePrice: true, providerId: true } },
+        finalPrice: true,
+        payment: { select: { amount: true, status: true, method: true } },
+        service: {
+          select: {
+            basePrice: true,
+            providerId: true,
+            provider: { select: { status: true } },
+          },
+        },
       },
     });
 
@@ -38,16 +48,19 @@ export class FinishOrderHandler implements ICommandHandler<FinishOrderCommand> {
       );
     }
 
-    const estimatedPrice = Number(
-      order.estimatedPrice ?? order.service.basePrice,
-    );
-    const priceAdjusted = Math.abs(payload.finalPrice - estimatedPrice) > 0.009;
-    const reason = payload.priceAdjustmentReason?.trim();
-    if (priceAdjusted && !reason) {
+    if (
+      order.service.provider.status !== 'APPROVED' ||
+      !order.payment ||
+      order.payment.method !== 'PIX' ||
+      !['CAPTURED', 'PAGO'].includes(order.payment.status) ||
+      Number(order.payment.amount) !== payload.finalPrice ||
+      Number(order.finalPrice) !== payload.finalPrice
+    )
       throw new BadRequestException(
-        'Informe a justificativa da alteração de preço',
+        'Final price must equal the agreed paid amount',
       );
-    }
+    const priceAdjusted = false;
+    const reason = undefined;
     if ((payload.photos?.length ?? 0) > 5) {
       throw new BadRequestException('É permitido enviar no máximo 5 fotos');
     }
@@ -55,7 +68,7 @@ export class FinishOrderHandler implements ICommandHandler<FinishOrderCommand> {
     const finishedAt = new Date();
     const updated = await this.prisma.$transaction(async (prisma) => {
       const result = await prisma.order.update({
-        where: { id: orderId },
+        where: { id: orderId, status: OrderStatus.EM_ANDAMENTO },
         data: {
           finalPrice: payload.finalPrice,
           priceAdjusted,

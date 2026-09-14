@@ -18,7 +18,8 @@ describe('ProviderHomeService', () => {
             status: OrderStatus.CONCLUIDO,
             finalPrice: 200,
             requestedAt: now,
-            scheduledFor: now,
+            clientConfirmedAt: now,
+            scheduledFor: new Date('2020-01-01T12:00:00Z'),
             client: { name: 'Maria' },
             service: { title: 'Elétrica' },
             payment: {
@@ -85,6 +86,7 @@ describe('ProviderHomeService', () => {
         where: { service: { is: { providerId: 7n } } },
       }),
     );
+    expect(result.recentServices[0].completedAt).toBe(now.toISOString());
     expect(result.earnings.today).toBe(180);
     expect(result.earnings.month).toBe(180);
     expect(result.services).toEqual({

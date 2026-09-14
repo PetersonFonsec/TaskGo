@@ -2,7 +2,8 @@ import { BadGatewayException, Injectable } from '@nestjs/common';
 import { randomUUID } from 'crypto';
 import { ConfigService } from '@nestjs/config';
 
-type GatewayInput = {
+export type GatewayInput = {
+  idempotencyKey: string;
   orderId: bigint;
   amountCents: number;
   platformAmountCents: number;
@@ -51,39 +52,14 @@ export class PagarmeService {
     });
   }
 
-  async authorizeCardPayment(input: GatewayInput) {
-    if (!input.card)
-      throw new BadGatewayException('Dados do cartão não informados');
-    if (this.simulated) {
-      const id = `ch_sim_${randomUUID()}`;
-      return {
-        orderId: `or_sim_${randomUUID()}`,
-        chargeId: id,
-        status: 'authorized_pending_capture',
-        qrCode: null,
-        qrCodeBase64: null,
-        expiresAt: null,
-        raw: { simulated: true, id },
-      };
-    }
-    return this.createOrder(input, {
-      payment_method: 'credit_card',
-      credit_card: {
-        operation_type: 'auth_only',
-        installments: 1,
-        card: {
-          number: input.card.number,
-          holder_name: input.card.holderName,
-          exp_month: input.card.expMonth,
-          exp_year: input.card.expYear,
-          cvv: input.card.cvv,
-        },
-      },
-    });
+  async authorizeCardPayment(_input: GatewayInput) {
+    throw new BadGatewayException(
+      'Pagamento por cartão indisponível até homologação da tokenização',
+    );
   }
 
   async capturePayment(providerChargeId: string, amount: number) {
-    if (this.simulated || providerChargeId.startsWith('ch_sim_'))
+    if (this.simulated)
       return {
         id: providerChargeId,
         status: 'paid',
@@ -93,13 +69,17 @@ export class PagarmeService {
     return this.request(`/charges/${providerChargeId}/capture`, {
       method: 'POST',
       body: { amount: Math.round(amount * 100) },
+      idempotencyKey: `capture-${providerChargeId}`,
     });
   }
 
   async cancelPayment(providerChargeId: string) {
     if (this.simulated)
       return { id: providerChargeId, status: 'canceled', simulated: true };
-    return this.request(`/charges/${providerChargeId}`, { method: 'DELETE' });
+    return this.request(`/charges/${providerChargeId}`, {
+      method: 'DELETE',
+      idempotencyKey: `cancel-${providerChargeId}`,
+    });
   }
 
   async refundPayment(providerChargeId: string) {
@@ -128,6 +108,7 @@ export class PagarmeService {
       });
     const raw: any = await this.request('/orders', {
       method: 'POST',
+      idempotencyKey: input.idempotencyKey,
       body: {
         code: input.orderId.toString(),
         customer: {
@@ -148,6 +129,10 @@ export class PagarmeService {
       },
     });
     const charge = raw.charges?.[0] ?? {};
+    if (!raw.id || !charge.id || charge.amount !== input.amountCents)
+      throw new BadGatewayException(
+        'Resposta financeira divergente; conciliação necessária',
+      );
     const transaction = charge.last_transaction ?? {};
     return {
       orderId: raw.id,
@@ -158,21 +143,33 @@ export class PagarmeService {
       expiresAt: transaction.expires_at
         ? new Date(transaction.expires_at)
         : null,
-      raw,
+      raw: { id: raw.id, chargeId: charge.id, status: charge.status },
     };
   }
 
   private async request(
     path: string,
-    init: { method?: string; body?: unknown } = {},
+    init: { method?: string; body?: unknown; idempotencyKey?: string } = {},
   ) {
+    if (!this.secretKey)
+      throw new BadGatewayException('Gateway não configurado');
+    if (!/^\/(orders|charges\/ch_[a-zA-Z0-9]+(?:\/capture)?)$/.test(path))
+      throw new BadGatewayException('Recurso financeiro inválido');
     const response = await fetch(`${this.baseUrl}${path}`, {
+      signal: AbortSignal.timeout(15000),
       method: init.method ?? 'GET',
       headers: {
         Authorization: `Basic ${Buffer.from(`${this.secretKey}:`).toString('base64')}`,
         'Content-Type': 'application/json',
+        ...(init.idempotencyKey
+          ? { 'Idempotency-key': init.idempotencyKey }
+          : {}),
       },
       body: init.body ? JSON.stringify(init.body) : undefined,
+    }).catch(() => {
+      throw new BadGatewayException(
+        'Gateway indisponível; consulte o pagamento antes de tentar novamente',
+      );
     });
     const data = await response.json().catch(() => ({}));
     if (!response.ok)

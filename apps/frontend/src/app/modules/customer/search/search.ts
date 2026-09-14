@@ -23,11 +23,11 @@ import { ButtonComponent } from '@shared/components/ui/button/button.component';
 @Component({
   selector: 'app-search',
   imports: [
-    CardProvider, 
-    ProxiMapComponent, 
-    FormatedProviderParamPipe, 
+    CardProvider,
+    ProxiMapComponent,
+    FormatedProviderParamPipe,
     FormsModule,
-    ButtonComponent
+    ButtonComponent,
   ],
   templateUrl: './search.html',
   styleUrl: './search.scss',
@@ -54,21 +54,27 @@ export class Search implements OnInit {
   minimumPrice = signal<number | null>(null);
   maximumPrice = signal<number | null>(null);
 
-  providers = computed(() => this.allProviders().filter((provider) => {
-    const rating = this.providerRating(provider);
-    const price = this.providerPrice(provider);
-    const distance = this.providerDistance(provider);
+  providers = computed(() =>
+    this.allProviders().filter((provider) => {
+      const rating = this.providerRating(provider);
+      const price = this.providerPrice(provider);
+      const distance = this.providerDistance(provider);
 
-    return rating >= this.minimumRating()
-      && (!this.maximumDistance() || (distance != null && distance <= this.maximumDistance()))
-      && (this.minimumPrice() == null || price >= this.minimumPrice()!)
-      && (this.maximumPrice() == null || price <= this.maximumPrice()!)
-      && (!this.onlyFavorites() || this.isFavorite(provider?.id ?? provider?.providerId));
-  }));
+      return (
+        rating >= this.minimumRating() &&
+        (!this.maximumDistance() || (distance != null && distance <= this.maximumDistance())) &&
+        (this.minimumPrice() == null || price >= this.minimumPrice()!) &&
+        (this.maximumPrice() == null || price <= this.maximumPrice()!) &&
+        (!this.onlyFavorites() || this.isFavorite(provider?.id ?? provider?.providerId))
+      );
+    }),
+  );
 
-  mapProviders = computed(() => this.providers()
-    .map((provider: any) => this.toMapProvider(provider))
-    .filter((provider: ProxiMapProvider | null): provider is ProxiMapProvider => !!provider));
+  mapProviders = computed(() =>
+    this.providers()
+      .map((provider: any) => this.toMapProvider(provider))
+      .filter((provider: ProxiMapProvider | null): provider is ProxiMapProvider => !!provider),
+  );
 
   private get storageAvailable() {
     return typeof window !== 'undefined' && typeof window.localStorage !== 'undefined';
@@ -78,40 +84,56 @@ export class Search implements OnInit {
     this.resolveUserLocation();
     this.loadCategories();
 
-    this.#route.queryParams.pipe(
-      tap(({ categoria, onlyFavorites, minimumRating, maximumDistance, minimumPrice, maximumPrice }) => {
-        this.category.set(categoria ?? '');
-        this.minimumRating.set(this.queryNumber(minimumRating));
-        this.maximumDistance.set(this.queryNumber(maximumDistance));
-        this.minimumPrice.set(this.queryOptionalNumber(minimumPrice));
-        this.maximumPrice.set(this.queryOptionalNumber(maximumPrice));
+    this.#route.queryParams
+      .pipe(
+        tap(
+          ({
+            categoria,
+            onlyFavorites,
+            minimumRating,
+            maximumDistance,
+            minimumPrice,
+            maximumPrice,
+          }) => {
+            this.category.set(categoria ?? '');
+            this.minimumRating.set(this.queryNumber(minimumRating));
+            this.maximumDistance.set(this.queryNumber(maximumDistance));
+            this.minimumPrice.set(this.queryOptionalNumber(minimumPrice));
+            this.maximumPrice.set(this.queryOptionalNumber(maximumPrice));
 
-        const clientId = this.#userLoggedService.user().user?.id;
-        const persistedOnlyFavorites = clientId ? this.restoreOnlyFavoritesPreference(String(clientId)) : false;
-        const queryOnlyFavorites = onlyFavorites === 'true';
-        const nextOnlyFavorites = onlyFavorites !== undefined ? queryOnlyFavorites : persistedOnlyFavorites;
+            const clientId = this.#userLoggedService.user().user?.id;
+            const persistedOnlyFavorites = clientId
+              ? this.restoreOnlyFavoritesPreference(String(clientId))
+              : false;
+            const queryOnlyFavorites = onlyFavorites === 'true';
+            const nextOnlyFavorites =
+              onlyFavorites !== undefined ? queryOnlyFavorites : persistedOnlyFavorites;
 
-        this.onlyFavorites.set(nextOnlyFavorites);
+            this.onlyFavorites.set(nextOnlyFavorites);
 
-        if (clientId && onlyFavorites !== undefined) {
-          this.persistOnlyFavoritesPreference(String(clientId), nextOnlyFavorites);
-        }
-      }),
-      switchMap(({ categoria, onlyFavorites }) =>
-        this.#provider.findProvidersByCategorySlug(categoria, {
-          onlyFavorites: onlyFavorites === 'true' || (onlyFavorites === undefined && this.onlyFavorites())
-        })
+            if (clientId && onlyFavorites !== undefined) {
+              this.persistOnlyFavoritesPreference(String(clientId), nextOnlyFavorites);
+            }
+          },
+        ),
+        switchMap(({ categoria, onlyFavorites }) =>
+          this.#provider.findProvidersByCategorySlug(categoria, {
+            ...this.userLocation(),
+            onlyFavorites:
+              onlyFavorites === 'true' || (onlyFavorites === undefined && this.onlyFavorites()),
+          }),
+        ),
       )
-    ).subscribe({
-      next: (params: any) => {
-        this.allProviders.set(params);
+      .subscribe({
+        next: (params: any) => {
+          this.allProviders.set(params);
 
-        const clientId = this.#userLoggedService.user().user?.id;
-        if (this.favoritesEnabled && clientId) {
-          this.loadFavorites(String(clientId));
-        }
-      }
-    });
+          const clientId = this.#userLoggedService.user().user?.id;
+          if (this.favoritesEnabled && clientId) {
+            this.loadFavorites(String(clientId));
+          }
+        },
+      });
   }
 
   updateCategory(category: string) {
@@ -175,9 +197,9 @@ export class Search implements OnInit {
       relativeTo: this.#route,
       queryParams: {
         categoria: this.category(),
-        onlyFavorites: value ? 'true' : null
+        onlyFavorites: value ? 'true' : null,
       },
-      queryParamsHandling: 'merge'
+      queryParamsHandling: 'merge',
     });
   }
 
@@ -229,23 +251,29 @@ export class Search implements OnInit {
     this.#geolocalization.getCurrentPosition().subscribe({
       next: ({ latitude, longitude }) => {
         this.userLocation.set({ lat: latitude, lng: longitude });
+        this.updateFilters({ lat: latitude, lng: longitude });
       },
       error: () => {
         this.userLocation.set(null);
-      }
+      },
     });
   }
 
   private getUserAddressLocation(): ProxiMapLocation | null {
     const addresses = this.#userLoggedService.user().user?.addresses ?? [];
-    const address = addresses.find((item: any) => item?.isDefault || item?.isPrimary) ?? addresses[0];
+    const address =
+      addresses.find((item: any) => item?.isDefault || item?.isPrimary) ?? addresses[0];
 
     return this.toLocation(address);
   }
 
   private toMapProvider(provider: any): ProxiMapProvider | null {
-    const locations = provider?.locations ?? (provider?.user?.address ? [provider.user.address] : []);
-    const location = this.toLocation(provider) ?? this.toLocation(locations[0]) ?? this.toLocation(provider?.user?.address);
+    const locations =
+      provider?.locations ?? (provider?.user?.address ? [provider.user.address] : []);
+    const location =
+      this.toLocation(provider) ??
+      this.toLocation(locations[0]) ??
+      this.toLocation(provider?.user?.address);
     const id = provider?.id ?? provider?.providerId ?? provider?.user?.id;
     if (!location || id == null || id === '') {
       return null;
@@ -309,12 +337,18 @@ export class Search implements OnInit {
   }
 
   private providerRating(provider: any) {
-    return this.toNumber(provider?.rating ?? provider?.ratingAvg ?? provider?.user?.provider?.ratingAvg, 0);
+    return this.toNumber(
+      provider?.rating ?? provider?.ratingAvg ?? provider?.user?.provider?.ratingAvg,
+      0,
+    );
   }
 
   private providerPrice(provider: any) {
     return this.toNumber(
-      provider?.priceFrom ?? provider?.price ?? provider?.services?.[0]?.basePrice ?? provider?.services?.[0]?.price,
+      provider?.priceFrom ??
+        provider?.price ??
+        provider?.services?.[0]?.basePrice ??
+        provider?.services?.[0]?.price,
       0,
     );
   }
@@ -326,19 +360,22 @@ export class Search implements OnInit {
     }
 
     const origin = this.userLocation();
-    const destination = this.toLocation(provider)
-      ?? this.toLocation(provider?.locations?.[0])
-      ?? this.toLocation(provider?.user?.address);
+    const destination =
+      this.toLocation(provider) ??
+      this.toLocation(provider?.locations?.[0]) ??
+      this.toLocation(provider?.user?.address);
     if (!origin || !destination) {
       return null;
     }
 
-    const radians = (degrees: number) => degrees * Math.PI / 180;
+    const radians = (degrees: number) => (degrees * Math.PI) / 180;
     const latitudeDelta = radians(destination.lat - origin.lat);
     const longitudeDelta = radians(destination.lng - origin.lng);
-    const a = Math.sin(latitudeDelta / 2) ** 2
-      + Math.cos(radians(origin.lat)) * Math.cos(radians(destination.lat))
-      * Math.sin(longitudeDelta / 2) ** 2;
+    const a =
+      Math.sin(latitudeDelta / 2) ** 2 +
+      Math.cos(radians(origin.lat)) *
+        Math.cos(radians(destination.lat)) *
+        Math.sin(longitudeDelta / 2) ** 2;
 
     return 6371 * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
   }
@@ -356,7 +393,9 @@ export class Search implements OnInit {
   }
 
   private normalizePrice(value: number | null) {
-    return value != null && Number.isFinite(Number(value)) && Number(value) >= 0 ? Number(value) : null;
+    return value != null && Number.isFinite(Number(value)) && Number(value) >= 0
+      ? Number(value)
+      : null;
   }
 
   isFavorite(providerId: any) {
@@ -380,7 +419,7 @@ export class Search implements OnInit {
     if (!clientId || !providerId) {
       this.favoriteError.update((state) => ({
         ...state,
-        [String(providerId)]: 'Não é possível atualizar favoritos no momento.'
+        [String(providerId)]: 'Não é possível atualizar favoritos no momento.',
       }));
       return;
     }
@@ -391,52 +430,59 @@ export class Search implements OnInit {
 
     this.favoriteLoading.update((state) => ({
       ...state,
-      [providerKey]: true
+      [providerKey]: true,
     }));
     this.favoriteError.update((state) => ({
       ...state,
-      [providerKey]: ''
+      [providerKey]: '',
     }));
 
     const request = nextState
       ? this.#provider.addFavorite(String(clientId), providerKey)
       : this.#provider.removeFavorite(String(clientId), providerKey);
 
-    request.pipe(finalize(() => {
-      this.favoriteLoading.update((state) => ({
-        ...state,
-        [providerKey]: false
-      }));
-    })).subscribe({
-      next: () => {
-        this.favorites.update((state) => ({
-          ...state,
-          [providerKey]: nextState
-        }));
-      },
-      error: (error: HttpErrorResponse) => {
-        this.favoriteError.update((state) => ({
-          ...state,
-          [providerKey]: error.error?.message || 'Erro ao atualizar favorito.'
-        }));
-      }
-    });
+    request
+      .pipe(
+        finalize(() => {
+          this.favoriteLoading.update((state) => ({
+            ...state,
+            [providerKey]: false,
+          }));
+        }),
+      )
+      .subscribe({
+        next: () => {
+          this.favorites.update((state) => ({
+            ...state,
+            [providerKey]: nextState,
+          }));
+        },
+        error: (error: HttpErrorResponse) => {
+          this.favoriteError.update((state) => ({
+            ...state,
+            [providerKey]: error.error?.message || 'Erro ao atualizar favorito.',
+          }));
+        },
+      });
   }
 
   private loadFavorites(clientId: string) {
     this.#provider.listFavorites(clientId).subscribe({
       next: (response: any) => {
         const items = response?.items ?? response ?? [];
-        const favoritesMap = (items as any[]).reduce((acc, item) => {
-          const id = String(item.providerId ?? item.id ?? '');
-          if (id) {
-            acc[id] = true;
-          }
-          return acc;
-        }, {} as Record<string, boolean>);
+        const favoritesMap = (items as any[]).reduce(
+          (acc, item) => {
+            const id = String(item.providerId ?? item.id ?? '');
+            if (id) {
+              acc[id] = true;
+            }
+            return acc;
+          },
+          {} as Record<string, boolean>,
+        );
 
         this.favorites.set(favoritesMap);
-      }
+      },
     });
   }
 

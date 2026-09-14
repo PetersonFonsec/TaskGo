@@ -6,7 +6,7 @@ import type {
 
 export type UserRegisterDraft = Omit<
   UserRegistrationRequest,
-  'address' | 'social' | 'services' | 'type'
+  'address' | 'social' | 'subcategoryIds' | 'type'
 > & {
   type: '' | UserRegistrationRequest['type'];
   address: Required<
@@ -19,10 +19,7 @@ export type UserRegisterDraft = Omit<
     complement: string;
   };
   social: Required<
-    Pick<
-      UserRegistrationSocialRequest,
-      'whatsapp' | 'instagram' | 'facebook' | 'linkdin'
-    >
+    Pick<UserRegistrationSocialRequest, 'whatsapp' | 'instagram' | 'facebook' | 'linkdin'>
   >;
   services: unknown[];
 };
@@ -47,5 +44,5 @@ export class UserRegister implements UserRegisterDraft {
     complement: '',
   };
   social = { whatsapp: '', instagram: '', facebook: '', linkdin: '' };
-  services: unknown[] = []
+  services: unknown[] = [];
 }

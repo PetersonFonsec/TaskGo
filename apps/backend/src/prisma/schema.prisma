@@ -131,6 +131,8 @@ enum ProviderBankAccountStatus {
 // ---------- Models ----------
 
 model User {
+  passwordChangedAt DateTime? @map("password_changed_at")
+  passwordResetTokens PasswordResetToken[]
   id            BigInt   @id @default(autoincrement())
   name          String   @map("nome")
   email         String   @unique
@@ -321,6 +323,7 @@ model Order {
   finalPrice            Decimal?    @map("preco_final")
   requestedAt           DateTime    @default(now()) @map("solicitado_em")
   scheduledFor          DateTime?   @map("executar_em")
+  scheduledEnd DateTime? @map("scheduled_end")
   estimatedPrice        Decimal?
   priceAdjusted         Boolean     @default(false) @map("preco_ajustado")
   priceAdjustmentReason String?     @map("motivo_ajuste_preco")
@@ -423,7 +426,7 @@ model PaymentWebhookEvent {
   paymentId   BigInt?  @map("payment_id")
   type        String
   payload     Json
-  processedAt DateTime @default(now()) @map("processed_at")
+  processedAt DateTime? @map("processed_at")
 
   payment Payment? @relation(fields: [paymentId], references: [id], onDelete: SetNull)
 
@@ -615,11 +618,37 @@ model FeatureFlag {
 }
 
 model OrderDispute {
+  resolvedById BigInt?
+  openedById BigInt?
+  resolution String?
+  resolvedAt DateTime?
   id          BigInt        @id @default(autoincrement())
   orderId     BigInt
   openedBy    UserType
   reason      String
   description String
   status      DisputeStatus
+  @@index([orderId, status])
   createdAt   DateTime      @default(now())
+}
+
+// One immutable creation operation per order. Ambiguous attempts require reconciliation.
+model PaymentAttempt {
+  orderId BigInt @id @map("order_id")
+  idempotencyKey String @unique @map("idempotency_key")
+  method PaymentMethod
+  request Json
+  createdAt DateTime @default(now()) @map("created_at")
+  @@map("payment_attempts")
+}
+
+model PasswordResetToken {
+  tokenHash String @id @map("token_hash")
+  userId BigInt @map("user_id")
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+  createdAt DateTime @default(now()) @map("created_at")
+  expiresAt DateTime @map("expires_at")
+  @@index([userId])
+  @@index([expiresAt])
+  @@map("password_reset_tokens")
 }

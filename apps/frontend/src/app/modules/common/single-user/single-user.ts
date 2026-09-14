@@ -1,3 +1,5 @@
+import { HttpClient } from '@angular/common/http';
+import { FormsModule } from '@angular/forms';
 import { Component, computed, inject, OnInit, signal } from '@angular/core';
 import { ActivatedRoute, Router } from '@angular/router';
 import { HttpErrorResponse } from '@angular/common/http';
@@ -34,7 +36,15 @@ import {
  */
 @Component({
   selector: 'app-single-user',
-  imports: [Card, Slider, SliderItemDirective, ButtonComponent, FullModal, ProviderProfileSummary],
+  imports: [
+    FormsModule,
+    Card,
+    Slider,
+    SliderItemDirective,
+    ButtonComponent,
+    FullModal,
+    ProviderProfileSummary,
+  ],
   templateUrl: './single-user.html',
   styleUrl: './single-user.scss',
 })
@@ -46,6 +56,11 @@ export class SingleUser implements OnInit {
   #router = inject(Router);
   #user = inject(User);
 
+  private readonly http = inject(HttpClient);
+  addresses = signal<any[]>([]);
+  selectedAddressId = signal('');
+  selectedServiceId = signal('');
+  submitting = signal(false);
   provider = signal<any>({});
   showModal = signal(false);
   error = signal('');
@@ -82,18 +97,36 @@ export class SingleUser implements OnInit {
   hasAvailableSlots = computed(() =>
     this.availabilityDays().some((day) => this.dayHasAvailableSlots(day)),
   );
-  selectedService = computed(() => this.provider()?.services?.[0] ?? null);
+  selectedService = computed(
+    () =>
+      this.provider()?.services?.find((s: any) => String(s.id) === this.selectedServiceId()) ??
+      this.provider()?.services?.[0] ??
+      null,
+  );
   servicePrice = computed(() => {
     const service = this.selectedService();
     const value = service?.basePrice ?? service?.price ?? this.provider()?.priceFrom ?? 0;
 
     return Number(value) || 0;
   });
-  requestDisabled = computed(() => this.availabilityLoading() || !this.selectedSlot());
+  requestDisabled = computed(
+    () =>
+      this.submitting() ||
+      this.availabilityLoading() ||
+      !this.selectedSlot() ||
+      !this.selectedAddressId(),
+  );
 
   socialLinks = SOCIAL_LINKS;
 
   ngOnInit(): void {
+    this.http.get<{ data: any[] }>(environment.url + '/user/me/addresses?limit=100').subscribe({
+      next: ({ data }) => {
+        this.addresses.set(data);
+        this.selectedAddressId.set(String(data.find((a) => a.isDefault)?.id ?? data[0]?.id ?? ''));
+      },
+      error: () => this.error.set('Cadastre um endereço de atendimento no seu perfil.'),
+    });
     this.#activatedRoute.params
       .pipe(switchMap(({ userId }) => this.#user.getProvider(userId)))
       .subscribe({
@@ -204,28 +237,32 @@ export class SingleUser implements OnInit {
       return;
     }
 
-    const address = loggedUser.addresses?.[0];
+    if (!this.selectedAddressId() || this.submitting()) {
+      this.error.set('Selecione um endereço de atendimento.');
+      return;
+    }
+    this.submitting.set(true);
 
     const payload: hireProviderRequest = {
-      serviceId,
-      clientId: loggedUser.id,
+      serviceId: String(serviceId),
       scheduledFor: selectedSlot.startsAt,
-      finalPrice: this.servicePrice(),
-      paymentMethod: 'PIX',
-      ...(address ? { address } : {}),
+      addressId: this.selectedAddressId(),
     };
 
-    this.#provider.hireProvider(payload).subscribe({
-      next: (response) => {
-        console.log(response);
-        this.#liveAnnouncer.announce('Agendamento solicitado com sucesso');
-        this.showModal.set(true);
-      },
-      error: (error: HttpErrorResponse) => {
-        this.#liveAnnouncer.announce('Houve um erro ao solicitar o agendamento');
-        this.error.set(this.getErrorMessage(error, 'Não foi possível criar a solicitação.'));
-      },
-    });
+    this.#provider
+      .hireProvider(payload)
+      .pipe(finalize(() => this.submitting.set(false)))
+      .subscribe({
+        next: (response: any) => {
+          void this.#router.navigate(['/orders', response.id]);
+          this.#liveAnnouncer.announce('Agendamento solicitado com sucesso');
+          this.showModal.set(true);
+        },
+        error: (error: HttpErrorResponse) => {
+          this.#liveAnnouncer.announce('Houve um erro ao solicitar o agendamento');
+          this.error.set(this.getErrorMessage(error, 'Não foi possível criar a solicitação.'));
+        },
+      });
   }
 
   getSelectedDaySlots() {
@@ -275,9 +312,14 @@ export class SingleUser implements OnInit {
     }
   }
 
+  selectService(id: string) {
+    this.selectedServiceId.set(id);
+    this.loadAvailability(this.provider());
+  }
+
   private loadAvailability(provider: any) {
     const providerId = provider?.id;
-    const serviceId = provider?.services?.[0]?.id;
+    const serviceId = this.selectedService()?.id;
 
     this.availabilityDays.set([]);
     this.availabilityTimezone.set('');

@@ -7,10 +7,12 @@ import {
   Param,
   Delete,
   Query,
+  ForbiddenException,
 } from '@nestjs/common';
 import { CommandBus, QueryBus } from '@nestjs/cqrs';
 import { plainToClass } from 'class-transformer';
 import type { PublicUserProfile } from '@taskgo/shared';
+import { User } from '../../shared/decorators/user.decorator';
 import { Public } from '../../shared/decorators/public.decorator';
 
 import { PaginationQuery } from '../../shared/services/pagination/pagination.interface';
@@ -42,14 +44,16 @@ export class UserController {
   }
 
   @Get()
-  findAll(@Query() query: PaginationQuery) {
-    return this.userService.findAll(query);
+  findAll(@Query() _query: PaginationQuery) {
+    throw new ForbiddenException('User directory is not available');
   }
 
   @Get(':id')
   async findOne(
     @Param('id', ParseBigIntPipe) id: bigint,
+    @User('id') actorId?: string,
   ): Promise<PublicUserProfile> {
+    this.assertOwner(id, actorId);
     const query = plainToClass(GetUserQuery, { id });
     return await this.queryBus.execute(query);
   }
@@ -58,45 +62,70 @@ export class UserController {
   async update(
     @Param('id', ParseBigIntPipe) id: bigint,
     @Body() updateUserDto: UpdateUserDto,
+    @User('id') actorId?: string,
   ): Promise<PublicUserProfile> {
+    this.assertOwner(id, actorId);
     const user = await this.userService.update(id, updateUserDto);
     return toPublicUserProfile(user);
   }
 
   @Post(':id/verify-email')
-  requestEmailVerification(
+  async requestEmailVerification(
     @Param('id', ParseBigIntPipe) id: bigint,
     @Body() payload: RequestEmailVerificationDto,
+    @User('id') actorId?: string,
   ) {
-    return this.userService.requestEmailVerification(id, payload);
+    this.assertOwner(id, actorId);
+    await this.userService.requestEmailVerification(id, payload);
+    return { success: true };
   }
 
   @Post(':id/verify-phone')
-  requestPhoneVerification(
+  async requestPhoneVerification(
     @Param('id', ParseBigIntPipe) id: bigint,
     @Body() payload: RequestPhoneVerificationDto,
+    @User('id') actorId?: string,
   ) {
-    return this.userService.requestPhoneVerification(id, payload);
+    this.assertOwner(id, actorId);
+    await this.userService.requestPhoneVerification(id, payload);
+    return { success: true };
   }
 
   @Post(':id/confirm-email')
-  confirmEmailVerification(
+  async confirmEmailVerification(
     @Param('id', ParseBigIntPipe) id: bigint,
     @Body() payload: ConfirmEmailVerificationDto,
+    @User('id') actorId?: string,
   ) {
-    return this.userService.confirmEmailVerification(id, payload);
+    this.assertOwner(id, actorId);
+    await this.userService.confirmEmailVerification(id, payload);
+    return { success: true };
   }
 
   @Post(':id/confirm-phone')
-  confirmPhoneVerification(
+  async confirmPhoneVerification(
     @Param('id', ParseBigIntPipe) id: bigint,
     @Body() payload: ConfirmPhoneVerificationDto,
+    @User('id') actorId?: string,
   ) {
-    return this.userService.confirmPhoneVerification(id, payload);
+    this.assertOwner(id, actorId);
+    await this.userService.confirmPhoneVerification(id, payload);
+    return { success: true };
   }
 
   @Delete(':id')
-  remove(@Param('id', ParseBigIntPipe) id: bigint) {
-    return this.userService.remove(id);
+  async remove(
+    @Param('id', ParseBigIntPipe) id: bigint,
+    @User('id') actorId?: string,
+  ) {
+    this.assertOwner(id, actorId);
+    throw new ForbiddenException(
+      'Account deletion requires the account closure process',
+    );
+  }
+  private assertOwner(id: bigint, actorId?: string) {
+    if (!actorId || id.toString() !== actorId) {
+      throw new ForbiddenException('You can only access your own account');
+    }
   }
 }

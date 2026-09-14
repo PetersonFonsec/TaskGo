@@ -1,12 +1,12 @@
 import { CommandHandler, ICommandHandler } from '@nestjs/cqrs';
-
+import { ServiceManagementService } from '../../service-management.service';
 import { RemoveServiceCommand } from './remove-service.command';
-
 @CommandHandler(RemoveServiceCommand)
 export class RemoveServiceHandler
   implements ICommandHandler<RemoveServiceCommand>
 {
-  async execute({ id }: RemoveServiceCommand) {
-    return `This action removes a #${id} service`;
+  constructor(private readonly services: ServiceManagementService) {}
+  execute({ id, providerId }: RemoveServiceCommand) {
+    return this.services.remove(id, providerId);
   }
 }

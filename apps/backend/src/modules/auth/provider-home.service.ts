@@ -72,12 +72,7 @@ export class ProviderHomeService {
         payment?.status === PaymentStatus.PAGO,
     );
     const revenueFor = (order: (typeof paid)[number]) =>
-      Number(
-        order.payment?.providerAmount ??
-          order.payment?.amount ??
-          order.finalPrice ??
-          0,
-      );
+      Number(order.payment?.providerAmount ?? 0);
     const revenueDateFor = (order: (typeof paid)[number]) =>
       order.payment?.paidAt ?? order.scheduledFor ?? order.requestedAt;
 
@@ -118,19 +113,19 @@ export class ProviderHomeService {
         status: order.status,
       }));
 
-    const recentServices = completed.slice(0, 5).map((order) => ({
-      id: order.id.toString(),
-      clientName: order.client.name,
-      service: order.service.title,
-      completedAt: (order.scheduledFor ?? order.requestedAt).toISOString(),
-      amount: Number(
-        order.payment?.providerAmount ??
-          order.payment?.amount ??
-          order.finalPrice ??
-          0,
-      ),
-      rating: order.review?.rating ?? null,
-    }));
+    const completedAt = (order: (typeof orders)[number]) =>
+      order.clientConfirmedAt ?? order.providerFinishedAt ?? order.requestedAt;
+    const recentServices = [...completed]
+      .sort((a, b) => completedAt(b).getTime() - completedAt(a).getTime())
+      .slice(0, 5)
+      .map((order) => ({
+        id: order.id.toString(),
+        clientName: order.client.name,
+        service: order.service.title,
+        completedAt: completedAt(order).toISOString(),
+        amount: Number(order.payment?.providerAmount ?? 0),
+        rating: order.review?.rating ?? null,
+      }));
 
     const mostRequested = this.mostFrequent(
       orders.map((order) => order.service.title),
@@ -155,10 +150,7 @@ export class ProviderHomeService {
       services: {
         completedTotal: completed.length,
         completedThisWeek: completed.filter((order) => {
-          const age = this.daysAgo(
-            order.scheduledFor ?? order.requestedAt,
-            now,
-          );
+          const age = this.daysAgo(completedAt(order), now);
           return age >= 0 && age < 7;
         }).length,
       },

@@ -15,6 +15,8 @@ import { AdminAuditService } from './admin-audit.service';
 const backendRoot = resolve(__dirname, '../../../..');
 
 function readEnvDatabaseUrl() {
+  if (process.env.PROXI_TEST_DATABASE_URL)
+    return process.env.PROXI_TEST_DATABASE_URL;
   const envPath = resolve(backendRoot, '.env.test');
   const envFile = readFileSync(envPath, 'utf8');
   const databaseUrl = envFile

@@ -48,6 +48,23 @@ describe('AuthGuard', () => {
     } as unknown as any;
   }
 
+  it('rejects a session issued before password recovery', async () => {
+    reflectorMock.getAllAndOverride.mockReturnValue(false);
+    authTokenServiceMock.checkToken.mockReturnValue({ id: '1', iat: 100 });
+    prismaMock.user.findUnique.mockResolvedValue({
+      id: 1n,
+      type: UserType.CLIENTE,
+      passwordChangedAt: new Date(101000),
+    });
+    await expect(
+      authGuard.canActivate(makeContext({ authorization: 'Bearer old' })),
+    ).rejects.toThrow('Password changed');
+    authTokenServiceMock.checkToken.mockReturnValue({ id: '1', iat: 102 });
+    await expect(
+      authGuard.canActivate(makeContext({ authorization: 'Bearer new' })),
+    ).resolves.toBe(true);
+  });
+
   it('should allow public routes without authentication', async () => {
     reflectorMock.getAllAndOverride.mockImplementation(
       (key) => key !== 'isOptionalAuth',
@@ -103,7 +120,7 @@ describe('AuthGuard', () => {
     expect(authTokenServiceMock.checkToken).toHaveBeenCalledWith('VALID_TOKEN');
     expect(prismaMock.user.findUnique).toHaveBeenCalledWith({
       where: { id: BigInt(1) },
-      select: { id: true, type: true },
+      select: { id: true, type: true, passwordChangedAt: true },
     });
   });
 
