@@ -17,7 +17,7 @@ export class Provider {
   readonly #http = inject(HttpClient);
 
   findProvidersByCategorySlug(
-    categorySlug: string,
+    categorySlug: string | undefined,
     options?: { onlyFavorites?: boolean; lat?: number; lng?: number },
   ) {
     let params = new HttpParams();
@@ -29,7 +29,10 @@ export class Provider {
       params = params.set('onlyFavorites', 'true');
     }
 
-    return this.#http.get(this.#urlBase + `/by-category/${categorySlug}`, { params });
+    const url = categorySlug
+      ? `${this.#urlBase}/by-category/${encodeURIComponent(categorySlug)}`
+      : this.#urlBase;
+    return this.#http.get(url, { params });
   }
 
   hireProvider(payload: hireProviderRequest) {

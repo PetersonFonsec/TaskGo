@@ -12,7 +12,7 @@ describe('Provider', () => {
 
   beforeEach(() => {
     TestBed.configureTestingModule({
-      providers: [provideHttpClient(), provideHttpClientTesting()]
+      providers: [provideHttpClient(), provideHttpClientTesting()],
     });
 
     service = TestBed.inject(Provider);
@@ -25,6 +25,22 @@ describe('Provider', () => {
 
   it('should be created', () => {
     expect(service).toBeTruthy();
+  });
+
+  it('should request all providers with coordinates when no category is selected', () => {
+    service.findProvidersByCategorySlug(undefined, { lat: -23.5505, lng: -46.6333 }).subscribe();
+    const request = httpMock.expectOne((req) => req.url === `${environment.url}/provider`);
+    expect(request.request.method).toBe('GET');
+    expect(request.request.params.get('lat')).toBe('-23.5505');
+    expect(request.request.params.get('lng')).toBe('-46.6333');
+    request.flush([]);
+  });
+
+  it('should request the category endpoint when a category is selected', () => {
+    service.findProvidersByCategorySlug('limpeza').subscribe();
+    const request = httpMock.expectOne(`${environment.url}/provider/by-category/limpeza`);
+    expect(request.request.method).toBe('GET');
+    request.flush([]);
   });
 
   it('should call the provider availability endpoint with date range params', () => {
@@ -41,25 +57,25 @@ describe('Provider', () => {
               endsAt: '2026-06-22T13:00:00.000Z',
               serviceId: 'service-1',
               label: '09:00',
-              available: true
-            }
-          ]
-        }
-      ]
+              available: true,
+            },
+          ],
+        },
+      ],
     };
 
     service
       .getAvailability('provider-1', {
         from: '2026-06-22',
-        to: '2026-06-28'
+        to: '2026-06-28',
       })
-      .subscribe(availability => {
+      .subscribe((availability) => {
         expect(availability.days[0].slots[0].startsAt).toBe('2026-06-22T12:00:00.000Z');
         expect(availability.days[0].slots[0].label).toBe('09:00');
       });
 
     const request = httpMock.expectOne(
-      req => req.url === `${environment.url}/provider/provider-1/availability`
+      (req) => req.url === `${environment.url}/provider/provider-1/availability`,
     );
 
     expect(request.request.method).toBe('GET');
@@ -75,12 +91,12 @@ describe('Provider', () => {
       .getAvailability('provider-1', {
         from: '2026-06-22',
         to: '2026-06-28',
-        serviceId: 'service-1'
+        serviceId: 'service-1',
       })
       .subscribe();
 
     const request = httpMock.expectOne(
-      req => req.url === `${environment.url}/provider/provider-1/availability`
+      (req) => req.url === `${environment.url}/provider/provider-1/availability`,
     );
 
     expect(request.request.method).toBe('GET');
@@ -91,7 +107,7 @@ describe('Provider', () => {
     request.flush({
       providerId: 'provider-1',
       timezone: 'America/Sao_Paulo',
-      days: []
+      days: [],
     } satisfies ProviderAvailabilityResponse);
   });
 });

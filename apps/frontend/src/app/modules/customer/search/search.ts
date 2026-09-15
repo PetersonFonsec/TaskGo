@@ -1,9 +1,9 @@
 import { Component, computed, inject, OnInit, signal } from '@angular/core';
-import { ActivatedRoute, Router, RouterLink } from '@angular/router';
+import { ActivatedRoute, Router } from '@angular/router';
 import { HttpErrorResponse } from '@angular/common/http';
 import { FormsModule } from '@angular/forms';
 
-import { CardDetail } from '@shared/components/ui/card-detail/card-detail';
+import { Address } from '@shared/service/address/address';
 import {
   ProxiMapComponent,
   ProxiMapLocation,
@@ -13,7 +13,17 @@ import { Geolocalization } from '@shared/service/geolocalization/geolocalization
 import { Provider } from '@shared/service/provider/provider';
 import { UserLoggedService } from '@shared/service/user-logged/user-logged.service';
 import { environment } from '@environments/environment';
-import { finalize, switchMap, tap } from 'rxjs';
+import {
+  catchError,
+  combineLatest,
+  finalize,
+  map,
+  of,
+  startWith,
+  Subject,
+  switchMap,
+  tap,
+} from 'rxjs';
 import { CardProvider } from '@shared/components/ui/card-provider/card-provider';
 import { FormatedProviderParamPipe } from './pipes/formated-provider-param-pipe';
 import { CategoryService } from '@shared/service/category/category';
@@ -37,12 +47,23 @@ export class Search implements OnInit {
   #geolocalization = inject(Geolocalization);
   #route = inject(ActivatedRoute);
   #provider = inject(Provider);
+  #address = inject(Address);
   #categoryService = inject(CategoryService);
   #router = inject(Router);
 
   favoritesEnabled = environment.features?.favoritesMvp ?? false;
   favoriteLoading = signal<Record<string, boolean>>({});
+  searchError = signal('');
+  readonly retrySearch = new Subject<void>();
+  locationLoading = signal(false);
+  locationError = signal('');
+  locationSource = signal<'address' | 'browser' | null>(null);
+  userLocationLabel = computed(() =>
+    this.locationSource() === 'address' ? 'Endereço cadastrado' : 'Sua localização atual',
+  );
   userLocation = signal<ProxiMapLocation | null>(null);
+  searchRegion = signal<ProxiMapLocation | null>(null);
+  searchOrigin = computed(() => this.searchRegion() ?? this.userLocation());
   favoriteError = signal<Record<string, string>>({});
   favorites = signal<Record<string, boolean>>({});
   onlyFavorites = signal(false);
@@ -84,17 +105,21 @@ export class Search implements OnInit {
     this.resolveUserLocation();
     this.loadCategories();
 
-    this.#route.queryParams
+    combineLatest([this.#route.queryParams, this.retrySearch.pipe(startWith(undefined))])
       .pipe(
+        map(([params]) => params),
         tap(
           ({
             categoria,
+            lat,
+            lng,
             onlyFavorites,
             minimumRating,
             maximumDistance,
             minimumPrice,
             maximumPrice,
           }) => {
+            this.searchRegion.set(this.toLocation({ lat, lng }));
             this.category.set(categoria ?? '');
             this.minimumRating.set(this.queryNumber(minimumRating));
             this.maximumDistance.set(this.queryNumber(maximumDistance));
@@ -116,13 +141,21 @@ export class Search implements OnInit {
             }
           },
         ),
-        switchMap(({ categoria, onlyFavorites }) =>
-          this.#provider.findProvidersByCategorySlug(categoria, {
-            ...this.userLocation(),
-            onlyFavorites:
-              onlyFavorites === 'true' || (onlyFavorites === undefined && this.onlyFavorites()),
-          }),
-        ),
+        switchMap(({ categoria, onlyFavorites }) => {
+          this.searchError.set('');
+          return this.#provider
+            .findProvidersByCategorySlug(categoria, {
+              ...this.searchOrigin(),
+              onlyFavorites:
+                onlyFavorites === 'true' || (onlyFavorites === undefined && this.onlyFavorites()),
+            })
+            .pipe(
+              catchError(() => {
+                this.searchError.set('Não foi possível buscar os profissionais. Tente novamente.');
+                return of([]);
+              }),
+            );
+        }),
       )
       .subscribe({
         next: (params: any) => {
@@ -137,7 +170,7 @@ export class Search implements OnInit {
   }
 
   updateCategory(category: string) {
-    this.updateFilters({ categoria: category });
+    this.updateFilters({ categoria: this.category() === category ? null : category });
   }
 
   updateMinimumRating(value: number) {
@@ -171,12 +204,16 @@ export class Search implements OnInit {
   }
 
   clearFilters() {
+    this.category.set('');
+    const clientId = this.#userLoggedService.user()?.user?.id;
+    if (clientId) this.persistOnlyFavoritesPreference(String(clientId), false);
     this.minimumRating.set(0);
     this.maximumDistance.set(0);
     this.minimumPrice.set(null);
     this.maximumPrice.set(null);
     this.onlyFavorites.set(false);
     this.updateFilters({
+      categoria: null,
       minimumRating: null,
       maximumDistance: null,
       minimumPrice: null,
@@ -242,29 +279,65 @@ export class Search implements OnInit {
   }
 
   private resolveUserLocation() {
-    const addressLocation = this.getUserAddressLocation();
-    if (addressLocation) {
-      this.userLocation.set(addressLocation);
+    const userId = this.#userLoggedService.user()?.user?.id;
+    if (!userId) {
+      this.requestCurrentLocation();
       return;
     }
 
-    this.#geolocalization.getCurrentPosition().subscribe({
-      next: ({ latitude, longitude }) => {
-        this.userLocation.set({ lat: latitude, lng: longitude });
-        this.updateFilters({ lat: latitude, lng: longitude });
+    this.locationLoading.set(true);
+    this.#address.getAddress(String(userId)).subscribe({
+      next: ({ data }) => {
+        const location = this.getAddressLocation(data);
+        if (location) {
+          this.userLocation.set(location);
+          this.locationSource.set('address');
+          this.locationLoading.set(false);
+          this.retrySearch.next();
+        } else {
+          this.requestCurrentLocation();
+        }
       },
-      error: () => {
-        this.userLocation.set(null);
-      },
+      error: () => this.requestCurrentLocation(),
     });
   }
 
-  private getUserAddressLocation(): ProxiMapLocation | null {
-    const addresses = this.#userLoggedService.user().user?.addresses ?? [];
-    const address =
-      addresses.find((item: any) => item?.isDefault || item?.isPrimary) ?? addresses[0];
+  requestCurrentLocation(useForSearch = false) {
+    this.locationLoading.set(true);
+    this.locationError.set('');
+    this.#geolocalization
+      .getCurrentPosition()
+      .pipe(finalize(() => this.locationLoading.set(false)))
+      .subscribe({
+        next: ({ latitude, longitude }) => {
+          const location = this.toLocation({ latitude, longitude });
+          this.userLocation.set(location);
+          this.locationSource.set(location ? 'browser' : null);
+          if (location) {
+            if (useForSearch && this.searchRegion()) this.updateFilters({ lat: null, lng: null });
+            else this.retrySearch.next();
+          }
+        },
+        error: () => {
+          this.locationError.set(
+            'Não foi possível obter sua localização. Permita o acesso no navegador ou cadastre um endereço no perfil.',
+          );
+        },
+      });
+  }
 
-    return this.toLocation(address);
+  searchNearMe() {
+    this.requestCurrentLocation(true);
+  }
+
+  private getAddressLocation(addresses: any[]): ProxiMapLocation | null {
+    const active = addresses.filter((address) => address?.active !== false);
+    const preferred = active.find((address) => address?.isDefault || address?.isPrimary);
+    return (
+      this.toLocation(preferred) ??
+      active.map((address) => this.toLocation(address)).find(Boolean) ??
+      null
+    );
   }
 
   private toMapProvider(provider: any): ProxiMapProvider | null {
@@ -359,7 +432,7 @@ export class Search implements OnInit {
       return suppliedDistance;
     }
 
-    const origin = this.userLocation();
+    const origin = this.searchOrigin();
     const destination =
       this.toLocation(provider) ??
       this.toLocation(provider?.locations?.[0]) ??

@@ -213,6 +213,45 @@ describe('ProxiMapComponent', () => {
     );
   });
 
+  it('should show providers without requiring the customer location', async () => {
+    await createComponent();
+    fixture.componentRef.setInput('providers', [
+      {
+        id: 'provider-1',
+        name: 'Ana',
+        service: 'Pintura',
+        rating: 4,
+        priceFrom: 100,
+        lat: -23.55,
+        lng: -46.63,
+      },
+    ]);
+    fixture.detectChanges();
+    await settleMap();
+    expect(component['mapReady']()).toBeTrue();
+    expect(fixture.nativeElement.querySelector('.proxi-map__fallback')).toBeNull();
+    expect(leafletMock.marker).toHaveBeenCalledTimes(1);
+    expect(leafletMock.mapInstance.setView).toHaveBeenCalledWith([-23.55, -46.63], 13);
+  });
+
+  it('should display a search region without creating a user marker there', async () => {
+    await createComponent();
+    fixture.componentRef.setInput('searchRegion', { lat: -23.5505, lng: -46.6333 });
+    fixture.detectChanges();
+    await settleMap();
+    expect(component['mapReady']()).toBeTrue();
+    expect(leafletMock.mapInstance.setView).toHaveBeenCalledWith([-23.5505, -46.6333], 13);
+    expect(leafletMock.marker).not.toHaveBeenCalled();
+    fixture.componentRef.setInput('userLocation', { lat: -22.9, lng: -43.2 });
+    fixture.detectChanges();
+    await settleMap();
+    expect(leafletMock.marker).toHaveBeenCalledTimes(1);
+    expect(leafletMock.marker).toHaveBeenCalledWith(
+      [-22.9, -43.2],
+      jasmine.objectContaining({ title: 'Sua localização' }),
+    );
+  });
+
   it('should emit the provider id from popup profile action', async () => {
     await createComponent();
     spyOn(component.viewProfile, 'emit');

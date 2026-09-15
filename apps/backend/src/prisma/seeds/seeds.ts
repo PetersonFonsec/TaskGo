@@ -174,6 +174,15 @@ async function main() {
               lng: location.lng,
             },
           },
+          serviceAreas: {
+            create: {
+              mode: 'RADIUS',
+              centerLat: location.lat,
+              centerLng: location.lng,
+              radiusKm: 30,
+              active: true,
+            },
+          },
           bio: `Sou o prestador ${i + 1}, especializado em serviços gerais.`,
           verified,
           status: verified ? ProviderStatus.APPROVED : ProviderStatus.PENDING,

@@ -3,8 +3,9 @@ import { ComponentFixture, TestBed } from '@angular/core/testing';
 import { By } from '@angular/platform-browser';
 import { ActivatedRoute, Router } from '@angular/router';
 import { HttpErrorResponse } from '@angular/common/http';
-import { of, throwError } from 'rxjs';
+import { BehaviorSubject, of, Subject, throwError } from 'rxjs';
 
+import { Address } from '@shared/service/address/address';
 import { Search } from './search';
 import {
   ProxiMapComponent,
@@ -22,6 +23,8 @@ import { CategoryService } from '@shared/service/category/category';
   template: '',
 })
 class ProxiMapStubComponent {
+  @Input() userLocationLabel = '';
+  @Input() searchRegion: ProxiMapLocation | null = null;
   @Input() userLocation: ProxiMapLocation | null = null;
   @Input() providers: ProxiMapProvider[] = [];
   @Output() viewProfile = new EventEmitter<ProxiMapProvider['id']>();
@@ -49,17 +52,25 @@ const validProvider = {
 describe('Search', () => {
   let component: Search;
   let fixture: ComponentFixture<Search>;
+  let addressMock: any;
   let providerMock: any;
   let geolocalizationMock: any;
   let userLoggedMock: any;
   let routerMock: any;
   let categoryServiceMock: any;
   let providersResponse: any[];
+  let queryParams: BehaviorSubject<any>;
 
   beforeEach(async () => {
     window.localStorage.removeItem('search.onlyFavorites.client-1');
+    queryParams = new BehaviorSubject<any>({ categoria: 'encanadores' });
     providersResponse = [{ ...validProvider }];
 
+    addressMock = {
+      getAddress: jasmine
+        .createSpy('getAddress')
+        .and.callFake(() => of({ data: userLoggedMock.user().user?.addresses ?? [] })),
+    };
     providerMock = {
       findProvidersByCategorySlug: jasmine
         .createSpy('findProvidersByCategorySlug')
@@ -112,11 +123,12 @@ describe('Search', () => {
       imports: [Search],
       providers: [
         { provide: Provider, useValue: providerMock },
+        { provide: Address, useValue: addressMock },
         { provide: Geolocalization, useValue: geolocalizationMock },
         { provide: UserLoggedService, useValue: userLoggedMock },
         { provide: CategoryService, useValue: categoryServiceMock },
         { provide: Router, useValue: routerMock },
-        { provide: ActivatedRoute, useValue: { queryParams: of({ categoria: 'encanadores' }) } },
+        { provide: ActivatedRoute, useValue: { queryParams } },
       ],
     })
       .overrideComponent(Search, {
@@ -135,6 +147,168 @@ describe('Search', () => {
     fixture.detectChanges();
 
     expect(component).toBeTruthy();
+  });
+
+  it('should use URL coordinates only as the search region', () => {
+    queryParams.next({ lat: '-23.5505', lng: '-46.6333' });
+    fixture.detectChanges();
+    expect(component.userLocation()).toEqual({ lat: -23.552, lng: -46.635 });
+    expect(component.searchRegion()).toEqual({ lat: -23.5505, lng: -46.6333 });
+    const map = fixture.debugElement.query(By.directive(ProxiMapStubComponent)).componentInstance;
+    expect(map.userLocation).toEqual({ lat: -23.552, lng: -46.635 });
+    expect(map.searchRegion).toEqual({ lat: -23.5505, lng: -46.6333 });
+    expect(addressMock.getAddress).toHaveBeenCalledWith('client-1');
+    expect(geolocalizationMock.getCurrentPosition).not.toHaveBeenCalled();
+    expect(providerMock.findProvidersByCategorySlug).toHaveBeenCalledWith(
+      undefined,
+      jasmine.objectContaining({ lat: -23.5505, lng: -46.6333 }),
+    );
+  });
+
+  it('should not invent a user location when permission is denied and the URL has a region', () => {
+    userLoggedMock.user.and.returnValue({ user: { id: 'client-1' } });
+    geolocalizationMock.getCurrentPosition.and.returnValue(throwError(() => new Error('denied')));
+    queryParams.next({ lat: '-23.5505', lng: '-46.6333' });
+    fixture.detectChanges();
+    expect(component.userLocation()).toBeNull();
+    expect(component.searchOrigin()).toEqual({ lat: -23.5505, lng: -46.6333 });
+  });
+
+  it('should keep asynchronously resolved user coordinates separate from the URL region', () => {
+    const position = new Subject<{ latitude: number; longitude: number }>();
+    userLoggedMock.user.and.returnValue({ user: { id: 'client-1' } });
+    geolocalizationMock.getCurrentPosition.and.returnValue(position);
+    queryParams.next({ lat: '-23.5505', lng: '-46.6333' });
+    fixture.detectChanges();
+    position.next({ latitude: -22.9, longitude: -43.2 });
+    position.complete();
+    expect(component.userLocation()).toEqual({ lat: -22.9, lng: -43.2 });
+    expect(component.searchOrigin()).toEqual({ lat: -23.5505, lng: -46.6333 });
+    expect(routerMock.navigate).not.toHaveBeenCalled();
+    expect(providerMock.findProvidersByCategorySlug.calls.mostRecent().args[1]).toEqual(
+      jasmine.objectContaining({ lat: -23.5505, lng: -46.6333 }),
+    );
+  });
+
+  it('should request a fresh browser position even when an address exists', () => {
+    queryParams.next({ lat: '-23.5505', lng: '-46.6333' });
+    fixture.detectChanges();
+    component.searchNearMe();
+    expect(geolocalizationMock.getCurrentPosition).toHaveBeenCalled();
+    expect(component.locationSource()).toBe('browser');
+    expect(routerMock.navigate).toHaveBeenCalledWith(
+      [],
+      jasmine.objectContaining({
+        queryParams: { lat: null, lng: null },
+        queryParamsHandling: 'merge',
+      }),
+    );
+    queryParams.next({});
+    expect(component.searchRegion()).toBeNull();
+    expect(providerMock.findProvidersByCategorySlug.calls.mostRecent().args[1]).toEqual(
+      jasmine.objectContaining({ lat: -23.551, lng: -46.634 }),
+    );
+  });
+
+  it('should use the current saved address instead of stale session coordinates', () => {
+    addressMock.getAddress.and.returnValue(
+      of({ data: [{ isDefault: true, lat: -22.9, lng: -43.2 }] }),
+    );
+    fixture.detectChanges();
+    expect(component.userLocation()).toEqual({ lat: -22.9, lng: -43.2 });
+    expect(component.userLocationLabel()).toBe('Endereço cadastrado');
+    const map = fixture.debugElement.query(By.directive(ProxiMapStubComponent)).componentInstance;
+    expect(map.userLocationLabel).toBe('Endereço cadastrado');
+    expect(fixture.nativeElement.textContent).toContain('Usar minha localização atual');
+  });
+
+  it('should refresh providers from the browser position when no URL region exists', () => {
+    fixture.detectChanges();
+    component.searchNearMe();
+    expect(component.userLocationLabel()).toBe('Sua localização atual');
+    expect(providerMock.findProvidersByCategorySlug.calls.mostRecent().args[1]).toEqual(
+      jasmine.objectContaining({ lat: -23.551, lng: -46.634 }),
+    );
+  });
+
+  it('should clear category, rating and persisted favorites together', () => {
+    queryParams.next({ categoria: 'eventos-e-lazer', minimumRating: '3', onlyFavorites: 'true' });
+    fixture.detectChanges();
+    component.clearFilters();
+    expect(component.category()).toBe('');
+    expect(component.minimumRating()).toBe(0);
+    expect(window.localStorage.getItem('search.onlyFavorites.client-1')).toBe('false');
+    expect(routerMock.navigate).toHaveBeenCalledWith(
+      [],
+      jasmine.objectContaining({
+        queryParams: jasmine.objectContaining({
+          categoria: null,
+          minimumRating: null,
+          onlyFavorites: null,
+        }),
+      }),
+    );
+  });
+
+  it('should allow deselecting the active category', () => {
+    fixture.detectChanges();
+    component.updateCategory('encanadores');
+    expect(routerMock.navigate).toHaveBeenCalledWith(
+      [],
+      jasmine.objectContaining({ queryParams: { categoria: null } }),
+    );
+  });
+
+  it('should show categories beyond the first five', () => {
+    categoryServiceMock.getCategories.and.returnValue(
+      of({
+        data: Array.from({ length: 6 }, (_, i) => ({
+          id: i,
+          name: `Categoria ${i}`,
+          slug: `categoria-${i}`,
+        })),
+      }),
+    );
+    fixture.detectChanges();
+    expect(fixture.nativeElement.textContent).toContain('Categoria 5');
+  });
+
+  it('should recover from a failed HTTP request on retry', () => {
+    providerMock.findProvidersByCategorySlug.and.returnValue(
+      throwError(() => new Error('offline')),
+    );
+    fixture.detectChanges();
+    expect(component.searchError()).toContain('Não foi possível buscar');
+    providerMock.findProvidersByCategorySlug.and.returnValue(of([validProvider]));
+    component.retrySearch.next();
+    expect(component.searchError()).toBe('');
+    expect(component.providers().length).toBe(1);
+  });
+
+  it('should fetch saved addresses when the session has no coordinates', () => {
+    userLoggedMock.user.and.returnValue({ user: { id: 'client-1' } });
+    addressMock.getAddress.and.returnValue(
+      of({ data: [{ isDefault: true, lat: -23.6, lng: -46.7 }] }),
+    );
+    fixture.detectChanges();
+    expect(component.userLocation()).toEqual({ lat: -23.6, lng: -46.7 });
+    expect(geolocalizationMock.getCurrentPosition).not.toHaveBeenCalled();
+  });
+
+  it('should allow retry after geolocation fails', () => {
+    userLoggedMock.user.and.returnValue({ user: { id: 'client-1' } });
+    geolocalizationMock.getCurrentPosition.and.returnValue(throwError(() => new Error('denied')));
+    fixture.detectChanges();
+    expect(component.userLocation()).toBeNull();
+    expect(component.mapProviders().length).toBe(1);
+    expect(component.locationError()).toContain('Permita o acesso');
+    expect(component.locationLoading()).toBeFalse();
+    geolocalizationMock.getCurrentPosition.and.returnValue(
+      of({ latitude: -23.5, longitude: -46.6 }),
+    );
+    component.requestCurrentLocation();
+    expect(component.userLocation()).toEqual({ lat: -23.5, lng: -46.6 });
+    expect(component.locationError()).toBe('');
   });
 
   it('should map valid provider data into the map contract', () => {
@@ -212,7 +386,7 @@ describe('Search', () => {
 
     const map = fixture.debugElement.query(By.directive(ProxiMapStubComponent))
       .componentInstance as ProxiMapStubComponent;
-    const providerCards = fixture.debugElement.queryAll(By.css('app-card-detail'));
+    const providerCards = fixture.debugElement.queryAll(By.css('app-card-provider'));
 
     expect(fixture.nativeElement.querySelector('#customer-search_map')).toBeTruthy();
     expect(fixture.nativeElement.querySelector('#customer-search_providers')).toBeTruthy();

@@ -24,7 +24,7 @@ export const LEAFLET_IMPORTER = new InjectionToken<() => Promise<LeafletModule>>
   {
     providedIn: 'root',
     factory: () => () => import('leaflet'),
-  }
+  },
 );
 
 export interface ProxiMapLocation {
@@ -60,6 +60,8 @@ export class ProxiMapComponent implements AfterViewInit, DoCheck, OnDestroy {
   @ViewChild('mapContainer') private readonly mapContainer?: ElementRef<HTMLElement>;
 
   readonly providers = input<ProxiMapProvider[]>([]);
+  readonly userLocationLabel = input('Sua localização');
+  readonly searchRegion = input<ProxiMapLocation | null>(null);
   readonly userLocation = input<ProxiMapLocation | null>(null);
   readonly viewProfile = output<ProxiMapProvider['id']>();
 
@@ -76,13 +78,18 @@ export class ProxiMapComponent implements AfterViewInit, DoCheck, OnDestroy {
   protected readonly isBrowser = isPlatformBrowser(this.#platformId);
   protected readonly mapReady = signal(false);
   protected readonly mapFailed = signal(false);
-  protected readonly hasUserLocation = computed(() => this.isValidLocation(this.userLocation()));
+  protected readonly mapCenter = computed(() => {
+    const region = this.searchRegion();
+    if (this.isValidLocation(region)) return region;
+    const location = this.userLocation();
+    return this.isValidLocation(location) ? location : (this.validProviders()[0] ?? null);
+  });
   protected readonly fallbackMessage = computed(() => {
     if (!this.isBrowser) {
       return 'Mapa indisponível durante a renderização inicial.';
     }
 
-    if (!this.hasUserLocation()) {
+    if (!this.mapCenter()) {
       return 'Informe sua localização para visualizar profissionais próximos no mapa.';
     }
 
@@ -132,7 +139,7 @@ export class ProxiMapComponent implements AfterViewInit, DoCheck, OnDestroy {
   }
 
   private async syncMap(): Promise<void> {
-    if (!this.isBrowser || !this.mapContainer || !this.hasUserLocation()) {
+    if (!this.isBrowser || !this.mapContainer || !this.mapCenter()) {
       this.mapReady.set(false);
       return;
     }
@@ -145,6 +152,7 @@ export class ProxiMapComponent implements AfterViewInit, DoCheck, OnDestroy {
       return;
     }
 
+    this.mapReady.set(true);
     this.refreshMarkers();
     this.fitBoundsToMarkers();
     window.setTimeout(() => this.map?.invalidateSize(), 0);
@@ -161,7 +169,7 @@ export class ProxiMapComponent implements AfterViewInit, DoCheck, OnDestroy {
 
   private async createMap(): Promise<void> {
     try {
-      const location = this.userLocation();
+      const location = this.mapCenter();
       if (!this.mapContainer || !this.isValidLocation(location)) {
         return;
       }
@@ -171,10 +179,12 @@ export class ProxiMapComponent implements AfterViewInit, DoCheck, OnDestroy {
         return;
       }
 
-      this.map = this.leaflet.map(this.mapContainer.nativeElement, {
-        zoomControl: true,
-        attributionControl: true,
-      }).setView(this.toLatLng(location), 13);
+      this.map = this.leaflet
+        .map(this.mapContainer.nativeElement, {
+          zoomControl: true,
+          attributionControl: true,
+        })
+        .setView(this.toLatLng(location), 13);
 
       this.leaflet
         .tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
@@ -206,19 +216,18 @@ export class ProxiMapComponent implements AfterViewInit, DoCheck, OnDestroy {
       this.userMarker = this.leaflet
         .marker(this.toLatLng(location), {
           icon: this.createUserIcon(),
-          title: 'Sua localização',
+          title: this.userLocationLabel(),
         })
-        .bindPopup('<strong>Sua localização</strong>')
+        .bindPopup(this.createUserPopup())
         .addTo(this.markerLayer);
     }
 
     this.validProviders().forEach((provider) => {
       const popup = this.createProviderPopup(provider);
-      this.leaflet!
-        .marker(this.toLatLng(provider), {
-          icon: this.createProviderIcon(provider),
-          title: provider.name,
-        })
+      this.leaflet!.marker(this.toLatLng(provider), {
+        icon: this.createProviderIcon(provider),
+        title: provider.name,
+      })
         .bindPopup(popup)
         .addTo(this.markerLayer!);
     });
@@ -230,6 +239,8 @@ export class ProxiMapComponent implements AfterViewInit, DoCheck, OnDestroy {
     }
 
     const points: LatLngExpression[] = [];
+    const region = this.searchRegion();
+    if (this.isValidLocation(region)) points.push(this.toLatLng(region));
     const location = this.userLocation();
     if (this.isValidLocation(location)) {
       points.push(this.toLatLng(location));
@@ -248,6 +259,12 @@ export class ProxiMapComponent implements AfterViewInit, DoCheck, OnDestroy {
     if (points.length === 1) {
       this.map.setView(points[0], 13);
     }
+  }
+
+  private createUserPopup(): HTMLElement {
+    const title = document.createElement('strong');
+    title.textContent = this.userLocationLabel();
+    return title;
   }
 
   private createUserIcon(): DivIcon {
@@ -351,21 +368,24 @@ export class ProxiMapComponent implements AfterViewInit, DoCheck, OnDestroy {
   private getInputSignature(): string {
     const location = this.userLocation();
     const providers = this.providers()
-      .map((provider) => [
-        provider.id,
-        provider.lat,
-        provider.lng,
-        provider.name,
-        provider.service,
-        provider.rating,
-        provider.priceFrom,
-        provider.distanceKm,
-        provider.premium,
-        provider.verified,
-      ].join(':'))
+      .map((provider) =>
+        [
+          provider.id,
+          provider.lat,
+          provider.lng,
+          provider.name,
+          provider.service,
+          provider.rating,
+          provider.priceFrom,
+          provider.distanceKm,
+          provider.premium,
+          provider.verified,
+        ].join(':'),
+      )
       .join('|');
 
-    return `${location?.lat ?? ''}:${location?.lng ?? ''}:${providers}`;
+    const region = this.searchRegion();
+    return `${this.userLocationLabel()}:${location?.lat ?? ''}:${location?.lng ?? ''}:${region?.lat ?? ''}:${region?.lng ?? ''}:${providers}`;
   }
 
   private formatRating(rating: number): string {
