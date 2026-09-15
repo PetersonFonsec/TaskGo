@@ -1,6 +1,11 @@
-@use "mixins/grid";
-@use "mixins/position";
-@use "variables/breakpoints";
+@use 'mixins/grid';
+@use 'mixins/position';
+@use 'variables/breakpoints';
+
+:host {
+  display: block;
+  margin-bottom: var(--space-6);
+}
 
 .address-form {
   @include grid.directionColumn();
@@ -20,7 +25,8 @@
   &_footer {
     align-items: flex-start;
     display: flex;
-    max-width: 300px;
+    flex-wrap: wrap;
+    gap: 12px;
     margin-right: auto;
     width: 100%;
   }

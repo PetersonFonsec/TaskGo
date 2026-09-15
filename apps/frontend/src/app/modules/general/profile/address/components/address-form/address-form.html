@@ -1,27 +1,86 @@
-<form #form="ngForm" (ngSubmit)="createAddress()" class="address-form">
+<form #form="ngForm" (ngSubmit)="form.valid && createAddress()" class="address-form">
   <header class="address-form_header">
-    <ng-content>
-      <h2 class="subtitle">Criar Novo Endereço</h2>
-    </ng-content>
+    <h2>{{ initialAddress() ? 'Editar endereço' : 'Adicionar endereço' }}</h2>
   </header>
-
   <div class="address-form_content">
-    <app-input-text name="name" id="name" label="Nome do Endereço" [autofocus]="true" [required]="true"
-      placeholder="Como você prefere que chamemos este endereço?" />
-
-    <app-input-text name="zipcode" id="zipcode" label="CEP" [required]="true" mask="00000-000"
-      placeholder="Informe o seu CEP" />
-
-    <app-input-text name="street" id="street" label="Rua" [required]="true" placeholder="Nome da rua" />
-
-    <app-input-text name="number" id="number" label="Número" [required]="true" placeholder="Número da residência" />
-
-    <app-input-text name="complement" id="complement" label="Complemento" placeholder="Complemento (opcional)" />
+    <app-input-text
+      name="label"
+      id="address-label"
+      label="Nome do endereço"
+      [(ngModel)]="payload.label"
+      [required]="true"
+    />
+    <app-input-text
+      name="cep"
+      id="address-cep"
+      label="CEP"
+      [ngModel]="payload.cep"
+      (ngModelChange)="onCepChange($event)"
+      mask="00000-000"
+      placeholder="00000-000"
+      pattern="[0-9]{5}-?[0-9]{3}"
+      [required]="true"
+    />
+    <app-input-text
+      name="street"
+      id="address-street"
+      label="Rua"
+      [(ngModel)]="payload.street"
+      [required]="true"
+    />
+    <app-input-text
+      name="number"
+      id="address-number"
+      label="Número"
+      [(ngModel)]="payload.number"
+      [required]="true"
+    />
+    <app-input-text
+      name="complement"
+      id="address-complement"
+      label="Complemento"
+      [(ngModel)]="payload.complement"
+    />
+    <app-input-text
+      name="neighborhood"
+      id="address-neighborhood"
+      label="Bairro"
+      [(ngModel)]="payload.neighborhood"
+    />
+    <app-input-text
+      name="city"
+      id="address-city"
+      label="Cidade"
+      [(ngModel)]="payload.city"
+      [required]="true"
+    />
+    <app-input-text
+      name="state"
+      id="address-state"
+      label="Estado"
+      [(ngModel)]="payload.state"
+      [required]="true"
+    />
   </div>
-
+  @if (lookingUpCep()) {
+    <p role="status">Buscando endereço pelo CEP...</p>
+  }
+  @if (cepError()) {
+    <p role="alert">{{ cepError() }}</p>
+  }
   <footer class="address-form_footer">
-    <app-button type="submit" [disabled]="!!form.invalid" color="primary">
-      Criar Endereço
-    </app-button>
+    <app-button
+      type="submit"
+      [disabled]="!!form.invalid || saving() || lookingUpCep()"
+      color="primary"
+      >{{ saving() ? 'Salvando...' : 'Salvar endereço' }}</app-button
+    >
+    <app-button
+      type="button"
+      color="light"
+      [disabled]="saving()"
+      (click)="!saving() && cancel.emit()"
+      >Cancelar</app-button
+    >
   </footer>
 </form>

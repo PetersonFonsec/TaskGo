@@ -14,9 +14,21 @@ export class Address {
     return this.#http.get<ResponseAddressList>(`${this.#urlBase}?limit=${limit}`);
   }
 
+  removeAddress(id: string) {
+    return this.#http.delete(`${this.#urlBase}/${id}`);
+  }
+
+  updateAddress(id: string, payload: IAddressEntity) {
+    return this.#http.patch(`${this.#urlBase}/${id}`, this.toPayload(payload));
+  }
+
   createAddress(payload: IAddressEntity) {
+    return this.#http.post(this.#urlBase, this.toPayload(payload));
+  }
+
+  private toPayload(payload: IAddressEntity) {
     const { label, street, number, complement, city, state, cep, lat, lng, isDefault } = payload;
-    return this.#http.post<ResponseAddressList>(`${this.#urlBase}`, {
+    return {
       label,
       street,
       number,
@@ -27,6 +39,6 @@ export class Address {
       lat,
       lng,
       isDefault,
-    });
+    };
   }
 }

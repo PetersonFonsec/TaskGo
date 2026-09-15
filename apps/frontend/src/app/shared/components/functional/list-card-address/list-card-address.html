@@ -18,17 +18,40 @@
       </div>
     </div>
 
-    <button type="button" class="list-card-address_add">
+    <button type="button" class="list-card-address_add" [disabled]="saving()" (click)="openForm()">
       <fa-icon [icon]="plusIcon" />
       <span>Adicionar endereço</span>
     </button>
   </header>
 
+  @if (error()) {
+    <p role="alert">{{ error() }}</p>
+  }
+  @if (message()) {
+    <p role="status">{{ message() }}</p>
+  }
+  @if (formOpen()) {
+    @for (target of [editing()]; track target) {
+      <app-address-form
+        [initialAddress]="target"
+        [saving]="saving()"
+        (addressSubmit)="save($event)"
+        (cancel)="formOpen.set(false)"
+      />
+    }
+  }
+  @if (removing(); as target) {
+    <section role="region" aria-label="Confirmar remoção">
+      <p>Remover o endereço {{ target.label }} ({{ target.street }}, {{ target.number }})?</p>
+      <button type="button" [disabled]="saving()" (click)="remove()">Confirmar remoção</button>
+      <button type="button" [disabled]="saving()" (click)="removing.set(null)">Cancelar</button>
+    </section>
+  }
   @if (addressCount()) {
     <ul class="list-card-address_list">
       @for (item of address(); track item.id) {
         <li>
-          <app-card-address [address]="item" />
+          <app-card-address [address]="item" (action)="onAction($event)" />
         </li>
       }
     </ul>

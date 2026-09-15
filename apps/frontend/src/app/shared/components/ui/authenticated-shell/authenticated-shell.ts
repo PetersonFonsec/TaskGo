@@ -1,5 +1,7 @@
+import { Theme } from '@shared/service/theme/theme';
+import { UserLoggedService } from '@shared/service/user-logged/user-logged.service';
 import { CdkTrapFocus } from '@angular/cdk/a11y';
-import { Component, DestroyRef, inject, signal, viewChild } from '@angular/core';
+import { Component, DestroyRef, effect, inject, signal, viewChild } from '@angular/core';
 import { NavigationEnd, Router, RouterOutlet } from '@angular/router';
 import { filter } from 'rxjs';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
@@ -183,7 +185,11 @@ export class AuthenticatedShell {
 
   protected readonly drawerOpen = signal(false);
 
+  private readonly theme = inject(Theme);
+  private readonly session = inject(UserLoggedService);
+
   constructor() {
+    effect(() => this.theme.setTheme(this.session.user()?.user?.type ?? 'CUSTOMER'));
     this.#router.events
       .pipe(
         filter((event): event is NavigationEnd => event instanceof NavigationEnd),

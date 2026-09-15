@@ -11,6 +11,16 @@ export class Geolocalization {
   #http = inject(HttpClient);
   #platformId = inject(PLATFORM_ID);
 
+  getAddressByCep(cep: string) {
+    const clean = cep.replace(/\D/g, '');
+    return this.#http.get<{
+      street?: string;
+      neighborhood?: string;
+      city: string;
+      state: string;
+    }>(`https://brasilapi.com.br/api/cep/v1/${clean}`);
+  }
+
   /**
    * Try to resolve address + latitude/longitude from a CEP using two APIs.
    * Flow:
