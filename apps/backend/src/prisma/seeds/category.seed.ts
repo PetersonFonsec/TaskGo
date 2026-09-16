@@ -8,6 +8,7 @@ type Sub = {
   sortOrder?: number;
 };
 type Cat = {
+  thumb: string;
   name: string;
   slug: string;
   description?: string;
@@ -20,6 +21,8 @@ const DATA: Cat[] = [
   {
     name: 'Limpeza',
     slug: 'limpeza',
+    thumb:
+      'https://imagedelivery.net/Bpbv9d8J9NqFhm--zUdxEA/proxi-category-20260915-limpeza/public',
     description: 'Serviços de limpeza e conservação',
     icon: 'mdi-broom',
     sortOrder: 10,
@@ -64,6 +67,8 @@ const DATA: Cat[] = [
   {
     name: 'Reparo',
     slug: 'reparo',
+    thumb:
+      'https://imagedelivery.net/Bpbv9d8J9NqFhm--zUdxEA/proxi-category-20260915-reparo/public',
     description: 'Manutenção residencial e técnica',
     icon: 'mdi-tools',
     sortOrder: 20,
@@ -108,6 +113,8 @@ const DATA: Cat[] = [
   {
     name: 'Automotivo',
     slug: 'automotivo',
+    thumb:
+      'https://imagedelivery.net/Bpbv9d8J9NqFhm--zUdxEA/proxi-category-20260915-automotivo/public',
     description: 'Serviços para veículos',
     icon: 'mdi-car-wrench',
     sortOrder: 30,
@@ -152,6 +159,8 @@ const DATA: Cat[] = [
   {
     name: 'Beleza e Cuidados',
     slug: 'beleza-e-cuidados',
+    thumb:
+      'https://imagedelivery.net/Bpbv9d8J9NqFhm--zUdxEA/proxi-category-20260915-beleza-e-cuidados/public',
     description: 'Beleza, estética e bem-estar',
     icon: 'mdi-face-woman',
     sortOrder: 40,
@@ -196,6 +205,8 @@ const DATA: Cat[] = [
   {
     name: 'Cuidados Pessoais',
     slug: 'cuidados-pessoais',
+    thumb:
+      'https://imagedelivery.net/Bpbv9d8J9NqFhm--zUdxEA/proxi-category-20260915-cuidados-pessoais/public',
     description: 'Apoio familiar, idosos, saúde domiciliar',
     icon: 'mdi-hands-heart',
     sortOrder: 50,
@@ -240,6 +251,8 @@ const DATA: Cat[] = [
   {
     name: 'Educação e Aulas',
     slug: 'educacao-e-aulas',
+    thumb:
+      'https://imagedelivery.net/Bpbv9d8J9NqFhm--zUdxEA/proxi-category-20260915-educacao-e-aulas/public',
     description: 'Aulas particulares, reforço e cursos',
     icon: 'mdi-school',
     sortOrder: 60,
@@ -284,6 +297,8 @@ const DATA: Cat[] = [
   {
     name: 'Pets',
     slug: 'pets',
+    thumb:
+      'https://imagedelivery.net/Bpbv9d8J9NqFhm--zUdxEA/proxi-category-20260915-pets/public',
     description: 'Serviços para animais de estimação',
     icon: 'mdi-dog',
     sortOrder: 70,
@@ -328,6 +343,8 @@ const DATA: Cat[] = [
   {
     name: 'Eventos e Lazer',
     slug: 'eventos-e-lazer',
+    thumb:
+      'https://imagedelivery.net/Bpbv9d8J9NqFhm--zUdxEA/proxi-category-20260915-eventos-e-lazer/public',
     description: 'Produção, cobertura e entretenimento',
     icon: 'mdi-party-popper',
     sortOrder: 80,
@@ -372,6 +389,8 @@ const DATA: Cat[] = [
   {
     name: 'Transporte e Mudanças',
     slug: 'transporte-e-mudancas',
+    thumb:
+      'https://imagedelivery.net/Bpbv9d8J9NqFhm--zUdxEA/proxi-category-20260915-transporte-e-mudancas/public',
     description: 'Carreto, frete, motoboy e mudanças',
     icon: 'mdi-truck',
     sortOrder: 90,
@@ -416,6 +435,8 @@ const DATA: Cat[] = [
   {
     name: 'Tecnologia e Consultoria',
     slug: 'tecnologia-e-consultoria',
+    thumb:
+      'https://imagedelivery.net/Bpbv9d8J9NqFhm--zUdxEA/proxi-category-20260915-tecnologia-e-consultoria/public',
     description: 'TI, marketing, finanças e consultorias',
     icon: 'mdi-laptop',
     sortOrder: 100,
@@ -466,6 +487,7 @@ export async function CategorySeeds(prisma: PrismaClient) {
       where: { slug: cat.slug },
       update: {
         name: cat.name,
+        thumb: cat.thumb,
         description: cat.description,
         icon: cat.icon,
         sortOrder: cat.sortOrder ?? 0,
@@ -473,6 +495,7 @@ export async function CategorySeeds(prisma: PrismaClient) {
       },
       create: {
         name: cat.name,
+        thumb: cat.thumb,
         slug: cat.slug,
         description: cat.description,
         icon: cat.icon,

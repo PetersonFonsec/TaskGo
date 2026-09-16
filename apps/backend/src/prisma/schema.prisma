@@ -207,7 +207,7 @@ model ProviderPayoutProfile {
   lastSynchronizedAt   DateTime?                 @map("last_synchronized_at")
   lastErrorCode        String?                   @map("last_error_code")
   createdAt            DateTime                  @default(now()) @map("created_at")
-  updatedAt            DateTime                  @updatedAt @map("updated_at")
+  updatedAt            DateTime                  @default(now()) @updatedAt @map("updated_at")
 
   @@map("provider_payout_profiles")
 }

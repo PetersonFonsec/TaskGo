@@ -1,16 +1,19 @@
 import {
   PrismaClient,
   UserType,
-  ServiceStatus,
   OrderStatus,
   PaymentMethod,
   PaymentStatus,
-  ProviderStatus,
   AdminRole,
+  ProviderStatus,
 } from '@prisma/client';
 import { CategorySeeds } from './category.seed';
 import * as bcrypt from 'bcrypt';
-import { SBC_LOCATIONS } from './sbc-locations';
+import {
+  SEARCH_LOCATIONS,
+  SEARCH_PROVIDERS,
+  seedAddress,
+} from './search-fixtures';
 
 const prisma = new PrismaClient();
 
@@ -105,42 +108,41 @@ async function main() {
 
   await CategorySeeds(prisma);
 
-  // cria 10 clientes
+  // Um cliente por localização, com endereço alternativo para troca na busca.
   const clientes = await Promise.all(
-    Array.from({ length: 10 }).map(async (_, i) => {
+    SEARCH_LOCATIONS.map(async (location, i) => {
       return prisma.user.create({
         data: {
           name: `Cliente ${i + 1}`,
           email: `cliente${i + 1}@teste.com`,
           passwordHash: await bcrypt.hash(SEED_PASSWORD, 10),
           type: UserType.CLIENTE,
-          cpf: `123.456.78${(10 + i).toString().padStart(2, '0')}-90`,
+          cpf: `123.456.78${(i < 10 ? 10 + i : 50 + i).toString().padStart(2, '0')}-90`,
           phone: `+55 11 91${(100000 + i).toString().padStart(6, '0')}`,
           emailVerified: true,
           phoneVerified: true,
           addresses: {
-            create: {
-              label: `Casa ${i + 1}`,
-              street: `Rua dos Clientes ${i + 1}`,
-              number: `${100 + i}`,
-              city: 'São Paulo',
-              state: 'SP',
-              cep: '01000-000',
-              lat: -23.5505 + i * 0.001,
-              lng: -46.6333 + i * 0.001,
-              isDefault: true,
-            },
+            create: [
+              { ...seedAddress(location), label: 'Casa', isDefault: true },
+              {
+                ...seedAddress(
+                  SEARCH_LOCATIONS[(i + 1) % SEARCH_LOCATIONS.length],
+                ),
+                label: 'Trabalho',
+                isDefault: false,
+              },
+            ],
           },
         },
       });
     }),
   );
 
-  // cria 10 prestadores com serviços
-  const prestadores: any[] = await Promise.all(
-    Array.from({ length: 10 }).map(async (_, i) => {
-      const location = SBC_LOCATIONS[i];
-      const verified = i % 2 === 0;
+  // Fixtures determinísticas para cobertura, categorias e exclusões da busca.
+  const prestadores = await Promise.all(
+    SEARCH_PROVIDERS.map(async (fixture, i) => {
+      const location = SEARCH_LOCATIONS[fixture.locationIndex];
+      const verified = fixture.status === ProviderStatus.APPROVED;
 
       return prisma.provider.create({
         data: {
@@ -155,14 +157,8 @@ async function main() {
               photoUrl: 'https://dummyimage.com/600x400/000/fff',
               addresses: {
                 create: {
+                  ...seedAddress(location),
                   label: 'Atendimento',
-                  street: `Rua ${location.bairro}`,
-                  number: `${100 + i}`,
-                  city: 'São Bernardo do Campo',
-                  state: 'SP',
-                  cep: '09700-000',
-                  lat: location.lat,
-                  lng: location.lng,
                   isDefault: true,
                 },
               },
@@ -175,40 +171,26 @@ async function main() {
             },
           },
           serviceAreas: {
-            create: {
+            create: fixture.areaLocationIndices.map((index) => ({
               mode: 'RADIUS',
-              centerLat: location.lat,
-              centerLng: location.lng,
-              radiusKm: 30,
-              active: true,
-            },
+              centerLat: SEARCH_LOCATIONS[index].lat,
+              centerLng: SEARCH_LOCATIONS[index].lng,
+              radiusKm: fixture.radiusKm,
+              active: fixture.areaActive,
+            })),
           },
-          bio: `Sou o prestador ${i + 1}, especializado em serviços gerais.`,
+          bio: `Atendimento em ${location.city}: ${fixture.services.map((service) => service.title).join(', ')}.`,
           verified,
-          status: verified ? ProviderStatus.APPROVED : ProviderStatus.PENDING,
-          acceptPix: verified,
-          acceptsCard: verified,
-          emergencyCare: verified,
-          isAvailable24h: verified,
+          status: fixture.status,
+          acceptPix: i % 3 !== 1,
+          acceptsCard: i % 3 !== 2,
+          emergencyCare: i % 4 === 0,
+          isAvailable24h: i % 5 === 0,
           services: {
-            create: [
-              {
-                title: `Serviço ${i + 1}A`,
-                description: `Descrição do serviço ${i + 1}A`,
-                category: 'reparo',
-                basePrice: 100 + i * 10,
-                availability: defaultServiceAvailability,
-                status: ServiceStatus.ATIVO,
-              },
-              {
-                title: `Serviço ${i + 1}B`,
-                description: `Descrição do serviço ${i + 1}B`,
-                category: 'limpeza',
-                basePrice: 80 + i * 5,
-                availability: defaultServiceAvailability,
-                status: ServiceStatus.ATIVO,
-              },
-            ],
+            create: fixture.services.map((service) => ({
+              ...service,
+              availability: defaultServiceAvailability,
+            })),
           },
         },
         include: {
@@ -251,13 +233,7 @@ async function main() {
         },
         addressSnap: {
           create: {
-            street: 'Rua do Pedido',
-            number: '123',
-            city: 'São Paulo',
-            state: 'SP',
-            cep: '02000-000',
-            lat: -23.55 + i * 0.001,
-            lng: -46.63 + i * 0.001,
+            ...seedAddress(SEARCH_LOCATIONS[SEARCH_PROVIDERS[i].locationIndex]),
           },
         },
       },
@@ -275,6 +251,10 @@ async function main() {
           comment: `Avaliação automática: nota ${rating} para o prestador ${prestador.user.name}`,
           // reviewedAt will default to now()
         },
+      });
+      await prisma.provider.update({
+        where: { id: prestador.id },
+        data: { ratingAvg: rating, ratingCount: 1 },
       });
     }
   }
@@ -301,14 +281,7 @@ async function main() {
       },
       addressSnap: {
         create: {
-          street: 'Rua do Fluxo do Prestador',
-          number: '456',
-          neighborhood: 'Centro',
-          city: 'São Paulo',
-          state: 'SP',
-          cep: '01000-000',
-          lat: -23.5505,
-          lng: -46.6333,
+          ...seedAddress(SEARCH_LOCATIONS[0]),
         },
       },
     },
