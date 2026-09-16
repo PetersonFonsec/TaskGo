@@ -1,0 +1,65 @@
+{
+  "mode": "built-in image_gen",
+  "images": [
+    {
+      "slug": "limpeza",
+      "name": "Limpeza",
+      "prompt": "Use case: stylized-concept. Asset type: square category thumbnail for a Brazilian professional-services marketplace. Create ONE polished friendly 3D clay illustration, soft matte rounded shapes, warm ivory background, deep teal and muted turquoise main accents with a little warm coral, subtle ambient occlusion and soft studio light. Centered isolated still-life composition, orthographic three-quarter view, generous 15 percent empty margin all around, visually legible at 80px, a cohesive premium app illustration collection. No text, no letters, no numbers, no logo, no watermark, no border, no collage, no panels. Square 1024x1024. Subject: A neat cleaning bucket with spray bottle, folded cloth and a small sparkling broom.",
+      "source": "/Users/petersonfonsecasimiao/.codex/generated_images/01a0a5f4-b21e-7550-91cd-1fba31a179a2/exec-eb96d541-9353-4865-9d56-22fe1eec0940.png"
+    },
+    {
+      "slug": "reparo",
+      "name": "Reparo",
+      "prompt": "Use case: stylized-concept. Asset type: square category thumbnail for a Brazilian professional-services marketplace. Create ONE polished friendly 3D clay illustration, soft matte rounded shapes, warm ivory background, deep teal and muted turquoise main accents with a little warm coral, subtle ambient occlusion and soft studio light. Centered isolated still-life composition, orthographic three-quarter view, generous 15 percent empty margin all around, visually legible at 80px, a cohesive premium app illustration collection. No text, no letters, no numbers, no logo, no watermark, no border, no collage, no panels. Square 1024x1024. Subject: A compact home repair toolbox with a wrench, screwdriver and small paint roller.",
+      "source": "/Users/petersonfonsecasimiao/.codex/generated_images/01a0a5f4-b21e-7550-91cd-1fba31a179a2/exec-a7b586f1-f5c8-4f70-b789-d9d1f1892261.png"
+    },
+    {
+      "slug": "automotivo",
+      "name": "Automotivo",
+      "prompt": "Use case: stylized-concept. Asset type: square category thumbnail for a Brazilian professional-services marketplace. Create ONE polished friendly 3D clay illustration, soft matte rounded shapes, warm ivory background, deep teal and muted turquoise main accents with a little warm coral, subtle ambient occlusion and soft studio light. Centered isolated still-life composition, orthographic three-quarter view, generous 15 percent empty margin all around, visually legible at 80px, a cohesive premium app illustration collection. No text, no letters, no numbers, no logo, no watermark, no border, no collage, no panels. Square 1024x1024. Subject: A friendly compact car with a large mechanic wrench and small tire beside it.",
+      "source": "/Users/petersonfonsecasimiao/.codex/generated_images/01a0a5f4-b21e-7550-91cd-1fba31a179a2/exec-6ecc8364-1251-4086-a338-5ca3be4263da.png"
+    },
+    {
+      "slug": "beleza-e-cuidados",
+      "name": "Beleza e Cuidados",
+      "prompt": "Use case: stylized-concept. Asset type: square category thumbnail for a Brazilian professional-services marketplace. Create ONE polished friendly 3D clay illustration, soft matte rounded shapes, warm ivory background, deep teal and muted turquoise main accents with a little warm coral, subtle ambient occlusion and soft studio light. Centered isolated still-life composition, orthographic three-quarter view, generous 15 percent empty margin all around, visually legible at 80px, a cohesive premium app illustration collection. No text, no letters, no numbers, no logo, no watermark, no border, no collage, no panels. Square 1024x1024. Subject: An elegant hair dryer, hair comb, cosmetic brush and small skincare bottle.",
+      "source": "/Users/petersonfonsecasimiao/.codex/generated_images/01a0a5f4-b21e-7550-91cd-1fba31a179a2/exec-072a1ea0-7d5a-4ab6-b928-6e6d890260b6.png"
+    },
+    {
+      "slug": "cuidados-pessoais",
+      "name": "Cuidados Pessoais",
+      "prompt": "Use case: stylized-concept. Asset type: square category thumbnail for a Brazilian professional-services marketplace. Create ONE polished friendly 3D clay illustration, soft matte rounded shapes, warm ivory background, deep teal and muted turquoise main accents with a little warm coral, subtle ambient occlusion and soft studio light. Centered isolated still-life composition, orthographic three-quarter view, generous 15 percent empty margin all around, visually legible at 80px, a cohesive premium app illustration collection. No text, no letters, no numbers, no logo, no watermark, no border, no collage, no panels. Square 1024x1024. Subject: A warm caring adult gently supporting a smiling elderly person, two friendly human figures, conveying dignified home care and family support.",
+      "source": "/Users/petersonfonsecasimiao/.codex/generated_images/01a0a5f4-b21e-7550-91cd-1fba31a179a2/exec-2d5351f9-7143-47b1-82ef-458fdc2d1d20.png"
+    },
+    {
+      "slug": "educacao-e-aulas",
+      "name": "Educação e Aulas",
+      "prompt": "Use case: stylized-concept. Asset type: square category thumbnail for a Brazilian professional-services marketplace. Create ONE polished friendly 3D clay illustration, soft matte rounded shapes, warm ivory background, deep teal and muted turquoise main accents with a little warm coral, subtle ambient occlusion and soft studio light. Centered isolated still-life composition, orthographic three-quarter view, generous 15 percent empty margin all around, visually legible at 80px, a cohesive premium app illustration collection. No text, no letters, no numbers, no logo, no watermark, no border, no collage, no panels. Square 1024x1024. Subject: A stack of two books, an open notebook, a pencil and a small graduation cap.",
+      "source": "/Users/petersonfonsecasimiao/.codex/generated_images/01a0a5f4-b21e-7550-91cd-1fba31a179a2/exec-5ac59e01-b598-4337-8383-881307dd7b89.png"
+    },
+    {
+      "slug": "pets",
+      "name": "Pets",
+      "prompt": "Use case: stylized-concept. Asset type: square category thumbnail for a Brazilian professional-services marketplace. Create ONE polished friendly 3D clay illustration, soft matte rounded shapes, warm ivory background, deep teal and muted turquoise main accents with a little warm coral, subtle ambient occlusion and soft studio light. Centered isolated still-life composition, orthographic three-quarter view, generous 15 percent empty margin all around, visually legible at 80px, a cohesive premium app illustration collection. No text, no letters, no numbers, no logo, no watermark, no border, no collage, no panels. Square 1024x1024. Subject: A friendly golden dog and a small cat sitting together with a pet care brush.",
+      "source": "/Users/petersonfonsecasimiao/.codex/generated_images/01a0a5f4-b21e-7550-91cd-1fba31a179a2/exec-a06b8a54-4796-4fa1-9c50-9fd88b402838.png"
+    },
+    {
+      "slug": "eventos-e-lazer",
+      "name": "Eventos e Lazer",
+      "prompt": "Use case: stylized-concept. Asset type: square category thumbnail for a Brazilian professional-services marketplace. Create ONE polished friendly 3D clay illustration, soft matte rounded shapes, warm ivory background, deep teal and muted turquoise main accents with a little warm coral, subtle ambient occlusion and soft studio light. Centered isolated still-life composition, orthographic three-quarter view, generous 15 percent empty margin all around, visually legible at 80px, a cohesive premium app illustration collection. No text, no letters, no numbers, no logo, no watermark, no border, no collage, no panels. Square 1024x1024. Subject: A compact camera, two festive balloons and a musical note, joyful event services.",
+      "source": "/Users/petersonfonsecasimiao/.codex/generated_images/01a0a5f4-b21e-7550-91cd-1fba31a179a2/exec-e82072f8-f198-4d08-ac08-d6555a697a2f.png"
+    },
+    {
+      "slug": "transporte-e-mudancas",
+      "name": "Transporte e Mudanças",
+      "prompt": "Use case: stylized-concept. Asset type: square category thumbnail for a Brazilian professional-services marketplace. Create ONE polished friendly 3D clay illustration, soft matte rounded shapes, warm ivory background, deep teal and muted turquoise main accents with a little warm coral, subtle ambient occlusion and soft studio light. Centered isolated still-life composition, orthographic three-quarter view, generous 15 percent empty margin all around, visually legible at 80px, a cohesive premium app illustration collection. No text, no letters, no numbers, no logo, no watermark, no border, no collage, no panels. Square 1024x1024. Subject: A small delivery moving truck and two neatly stacked cardboard boxes.",
+      "source": "/Users/petersonfonsecasimiao/.codex/generated_images/01a0a5f4-b21e-7550-91cd-1fba31a179a2/exec-bb22ef07-b020-43b4-9e61-c1cd939aa7cf.png"
+    },
+    {
+      "slug": "tecnologia-e-consultoria",
+      "name": "Tecnologia e Consultoria",
+      "prompt": "Use case: stylized-concept. Asset type: square category thumbnail for a Brazilian professional-services marketplace. Create ONE polished friendly 3D clay illustration, soft matte rounded shapes, warm ivory background, deep teal and muted turquoise main accents with a little warm coral, subtle ambient occlusion and soft studio light. Centered isolated still-life composition, orthographic three-quarter view, generous 15 percent empty margin all around, visually legible at 80px, a cohesive premium app illustration collection. No text, no letters, no numbers, no logo, no watermark, no border, no collage, no panels. Square 1024x1024. Subject: An open laptop displaying simple abstract geometric charts, with a small gear and a lightbulb. No characters or letters on screen.",
+      "source": "/Users/petersonfonsecasimiao/.codex/generated_images/01a0a5f4-b21e-7550-91cd-1fba31a179a2/exec-61da5fc2-0f47-4858-a8e3-122b47a17294.png"
+    }
+  ]
+}

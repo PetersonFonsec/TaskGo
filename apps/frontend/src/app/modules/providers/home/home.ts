@@ -18,10 +18,17 @@ import { providerInsights, providerSummary, RequestStatus, ProviderHomeData } fr
 import { UserLoggedService } from '@shared/service/user-logged/user-logged.service';
 import { Order } from '@shared/service/order/order';
 import { finalize } from 'rxjs';
+import { ButtonComponent } from '@shared/components/ui/button/button.component';
 
 @Component({
   selector: 'app-provider-home',
-  imports: [CurrencyPipe, FontAwesomeModule, ProviderRevenueChartComponent, RouterLink],
+  imports: [
+    CurrencyPipe,
+    FontAwesomeModule,
+    ProviderRevenueChartComponent,
+    RouterLink,
+    ButtonComponent,
+  ],
   templateUrl: './home.html',
   styleUrl: './home.scss',
 })

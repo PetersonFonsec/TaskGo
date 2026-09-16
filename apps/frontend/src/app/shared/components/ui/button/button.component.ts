@@ -13,4 +13,5 @@ export class ButtonComponent {
   readonly id = input('', { transform: (value: string) => `${value}-button` });
   readonly disabled = input(false);
   readonly type = input('button');
+  readonly form = input<string | null>(null);
 }

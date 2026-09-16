@@ -1,4 +1,15 @@
-import { Component, inject, input, OnDestroy, OnInit, output, signal } from '@angular/core';
+import {
+  Component,
+  inject,
+  input,
+  OnDestroy,
+  OnInit,
+  output,
+  signal,
+  TemplateRef,
+  viewChild,
+} from '@angular/core';
+import { NgTemplateOutlet } from '@angular/common';
 import { Subscription } from 'rxjs';
 import { Geolocalization } from '@shared/service/geolocalization/geolocalization';
 import { FormsModule } from '@angular/forms';
@@ -9,7 +20,7 @@ import { IAddressEntity } from '@shared/service/address/address.model';
 
 @Component({
   selector: 'app-address-form',
-  imports: [InputTextComponent, FormsModule, ButtonComponent],
+  imports: [InputTextComponent, FormsModule, ButtonComponent, NgTemplateOutlet],
   templateUrl: './address-form.html',
   styleUrl: './address-form.scss',
 })
@@ -67,6 +78,11 @@ export class AddressForm implements OnInit, OnDestroy {
 
   initialAddress = input<IAddressEntity | null>(null);
   saving = input(false);
+  showHeader = input(true);
+  showActions = input(true);
+  private static nextFormId = 0;
+  readonly formId = `address-form-${AddressForm.nextFormId++}`;
+  readonly actions = viewChild<TemplateRef<unknown>>('actions');
   cancel = output<void>();
   ngOnInit() {
     if (this.initialAddress()) {
@@ -89,6 +105,7 @@ export class AddressForm implements OnInit, OnDestroy {
     cep: '',
     lat: 0,
     lng: 0,
+    isDefault: false,
   };
 
   createAddress() {

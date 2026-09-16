@@ -1,18 +1,24 @@
 <div class="profile-header">
   <div class="profile-header_hero">
     <div class="profile-header_avatar-wrap">
+      @if (user()?.photoUrl) {
       <app-avatar
         size="large"
-        thumb="https://i.pravatar.cc/150?img=3"
-        alt="Foto de perfil de João da Silva"
+        [thumb]="user()?.photoUrl"
+        [alt]="'Foto de perfil de ' + user()?.name"
         class="profile-header_thumb"
       />
+      } @else {
+        <span aria-label="Perfil sem foto">Sem foto</span>
+      }
     </div>
 
     <div class="profile-header_identity">
-      <span class="profile-header_eyebrow">Perfil profissional</span>
-      <h1>João da Silva</h1>
-      <p>Especialista em serviços para sua casa</p>
+      <span class="profile-header_eyebrow">Perfil</span>
+      <h1>{{ user()?.name }}</h1>
+      @if (user()?.bio) {
+        <p>{{ user()?.bio }}</p>
+      }
     </div>
   </div>
 

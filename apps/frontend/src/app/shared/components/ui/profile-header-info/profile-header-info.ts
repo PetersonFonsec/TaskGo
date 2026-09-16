@@ -1,3 +1,4 @@
+import type { PublicUserProfile } from '@taskgo/shared';
 import { Component, computed, input } from '@angular/core';
 import { FaIconComponent } from '@fortawesome/angular-fontawesome';
 import { faBriefcase } from '@fortawesome/free-solid-svg-icons';
@@ -13,7 +14,8 @@ import { Avatar } from '../avatar/avatar';
   styleUrl: './profile-header-info.scss',
 })
 export class ProfileHeaderInfo {
-  services = input<string[]>(['Eletrica', 'Hidraulica', 'Pintura', 'Jardinagem']);
+  user = input<PublicUserProfile | null>(null);
+  services = input<string[]>([]);
   servicesCount = computed(() => this.services().length);
 
   briefcaseIcon = faBriefcase;

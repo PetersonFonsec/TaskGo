@@ -22,8 +22,9 @@
   &::before {
     @include position.filledAbsolutePage();
     content: '';
-    opacity: 0.3;
-    background: linear-gradient(#fff, #000);
+    z-index: 1;
+    pointer-events: none;
+    background: linear-gradient(transparent 40%, rgba(0, 0, 0, 0.75));
   }
 
   &_image {
@@ -35,6 +36,6 @@
   }
 
   &_title {
-    z-index: 1;
+    z-index: 2;
   }
 }

@@ -1,4 +1,4 @@
-.aside-list-item {
+.navigation-item {
   align-items: center;
   background: transparent;
   border: 0;
@@ -13,7 +13,9 @@
   padding: 10px 12px;
   position: relative;
   text-align: left;
-  transition: background-color 160ms ease, color 160ms ease;
+  transition:
+    background-color 160ms ease,
+    color 160ms ease;
   width: 100%;
 
   &:hover,

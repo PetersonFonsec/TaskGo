@@ -1,0 +1,82 @@
+[
+  {
+    "categoryId": "1",
+    "slug": "limpeza",
+    "imageId": "proxi-category-20260915-limpeza",
+    "thumb": "https://imagedelivery.net/Bpbv9d8J9NqFhm--zUdxEA/proxi-category-20260915-limpeza/public",
+    "previousThumb": null,
+    "uploadedAt": "2026-09-15T17:45:25.656Z"
+  },
+  {
+    "categoryId": "2",
+    "slug": "reparo",
+    "imageId": "proxi-category-20260915-reparo",
+    "thumb": "https://imagedelivery.net/Bpbv9d8J9NqFhm--zUdxEA/proxi-category-20260915-reparo/public",
+    "previousThumb": null,
+    "uploadedAt": "2026-09-15T17:45:28.962Z"
+  },
+  {
+    "categoryId": "3",
+    "slug": "automotivo",
+    "imageId": "proxi-category-20260915-automotivo",
+    "thumb": "https://imagedelivery.net/Bpbv9d8J9NqFhm--zUdxEA/proxi-category-20260915-automotivo/public",
+    "previousThumb": null,
+    "uploadedAt": "2026-09-15T17:45:32.424Z"
+  },
+  {
+    "categoryId": "4",
+    "slug": "beleza-e-cuidados",
+    "imageId": "proxi-category-20260915-beleza-e-cuidados",
+    "thumb": "https://imagedelivery.net/Bpbv9d8J9NqFhm--zUdxEA/proxi-category-20260915-beleza-e-cuidados/public",
+    "previousThumb": null,
+    "uploadedAt": "2026-09-15T17:45:35.889Z"
+  },
+  {
+    "categoryId": "5",
+    "slug": "cuidados-pessoais",
+    "imageId": "proxi-category-20260915-cuidados-pessoais",
+    "thumb": "https://imagedelivery.net/Bpbv9d8J9NqFhm--zUdxEA/proxi-category-20260915-cuidados-pessoais/public",
+    "previousThumb": null,
+    "uploadedAt": "2026-09-15T17:45:39.776Z"
+  },
+  {
+    "categoryId": "6",
+    "slug": "educacao-e-aulas",
+    "imageId": "proxi-category-20260915-educacao-e-aulas",
+    "thumb": "https://imagedelivery.net/Bpbv9d8J9NqFhm--zUdxEA/proxi-category-20260915-educacao-e-aulas/public",
+    "previousThumb": null,
+    "uploadedAt": "2026-09-15T17:45:42.549Z"
+  },
+  {
+    "categoryId": "7",
+    "slug": "pets",
+    "imageId": "proxi-category-20260915-pets",
+    "thumb": "https://imagedelivery.net/Bpbv9d8J9NqFhm--zUdxEA/proxi-category-20260915-pets/public",
+    "previousThumb": null,
+    "uploadedAt": "2026-09-15T17:45:45.701Z"
+  },
+  {
+    "categoryId": "8",
+    "slug": "eventos-e-lazer",
+    "imageId": "proxi-category-20260915-eventos-e-lazer",
+    "thumb": "https://imagedelivery.net/Bpbv9d8J9NqFhm--zUdxEA/proxi-category-20260915-eventos-e-lazer/public",
+    "previousThumb": null,
+    "uploadedAt": "2026-09-15T17:45:49.232Z"
+  },
+  {
+    "categoryId": "9",
+    "slug": "transporte-e-mudancas",
+    "imageId": "proxi-category-20260915-transporte-e-mudancas",
+    "thumb": "https://imagedelivery.net/Bpbv9d8J9NqFhm--zUdxEA/proxi-category-20260915-transporte-e-mudancas/public",
+    "previousThumb": null,
+    "uploadedAt": "2026-09-15T17:45:52.596Z"
+  },
+  {
+    "categoryId": "10",
+    "slug": "tecnologia-e-consultoria",
+    "imageId": "proxi-category-20260915-tecnologia-e-consultoria",
+    "thumb": "https://imagedelivery.net/Bpbv9d8J9NqFhm--zUdxEA/proxi-category-20260915-tecnologia-e-consultoria/public",
+    "previousThumb": null,
+    "uploadedAt": "2026-09-15T17:45:55.646Z"
+  }
+]

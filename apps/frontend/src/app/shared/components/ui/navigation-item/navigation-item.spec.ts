@@ -1,18 +1,17 @@
 import { ComponentFixture, TestBed } from '@angular/core/testing';
 
-import { Aside } from './aside';
+import { NavigationItem } from './navigation-item';
 
-describe('Aside', () => {
-  let component: Aside;
-  let fixture: ComponentFixture<Aside>;
+describe('NavigationItem', () => {
+  let component: NavigationItem;
+  let fixture: ComponentFixture<NavigationItem>;
 
   beforeEach(async () => {
     await TestBed.configureTestingModule({
-      imports: [Aside]
-    })
-    .compileComponents();
+      imports: [NavigationItem],
+    }).compileComponents();
 
-    fixture = TestBed.createComponent(Aside);
+    fixture = TestBed.createComponent(NavigationItem);
     component = fixture.componentInstance;
     await fixture.whenStable();
   });

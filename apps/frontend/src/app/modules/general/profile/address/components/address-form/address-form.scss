@@ -17,9 +17,22 @@
   }
 
   &_content {
-    @include grid.grid(280px, var(--space-6));
+    @include grid.grid(min(280px, 100%), var(--space-6));
     width: 100%;
     gap: 22px;
+  }
+
+  &_default {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    cursor: pointer;
+
+    input {
+      width: 20px;
+      height: 20px;
+      flex-shrink: 0;
+    }
   }
 
   &_footer {

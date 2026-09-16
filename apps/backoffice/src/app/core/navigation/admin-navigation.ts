@@ -12,38 +12,44 @@ export const ADMIN_NAVIGATION: readonly AdminNavigationItem[] = [
     label: 'Dashboard',
     path: '/',
     capability: 'Provider dashboard',
-    roles: ['ADMINISTRATOR', 'SUPPORT']
+    roles: ['ADMINISTRATOR', 'SUPPORT'],
   },
   {
     label: 'Providers',
     path: '/providers',
     capability: 'Provider queue/details',
-    roles: ['ADMINISTRATOR', 'SUPPORT']
+    roles: ['ADMINISTRATOR', 'SUPPORT'],
   },
   {
     label: 'Audit log',
     path: '/audit-logs',
     capability: 'Audit log',
-    roles: ['ADMINISTRATOR']
+    roles: ['ADMINISTRATOR'],
+  },
+  {
+    label: 'Categorias',
+    path: '/categories',
+    capability: 'Categorias de serviços',
+    roles: ['ADMINISTRATOR'],
   },
   {
     label: 'Operators',
     path: '/operators',
     capability: 'Administrative users',
-    roles: ['ADMINISTRATOR']
+    roles: ['ADMINISTRATOR'],
   },
   {
     label: 'Payments',
     path: '/payments',
     capability: 'Financial workflows',
-    roles: ['FINANCE']
+    roles: ['FINANCE'],
   },
   {
     label: 'Moderation',
     path: '/moderation',
     capability: 'Service, category, and review moderation',
-    roles: ['MODERATOR']
-  }
+    roles: ['MODERATOR'],
+  },
 ];
 
 export function navigationForRole(role: TaskGoAdminRole): readonly AdminNavigationItem[] {

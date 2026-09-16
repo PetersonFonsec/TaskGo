@@ -67,9 +67,9 @@ describe('Search', () => {
     providersResponse = [{ ...validProvider }];
 
     addressMock = {
-      getAddress: jasmine
-        .createSpy('getAddress')
-        .and.callFake(() => of({ data: userLoggedMock.user().user?.addresses ?? [] })),
+      getAllAddresses: jasmine
+        .createSpy('getAllAddresses')
+        .and.callFake(() => of(userLoggedMock.user().user?.addresses ?? [])),
     };
     providerMock = {
       findProvidersByCategorySlug: jasmine
@@ -143,6 +143,91 @@ describe('Search', () => {
 
   afterEach(() => window.localStorage.removeItem('search.onlyFavorites.client-1'));
 
+  it('selects the principal address and lists every saved address', () => {
+    addressMock.getAllAddresses.and.returnValue(
+      of([
+        { id: 'work', label: 'Trabalho', lat: -22, lng: -43 },
+        { id: 'home', label: 'Casa', isDefault: true, lat: -23, lng: -46 },
+        { id: 'other', label: 'Outro', lat: -24, lng: -47 },
+        { id: 'fourth', label: 'Quarto', lat: -25, lng: -48 },
+      ]),
+    );
+    fixture.detectChanges();
+    expect(component.selectedAddressId()).toBe('home');
+    expect(component.searchOrigin()).toEqual({ lat: -23, lng: -46 });
+    expect(fixture.nativeElement.querySelectorAll('#search-address option').length).toBe(5);
+    const select = fixture.nativeElement.querySelector('#search-address') as HTMLSelectElement;
+    select.value = 'work';
+    select.dispatchEvent(new Event('change'));
+    fixture.detectChanges();
+    expect(component.selectedAddressId()).toBe('work');
+    expect(component.searchOrigin()).toEqual({ lat: -22, lng: -43 });
+    expect(providerMock.findProvidersByCategorySlug.calls.mostRecent().args[1]).toEqual(
+      jasmine.objectContaining({ lat: -22, lng: -43 }),
+    );
+    const map = fixture.debugElement.query(By.directive(ProxiMapStubComponent)).componentInstance;
+    expect(map.userLocation).toEqual({ lat: -22, lng: -43 });
+  });
+
+  it('keeps the selected address when device location fails', () => {
+    fixture.detectChanges();
+    const origin = component.searchOrigin();
+    geolocalizationMock.getCurrentPosition.and.returnValue(throwError(() => new Error('denied')));
+    component.searchNearMe();
+    expect(component.searchOrigin()).toEqual(origin);
+    expect(component.locationSource()).toBe('address');
+    expect(component.locationLoading()).toBeFalse();
+  });
+
+  it('ignores an old device request after selecting an address', () => {
+    addressMock.getAllAddresses.and.returnValue(of([{ id: 'home', lat: -23, lng: -46 }]));
+    fixture.detectChanges();
+    const position = new Subject<{ latitude: number; longitude: number }>();
+    geolocalizationMock.getCurrentPosition.and.returnValue(position);
+    component.searchNearMe();
+    component.selectAddress('home');
+    position.next({ latitude: -22, longitude: -43 });
+    position.complete();
+    expect(component.searchOrigin()).toEqual({ lat: -23, lng: -46 });
+    expect(component.locationSource()).toBe('address');
+  });
+
+  it('uses a valid alternative when the principal address has no coordinates', () => {
+    addressMock.getAllAddresses.and.returnValue(
+      of([
+        { id: 'home', isDefault: true, lat: null, lng: null },
+        { id: 'work', lat: -22, lng: -43 },
+      ]),
+    );
+    fixture.detectChanges();
+    expect(component.selectedAddressId()).toBe('work');
+    expect(component.addresses().length).toBe(2);
+    expect(geolocalizationMock.getCurrentPosition).not.toHaveBeenCalled();
+  });
+
+  it('opens all filters in a modal drawer and closes when applying them', () => {
+    fixture.detectChanges();
+    const dialog = fixture.nativeElement.querySelector('dialog') as HTMLDialogElement;
+    const trigger = fixture.nativeElement.querySelector(
+      '.customer-search_open-filters',
+    ) as HTMLButtonElement;
+    expect(dialog.open).toBeFalse();
+    trigger.focus();
+    trigger.click();
+    fixture.detectChanges();
+    expect(dialog.open).toBeTrue();
+    expect(document.body.style.overflow).toBe('hidden');
+    expect(dialog.querySelector('#search-address')).toBeTruthy();
+    expect(dialog.querySelector('.customer-search_rating-list')).toBeTruthy();
+    expect(dialog.querySelector('.drawer-footer .customer-search_apply-button')).toBeTruthy();
+    expect(dialog.querySelector('.drawer-content .customer-search_apply-button')).toBeNull();
+    expect(dialog.querySelector('.drawer-footer')?.textContent).toContain('Cancelar');
+    (dialog.querySelector('.customer-search_apply-button button') as HTMLButtonElement).click();
+    fixture.detectChanges();
+    expect(dialog.open).toBeFalse();
+    expect(document.activeElement).toBe(trigger);
+  });
+
   it('should create', () => {
     fixture.detectChanges();
 
@@ -157,7 +242,7 @@ describe('Search', () => {
     const map = fixture.debugElement.query(By.directive(ProxiMapStubComponent)).componentInstance;
     expect(map.userLocation).toEqual({ lat: -23.552, lng: -46.635 });
     expect(map.searchRegion).toEqual({ lat: -23.5505, lng: -46.6333 });
-    expect(addressMock.getAddress).toHaveBeenCalledWith('client-1');
+    expect(addressMock.getAllAddresses).toHaveBeenCalledWith('client-1');
     expect(geolocalizationMock.getCurrentPosition).not.toHaveBeenCalled();
     expect(providerMock.findProvidersByCategorySlug).toHaveBeenCalledWith(
       undefined,
@@ -211,15 +296,13 @@ describe('Search', () => {
   });
 
   it('should use the current saved address instead of stale session coordinates', () => {
-    addressMock.getAddress.and.returnValue(
-      of({ data: [{ isDefault: true, lat: -22.9, lng: -43.2 }] }),
-    );
+    addressMock.getAllAddresses.and.returnValue(of([{ isDefault: true, lat: -22.9, lng: -43.2 }]));
     fixture.detectChanges();
     expect(component.userLocation()).toEqual({ lat: -22.9, lng: -43.2 });
     expect(component.userLocationLabel()).toBe('Endereço cadastrado');
     const map = fixture.debugElement.query(By.directive(ProxiMapStubComponent)).componentInstance;
     expect(map.userLocationLabel).toBe('Endereço cadastrado');
-    expect(fixture.nativeElement.textContent).toContain('Usar minha localização atual');
+    expect(fixture.nativeElement.textContent).toContain('Usar a localização atual');
   });
 
   it('should refresh providers from the browser position when no URL region exists', () => {
@@ -287,9 +370,7 @@ describe('Search', () => {
 
   it('should fetch saved addresses when the session has no coordinates', () => {
     userLoggedMock.user.and.returnValue({ user: { id: 'client-1' } });
-    addressMock.getAddress.and.returnValue(
-      of({ data: [{ isDefault: true, lat: -23.6, lng: -46.7 }] }),
-    );
+    addressMock.getAllAddresses.and.returnValue(of([{ isDefault: true, lat: -23.6, lng: -46.7 }]));
     fixture.detectChanges();
     expect(component.userLocation()).toEqual({ lat: -23.6, lng: -46.7 });
     expect(geolocalizationMock.getCurrentPosition).not.toHaveBeenCalled();

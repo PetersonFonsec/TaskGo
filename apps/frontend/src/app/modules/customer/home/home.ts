@@ -1,5 +1,9 @@
+import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
+import { Address } from '@shared/service/address/address';
+import { FaIconComponent } from '@fortawesome/angular-fontawesome';
+import { faLocationDot } from '@fortawesome/free-solid-svg-icons';
 import { RouterLink } from '@angular/router';
-import { Component, inject, OnInit, signal } from '@angular/core';
+import { Component, DestroyRef, inject, OnInit, signal } from '@angular/core';
 
 import { UserLoggedService } from '@shared/service/user-logged/user-logged.service';
 import { CardThumb } from '@shared/components/ui/card-thumb/card-thumb/card-thumb';
@@ -17,6 +21,7 @@ import { CardServiceHistory } from '@shared/components/ui/card-service-history/c
 @Component({
   selector: 'app-home',
   imports: [
+    FaIconComponent,
     CardThumb,
     CardAppointment,
     CardServiceHistory,
@@ -34,12 +39,26 @@ export class Home implements OnInit {
   #userLogged = inject(UserLoggedService);
   #order = inject(Order);
 
+  #address = inject(Address);
+  #destroyRef = inject(DestroyRef);
+  readonly addressMissing = signal(false);
+  readonly locationIcon = faLocationDot;
+  readonly addressLink = ['/general', this.#userLogged.user().user.id, 'addresses'];
+
   categories = signal<ICategory[]>([]);
   reviews = signal<any[]>([]);
   orders = signal<OrdersResponse>([]);
 
   ngOnInit(): void {
     const user = this.#userLogged.user().user;
+
+    this.#address
+      .getAddress(user.id, 1)
+      .pipe(takeUntilDestroyed(this.#destroyRef))
+      .subscribe({
+        next: ({ data }) => this.addressMissing.set(data.length === 0),
+        error: () => this.addressMissing.set(false),
+      });
 
     forkJoin([
       this.#categoryService.getCategories(),

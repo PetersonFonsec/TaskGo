@@ -1,0 +1,82 @@
+[
+  {
+    "id": "1",
+    "name": "Limpeza",
+    "slug": "limpeza",
+    "description": "Serviços de limpeza e conservação",
+    "thumb": null,
+    "isActive": true
+  },
+  {
+    "id": "2",
+    "name": "Reparo",
+    "slug": "reparo",
+    "description": "Manutenção residencial e técnica",
+    "thumb": null,
+    "isActive": true
+  },
+  {
+    "id": "3",
+    "name": "Automotivo",
+    "slug": "automotivo",
+    "description": "Serviços para veículos",
+    "thumb": null,
+    "isActive": true
+  },
+  {
+    "id": "4",
+    "name": "Beleza e Cuidados",
+    "slug": "beleza-e-cuidados",
+    "description": "Beleza, estética e bem-estar",
+    "thumb": null,
+    "isActive": true
+  },
+  {
+    "id": "5",
+    "name": "Cuidados Pessoais",
+    "slug": "cuidados-pessoais",
+    "description": "Apoio familiar, idosos, saúde domiciliar",
+    "thumb": null,
+    "isActive": true
+  },
+  {
+    "id": "6",
+    "name": "Educação e Aulas",
+    "slug": "educacao-e-aulas",
+    "description": "Aulas particulares, reforço e cursos",
+    "thumb": null,
+    "isActive": true
+  },
+  {
+    "id": "7",
+    "name": "Pets",
+    "slug": "pets",
+    "description": "Serviços para animais de estimação",
+    "thumb": null,
+    "isActive": true
+  },
+  {
+    "id": "8",
+    "name": "Eventos e Lazer",
+    "slug": "eventos-e-lazer",
+    "description": "Produção, cobertura e entretenimento",
+    "thumb": null,
+    "isActive": true
+  },
+  {
+    "id": "9",
+    "name": "Transporte e Mudanças",
+    "slug": "transporte-e-mudancas",
+    "description": "Carreto, frete, motoboy e mudanças",
+    "thumb": null,
+    "isActive": true
+  },
+  {
+    "id": "10",
+    "name": "Tecnologia e Consultoria",
+    "slug": "tecnologia-e-consultoria",
+    "description": "TI, marketing, finanças e consultorias",
+    "thumb": null,
+    "isActive": true
+  }
+]

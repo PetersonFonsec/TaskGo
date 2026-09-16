@@ -5,8 +5,12 @@
   margin: 0 auto;
   max-width: 1440px;
 
-  &__section { min-width: 0; }
-  &__slider { display: block; }
+  &__section {
+    min-width: 0;
+  }
+  &__slider {
+    display: block;
+  }
 }
 
 .section-heading {
@@ -40,7 +44,9 @@
     margin-top: 7px;
   }
 
-  &__action { width: 210px; }
+  &__action {
+    width: 210px;
+  }
 }
 
 .category-grid {
@@ -48,7 +54,10 @@
   gap: 16px;
   grid-template-columns: repeat(auto-fit, minmax(230px, 1fr));
 
-  a { display: block; height: 100%; }
+  a {
+    display: block;
+    height: 100%;
+  }
 }
 
 .empty-state {
@@ -72,12 +81,85 @@
     justify-content: center;
   }
 
-  h3 { font-size: 14px; }
-  p { color: var(--proxi-text-muted); font-size: 12px; margin-top: 5px; }
+  h3 {
+    font-size: 14px;
+  }
+  p {
+    color: var(--proxi-text-muted);
+    font-size: 12px;
+    margin-top: 5px;
+  }
 }
 
 @media (max-width: 700px) {
-  .section-heading--inline { align-items: flex-start; flex-direction: column; gap: 16px; }
-  .section-heading__action { width: 100%; }
-  .category-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .section-heading--inline {
+    align-items: flex-start;
+    flex-direction: column;
+    gap: 16px;
+  }
+  .section-heading__action {
+    width: 100%;
+  }
+  .category-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
+.address-reminder {
+  display: flex;
+  align-items: center;
+  gap: 20px;
+  padding: 24px;
+  background: var(--proxi-primary-soft);
+  border: 1px solid var(--proxi-primary);
+  border-radius: var(--proxi-radius-lg);
+
+  &__icon {
+    color: var(--proxi-primary);
+    font-size: 28px;
+  }
+  &__content {
+    flex: 1;
+    min-width: 0;
+  }
+  h2 {
+    color: var(--proxi-text);
+    font-size: 18px;
+  }
+  p {
+    color: var(--proxi-text-muted);
+    font-size: 14px;
+    margin-top: 8px;
+    line-height: 1.5;
+  }
+  &__action {
+    background: var(--proxi-primary);
+    color: #fff;
+    border-radius: 12px;
+    padding: 14px 20px;
+    font-size: 14px;
+    font-weight: 700;
+    text-align: center;
+    text-decoration: none;
+    flex-shrink: 0;
+    &:hover {
+      text-decoration: underline;
+    }
+    &:focus-visible {
+      outline: 3px solid var(--proxi-text);
+      outline-offset: 3px;
+    }
+  }
+}
+
+@media (max-width: 700px) {
+  .address-reminder {
+    flex-wrap: wrap;
+    gap: 16px;
+    padding: 20px;
+    &__action {
+      width: 100%;
+      box-sizing: border-box;
+    }
+  }
 }

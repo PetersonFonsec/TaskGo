@@ -1,4 +1,17 @@
 <main class="customer-home">
+  @if (addressMissing()) {
+    <section class="address-reminder" aria-labelledby="address-reminder-title">
+      <span class="address-reminder__icon" aria-hidden="true">
+        <fa-icon [icon]="locationIcon" />
+      </span>
+      <div class="address-reminder__content">
+        <h2 id="address-reminder-title">Seu endereço é importante para o atendimento</h2>
+        <p>Cadastre o local onde deseja receber os serviços para facilitar seus agendamentos.</p>
+      </div>
+      <a class="address-reminder__action" [routerLink]="addressLink">Cadastrar endereço</a>
+    </section>
+  }
+
   <app-banner />
 
   <section class="customer-home__section" aria-labelledby="categories-title">
@@ -14,7 +27,7 @@
       @for (category of categories(); track category.slug) {
         <li>
           <a routerLink="/customer/search" [queryParams]="{ categoria: category.slug }">
-            <app-card-thumb [title]="category.name" />
+            <app-card-thumb [title]="category.name" [image]="category.thumb" />
           </a>
         </li>
       }

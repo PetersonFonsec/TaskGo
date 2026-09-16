@@ -1,6 +1,7 @@
 export interface ICategory {
   id: number,
   name: string,
+  thumb?: string | null,
   slug: string,
   description: string,
   icon: string,

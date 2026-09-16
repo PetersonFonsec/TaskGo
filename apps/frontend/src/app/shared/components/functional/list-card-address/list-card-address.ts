@@ -1,19 +1,21 @@
+import { NgTemplateOutlet } from '@angular/common';
 import { AddressForm } from '../../../../modules/general/profile/address/components/address-form/address-form';
 import {
   CardAddressActions,
   CardAddressEvent,
 } from '@shared/components/ui/card-address/card-address.constant';
-import { Component, computed, inject, input, OnInit, signal } from '@angular/core';
+import { Component, computed, inject, input, OnInit, signal, viewChild } from '@angular/core';
 import { faLocationDot, faPlus } from '@fortawesome/free-solid-svg-icons';
 import { FaIconComponent } from '@fortawesome/angular-fontawesome';
 
+import { Drawer } from '@shared/components/ui/drawer/drawer';
 import { CardAddress } from '@shared/components/ui/card-address/card-address';
 import { Address as AddressService } from '@shared/service/address/address';
 import { IAddressEntity, IFullAddress } from '@shared/service/address/address.model';
 
 @Component({
   selector: 'app-list-card-address',
-  imports: [CardAddress, FaIconComponent, AddressForm],
+  imports: [CardAddress, FaIconComponent, AddressForm, Drawer, NgTemplateOutlet],
   templateUrl: './list-card-address.html',
   styleUrl: './list-card-address.scss',
 })
@@ -27,6 +29,8 @@ export class ListCardAddress implements OnInit {
   locationIcon = faLocationDot;
   plusIcon = faPlus;
 
+  readonly addressForm = viewChild<AddressForm>('addressFormRef');
+  readonly formDrawer = viewChild.required<Drawer>('addressDrawerRef');
   formOpen = signal(false);
   editing = signal<IFullAddress | null>(null);
   removing = signal<IFullAddress | null>(null);
@@ -41,6 +45,7 @@ export class ListCardAddress implements OnInit {
     this.error.set('');
     this.message.set('');
     this.formOpen.set(true);
+    this.formDrawer().open();
   }
 
   onAction(event: CardAddressEvent) {
@@ -64,7 +69,7 @@ export class ListCardAddress implements OnInit {
     request.subscribe({
       next: () => {
         this.saving.set(false);
-        this.formOpen.set(false);
+        this.formDrawer().close();
         this.message.set('Endereço salvo com sucesso.');
         this.loadAddresses();
       },

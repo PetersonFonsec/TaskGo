@@ -49,6 +49,7 @@ describe('ProfileView', () => {
           provide: ActivatedRoute,
           useValue: {
             snapshot: {
+              pathFromRoot: [{ paramMap: { get: (key: string) => key === 'userId' ? '1' : null } }],
               paramMap: {
                 get: (key: string) => (key === 'userId' ? '1' : null),
               },
@@ -84,7 +85,7 @@ describe('ProfileView', () => {
   it('navigates to edit when edit button is clicked', () => {
     const button = fixture.nativeElement.querySelector('[data-cy="edit-profile"]');
     button.click();
-    expect(mockRouter.navigate).toHaveBeenCalledWith(['profile/edit'], {
+    expect(mockRouter.navigate).toHaveBeenCalledWith(['../edit'], {
       relativeTo: jasmine.anything(),
     });
   });

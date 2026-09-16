@@ -1,6 +1,6 @@
-@use "mixins/grid";
-@use "mixins/position";
-@use "variables/breakpoints";
+@use 'mixins/grid';
+@use 'mixins/position';
+@use 'variables/breakpoints';
 
 #profile-home {
   @include grid.container(var(--container-size));
@@ -17,5 +17,78 @@
   &_header {
     margin-bottom: var(--space-19);
     display: block;
+  }
+}
+
+.profile-loading {
+  padding-block: var(--space-19);
+}
+
+.profile-error {
+  display: grid;
+  align-items: center;
+  gap: var(--space-12);
+  padding-block: var(--space-12) var(--space-19);
+  min-height: 60vh;
+
+  &_content {
+    order: 2;
+    max-width: 460px;
+  }
+  &_eyebrow {
+    display: block;
+    color: #5f24d6;
+    font-weight: 700;
+    margin-bottom: var(--space-6);
+  }
+  h1 {
+    color: #15182b;
+    font-size: clamp(28px, 4vw, 44px);
+    font-weight: 800;
+    line-height: 1.15;
+    margin-bottom: var(--space-8);
+  }
+  p {
+    color: #44496a;
+    font-size: var(--font-size-3);
+    line-height: 1.6;
+    margin-bottom: var(--space-10);
+  }
+  &_illustration {
+    order: 1;
+    display: block;
+    width: 100%;
+    height: auto;
+  }
+  &_action {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: var(--space-6);
+    min-height: 58px;
+    padding: var(--space-5) var(--space-10);
+    background: #5f24d6;
+    color: #fff;
+    border: 0;
+    border-radius: var(--border-radius-1);
+    font: inherit;
+    font-weight: 700;
+    cursor: pointer;
+    &:hover {
+      background: #4d1cb5;
+    }
+    &:focus-visible {
+      outline: 3px solid #5f24d6;
+      outline-offset: 4px;
+    }
+  }
+  @media (min-width: breakpoints.$desktop) {
+    grid-template-columns: minmax(0, 0.8fr) minmax(0, 1.2fr);
+    &_content {
+      order: 1;
+    }
+    &_illustration {
+      order: 2;
+    }
   }
 }

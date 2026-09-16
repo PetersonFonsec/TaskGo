@@ -1,8 +1,10 @@
+import { Drawer } from '@shared/components/ui/drawer/drawer';
 import { Component, computed, inject, OnInit, signal } from '@angular/core';
 import { ActivatedRoute, Router } from '@angular/router';
 import { HttpErrorResponse } from '@angular/common/http';
 import { FormsModule } from '@angular/forms';
 
+import { IFullAddress } from '@shared/service/address/address.model';
 import { Address } from '@shared/service/address/address';
 import {
   ProxiMapComponent,
@@ -33,6 +35,7 @@ import { ButtonComponent } from '@shared/components/ui/button/button.component';
 @Component({
   selector: 'app-search',
   imports: [
+    Drawer,
     CardProvider,
     ProxiMapComponent,
     FormatedProviderParamPipe,
@@ -55,11 +58,19 @@ export class Search implements OnInit {
   favoriteLoading = signal<Record<string, boolean>>({});
   searchError = signal('');
   readonly retrySearch = new Subject<void>();
+  addresses = signal<IFullAddress[]>([]);
+  selectedAddressId = signal('');
+  addressesLoading = signal(false);
+  addressError = signal('');
+  private locationRequestId = 0;
   locationLoading = signal(false);
   locationError = signal('');
   locationSource = signal<'address' | 'browser' | null>(null);
   userLocationLabel = computed(() =>
-    this.locationSource() === 'address' ? 'Endereço cadastrado' : 'Sua localização atual',
+    this.locationSource() === 'address'
+      ? this.addresses().find((address) => String(address.id) === this.selectedAddressId())
+          ?.label || 'Endereço cadastrado'
+      : 'Sua localização atual',
   );
   userLocation = signal<ProxiMapLocation | null>(null);
   searchRegion = signal<ProxiMapLocation | null>(null);
@@ -285,32 +296,82 @@ export class Search implements OnInit {
       return;
     }
 
-    this.locationLoading.set(true);
-    this.#address.getAddress(String(userId)).subscribe({
-      next: ({ data }) => {
-        const location = this.getAddressLocation(data);
-        if (location) {
-          this.userLocation.set(location);
+    this.addressesLoading.set(true);
+    this.#address.getAllAddresses(String(userId)).subscribe({
+      next: (data) => {
+        const active = data.filter((address) => address.active !== false);
+        this.addresses.set(active);
+        this.addressesLoading.set(false);
+        const preferred =
+          active.find((address) => address.isDefault && this.toLocation(address)) ??
+          active.find((address) => this.toLocation(address));
+        if (preferred) {
+          this.selectedAddressId.set(String(preferred.id));
+          this.userLocation.set(this.toLocation(preferred));
           this.locationSource.set('address');
-          this.locationLoading.set(false);
           this.retrySearch.next();
         } else {
           this.requestCurrentLocation();
         }
       },
-      error: () => this.requestCurrentLocation(),
+      error: () => {
+        this.addressesLoading.set(false);
+        this.addressError.set('Não foi possível carregar seus endereços.');
+        this.requestCurrentLocation();
+      },
     });
   }
 
+  addressLabel(address: IFullAddress) {
+    return [
+      address.label,
+      [address.street, address.number].filter(Boolean).join(', '),
+      [address.city, address.state].filter(Boolean).join(' / '),
+    ]
+      .filter(Boolean)
+      .join(' — ');
+  }
+
+  addressHasLocation(address: IFullAddress) {
+    return this.toLocation(address) !== null;
+  }
+
+  selectAddress(id: string) {
+    const address = this.addresses().find((item) => String(item.id) === id);
+    const location = this.toLocation(address);
+    if (!location) return;
+    ++this.locationRequestId;
+    this.locationLoading.set(false);
+    this.locationError.set('');
+    this.selectedAddressId.set(id);
+    this.userLocation.set(location);
+    this.locationSource.set('address');
+    if (this.searchRegion()) this.updateFilters({ lat: null, lng: null });
+    else this.retrySearch.next();
+  }
+
   requestCurrentLocation(useForSearch = false) {
+    const requestId = ++this.locationRequestId;
     this.locationLoading.set(true);
     this.locationError.set('');
     this.#geolocalization
       .getCurrentPosition()
-      .pipe(finalize(() => this.locationLoading.set(false)))
+      .pipe(
+        finalize(() => {
+          if (requestId === this.locationRequestId) this.locationLoading.set(false);
+        }),
+      )
       .subscribe({
         next: ({ latitude, longitude }) => {
+          if (requestId !== this.locationRequestId) return;
           const location = this.toLocation({ latitude, longitude });
+          if (!location) {
+            this.locationError.set(
+              'O aparelho não retornou uma localização válida. Tente novamente.',
+            );
+            return;
+          }
+          this.selectedAddressId.set('');
           this.userLocation.set(location);
           this.locationSource.set(location ? 'browser' : null);
           if (location) {
@@ -319,6 +380,7 @@ export class Search implements OnInit {
           }
         },
         error: () => {
+          if (requestId !== this.locationRequestId) return;
           this.locationError.set(
             'Não foi possível obter sua localização. Permita o acesso no navegador ou cadastre um endereço no perfil.',
           );
@@ -328,16 +390,6 @@ export class Search implements OnInit {
 
   searchNearMe() {
     this.requestCurrentLocation(true);
-  }
-
-  private getAddressLocation(addresses: any[]): ProxiMapLocation | null {
-    const active = addresses.filter((address) => address?.active !== false);
-    const preferred = active.find((address) => address?.isDefault || address?.isPrimary);
-    return (
-      this.toLocation(preferred) ??
-      active.map((address) => this.toLocation(address)).find(Boolean) ??
-      null
-    );
   }
 
   private toMapProvider(provider: any): ProxiMapProvider | null {

@@ -30,6 +30,24 @@ describe('Address', () => {
     expect(request.request.method).toBe('GET');
     request.flush({ data: [] });
   });
+  it('loads every page of the authenticated user addresses', () => {
+    let ids: string[] = [];
+    service.getAllAddresses('customer-1').subscribe((addresses) => {
+      ids = addresses.map((address) => address.id);
+    });
+    const http = TestBed.inject(HttpTestingController);
+    http.expectOne(`${environment.url}/user/me/addresses?limit=100&page=1`).flush({
+      data: [{ id: 'first' }],
+      meta: { page: 1, hasNextPage: true },
+    });
+    expect(ids).toEqual([]);
+    http.expectOne(`${environment.url}/user/me/addresses?limit=100&page=2`).flush({
+      data: [{ id: 'last' }],
+      meta: { page: 2, hasNextPage: false },
+    });
+    expect(ids).toEqual(['first', 'last']);
+  });
+
   it('creates and updates using only fields accepted by the API', () => {
     const payload = {
       label: 'Casa',

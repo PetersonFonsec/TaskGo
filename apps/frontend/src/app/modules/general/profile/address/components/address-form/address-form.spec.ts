@@ -24,6 +24,24 @@ describe('AddressForm', () => {
     await fixture.whenStable();
   });
 
+  it('submits the default address choice when checked and unchecked', async () => {
+    const checkbox: HTMLInputElement = fixture.nativeElement.querySelector('[name="isDefault"]');
+    const submit = spyOn(component.addressSubmit, 'emit');
+    component.payload.cep = '01001000';
+    expect(checkbox.checked).toBeFalse();
+
+    checkbox.click();
+    await fixture.whenStable();
+    response.next({ street: 'Praça da Sé', city: 'São Paulo', state: 'SP' });
+    component.createAddress();
+    expect(submit).toHaveBeenCalledWith(jasmine.objectContaining({ isDefault: true }));
+
+    checkbox.click();
+    await fixture.whenStable();
+    component.createAddress();
+    expect(submit.calls.mostRecent().args[0].isDefault).toBeFalse();
+  });
+
   it('only queries a complete CEP and preserves number and complement', () => {
     component.payload.number = '123';
     component.payload.complement = 'Apto 4';
@@ -85,11 +103,12 @@ describe('AddressForm', () => {
   it('preserves the existing address when opening the edit form', async () => {
     const editFixture = TestBed.createComponent(AddressForm);
     editFixture.componentRef.setInput('initialAddress', {
-      ...component.payload, cep: '01001000', street: 'Rua editada', lat: -23, lng: -46,
+      ...component.payload, cep: '01001000', street: 'Rua editada', lat: -23, lng: -46, isDefault: true,
     });
     await editFixture.whenStable();
     expect(lookup).not.toHaveBeenCalled();
     expect(editFixture.componentInstance.payload.street).toBe('Rua editada');
+    expect(editFixture.nativeElement.querySelector('[name="isDefault"]').checked).toBeTrue();
     editFixture.destroy();
   });
 

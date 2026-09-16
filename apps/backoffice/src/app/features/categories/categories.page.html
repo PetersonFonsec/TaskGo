@@ -1,0 +1,139 @@
+<header>
+  <div>
+    <h1>Categorias de serviços</h1>
+    <p>Gerencie os nomes, thumbnails e a disponibilidade das categorias.</p>
+  </div>
+  <button type="button" (click)="edit()" [disabled]="busy()">Nova categoria</button>
+</header>
+@if (error()) {
+  <p role="alert" class="error">{{ error() }}</p>
+}
+@if (success()) {
+  <p role="status" class="success">{{ success() }}</p>
+}
+@if (editing()) {
+  <section aria-label="Formulário da categoria">
+    <h2>{{ id ? 'Editar categoria' : 'Nova categoria' }}</h2>
+    <form #form="ngForm" (ngSubmit)="save()">
+      <label
+        >Nome <input name="name" [(ngModel)]="name" required maxlength="120" [disabled]="busy()"
+      /></label>
+      <label
+        >Enviar thumbnail
+        <input
+          type="file"
+          accept="image/jpeg,image/png,image/webp,image/gif"
+          (change)="uploadThumbnail($event)"
+          [disabled]="busy()"
+        />
+      </label>
+      <small>JPEG, PNG, WebP ou GIF, até 10 MB.</small>
+      <label
+        >URL da thumbnail
+        <input
+          name="thumb"
+          type="url"
+          [(ngModel)]="thumb"
+          maxlength="2048"
+          placeholder="https://exemplo.com/imagem.jpg"
+          [disabled]="busy()"
+      /></label>
+      <small>Informe o endereço HTTP ou HTTPS da imagem. Deixe vazio para remover.</small>
+      @if (!validThumb()) {
+        <p class="error">Informe uma URL HTTP ou HTTPS válida.</p>
+      }
+      @if (thumb && validThumb()) {
+        <img class="preview" [src]="thumb" alt="Prévia da thumbnail" referrerpolicy="no-referrer" />
+      }
+      <label class="checkbox"
+        ><input type="checkbox" name="isActive" [(ngModel)]="isActive" [disabled]="busy()" />
+        Habilitada</label
+      >
+      <div class="actions">
+        <button type="submit" [disabled]="busy() || form.invalid || !name.trim() || !validThumb()">
+          Salvar</button
+        ><button type="button" (click)="editing.set(false)" [disabled]="busy()">Cancelar</button>
+      </div>
+    </form>
+  </section>
+}
+@if (deleting(); as category) {
+  <section role="alertdialog" aria-modal="false" aria-labelledby="delete-title">
+    <h2 id="delete-title">Excluir {{ category.name }}?</h2>
+    <p>A exclusão é permanente. Para ocultar temporariamente a categoria, use Desabilitar.</p>
+    <div class="actions">
+      <button type="button" class="danger" (click)="remove()" [disabled]="busy()">
+        Confirmar exclusão</button
+      ><button type="button" (click)="deleting.set(null)" [disabled]="busy()">Cancelar</button>
+    </div>
+  </section>
+}
+<section aria-label="Lista de categorias" [attr.aria-busy]="busy()">
+  <div class="actions">
+    <span>{{ total }} categoria(s)</span
+    ><button type="button" (click)="load()" [disabled]="busy()">Atualizar</button>
+  </div>
+  @if (busy()) {
+    <p role="status">Carregando…</p>
+  }
+  <div class="table-scroll">
+    <table>
+      <thead>
+        <tr>
+          <th>Thumbnail</th>
+          <th>Nome</th>
+          <th>Status</th>
+          <th>Ações</th>
+        </tr>
+      </thead>
+      <tbody>
+        @for (category of categories(); track category.id) {
+          <tr>
+            <td>
+              @if (category.thumb) {
+                <img
+                  [src]="category.thumb"
+                  [alt]="category.name"
+                  referrerpolicy="no-referrer"
+                  loading="lazy"
+                />
+              } @else {
+                <span>Sem imagem</span>
+              }
+            </td>
+            <td>{{ category.name }}</td>
+            <td>{{ category.isActive ? 'Habilitada' : 'Desabilitada' }}</td>
+            <td>
+              <div class="actions">
+                <button type="button" (click)="edit(category)" [disabled]="busy()">Editar</button
+                ><button type="button" (click)="toggle(category)" [disabled]="busy()">
+                  {{ category.isActive ? 'Desabilitar' : 'Habilitar' }}</button
+                ><button
+                  type="button"
+                  class="danger"
+                  (click)="deleting.set(category); editing.set(false)"
+                  [disabled]="busy()"
+                >
+                  Excluir
+                </button>
+              </div>
+            </td>
+          </tr>
+        } @empty {
+          @if (!busy()) {
+            <tr>
+              <td colspan="4">Nenhuma categoria cadastrada.</td>
+            </tr>
+          }
+        }
+      </tbody>
+    </table>
+  </div>
+  <nav class="actions" aria-label="Paginação">
+    <button type="button" (click)="changePage(-1)" [disabled]="busy() || page <= 1">Anterior</button
+    ><span>Página {{ page }} de {{ totalPages }}</span
+    ><button type="button" (click)="changePage(1)" [disabled]="busy() || page >= totalPages">
+      Próxima
+    </button>
+  </nav>
+</section>

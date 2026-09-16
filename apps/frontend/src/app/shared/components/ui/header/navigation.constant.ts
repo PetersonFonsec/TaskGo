@@ -1,8 +1,4 @@
-import {
-  faArrowRightFromBracket,
-  faLocationDot,
-  faUser,
-} from '@fortawesome/free-solid-svg-icons';
+import { faArrowRightFromBracket, faLocationDot, faUser } from '@fortawesome/free-solid-svg-icons';
 import { IconDefinition } from '@fortawesome/fontawesome-svg-core';
 
 import { Roles, RolesBack } from '@shared/enums/roles.enum';
@@ -83,7 +79,9 @@ export const NAVIGATION_GROUPS: readonly NavigationGroup[] = [
   },
 ] as const;
 
-export function normalizeNavigationRole(role: Roles | RolesBack | string | undefined): RolesBack | null {
+export function normalizeNavigationRole(
+  role: Roles | RolesBack | string | undefined,
+): RolesBack | null {
   if (role === Roles.CUSTOMER || role === RolesBack.CUSTOMER) {
     return RolesBack.CUSTOMER;
   }

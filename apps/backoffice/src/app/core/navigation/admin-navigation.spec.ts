@@ -6,14 +6,15 @@ describe('admin navigation matrix', () => {
       'Dashboard',
       'Providers',
       'Audit log',
-      'Operators'
+      'Categorias',
+      'Operators',
     ]);
   });
 
   it('shows only provider read workflow entries for support', () => {
     expect(navigationForRole('SUPPORT').map((item) => item.label)).toEqual([
       'Dashboard',
-      'Providers'
+      'Providers',
     ]);
   });
 

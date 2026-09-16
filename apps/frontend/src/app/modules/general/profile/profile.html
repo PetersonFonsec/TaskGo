@@ -1,7 +1,52 @@
 <div id="profile-home">
-  <app-profile-header-info id="profile-home_header" />
-
-  <div id="profile-home_content">
-    <router-outlet />
-  </div>
+  @if (profile()?.user; as user) {
+    <app-profile-header-info id="profile-home_header" [user]="user" />
+    <div id="profile-home_content">
+      <router-outlet />
+    </div>
+  } @else if (profile()?.loading) {
+    <p class="profile-loading" role="status">Carregando perfil...</p>
+  } @else {
+    <section class="profile-error" role="alert" aria-labelledby="profile-error-title">
+      <div class="profile-error_content">
+        <span class="profile-error_eyebrow">{{
+          profile()?.status === 401 ? 'Vamos reconectar?' : 'Ops! Algo aconteceu'
+        }}</span>
+        <h1 id="profile-error-title">
+          {{
+            profile()?.status === 401
+              ? 'Sua sessão expirou'
+              : profile()?.status === 404
+                ? 'Perfil não encontrado'
+                : 'Não foi possível carregar seu perfil'
+          }}
+        </h1>
+        <p>
+          {{
+            profile()?.status === 401
+              ? 'Para continuar acessando seu perfil com segurança, entre novamente na sua conta.'
+              : profile()?.status === 404
+                ? 'Não encontramos este perfil. Confira o endereço e tente novamente.'
+                : 'Tivemos um problema ao buscar seus dados. Aguarde um instante e tente novamente.'
+          }}
+        </p>
+        @if (profile()?.status === 401) {
+          <button class="profile-error_action" type="button" (click)="login()">
+            Entrar novamente <span aria-hidden="true">→</span>
+          </button>
+        } @else {
+          <button class="profile-error_action" type="button" (click)="retryLoad()">
+            Tentar novamente <span aria-hidden="true">→</span>
+          </button>
+        }
+      </div>
+      <img
+        class="profile-error_illustration"
+        src="/ilustrations/not-found-ilustration.webp"
+        alt=""
+        width="700"
+        height="470"
+      />
+    </section>
+  }
 </div>

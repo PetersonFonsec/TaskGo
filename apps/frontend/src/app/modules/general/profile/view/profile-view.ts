@@ -22,7 +22,7 @@ export class ProfileView implements OnInit {
   loading = signal(true);
 
   ngOnInit() {
-    const userId = this.#route.snapshot.paramMap.get('userId');
+    const userId = this.#route.snapshot.pathFromRoot.map(route => route.paramMap.get('userId')).find(Boolean);
     if (!userId) {
       this.error.set('Usuário não encontrado');
       this.loading.set(false);
@@ -42,6 +42,6 @@ export class ProfileView implements OnInit {
   }
 
   goToEdit() {
-    this.#router.navigate(['profile/edit'], { relativeTo: this.#route });
+    this.#router.navigate(['../edit'], { relativeTo: this.#route });
   }
 }

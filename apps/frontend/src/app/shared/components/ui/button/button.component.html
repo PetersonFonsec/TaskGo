@@ -4,6 +4,7 @@
   [id]="id()"
   class="button button--{{ color() }} button--{{ size() }} button--{{ typeColor() }}"
   [type]="type()"
+  [attr.form]="form()"
 >
   <span class="button__content"><ng-content /></span>
 </button>

@@ -28,7 +28,7 @@ export class ProfileEdit implements OnInit {
   phoneValue = '';
 
   ngOnInit() {
-    const userId = this.#route.snapshot.paramMap.get('userId');
+    const userId = this.#route.snapshot.pathFromRoot.map(route => route.paramMap.get('userId')).find(Boolean);
     if (!userId) {
       this.error.set('Usuário não encontrado');
       this.loading.set(false);
@@ -67,7 +67,7 @@ export class ProfileEdit implements OnInit {
   }
 
   save(form: NgForm) {
-    const userId = this.#route.snapshot.paramMap.get('userId');
+    const userId = this.#route.snapshot.pathFromRoot.map(route => route.paramMap.get('userId')).find(Boolean);
     if (!userId) {
       this.error.set('Usuário não encontrado');
       return;

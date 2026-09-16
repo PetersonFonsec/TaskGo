@@ -3,7 +3,7 @@ import { Routes } from '@angular/router';
 import {
   requireAdminRoleGuard,
   requireAdminSessionGuard,
-  requireAnonymousAdminGuard
+  requireAnonymousAdminGuard,
 } from './core/auth/admin-auth.guards';
 import { DashboardPage } from './features/dashboard/dashboard.page';
 import { LoginPage } from './features/login/login.page';
@@ -15,12 +15,14 @@ import { ProviderDetailsPage } from './features/providers/provider-details.page'
 import { ProviderQueuePage } from './features/providers/provider-queue.page';
 import { AdminShellComponent } from './layout/admin-shell/admin-shell.component';
 
+import { CategoriesPage } from './features/categories/categories.page';
+
 export const routes: Routes = [
   {
     path: 'login',
     title: 'Backoffice login',
     component: LoginPage,
-    canActivate: [requireAnonymousAdminGuard]
+    canActivate: [requireAnonymousAdminGuard],
   },
   {
     path: '',
@@ -30,51 +32,57 @@ export const routes: Routes = [
       {
         path: '',
         title: 'Proxi Backoffice',
-        component: DashboardPage
+        component: DashboardPage,
       },
       {
         path: 'providers',
         title: 'Provider queue',
-        component: ProviderQueuePage
+        component: ProviderQueuePage,
       },
       {
         path: 'providers/:id',
         title: 'Provider review',
-        component: ProviderDetailsPage
+        component: ProviderDetailsPage,
       },
       {
         path: 'audit-logs',
         title: 'Audit log',
         component: AuditLogListPage,
-        canActivate: [requireAdminRoleGuard(['ADMINISTRATOR'])]
+        canActivate: [requireAdminRoleGuard(['ADMINISTRATOR'])],
       },
       {
         path: 'audit-logs/:id',
         title: 'Audit event detail',
         component: AuditLogDetailPage,
-        canActivate: [requireAdminRoleGuard(['ADMINISTRATOR'])]
+        canActivate: [requireAdminRoleGuard(['ADMINISTRATOR'])],
+      },
+      {
+        path: 'categories',
+        title: 'Categorias de serviços',
+        component: CategoriesPage,
+        canActivate: [requireAdminRoleGuard(['ADMINISTRATOR'])],
       },
       {
         path: 'operators',
         title: 'Operators',
         component: OperatorAdminPage,
-        canActivate: [requireAdminRoleGuard(['ADMINISTRATOR'])]
+        canActivate: [requireAdminRoleGuard(['ADMINISTRATOR'])],
       },
       {
         path: 'payments',
         title: 'Payments',
-        component: DashboardPage
+        component: DashboardPage,
       },
       {
         path: 'moderation',
         title: 'Moderation',
-        component: DashboardPage
+        component: DashboardPage,
       },
       {
         path: '**',
         title: 'Backoffice page not found',
-        component: NotFoundPage
-      }
-    ]
-  }
+        component: NotFoundPage,
+      },
+    ],
+  },
 ];

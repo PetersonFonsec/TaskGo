@@ -18,27 +18,24 @@
       </div>
     </div>
 
-    <button type="button" class="list-card-address_add" [disabled]="saving()" (click)="openForm()">
+    <button
+      type="button"
+      class="list-card-address_add"
+      aria-haspopup="dialog"
+      [attr.aria-expanded]="formOpen()"
+      [disabled]="saving()"
+      (click)="openForm()"
+    >
       <fa-icon [icon]="plusIcon" />
       <span>Adicionar endereço</span>
     </button>
   </header>
 
-  @if (error()) {
+  @if (error() && !formOpen()) {
     <p role="alert">{{ error() }}</p>
   }
   @if (message()) {
     <p role="status">{{ message() }}</p>
-  }
-  @if (formOpen()) {
-    @for (target of [editing()]; track target) {
-      <app-address-form
-        [initialAddress]="target"
-        [saving]="saving()"
-        (addressSubmit)="save($event)"
-        (cancel)="formOpen.set(false)"
-      />
-    }
   }
   @if (removing(); as target) {
     <section role="region" aria-label="Confirmar remoção">
@@ -65,3 +62,33 @@
     </div>
   }
 </div>
+
+<app-drawer
+  #addressDrawerRef
+  [title]="editing() ? 'Editar endereço' : 'Adicionar endereço'"
+  [closeDisabled]="saving()"
+  (closed)="formOpen.set(false)"
+>
+  <h2 drawerHeader>{{ editing() ? 'Editar endereço' : 'Adicionar endereço' }}</h2>
+  <div drawerContent>
+    @if (formOpen()) {
+      @if (error()) {
+        <p role="alert">{{ error() }}</p>
+      }
+      @for (target of [editing()]; track target) {
+        <app-address-form
+          #addressFormRef
+          [initialAddress]="target"
+          [showHeader]="false"
+          [showActions]="false"
+          [saving]="saving()"
+          (addressSubmit)="save($event)"
+          (cancel)="formDrawer().close()"
+        />
+      }
+    }
+  </div>
+  <div drawerFooter>
+    <ng-container [ngTemplateOutlet]="addressForm()?.actions() ?? null" />
+  </div>
+</app-drawer>

@@ -44,6 +44,7 @@ describe('ProfileEdit', () => {
           provide: ActivatedRoute,
           useValue: {
             snapshot: {
+              pathFromRoot: [{ paramMap: { get: (key: string) => key === 'userId' ? '1' : null } }],
               paramMap: {
                 get: (key: string) => (key === 'userId' ? '1' : null),
               },

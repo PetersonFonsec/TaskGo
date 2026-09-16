@@ -1,5 +1,3 @@
-@use "variables/breakpoints";
-
 .page {
   background: var(--proxi-background);
   display: flex;
@@ -26,16 +24,7 @@
     padding: var(--proxi-page-padding);
   }
 
-  &_aside {
-    display: none;
-
-    @media (min-width: breakpoints.$tablet) {
-      display: flex;
-      flex: 0 0 280px;
-    }
-
-    app-aside { width: 100%; }
+  &_footer {
+    width: 100%;
   }
-
-  &_footer { width: 100%; }
 }

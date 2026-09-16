@@ -1,7 +1,9 @@
-<form #form="ngForm" (ngSubmit)="form.valid && createAddress()" class="address-form">
-  <header class="address-form_header">
-    <h2>{{ initialAddress() ? 'Editar endereço' : 'Adicionar endereço' }}</h2>
-  </header>
+<form [id]="formId" #form="ngForm" (ngSubmit)="form.valid && createAddress()" class="address-form">
+  @if (showHeader()) {
+    <header class="address-form_header">
+      <h2>{{ initialAddress() ? 'Editar endereço' : 'Adicionar endereço' }}</h2>
+    </header>
+  }
   <div class="address-form_content">
     <app-input-text
       name="label"
@@ -62,25 +64,35 @@
       [required]="true"
     />
   </div>
+  <label class="address-form_default">
+    <input type="checkbox" name="isDefault" [(ngModel)]="payload.isDefault" [disabled]="saving()" />
+    Usar como endereço padrão
+  </label>
   @if (lookingUpCep()) {
     <p role="status">Buscando endereço pelo CEP...</p>
   }
   @if (cepError()) {
     <p role="alert">{{ cepError() }}</p>
   }
-  <footer class="address-form_footer">
-    <app-button
-      type="submit"
-      [disabled]="!!form.invalid || saving() || lookingUpCep()"
-      color="primary"
-      >{{ saving() ? 'Salvando...' : 'Salvar endereço' }}</app-button
-    >
-    <app-button
-      type="button"
-      color="light"
-      [disabled]="saving()"
-      (click)="!saving() && cancel.emit()"
-      >Cancelar</app-button
-    >
-  </footer>
+  <ng-template #actions>
+    <div class="address-form_footer">
+      <app-button
+        type="submit"
+        [form]="formId"
+        [disabled]="!!form.invalid || saving() || lookingUpCep()"
+        color="primary"
+        >{{ saving() ? 'Salvando...' : 'Salvar endereço' }}</app-button
+      >
+      <app-button
+        type="button"
+        color="light"
+        [disabled]="saving()"
+        (click)="!saving() && cancel.emit()"
+        >Cancelar</app-button
+      >
+    </div>
+  </ng-template>
+  @if (showActions()) {
+    <ng-container [ngTemplateOutlet]="actions" />
+  }
 </form>

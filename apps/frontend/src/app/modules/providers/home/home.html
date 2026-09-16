@@ -1,24 +1,30 @@
-<a routerLink="/provider/services" class="button">Gerenciar meus serviços e horários</a>
 <main class="provider-home">
   <header class="welcome">
     <div>
       <p class="welcome__eyebrow">Visão geral</p>
-      <h1>Bom dia, {{ providerName }} <span aria-hidden="true">👋</span></h1>
+      <h1>Olá, {{ providerName }} <span aria-hidden="true">👋</span></h1>
       <p class="welcome__subtitle">Veja como está seu desempenho hoje</p>
+    </div>
+    <div class="welcome__actions">
+      <app-button color="light" (click)="refresh()" [disabled]="loading()">
+        {{ loading() ? 'Atualizando...' : 'Atualizar painel' }}
+      </app-button>
+      <a routerLink="/provider/services" class="button button--primary">Gerenciar meus serviços</a>
     </div>
   </header>
 
-  <button type="button" (click)="refresh()" [disabled]="loading()">Atualizar painel</button>
   @if (loading()) {
-    <p role="status">Atualizando painel...</p>
+    <p class="notice" role="status">Atualizando painel...</p>
   }
   @if (dashboardError()) {
-    <p role="alert">{{ dashboardError() }}</p>
+    <p class="request-error" role="alert">{{ dashboardError() }}</p>
   }
   @if (loaded() && !requests().length && !activeOrders().length && !services.length) {
-    <p>Você ainda não possui solicitações ou serviços para exibir.</p>
+    <p class="empty-state">Você ainda não possui solicitações ou serviços para exibir.</p>
   }
-  <p>Os valores representam sua parcela em serviços pagos; não confirmam repasse bancário.</p>
+  <p class="notice">
+    Os valores representam sua parcela em serviços pagos; não confirmam repasse bancário.
+  </p>
 
   <section class="summary-grid" aria-label="Resumo do desempenho">
     @for (item of summary; track item.id) {
@@ -96,22 +102,21 @@
 
             @if (request.status === 'pending') {
               <div class="request-card__actions">
-                <button
-                  class="button button--secondary"
+                <app-button
+                  color="light"
                   type="button"
                   [disabled]="updatingRequestIds().has(request.id)"
                   (click)="updateRequestStatus(request.id, 'declined')"
                 >
                   {{ updatingRequestIds().has(request.id) ? 'Respondendo…' : 'Recusar' }}
-                </button>
-                <button
-                  class="button button--primary"
+                </app-button>
+                <app-button
                   type="button"
                   [disabled]="updatingRequestIds().has(request.id)"
                   (click)="updateRequestStatus(request.id, 'accepted')"
                 >
                   {{ updatingRequestIds().has(request.id) ? 'Respondendo…' : 'Aceitar' }}
-                </button>
+                </app-button>
               </div>
             } @else {
               <div
@@ -125,6 +130,10 @@
               </div>
             }
           </article>
+        } @empty {
+          @if (loaded() && !loading() && !dashboardError()) {
+            <p class="empty-state">Nenhuma solicitação aguardando aprovação.</p>
+          }
         }
       </div>
     </section>
@@ -161,23 +170,21 @@
                 >Ver detalhes</a
               >
               @if (order.status === 'AGENDADO') {
-                <button
-                  class="button button--primary"
+                <app-button
                   type="button"
                   [disabled]="updatingActiveOrderIds().has(order.id)"
                   (click)="updateActiveOrderStatus(order.id, 'EM_DESLOCAMENTO')"
                 >
                   {{ updatingActiveOrderIds().has(order.id) ? 'Atualizando…' : 'Estou a caminho' }}
-                </button>
+                </app-button>
               } @else if (order.status === 'EM_DESLOCAMENTO') {
-                <button
-                  class="button button--primary"
+                <app-button
                   type="button"
                   [disabled]="updatingActiveOrderIds().has(order.id)"
                   (click)="updateActiveOrderStatus(order.id, 'EM_ANDAMENTO')"
                 >
                   {{ updatingActiveOrderIds().has(order.id) ? 'Iniciando…' : 'Iniciar serviço' }}
-                </button>
+                </app-button>
               } @else if (order.status === 'EM_ANDAMENTO') {
                 <a class="button button--primary" [routerLink]="['/orders', order.id, 'finish']"
                   >Finalizar serviço</a
@@ -187,8 +194,8 @@
           </article>
         }
       </div>
-    } @else {
-      <p class="muted">Você ainda não possui pedidos agendados ou em andamento.</p>
+    } @else if (loaded() && !loading() && !dashboardError()) {
+      <p class="empty-state">Você ainda não possui pedidos agendados ou em andamento.</p>
     }
   </section>
 
@@ -199,7 +206,6 @@
           <h2>Últimos serviços realizados</h2>
           <p>Seu histórico mais recente</p>
         </div>
-        <button class="text-button" type="button">Ver todos</button>
       </div>
 
       <div class="service-list">
@@ -218,6 +224,10 @@
               <fa-icon [icon]="icons.star" /> {{ service.rating }}.0
             </span>
           </article>
+        } @empty {
+          @if (loaded() && !loading() && !dashboardError()) {
+            <p class="empty-state">Seus serviços concluídos aparecerão aqui.</p>
+          }
         }
       </div>
     </section>
