@@ -13,7 +13,7 @@
         [id]="'service-' + service.id"
         [name]="'service-' + service.id"
         [value]="service.id.toString()"
-        (click)="addSubCategory(service)"
+        (change)="addSubCategory(service)"
       >
         {{ service.name }}
       </app-input-checkbox>

@@ -31,7 +31,7 @@ export class Profile implements OnInit {
   #liveAnnouncer = inject(LiveAnnouncer);
   #registerUser = inject(RegisterUser);
   #router = inject(Router);
-  error = signal("");
+  error = signal('');
 
   payload!: ProfileForm;
 
@@ -40,8 +40,9 @@ export class Profile implements OnInit {
   }
 
   saveProfile() {
+    if (this.payload.password !== this.payload.confirmPassword) return;
     this.#registerUser.addPersonalInfo(this.payload);
-    this.#liveAnnouncer.announce("Salvo dados pessoais com sucesso");
+    this.#liveAnnouncer.announce('Salvo dados pessoais com sucesso');
     this.#router.navigateByUrl('/authenticate/register');
   }
 }

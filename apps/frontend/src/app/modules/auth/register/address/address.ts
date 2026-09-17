@@ -1,4 +1,4 @@
-import { Component, inject, OnInit, signal, viewChild } from '@angular/core';
+import { ChangeDetectorRef, Component, inject, OnInit, signal, viewChild } from '@angular/core';
 import { LiveAnnouncer } from '@angular/cdk/a11y';
 import { FormsModule, NgModel } from '@angular/forms';
 import { Router } from '@angular/router';
@@ -11,6 +11,8 @@ import { ButtonComponent } from '@shared/components/ui/button/button.component';
 import { AlertComponent } from '@shared/components/ui/alert/alert.component';
 
 class AddressForm {
+  city = '';
+  state = '';
   neighborhood = '';
   complement = '';
   cep = '';
@@ -26,17 +28,12 @@ class AddressForm {
 
 @Component({
   selector: 'app-address',
-  imports: [
-    InputTextComponent,
-    ButtonComponent,
-    ButtonBackComponent,
-    FormsModule,
-    AlertComponent
-  ],
+  imports: [InputTextComponent, ButtonComponent, ButtonBackComponent, FormsModule, AlertComponent],
   templateUrl: './address.html',
   styleUrl: './address.scss',
 })
 export class Address implements OnInit {
+  #changeDetector = inject(ChangeDetectorRef);
   #geolocalization = inject(Geolocalization);
   #liveAnnouncer = inject(LiveAnnouncer);
   #registerUser = inject(RegisterUser);
@@ -50,38 +47,40 @@ export class Address implements OnInit {
   }
 
   getAddressByZipCode() {
-    this.#geolocalization.getLatLngByCep(this.payload.cep)
-      .subscribe({
-        next: (res) => {
-          this.payload.neighborhood = res.neighborhood ?? res.raw.district;
-          this.payload.street = res.street ?? res.raw.street;
-          this.payload.lng = res.longitude ?? res.raw.lng;
-          this.payload.lat = res.latitude ?? res.raw.lat;
-          this.error.set('');
-        },
-        error: (err) => {
-          if (err?.status !== 404) {
-            this.error.set('erro ao consultar CEP: ' + this.payload.cep);
-            return;
-          }
-
-          this.error.set('CEP não encontrado: ' + this.payload.cep);
-          this.#geolocalization.getCurrentPosition().subscribe({
-            next: pos => {
-              this.error.set('');
-            },
-            error: e => {
-              console.error('não foi possível obter posição do navegador', e);
-              this.error.set('não foi possível obter posição do navegador');
-            }
-          });
+    this.#geolocalization.getLatLngByCep(this.payload.cep).subscribe({
+      next: (res) => {
+        this.payload.city = res.city ?? '';
+        this.payload.state = res.state ?? '';
+        this.payload.neighborhood = res.neighborhood ?? res.raw.district;
+        this.payload.street = res.street ?? res.raw.street;
+        this.payload.lng = res.longitude ?? res.raw.lng;
+        this.payload.lat = res.latitude ?? res.raw.lat;
+        this.error.set('');
+        this.#changeDetector.markForCheck();
+      },
+      error: (err) => {
+        if (err?.status !== 404) {
+          this.error.set('erro ao consultar CEP: ' + this.payload.cep);
+          return;
         }
-      });
+
+        this.error.set('CEP não encontrado: ' + this.payload.cep);
+        this.#geolocalization.getCurrentPosition().subscribe({
+          next: (pos) => {
+            this.error.set('');
+          },
+          error: (e) => {
+            console.error('não foi possível obter posição do navegador', e);
+            this.error.set('não foi possível obter posição do navegador');
+          },
+        });
+      },
+    });
   }
 
   saveAddress() {
     this.#registerUser.addAddress(this.payload);
-    this.#liveAnnouncer.announce("Salvo dados os dados de endereço com sucesso");
+    this.#liveAnnouncer.announce('Salvo dados os dados de endereço com sucesso');
     this.#router.navigateByUrl('/authenticate/register');
   }
 }

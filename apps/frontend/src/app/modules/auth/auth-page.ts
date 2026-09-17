@@ -1,4 +1,5 @@
-import { Component, inject, OnInit, signal, viewChild } from '@angular/core';
+import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
+import { Component, DestroyRef, inject, OnInit, signal, viewChild } from '@angular/core';
 import { Router, RouterModule } from '@angular/router';
 
 import { Roles } from '@shared/enums/roles.enum';
@@ -11,9 +12,10 @@ import { UserStorage } from '@shared/service/users/user-storage';
   selector: 'app-auth-page',
   imports: [LayoutSlider, LayoutSliderItem, RouterModule],
   templateUrl: './auth-page.html',
-  styleUrls: ['./auth-page.scss']
+  styleUrls: ['./auth-page.scss'],
 })
 export class AuthPage implements OnInit {
+  #destroyRef = inject(DestroyRef);
   #currentUser = signal<Roles | null>(null);
   #userStorage = inject(UserStorage);
   #router = inject(Router);
@@ -24,7 +26,10 @@ export class AuthPage implements OnInit {
   userType = Roles;
 
   ngOnInit(): void {
-    this.#theme.change.subscribe((role) => {
+    this.#theme.change.pipe(takeUntilDestroyed(this.#destroyRef)).subscribe((role) => {
+      this.#currentUser.set(role);
+      this.#userStorage.type.set(role);
+      if (this.disabledaActions()) return;
       const slider = this.slider();
       if (!slider) return;
 
@@ -32,9 +37,6 @@ export class AuthPage implements OnInit {
 
       if (role == Roles.CUSTOMER && canScrollRight()) slider.scrollRight();
       if (role == Roles.PROVIDER && canScrollLeft()) slider.scrollLeft();
-
-      this.#currentUser.set(role);
-      this.#userStorage.type.set(role);
     });
   }
 
@@ -55,6 +57,7 @@ export class AuthPage implements OnInit {
   }
 
   updateTheme(event: any) {
+    if (this.disabledaActions()) return;
     const { canScrollRight, canScrollLeft } = event;
 
     if (canScrollLeft && !canScrollRight) {

@@ -1,11 +1,11 @@
 export default class LoginElements {
-  constructor(private readonly user: any) { }
+  constructor(private readonly user: any) {}
 
   get forgotPasswordLink() {
-    return cy.get("#forgot-password-link");
+    return cy.get('#forgot-password-link');
   }
   get registerLink() {
-    return cy.get("#register-link");
+    return cy.get('#register-link');
   }
   get submitButton() {
     return cy.get('#login-form_footer button');
@@ -14,10 +14,10 @@ export default class LoginElements {
     return cy.get('.alert');
   }
   get passwordInput() {
-    return cy.get('#senha');
+    return cy.get('#senha-input');
   }
   get emailInput() {
-    return cy.get('#email');
+    return cy.get('#email-input');
   }
 
   public fillFormValid() {
