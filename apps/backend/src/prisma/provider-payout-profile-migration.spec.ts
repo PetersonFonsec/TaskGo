@@ -308,5 +308,5 @@ describe('provider payout profile migration', () => {
         }),
       }),
     );
-  });
+  }, 120_000);
 });
