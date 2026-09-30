@@ -12,6 +12,7 @@
     "build-storybook": "ng run frontend:build-storybook",
     "cypress:open": "node scripts/run-cypress.cjs open",
     "cypress:run": "node scripts/run-cypress.cjs run",
+    "cypress:run:api": "node scripts/run-cypress.cjs run --spec cypress/e2e/auth-api.cy.ts",
     "test:ci": "ng test --watch=false --browsers=ChromeHeadless"
   },
   "prettier": {

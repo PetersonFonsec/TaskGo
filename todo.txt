@@ -2,7 +2,7 @@ o que falta fazer nesse projeto
 
 front e back
 [X] - back - adicionar testes e2e no front para validar que a jornada  de autenticação esta funcionando
-[] - front - adicionar testes e2e no front para validar que a jornada  de autenticação esta funcionando
+[X] - front - adicionar testes e2e no front para validar que a jornada  de autenticação esta funcionando
 
 Melhorias
 1° Implementar a possibilidade de adicionar "reels" 

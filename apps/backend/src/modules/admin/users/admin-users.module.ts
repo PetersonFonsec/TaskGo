@@ -9,9 +9,16 @@ import { AdminInvitationActivationController } from './admin-invitation-activati
 import { AdminUsersController } from './admin-users.controller';
 import { AdminUsersService } from './admin-users.service';
 import { ConfigModule } from '../../../config/config.module';
+import { NotificationModule } from '../../notification/notification.module';
 
 @Module({
-  imports: [ConfigModule, PrismaModule, AdminAuditModule, AdminAuthModule],
+  imports: [
+    ConfigModule,
+    PrismaModule,
+    AdminAuditModule,
+    AdminAuthModule,
+    NotificationModule,
+  ],
   controllers: [AdminUsersController, AdminInvitationActivationController],
   providers: [
     AdminUsersService,

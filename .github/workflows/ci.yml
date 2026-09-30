@@ -70,3 +70,68 @@ jobs:
         run: npm run backoffice:test -- --skip-nx-cache
       - name: Build all applications
         run: npm run build -- --skip-nx-cache --parallel=1
+
+  auth-e2e:
+    name: Auth E2E (API real)
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    services:
+      postgres:
+        image: postgres:17-alpine
+        env:
+          POSTGRES_USER: taskgo_ci
+          POSTGRES_PASSWORD: taskgo_ci
+          POSTGRES_DB: taskgo_e2e
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U taskgo_ci -d taskgo_e2e"
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+    env:
+      CYPRESS_INSTALL_BINARY: ''
+      DATABASE_URL: postgresql://taskgo_ci:taskgo_ci@localhost:5432/taskgo_e2e?schema=public
+      JWT_SECRET: ci-only-not-a-secret
+      PAYMENTS_SIMULATION: 'true'
+      SALT_ROUNDS: '1'
+      NODE_ENV: test
+      PORT: '3000'
+      PUBLIC_FRONTEND_ORIGINS: http://localhost:4200
+      OTEL_SDK_DISABLED: 'true'
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version-file: .nvmrc
+          cache: npm
+      - name: Install dependencies and Cypress binary
+        run: npm ci
+      - name: Migrate and seed database
+        run: |
+          npm exec --workspace apps/backend -- prisma generate
+          npm run prisma:deploy --workspace apps/backend
+          ALLOW_DEMO_SEED=true npm run prisma:seed --workspace apps/backend
+      - name: Start API and frontend
+        run: |
+          npm run build --workspace apps/backend
+          (cd apps/backend && nohup node dist/apps/backend/src/main.js > ../../backend.log 2>&1 &)
+          (cd apps/frontend && nohup npx ng serve --port 4200 > ../../frontend.log 2>&1 &)
+          for i in $(seq 1 90); do
+            curl -sf http://localhost:3000/categories > /dev/null && curl -sf http://localhost:4200 > /dev/null && exit 0
+            sleep 5
+          done
+          tail -50 backend.log frontend.log
+          exit 1
+      - name: Run auth E2E against the API
+        run: npm run cypress:run:api --workspace apps/frontend
+      - name: Upload logs and videos on failure
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: auth-e2e-artifacts
+          path: |
+            backend.log
+            frontend.log
+            apps/frontend/cypress/videos
+            apps/frontend/cypress/screenshots

@@ -1,6 +1,7 @@
 import { Module } from '@nestjs/common';
 import { CqrsModule } from '@nestjs/cqrs';
 
+import { NotificationModule } from '../notification/notification.module';
 import { UserValidateService } from './user-validate.service';
 import { UserVerificationService } from './user-verification.service';
 import { UserController } from './user.controller';
@@ -12,7 +13,7 @@ import { CreateClientStrategy } from './commands/create-user/strategies/create-c
 import { CreateUserFactory } from './commands/create-user/factories/create-user.factory';
 
 @Module({
-  imports: [CqrsModule],
+  imports: [CqrsModule, NotificationModule],
   controllers: [UserController],
   providers: [
     UserService,

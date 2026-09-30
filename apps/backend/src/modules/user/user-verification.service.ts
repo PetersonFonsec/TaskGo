@@ -1,9 +1,14 @@
 import { Injectable, Logger } from '@nestjs/common';
+import { randomInt } from 'node:crypto';
+
+import { NotificationService } from '../notification/notification.service';
 
 @Injectable()
 export class UserVerificationService {
   private readonly logger = new Logger(UserVerificationService.name);
   private readonly pendingCodes = new Map<string, string>();
+
+  constructor(private readonly notifications: NotificationService) {}
 
   private buildKey(id: bigint, type: 'email' | 'phone') {
     return `${type}:${id.toString()}`;
@@ -12,9 +17,7 @@ export class UserVerificationService {
   async requestEmailVerification(userId: bigint, email: string): Promise<void> {
     const code = this.generateVerificationCode();
     this.pendingCodes.set(this.buildKey(userId, 'email'), code);
-    this.logger.debug(
-      `Email verification requested for user ${userId} and email ${email}`,
-    );
+    await this.notifications.sendEmailVerificationCode(email, code);
   }
 
   async requestPhoneVerification(userId: bigint, phone: string): Promise<void> {
@@ -34,11 +37,11 @@ export class UserVerificationService {
   }
 
   private generateVerificationCode(): string {
-    return Math.random()
-      .toString(36)
-      .replace(/[^A-Z0-9]/gi, '')
-      .slice(0, 6)
-      .toUpperCase();
+    const alphabet = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789';
+    return Array.from(
+      { length: 6 },
+      () => alphabet[randomInt(alphabet.length)],
+    ).join('');
   }
 
   private verifyCode(

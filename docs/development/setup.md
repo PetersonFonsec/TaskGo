@@ -68,4 +68,6 @@ Para o backend, configure um PostgreSQL exclusivo de testes e execute `npm run t
 
 Os comandos agregados executam somente os targets existentes no Nx; consulte os `project.json` para a cobertura de cada aplicativo. Antes de executar testes de integração, configure um banco exclusivo de testes: scripts e2e do backend podem resetar esse banco.
 
+Para o E2E de autenticação contra a API real, suba o backend (porta 3000) com um banco migrado e com seed (`ALLOW_DEMO_SEED=true npm run prisma:seed --workspace=apps/backend`), suba o frontend (porta 4200) e execute `npm run cypress:run:api --workspace=apps/frontend`. O spec cria usuários com e-mails únicos a cada execução; só a consulta de CEP é simulada. O job `Auth E2E (API real)` do CI faz esse mesmo fluxo.
+
 A evidência disponível e os passos ainda pendentes estão no [registro de onboarding](onboarding-validation.md).
