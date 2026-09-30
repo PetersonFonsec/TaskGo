@@ -29,6 +29,11 @@ describe('ConfirmOrderCompletionHandler payment capture', () => {
           status: OrderStatus.AGUARDANDO_CONFIRMACAO_CLIENTE,
           providerFinishedAt: new Date(),
           finalPrice: 120,
+          service: {
+            provider: {
+              user: { email: 'prestador@proxi.test', name: 'Prestador' },
+            },
+          },
           payment: {
             id: 5n,
             method: PaymentMethod.PIX,
@@ -48,7 +53,12 @@ describe('ConfirmOrderCompletionHandler payment capture', () => {
         .mockResolvedValue({ status: PaymentStatus.PAGO }),
       capturePayment: jest.fn().mockResolvedValue({ capturedAt }),
     } as any;
-    const handler = new ConfirmOrderCompletionHandler(prisma, payments);
+    const notifications = { notifyProviderOrderConfirmed: jest.fn() };
+    const handler = new ConfirmOrderCompletionHandler(
+      prisma,
+      payments,
+      notifications as any,
+    );
 
     const result = await handler.execute(
       new ConfirmOrderCompletionCommand(10n, 2n, {}),
@@ -65,6 +75,10 @@ describe('ConfirmOrderCompletionHandler payment capture', () => {
       }),
     );
     expect(result.status).toBe(OrderStatus.CONCLUIDO);
+    expect(notifications.notifyProviderOrderConfirmed).toHaveBeenCalledWith(
+      { email: 'prestador@proxi.test', name: 'Prestador' },
+      10n,
+    );
   });
 });
 
@@ -85,6 +99,11 @@ describe('Dispute confirmation boundary', () => {
           status: 'AGUARDANDO_CONFIRMACAO_CLIENTE',
           providerFinishedAt: new Date(),
           finalPrice: 120,
+          service: {
+            provider: {
+              user: { email: 'prestador@proxi.test', name: 'Prestador' },
+            },
+          },
           payment: {
             id: 5n,
             method: 'PIX',
@@ -100,7 +119,7 @@ describe('Dispute confirmation boundary', () => {
       reconcilePayment: jest.fn().mockResolvedValue({ status: 'PAGO' }),
     };
     await expect(
-      new ConfirmOrderCompletionHandler(prisma, payment).execute(
+      new ConfirmOrderCompletionHandler(prisma, payment, {} as any).execute(
         new ConfirmOrderCompletionCommand(10n, 2n, {}),
       ),
     ).rejects.toThrow('Aguarde a análise');

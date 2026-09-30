@@ -10,9 +10,16 @@ import { CqrsModule } from '@nestjs/cqrs';
 import { OrderQueryHandlers } from './queries';
 import { OrderCommandHandlers } from './commands';
 import { PaymentsModule } from '../payments/payments.module';
+import { NotificationModule } from '../notification/notification.module';
 
 @Module({
-  imports: [AdminAuthModule, ProviderModule, CqrsModule, PaymentsModule],
+  imports: [
+    AdminAuthModule,
+    ProviderModule,
+    CqrsModule,
+    PaymentsModule,
+    NotificationModule,
+  ],
   controllers: [
     OrderController,
     OrderDisputesController,

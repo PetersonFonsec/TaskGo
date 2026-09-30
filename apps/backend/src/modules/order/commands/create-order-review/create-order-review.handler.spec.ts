@@ -12,7 +12,9 @@ describe('CreateOrderReviewHandler', () => {
   const orderId = 123n;
   const clientId = 7n;
   const providerId = 17n;
+  const providerUser = { email: 'prestador@proxi.test', name: 'Prestador' };
   let prisma: any;
+  let notifications: { notifyProviderReviewReceived: jest.Mock };
   let handler: CreateOrderReviewHandler;
 
   beforeEach(() => {
@@ -20,7 +22,8 @@ describe('CreateOrderReviewHandler', () => {
       order: { findUnique: jest.fn() },
       $transaction: jest.fn(),
     };
-    handler = new CreateOrderReviewHandler(prisma);
+    notifications = { notifyProviderReviewReceived: jest.fn() };
+    handler = new CreateOrderReviewHandler(prisma, notifications as any);
   });
 
   it('cria a avaliação e devolve a reputação atualizada', async () => {
@@ -29,7 +32,7 @@ describe('CreateOrderReviewHandler', () => {
       clientId,
       status: OrderStatus.CONCLUIDO,
       review: null,
-      service: { providerId },
+      service: { providerId, provider: { user: providerUser } },
     });
     const transaction = {
       reviewTag: {
@@ -94,6 +97,11 @@ describe('CreateOrderReviewHandler', () => {
         }),
       }),
     );
+    expect(notifications.notifyProviderReviewReceived).toHaveBeenCalledWith(
+      providerUser,
+      orderId,
+      5,
+    );
   });
 
   it('rejeita uma avaliação duplicada', async () => {
@@ -101,7 +109,7 @@ describe('CreateOrderReviewHandler', () => {
       clientId,
       status: OrderStatus.CONCLUIDO,
       review: { id: 1n },
-      service: { providerId },
+      service: { providerId, provider: { user: providerUser } },
     });
 
     await expect(
@@ -116,7 +124,7 @@ describe('CreateOrderReviewHandler', () => {
       clientId,
       status: OrderStatus.CONCLUIDO,
       review: null,
-      service: { providerId },
+      service: { providerId, provider: { user: providerUser } },
     });
 
     await expect(
@@ -131,7 +139,7 @@ describe('CreateOrderReviewHandler', () => {
       clientId,
       status: OrderStatus.EM_ANDAMENTO,
       review: null,
-      service: { providerId },
+      service: { providerId, provider: { user: providerUser } },
     });
 
     await expect(
@@ -146,7 +154,7 @@ describe('CreateOrderReviewHandler', () => {
       clientId,
       status: OrderStatus.CONCLUIDO,
       review: null,
-      service: { providerId },
+      service: { providerId, provider: { user: providerUser } },
     });
     prisma.$transaction.mockImplementation(
       async (callback: (client: any) => unknown) =>

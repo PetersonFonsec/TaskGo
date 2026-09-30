@@ -8,6 +8,7 @@ import { OrderStatus, PaymentStatus, UserType } from '@prisma/client';
 
 import { PrismaService } from '../../../../prisma/prisma.service';
 import { PaymentService } from '../../../payments/payment.service';
+import { NotificationService } from '../../../notification/notification.service';
 import { ConfirmOrderCompletionCommand } from './confirm-order-completion.command';
 
 @CommandHandler(ConfirmOrderCompletionCommand)
@@ -17,6 +18,7 @@ export class ConfirmOrderCompletionHandler
   constructor(
     private readonly prisma: PrismaService,
     private readonly paymentService: PaymentService,
+    private readonly notifications: NotificationService,
   ) {}
 
   async execute({ orderId, clientId, payload }: ConfirmOrderCompletionCommand) {
@@ -27,6 +29,13 @@ export class ConfirmOrderCompletionHandler
         status: true,
         providerFinishedAt: true,
         finalPrice: true,
+        service: {
+          select: {
+            provider: {
+              select: { user: { select: { email: true, name: true } } },
+            },
+          },
+        },
         payment: {
           select: {
             id: true,
@@ -170,7 +179,10 @@ export class ConfirmOrderCompletionHandler
       return payment;
     });
 
-    // TODO(notification): notify the provider when notification infrastructure is available.
+    await this.notifications.notifyProviderOrderConfirmed(
+      order.service.provider.user,
+      orderId,
+    );
     return {
       id: orderId.toString(),
       status: OrderStatus.CONCLUIDO,

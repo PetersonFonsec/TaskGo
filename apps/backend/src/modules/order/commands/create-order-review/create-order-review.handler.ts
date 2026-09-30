@@ -8,13 +8,17 @@ import { CommandHandler, ICommandHandler } from '@nestjs/cqrs';
 import { OrderStatus, Prisma, UserType } from '@prisma/client';
 
 import { PrismaService } from '../../../../prisma/prisma.service';
+import { NotificationService } from '../../../notification/notification.service';
 import { CreateOrderReviewCommand } from './create-order-review.command';
 
 @CommandHandler(CreateOrderReviewCommand)
 export class CreateOrderReviewHandler
   implements ICommandHandler<CreateOrderReviewCommand>
 {
-  constructor(private readonly prisma: PrismaService) {}
+  constructor(
+    private readonly prisma: PrismaService,
+    private readonly notifications: NotificationService,
+  ) {}
 
   async execute({ orderId, clientId, payload }: CreateOrderReviewCommand) {
     const tagIds = this.parseTagIds(payload.tagIds ?? []);
@@ -24,7 +28,14 @@ export class CreateOrderReviewHandler
         clientId: true,
         status: true,
         review: { select: { id: true } },
-        service: { select: { providerId: true } },
+        service: {
+          select: {
+            providerId: true,
+            provider: {
+              select: { user: { select: { email: true, name: true } } },
+            },
+          },
+        },
       },
     });
 
@@ -45,8 +56,9 @@ export class CreateOrderReviewHandler
     if (order.review)
       throw new ConflictException('Este pedido já possui uma avaliação');
 
+    let result;
     try {
-      return await this.prisma.$transaction(
+      result = await this.prisma.$transaction(
         async (prisma) => {
           const activeTags = tagIds.length
             ? await prisma.reviewTag.findMany({
@@ -107,7 +119,6 @@ export class CreateOrderReviewHandler
             },
           });
 
-          // TODO(notification): notify provider: "Você recebeu uma nova avaliação."
           return {
             id: review.id.toString(),
             orderId: orderId.toString(),
@@ -136,6 +147,13 @@ export class CreateOrderReviewHandler
       }
       throw error;
     }
+
+    await this.notifications.notifyProviderReviewReceived(
+      order.service.provider.user,
+      orderId,
+      result.rating,
+    );
+    return result;
   }
 
   private parseTagIds(values: string[]): bigint[] {

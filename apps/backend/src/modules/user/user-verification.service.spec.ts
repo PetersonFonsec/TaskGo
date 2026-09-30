@@ -1,12 +1,19 @@
 import { Test, TestingModule } from '@nestjs/testing';
 import { UserVerificationService } from './user-verification.service';
+import { NotificationService } from '../notification/notification.service';
 
 describe('UserVerificationService', () => {
   let service: UserVerificationService;
 
   beforeEach(async () => {
     const module: TestingModule = await Test.createTestingModule({
-      providers: [UserVerificationService],
+      providers: [
+        UserVerificationService,
+        {
+          provide: NotificationService,
+          useValue: { sendEmailVerificationCode: jest.fn() },
+        },
+      ],
     }).compile();
 
     service = module.get<UserVerificationService>(UserVerificationService);
