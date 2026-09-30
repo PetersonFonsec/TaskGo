@@ -68,7 +68,8 @@ export class Drawer implements OnDestroy {
   }
 
   onClose() {
-    if (!this.isOpen()) return;
+    // The native close event is queued, so it can arrive after the drawer was reopened.
+    if (!this.isOpen() || this.dialog().nativeElement.open) return;
     this.document.body.style.overflow = this.previousOverflow;
     this.isOpen.set(false);
     this.trigger?.focus();
