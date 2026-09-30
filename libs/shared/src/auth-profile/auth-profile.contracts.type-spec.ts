@@ -48,7 +48,7 @@ const registration: UserRegistrationRequest = {
     state: 'SP',
     cep: '01001000',
   },
-  services: ['7'],
+  subcategoryIds: ['7'],
 };
 
 const profileUpdate: UserProfileUpdateRequest = {
