@@ -83,7 +83,7 @@ function fillAddress() {
 function selectFirstSeededService() {
   cy.intercept('GET', `${apiUrl}/categories*`).as('getCategories');
   cy.get('#category-step').click();
-  cy.wait('@getCategories').its('response.statusCode').should('eq', 200);
+  cy.wait('@getCategories').its('response.statusCode').should('be.oneOf', [200, 304]);
   cy.get('#category-form_content app-card').first().click();
   cy.contains('#category-form_footer button', 'Selecionar categoria').should('be.enabled').click();
   cy.url().should('match', /\/authenticate\/category\/\d+\/service/);
