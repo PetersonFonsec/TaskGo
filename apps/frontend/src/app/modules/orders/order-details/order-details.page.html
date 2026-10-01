@@ -17,6 +17,7 @@
     </header>
 
     @if (error()) { <div class="inline-error" role="alert">{{ error() }}</div> }
+    @if (expirationNotice()) { <div class="expiry-notice" role="status">{{ expirationNotice() }}</div> }
 
     <section class="hero-card">
       <div class="service-symbol" aria-hidden="true">⚡</div>

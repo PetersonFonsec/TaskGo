@@ -11,6 +11,8 @@ import { OrderQueryHandlers } from './queries';
 import { OrderCommandHandlers } from './commands';
 import { PaymentsModule } from '../payments/payments.module';
 import { NotificationModule } from '../notification/notification.module';
+import { OrderExpirationPolicy } from './expiration/order-expiration.policy';
+import { OrderExpirationService } from './expiration/order-expiration.service';
 
 @Module({
   imports: [
@@ -25,6 +27,11 @@ import { NotificationModule } from '../notification/notification.module';
     OrderDisputesController,
     AdminOrderDisputesController,
   ],
-  providers: [...OrderQueryHandlers, ...OrderCommandHandlers],
+  providers: [
+    ...OrderQueryHandlers,
+    ...OrderCommandHandlers,
+    OrderExpirationPolicy,
+    OrderExpirationService,
+  ],
 })
 export class OrderModule {}
