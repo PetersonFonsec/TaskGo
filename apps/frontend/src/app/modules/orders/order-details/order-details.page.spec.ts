@@ -10,6 +10,7 @@ import { OrderDetailsPage } from './order-details.page';
 const cancelledOrder: OrderDetails = {
   id: '5',
   status: 'CANCELADO',
+  expiresAt: null,
   service: { id: '3', title: 'Instalação de chuveiro', category: 'Elétrica', estimatedPrice: 150 },
   provider: { id: '17', name: 'João', photoUrl: null, ratingAvg: 4.8, ratingCount: 3 },
   client: { id: '7', name: 'Maria', photoUrl: null },

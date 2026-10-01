@@ -11,6 +11,7 @@ import { PendingApproval } from './pending-approval';
 const details = (): OrderDetails => ({
   id: '5',
   status: 'AGUARDANDO_APROVACAO',
+  expiresAt: null,
   service: { id: '3', title: 'Instalação de chuveiro', category: 'Elétrica', estimatedPrice: 150 },
   provider: { id: '17', name: 'João', photoUrl: null },
   client: { id: '7', name: 'Maria', photoUrl: null },
