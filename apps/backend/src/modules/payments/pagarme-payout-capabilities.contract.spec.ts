@@ -66,6 +66,9 @@ describe('Pagar.me payout capability contract evidence', () => {
       { recipientId: 'rp_1', status: 'active', bankStatus: 'rejected' },
       'REJECTED',
     ],
+    [{ recipientId: 'rp_1', status: 'refused' }, 'REJECTED'],
+    [{ recipientId: 'rp_1', status: 'suspended' }, 'REJECTED'],
+    [{ recipientId: 'rp_1', status: 'affiliation' }, 'PENDING'],
     [{ recipientId: 'rp_1', status: 'unexpected' }, 'UNKNOWN'],
   ] as const)('maps recipient evidence %p to %s', (input, expected) => {
     expect(mapRecipientState(input)).toBe(expected);

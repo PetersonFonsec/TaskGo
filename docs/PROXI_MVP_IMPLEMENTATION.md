@@ -31,7 +31,7 @@ PIX, preço fixo contratado e ofertas com agenda semanal. Cartão, reajuste de p
 | 017 | Parcial | Operações financeiras serializadas e confirmação protegida; validação local. Falta homologação de falhas/retentativas reais. |
 | 018 | Implementado | Preço fixo; valor final e pagamento precisam coincidir. |
 | 019 | Parcial | Cancelamento consulta estado canônico/reembolso e bloqueia casos ambíguos. Falta operação assistida e homologação de reembolso. |
-| 020 | Pendente externo e código | Checkout exige profile READY/CONFIRMED + recipient. Provisionamento/sincronização real de recipient ainda não entregue. Não alterar flags manualmente para contornar. |
+| 020 | Parcial (falta homologação) | `GET/PUT /provider/me/payout` (somente prestador da sessão) cria o recipient Pagar.me (`register_information` + conta padrão) ou atualiza `default-bank-account`, guarda só dados mascarados e o status (READY→CONFIRMED, pendente→PROCESSING, recusado→ERROR). Falha do gateway grava `last_error_code` (VALIDATION/TRANSIENT/…) sem quebrar recipient READY; a consulta reavalia recipient não pronto a cada 60s. PF exige CPF do cadastro; PJ aceita CNPJ válido. Tela `/provider/payouts`. Falta homologar o payload KYC exigido pela conta Pagar.me (data de nascimento, renda, endereço podem ser obrigatórios) e webhook de recipient. Não alterar flags manualmente para contornar. |
 | 021 | Fora do recorte | Cartão desabilitado; tokenização ainda não entregue. |
 | 022 | Parcial | Consulta PIX periódica/manual e QR expirado bloqueado. Renovação de cobrança e conciliação após timeout ainda pendentes. |
 | 023 | Implementado | Dashboard consultado na entrada e após ações, sem dados fictícios, com loading/erro/vazio. Agregação lê histórico completo; otimização posterior. |

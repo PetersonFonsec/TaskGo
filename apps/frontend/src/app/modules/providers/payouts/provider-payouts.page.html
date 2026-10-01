@@ -1,0 +1,200 @@
+<main class="payouts-page">
+  <a class="back-link" routerLink="/provider">← Voltar ao painel</a>
+  <header class="page-heading">
+    <p class="eyebrow">Financeiro</p>
+    <h1>Recebimentos</h1>
+    <p>Informe a conta bancária onde você quer receber pelos serviços realizados.</p>
+  </header>
+
+  @if (error()) {
+    <p class="feedback feedback--error" role="alert">{{ error() }}</p>
+  }
+  @if (message()) {
+    <p class="feedback feedback--success" role="status">{{ message() }}</p>
+  }
+
+  <div class="payouts-layout">
+    <section class="panel status-panel" aria-labelledby="status-title">
+      <header class="section-heading">
+        <div>
+          <h2 id="status-title">Situação da conta</h2>
+          <p>Os pagamentos são repassados pelo Pagar.me.</p>
+        </div>
+      </header>
+      @if (loading()) {
+        <p class="empty-state" role="status">Carregando seus dados de recebimento...</p>
+      } @else if (loadError()) {
+        <div class="empty-state">
+          <p role="alert">{{ loadError() }}</p>
+          <app-button typeColor="outline" (click)="load()">Tentar novamente</app-button>
+        </div>
+      } @else if (view(); as view) {
+        <span class="badge" [class]="'badge--' + view.tone" data-testid="payout-status">{{
+          view.label
+        }}</span>
+        <p class="status-description">{{ view.description }}</p>
+        @if (syncError()) {
+          <p class="feedback feedback--error status-error" role="alert">{{ syncError() }}</p>
+        }
+        @if (maskedAccount(); as account) {
+          <dl class="account-summary">
+            <div>
+              <dt>Banco</dt>
+              <dd>{{ account.bank }}</dd>
+            </div>
+            <div>
+              <dt>Agência</dt>
+              <dd>{{ account.branch }}</dd>
+            </div>
+            <div>
+              <dt>Conta</dt>
+              <dd>{{ account.account }}</dd>
+            </div>
+          </dl>
+        }
+        @if (view.tone === 'review') {
+          <app-button typeColor="outline" [disabled]="loading()" (click)="load()"
+            >Atualizar situação</app-button
+          >
+        }
+      }
+    </section>
+
+    <form class="panel payout-form" #form="ngForm" (ngSubmit)="save()" aria-labelledby="form-title">
+      <header class="section-heading">
+        <div>
+          <h2 id="form-title">
+            {{ status()?.bankAccount ? 'Alterar conta de recebimento' : 'Cadastrar conta' }}
+          </h2>
+          <p>Por segurança, os dados completos não são exibidos depois de salvos.</p>
+        </div>
+      </header>
+      <fieldset [disabled]="busy()" class="form-fields">
+        <legend class="visually-hidden">Dados bancários</legend>
+        <div class="field-grid">
+          <label
+            >Tipo de titular
+            <select name="holderType" [(ngModel)]="draft.holderType" required>
+              <option value="INDIVIDUAL">Pessoa física (CPF)</option>
+              <option value="COMPANY">Pessoa jurídica (CNPJ)</option>
+            </select>
+          </label>
+          <label
+            >{{ documentLabel() }}
+            <input
+              name="holderDocument"
+              [(ngModel)]="draft.holderDocument"
+              required
+              inputmode="numeric"
+              autocomplete="off"
+              minlength="11"
+              maxlength="18"
+            />
+          </label>
+        </div>
+        @if (draft.holderType === 'INDIVIDUAL') {
+          <p class="hint">A conta de pessoa física deve estar no CPF do seu cadastro.</p>
+        }
+        <label
+          >Nome do titular
+          <input
+            name="holderName"
+            [(ngModel)]="draft.holderName"
+            required
+            minlength="3"
+            maxlength="128"
+            autocomplete="name"
+          />
+        </label>
+        <div class="field-grid">
+          <label
+            >Banco
+            <select name="bankChoice" [(ngModel)]="draft.bankChoice" required>
+              <option value="">Selecione o banco</option>
+              @for (bank of banks; track bank.code) {
+                <option [value]="bank.code">{{ bank.code }} · {{ bank.name }}</option>
+              }
+              <option [value]="otherBank">Outro banco</option>
+            </select>
+          </label>
+          @if (draft.bankChoice === otherBank) {
+            <label
+              >Código do banco
+              <input
+                name="customBankCode"
+                [(ngModel)]="draft.customBankCode"
+                required
+                inputmode="numeric"
+                pattern="[0-9]{3}"
+                maxlength="3"
+                placeholder="Ex.: 212"
+              />
+            </label>
+          }
+        </div>
+        <label
+          >Tipo de conta
+          <select name="accountType" [(ngModel)]="draft.accountType" required>
+            <option value="CHECKING">Conta corrente</option>
+            <option value="SAVINGS">Conta poupança</option>
+          </select>
+        </label>
+        <div class="field-grid field-grid--digits">
+          <label
+            >Agência
+            <input
+              name="branchNumber"
+              [(ngModel)]="draft.branchNumber"
+              required
+              inputmode="numeric"
+              pattern="[0-9]{1,4}"
+              maxlength="4"
+              autocomplete="off"
+            />
+          </label>
+          <label
+            >Dígito <span class="optional">(opcional)</span>
+            <input
+              name="branchCheckDigit"
+              [(ngModel)]="draft.branchCheckDigit"
+              inputmode="numeric"
+              pattern="[0-9]"
+              maxlength="1"
+              autocomplete="off"
+            />
+          </label>
+        </div>
+        <div class="field-grid field-grid--digits">
+          <label
+            >Conta
+            <input
+              name="accountNumber"
+              [(ngModel)]="draft.accountNumber"
+              required
+              inputmode="numeric"
+              pattern="[0-9]{1,13}"
+              maxlength="13"
+              autocomplete="off"
+            />
+          </label>
+          <label
+            >Dígito
+            <input
+              name="accountCheckDigit"
+              [(ngModel)]="draft.accountCheckDigit"
+              required
+              pattern="[0-9xX]{1,2}"
+              maxlength="2"
+              autocomplete="off"
+            />
+          </label>
+        </div>
+      </fieldset>
+      <footer class="form-actions">
+        <app-button type="submit" [disabled]="busy() || !!form.invalid">{{
+          busy() ? 'Enviando...' : 'Salvar conta de recebimento'
+        }}</app-button>
+      </footer>
+    </form>
+  </div>
+</main>

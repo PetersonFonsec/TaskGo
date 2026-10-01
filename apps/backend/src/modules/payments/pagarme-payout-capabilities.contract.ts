@@ -47,13 +47,20 @@ export function mapRecipientState(input: {
     .map((state) => state!.toLowerCase());
   if (
     states.some((state) =>
-      ['failed', 'rejected', 'blocked', 'inactive'].includes(state),
+      [
+        'failed',
+        'rejected',
+        'refused',
+        'blocked',
+        'suspended',
+        'inactive',
+      ].includes(state),
     )
   )
     return 'REJECTED';
   if (
     states.some((state) =>
-      ['pending', 'processing', 'registration'].includes(state),
+      ['pending', 'processing', 'registration', 'affiliation'].includes(state),
     )
   )
     return 'PENDING';
