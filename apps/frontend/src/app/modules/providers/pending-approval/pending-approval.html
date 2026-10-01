@@ -1,37 +1,146 @@
-<div id="provider-pending-approval">
-  <h1 class="main-title">
-    Resumo da solicitação
-  </h1>
+<main id="provider-pending-approval">
+  @if (loading()) {
+    <div class="state" aria-live="polite">
+      <span class="spinner" aria-hidden="true"></span>
+      <strong>Carregando solicitação…</strong>
+    </div>
+  } @else if (loadError()) {
+    <div class="state" role="alert">
+      <h1 class="subtitle">Ops, algo deu errado</h1>
+      <p class="text">{{ loadError() }}</p>
+      <div class="actions">
+        <app-button color="light" (click)="goToHome()">Voltar</app-button>
+        <app-button (click)="load()">Tentar novamente</app-button>
+      </div>
+    </div>
+  } @else if (order(); as current) {
+    <header class="header">
+      <p class="eyebrow">
+        Nova solicitação · recebida {{ receivedAgo(current.schedule.requestedAt) }}
+      </p>
+      <h1 class="main-title">{{ current.service.title }}</h1>
+      <p class="text muted">{{ current.service.category }} · Cliente: {{ current.client.name }}</p>
+    </header>
 
-  <div class="container-section">
-    <h2 class="subtitle">
-      Dados do solicitante
-    </h2>
+    @if (!awaitingApproval()) {
+      <p class="notice" role="status">
+        Esta solicitação já foi respondida.
+        <a [routerLink]="['/orders', current.id]">Ver detalhes do pedido</a>
+      </p>
+    }
 
-    <p class="text"> Solicitante: {{ order()?.client?.name }}</p>
-    <p class="text"> telefone: {{ order()?.client?.phone }}</p>
-    <p class="text"> email: {{ order()?.client?.email }}</p>
-  </div>
+    <section class="card" aria-labelledby="pending-schedule-title">
+      <h2 class="subtitle" id="pending-schedule-title">Quando e onde</h2>
+      <dl>
+        <div>
+          <dt>Data</dt>
+          <dd>{{ formatDate(current.schedule.scheduledFor) }}</dd>
+        </div>
+        <div>
+          <dt>Horário</dt>
+          <dd>
+            {{ formatTimeRange(current.schedule.scheduledFor, current.schedule.scheduledEnd) }}
+          </dd>
+        </div>
+        <div class="wide">
+          <dt>Endereço do atendimento</dt>
+          <dd>{{ streetLine(current) }}</dd>
+          @if (regionLine(current)) {
+            <span>{{ regionLine(current) }}</span>
+          }
+          @if (current.distanceKm != null) {
+            <span class="distance"
+              >≈ {{ formatDistance(current.distanceKm) }} da sua área de atendimento</span
+            >
+          }
+        </div>
+      </dl>
+    </section>
 
-  <div class="container-section">
-    <h2 class="subtitle">
-      Dados sobre o serviço solicitado
-    </h2>
+    <section class="card" aria-labelledby="pending-values-title">
+      <h2 class="subtitle" id="pending-values-title">Valores</h2>
+      <dl>
+        <div>
+          <dt>Valor do serviço</dt>
+          <dd>{{ formatMoney(serviceAmount()) }}</dd>
+        </div>
+        @if (current.providerEarnings; as earnings) {
+          <div>
+            <dt>Taxa da plataforma ({{ formatPercent(earnings.feePct) }})</dt>
+            <dd>− {{ formatMoney(earnings.feeAmount) }}</dd>
+          </div>
+          <div class="wide net">
+            <dt>Você recebe (estimado)</dt>
+            <dd>{{ formatMoney(earnings.netAmount) }}</dd>
+            <span>Estimativa; muda se o valor final do serviço for ajustado.</span>
+          </div>
+        }
+      </dl>
+    </section>
 
-    <p class="text"> Serviço: {{ order()?.service?.title }} </p>
-    <p class="text"> Categoria do serviço: {{ order()?.service?.category }} </p>
-  </div>
+    @if (awaitingApproval()) {
+      @if (declining()) {
+        <section class="card" aria-labelledby="pending-decline-title">
+          <h2 class="subtitle" id="pending-decline-title">Por que você vai recusar?</h2>
+          <p class="text muted">O cliente verá o motivo nos detalhes do pedido.</p>
+          <fieldset>
+            <legend class="sr-only">Motivo da recusa</legend>
+            @for (option of reasons; track option.value) {
+              <label class="reason">
+                <input
+                  type="radio"
+                  name="decline-reason"
+                  [value]="option.value"
+                  [checked]="reason() === option.value"
+                  (change)="reason.set(option.value)"
+                />
+                {{ option.label }}
+              </label>
+            }
+          </fieldset>
+          @if (reason() === 'OTHER') {
+            <label class="note">
+              Conte mais (opcional)
+              <textarea
+                [maxLength]="noteMaxLength"
+                [value]="note()"
+                (input)="onNoteInput($event)"
+                rows="3"
+              ></textarea>
+              <small>{{ note().length }}/{{ noteMaxLength }}</small>
+            </label>
+          }
+        </section>
+      }
 
-  <footer id="provider-pending-approval_footer">
-    <app-button (click)="cancel()" color="light">
-      não aceitar o serviço
-    </app-button>
+      @if (actionError()) {
+        <p class="error" role="alert">{{ actionError() }}</p>
+      }
 
-    <app-button (click)="confirm()" color="primary">
-      aceitar o serviço
-    </app-button>
-  </footer>
-</div>
+      <footer class="actions">
+        @if (declining()) {
+          <app-button color="light" [disabled]="submitting()" (click)="closeDecline()"
+            >Voltar</app-button
+          >
+          <app-button [disabled]="submitting() || !reason()" (click)="decline()">
+            {{ submitting() ? 'Enviando…' : 'Confirmar recusa' }}
+          </app-button>
+        } @else {
+          <app-button color="light" [disabled]="submitting()" (click)="openDecline()"
+            >Recusar</app-button
+          >
+          <app-button [disabled]="submitting()" (click)="confirm()">
+            {{ submitting() ? 'Enviando…' : 'Aceitar serviço' }}
+          </app-button>
+        }
+      </footer>
+    }
+  }
+</main>
 
-<app-full-modal (closeModal)="goToHome()" [showModal]="showModal()" title="Sua resposta foi feita!!"
-  [message]="modalMessage()" />
+<app-full-modal
+  (closeModal)="goToHome()"
+  [showModal]="showModal()"
+  [title]="modalTitle()"
+  [message]="modalMessage()"
+/>

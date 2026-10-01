@@ -22,7 +22,7 @@ PIX, preço fixo contratado e ofertas com agenda semanal. Cartão, reajuste de p
 | 008 | Implementado | Gestão de ofertas do prestador, preço, categoria, ativação e janelas semanais validadas. |
 | 009 | Implementado | Descoberta/contratação/lifecycle exigem prestador aprovado. |
 | 010 | Implementado | Seleção de serviço/endereço próprio; preço e snapshot calculados no backend. |
-| 011 | Parcial | Reserva serializada por prestador, intervalo persistido e teste PostgreSQL concorrente. Falta política de expiração/liberação de reserva abandonada. |
+| 011 | Implementado | Reserva serializada por prestador, intervalo persistido e teste PostgreSQL concorrente. Pedidos parados em aprovação/pagamento expiram automaticamente (`OrderExpirationService`) e liberam o horário; PIX pago, pendente ou em conciliação nunca expira. |
 | 012 | Implementado | Deslocamento e início explícitos com estado e pagamento PIX validado. |
 | 013 | Parcial | Corpo do webhook não decide estado financeiro; consulta autenticada confirma cobrança/pedido/valor. A origem do remetente ainda não é autenticada por credencial/assinatura. |
 | 014 | Parcial | Tentativa/request/chave imutáveis antes do gateway; retries até 4 minutos. Tentativa ambígua após essa janela exige reconciliação operacional. |
@@ -31,7 +31,7 @@ PIX, preço fixo contratado e ofertas com agenda semanal. Cartão, reajuste de p
 | 017 | Parcial | Operações financeiras serializadas e confirmação protegida; validação local. Falta homologação de falhas/retentativas reais. |
 | 018 | Implementado | Preço fixo; valor final e pagamento precisam coincidir. |
 | 019 | Parcial | Cancelamento consulta estado canônico/reembolso e bloqueia casos ambíguos. Falta operação assistida e homologação de reembolso. |
-| 020 | Pendente externo e código | Checkout exige profile READY/CONFIRMED + recipient. Provisionamento/sincronização real de recipient ainda não entregue. Não alterar flags manualmente para contornar. |
+| 020 | Parcial (falta homologação) | `GET/PUT /provider/me/payout` (somente prestador da sessão) cria o recipient Pagar.me (`register_information` + conta padrão) ou atualiza `default-bank-account`, guarda só dados mascarados e o status (READY→CONFIRMED, pendente→PROCESSING, recusado→ERROR). Falha do gateway grava `last_error_code` (VALIDATION/TRANSIENT/…) sem quebrar recipient READY; a consulta reavalia recipient não pronto a cada 60s. PF exige CPF do cadastro; PJ aceita CNPJ válido. Tela `/provider/payouts`. Falta homologar o payload KYC exigido pela conta Pagar.me (data de nascimento, renda, endereço podem ser obrigatórios) e webhook de recipient. Não alterar flags manualmente para contornar. |
 | 021 | Fora do recorte | Cartão desabilitado; tokenização ainda não entregue. |
 | 022 | Parcial | Consulta PIX periódica/manual e QR expirado bloqueado. Renovação de cobrança e conciliação após timeout ainda pendentes. |
 | 023 | Implementado | Dashboard consultado na entrada e após ações, sem dados fictícios, com loading/erro/vazio. Agregação lê histórico completo; otimização posterior. |
@@ -54,12 +54,14 @@ PIX, preço fixo contratado e ofertas com agenda semanal. Cartão, reajuste de p
 4. Limite de recuperação: 5 solicitações por IP/minuto e 1 entrega por conta/minuto. O limite de IP é local à instância; ao escalar, configurar limite compartilhado no proxy. Senhas de recuperação exigem 10 caracteres e no máximo 72 bytes para evitar truncamento bcrypt.
 5. Suporte: `POST/GET /orders/:id/disputes`; operação administrativa `GET /admin/disputes` e `POST /admin/disputes/:id/resolve`, com `status` RESOLVED/REJECTED e `resolution`. Administrador e suporte têm capability. Resolver um caso não movimenta dinheiro.
 6. Financeiro: homologar recipient, conta, split, PIX pago/expirado, cancelamento, retorno perdido e webhook adiantado. A simulação local não comprova integração e não permite dinheiro fictício em produção.
-7. Não executar `prisma migrate reset` em banco existente. Os testes desta entrega usam `proxi_verify` em contêiner temporário, sem volume do projeto.
+7. Expiração de pedidos parados (migration `20261001120000_add_order_expired_event`): varredura a cada `ORDER_EXPIRATION_INTERVAL_SECONDS` (padrão 300) move para `CANCELADO`, com evento `EXPIRED` no histórico, pedidos `AGUARDANDO_APROVACAO` há mais de `ORDER_APPROVAL_TIMEOUT_HOURS` (padrão 12) desde a solicitação e `AGUARDANDO_PAGAMENTO` há mais de `ORDER_PAYMENT_TIMEOUT_HOURS` (padrão 2) desde o aceite, ou ambos quando o horário agendado passa. Só expira sem cobrança viva (sem pagamento, `CREATED` sem charge nem `PaymentAttempt`, falho, cancelado ou reembolsado); a transição usa o advisory lock do pagamento e `updateMany` condicionado ao status. PIX `PENDENTE`/autorizado/pago continua dependendo de conciliação. Detalhes e listagens retornam `expiresAt`. `ORDER_EXPIRATION_ENABLED` desliga a varredura (desligada em `NODE_ENV=test`); com várias réplicas cada uma varre, e o lock/condição evitam dupla transição. Avisos ao cliente/prestador devem assinar `OrderExpiredEvent`.
+8. E-mails do ciclo do pedido: prestador recebe nova solicitação (link `/provider/:id/aprovacao`); cliente recebe aceite (link `/orders/:id/payment`), recusa ou cancelamento pelo prestador (com aviso de estorno quando houver), pagamento PIX confirmado (transição `AGUARDANDO_PAGAMENTO` → `AGENDADO`, na criação da cobrança ou na conciliação), prestador a caminho e serviço finalizado (link `/orders/:id/confirm`). Os links usam `FRONTEND_URL` (sem ela, a primeira origem de `PUBLIC_FRONTEND_ORIGINS`). O envio ocorre após o commit, sem ser aguardado pela requisição, e falhas são apenas registradas no log. Os textos não incluem telefone, e-mail ou endereço da outra parte.
+9. Não executar `prisma migrate reset` em banco existente. Os testes desta entrega usam `proxi_verify` em contêiner temporário, sem volume do projeto.
 
 ## Limitações relevantes
 
 - Nenhuma chamada financeira real, publicação, commit ou envio de mensagem a terceiros foi feito.
-- Taxonomia e agenda mínimas estão disponíveis, mas reservas abandonadas ainda podem bloquear horários.
+- Taxonomia e agenda mínimas estão disponíveis; reservas abandonadas expiram automaticamente, exceto quando há PIX pendente de conciliação.
 - O fluxo de suporte interrompe a confirmação, não garante retenção bancária de um PIX já pago.
 - Migrations históricas são testadas antes de aplicar migrations posteriores; testes de aplicação corrente usam o schema corrente.
 - Os testes sandbox ignorados e testes frontend previamente ignorados permanecem identificados nos resultados; não contam como validação executada.

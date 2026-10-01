@@ -1,0 +1,150 @@
+<section class="funnel-shell" aria-labelledby="funnel-title">
+  <header class="page-header">
+    <div>
+      <p class="eyebrow">Métricas do marketplace</p>
+      <h1 id="funnel-title">Funil</h1>
+    </div>
+    <label class="period-control">
+      <span>Período</span>
+      <select name="period" [ngModel]="selectedPeriod()" (ngModelChange)="changePeriod($event)">
+        @for (option of periodOptions; track option.value) {
+          <option [value]="option.value">{{ option.label }}</option>
+        }
+      </select>
+    </label>
+  </header>
+
+  @if (loading()) {
+    <p class="panel" role="status" aria-live="polite">Carregando métricas do funil...</p>
+  }
+
+  @if (error()) {
+    <section class="panel alert" role="alert" tabindex="-1">
+      <p>{{ error() }}</p>
+      <button type="button" (click)="retry()">Tentar novamente</button>
+    </section>
+  }
+
+  @if (!loading() && funnel(); as metrics) {
+    <p class="period">
+      Semanas ISO de {{ metrics.period.from | date: 'dd/MM/yyyy' }} a
+      {{ metrics.period.to | date: 'dd/MM/yyyy' }} ({{ metrics.period.timezone }})
+    </p>
+
+    <section class="panel north-star" aria-labelledby="north-star-title">
+      <p class="eyebrow">North Star</p>
+      <h2 id="north-star-title">Serviços concluídos e pagos por semana</h2>
+      <div class="north-star-values">
+        <div>
+          <strong>{{ metrics.northStar.lastCompleteWeek?.value ?? 0 | number: '1.0-0' }}</strong>
+          <span>
+            @if (metrics.northStar.lastCompleteWeek; as week) {
+              na última semana fechada ({{ week.isoWeek }})
+            } @else {
+              nenhuma semana fechada no período
+            }
+          </span>
+        </div>
+        <div>
+          <strong>{{ metrics.northStar.weeklyAverage | number: '1.0-1' }}</strong>
+          <span>média semanal</span>
+        </div>
+        <div>
+          <strong>{{ metrics.northStar.total | number: '1.0-0' }}</strong>
+          <span>total no período</span>
+        </div>
+      </div>
+    </section>
+
+    <section class="card-grid" aria-label="Métricas de entrada">
+      @for (card of inputCards(metrics); track card.label) {
+        <article class="panel input-card">
+          <span class="label">{{ card.label }}</span>
+          <strong>{{ card.value }}</strong>
+          <span class="detail">{{ card.detail }}</span>
+        </article>
+      }
+    </section>
+
+    <section class="panel" aria-labelledby="onboarding-title">
+      <h2 id="onboarding-title">Onboarding de prestadores (agora)</h2>
+      <dl class="stages">
+        @for (stage of stages(metrics); track stage.label) {
+          <div>
+            <dt>{{ stage.label }}</dt>
+            <dd>
+              {{ stage.value | number: '1.0-0' }}
+              <small>{{ formatRate(stage.share) }}</small>
+            </dd>
+          </div>
+        }
+      </dl>
+    </section>
+
+    <section class="panel" aria-labelledby="weekly-title">
+      <h2 id="weekly-title">Evolução semanal</h2>
+      @if (metrics.weeks.length) {
+        <div class="table-scroll">
+          <table>
+            <thead>
+              <tr>
+                <th scope="col">Semana</th>
+                <th scope="col">Criados</th>
+                <th scope="col">Aceitos</th>
+                <th scope="col">Aceite ≤ 2 h</th>
+                <th scope="col">Mediana até aceite</th>
+                <th scope="col">Pagos</th>
+                <th scope="col">Aceite → pago</th>
+                <th scope="col">Concluídos</th>
+                <th scope="col">Concluídos e pagos</th>
+                <th scope="col">Cancelados</th>
+                <th scope="col">Recusados</th>
+              </tr>
+            </thead>
+            <tbody>
+              @for (week of metrics.weeks; track week.weekStart) {
+                <tr>
+                  <th scope="row">
+                    {{ week.isoWeek }}
+                    <small>{{ week.weekStart | date: 'dd/MM' }}</small>
+                  </th>
+                  <td>{{ week.created }}</td>
+                  <td>{{ week.accepted }}</td>
+                  <td>{{ formatRate(week.acceptance.rate) }}</td>
+                  <td>{{ formatMinutes(week.acceptance.medianMinutes) }}</td>
+                  <td>{{ week.paid }}</td>
+                  <td>{{ formatRate(week.acceptToPaid.rate) }}</td>
+                  <td>{{ week.completed }}</td>
+                  <td class="highlight">{{ week.completedPaid }}</td>
+                  <td>{{ week.canceled }}</td>
+                  <td>{{ week.rejected }}</td>
+                </tr>
+              }
+            </tbody>
+            <tfoot>
+              <tr>
+                <th scope="row">Total</th>
+                <td>{{ metrics.totals.created }}</td>
+                <td>{{ metrics.totals.accepted }}</td>
+                <td>{{ formatRate(metrics.inputs.acceptance.rate) }}</td>
+                <td>{{ formatMinutes(metrics.inputs.acceptance.medianMinutes) }}</td>
+                <td>{{ metrics.totals.paid }}</td>
+                <td>{{ formatRate(metrics.inputs.acceptToPaid.rate) }}</td>
+                <td>{{ metrics.totals.completed }}</td>
+                <td class="highlight">{{ metrics.totals.completedPaid }}</td>
+                <td>{{ metrics.totals.canceled }}</td>
+                <td>{{ metrics.totals.rejected }}</td>
+              </tr>
+            </tfoot>
+          </table>
+        </div>
+      } @else {
+        <p class="detail">Nenhuma semana no período selecionado.</p>
+      }
+      <p class="detail">
+        Contagens pela data de cada evento. Aceite ≤ 2 h e mediana por semana de criação do pedido;
+        conversão por semana de aceite.
+      </p>
+    </section>
+  }
+</section>

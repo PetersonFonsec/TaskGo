@@ -29,6 +29,15 @@ export class OrderDetailsPage implements OnInit {
   error = signal('');
   role = computed(() => this.#session.user()?.user?.type === Roles.PROVIDER ? 'PRESTADOR' : 'CLIENTE');
   statusLabel = computed(() => this.humanize(this.order()?.status ?? ''));
+  expirationNotice = computed(() => {
+    const order = this.order();
+    if (!order?.expiresAt) return '';
+    const waitingFor = order.status === 'AGUARDANDO_APROVACAO' ? 'a resposta do prestador' : 'o pagamento';
+    const minutes = Math.ceil((new Date(order.expiresAt).getTime() - Date.now()) / 60000);
+    if (minutes <= 0) return `O prazo para ${waitingFor} terminou; o pedido será expirado automaticamente.`;
+    const remaining = minutes >= 60 ? `${Math.floor(minutes / 60)} h${minutes % 60 ? ` ${minutes % 60} min` : ''}` : `${minutes} min`;
+    return `Aguardando ${waitingFor}: o pedido expira em ${remaining} (${this.formatTime(order.expiresAt)}) e o horário é liberado.`;
+  });
   actions = computed<OrderAction[]>(() => {
     const status = this.order()?.status;
     const paymentStatus = this.order()?.payment?.status;

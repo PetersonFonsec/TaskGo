@@ -36,6 +36,30 @@ export function validateEnvironment(environment: Environment): Environment {
     nodeEnv !== 'production',
   );
 
+  normalized.ORDER_EXPIRATION_ENABLED = readBoolean(
+    environment,
+    'ORDER_EXPIRATION_ENABLED',
+    nodeEnv !== 'test',
+  );
+  normalized.ORDER_EXPIRATION_INTERVAL_SECONDS = readInteger(
+    environment,
+    'ORDER_EXPIRATION_INTERVAL_SECONDS',
+    300,
+    { min: 30, max: 86400 },
+  );
+  normalized.ORDER_APPROVAL_TIMEOUT_HOURS = readNumber(
+    environment,
+    'ORDER_APPROVAL_TIMEOUT_HOURS',
+    12,
+    { min: 0.25, max: 720 },
+  );
+  normalized.ORDER_PAYMENT_TIMEOUT_HOURS = readNumber(
+    environment,
+    'ORDER_PAYMENT_TIMEOUT_HOURS',
+    2,
+    { min: 0.25, max: 720 },
+  );
+
   requireString(environment, 'DATABASE_URL');
   requireString(environment, 'JWT_SECRET');
 

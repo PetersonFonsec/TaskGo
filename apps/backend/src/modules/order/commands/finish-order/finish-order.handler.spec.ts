@@ -5,12 +5,18 @@ describe('Finish order financial integrity', () => {
   let db: any;
   let order: any;
   let handler: FinishOrderHandler;
+  let notifications: { notifyClientServiceFinished: jest.Mock };
   beforeEach(() => {
     order = {
       status: 'EM_ANDAMENTO',
       finalPrice: 150,
       payment: { method: 'PIX', amount: 150, status: 'PAGO' },
-      service: { providerId: 42n, provider: { status: 'APPROVED' } },
+      client: { email: 'cliente@proxi.test', name: 'Cliente' },
+      service: {
+        title: 'Pintura',
+        providerId: 42n,
+        provider: { status: 'APPROVED' },
+      },
     };
     db = {
       order: {
@@ -21,13 +27,15 @@ describe('Finish order financial integrity', () => {
       orderTimeline: { create: jest.fn() },
     };
     db.$transaction = jest.fn((fn) => fn(db));
-    handler = new FinishOrderHandler(db);
+    notifications = { notifyClientServiceFinished: jest.fn() };
+    handler = new FinishOrderHandler(db, notifications as any);
   });
   it.each([0, 149, 151])('refuses price changes to %s', async (finalPrice) => {
     await expect(
       handler.execute(new FinishOrderCommand(1n, 42n, { finalPrice })),
     ).rejects.toThrow('Final price');
     expect(db.$transaction).not.toHaveBeenCalled();
+    expect(notifications.notifyClientServiceFinished).not.toHaveBeenCalled();
   });
   it('refuses unfunded PIX and blocked providers', async () => {
     order.payment.status = 'AUTHORIZED';
@@ -52,5 +60,19 @@ describe('Finish order financial integrity', () => {
       }),
     );
     expect(db.orderTimeline.create).toHaveBeenCalledTimes(1);
+  });
+  it('asks the client to confirm after the commit', async () => {
+    await handler.execute(new FinishOrderCommand(1n, 42n, { finalPrice: 150 }));
+    expect(notifications.notifyClientServiceFinished).toHaveBeenCalledWith(
+      { email: 'cliente@proxi.test', name: 'Cliente' },
+      { id: 1n, serviceTitle: 'Pintura' },
+    );
+  });
+  it('does not notify when the transaction fails', async () => {
+    db.$transaction.mockRejectedValue(new Error('conflict'));
+    await expect(
+      handler.execute(new FinishOrderCommand(1n, 42n, { finalPrice: 150 })),
+    ).rejects.toThrow('conflict');
+    expect(notifications.notifyClientServiceFinished).not.toHaveBeenCalled();
   });
 });

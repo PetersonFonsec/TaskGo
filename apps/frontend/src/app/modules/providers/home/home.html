@@ -9,6 +9,7 @@
       <app-button color="light" (click)="refresh()" [disabled]="loading()">
         {{ loading() ? 'Atualizando...' : 'Atualizar painel' }}
       </app-button>
+      <a routerLink="/provider/payouts" class="button button--secondary">Recebimentos</a>
       <a routerLink="/provider/services" class="button button--primary">Gerenciar meus serviços</a>
     </div>
   </header>
@@ -96,7 +97,13 @@
               </span>
             </div>
 
-            <a class="request-card__details-link" [routerLink]="['/orders', request.id]"
+            <a
+              class="request-card__details-link"
+              [routerLink]="
+                request.status === 'pending'
+                  ? ['/provider', request.id, 'aprovacao']
+                  : ['/orders', request.id]
+              "
               >Ver detalhes do pedido →</a
             >
 
@@ -106,9 +113,9 @@
                   color="light"
                   type="button"
                   [disabled]="updatingRequestIds().has(request.id)"
-                  (click)="updateRequestStatus(request.id, 'declined')"
+                  (click)="declineRequest(request.id)"
                 >
-                  {{ updatingRequestIds().has(request.id) ? 'Respondendo…' : 'Recusar' }}
+                  Recusar
                 </app-button>
                 <app-button
                   type="button"

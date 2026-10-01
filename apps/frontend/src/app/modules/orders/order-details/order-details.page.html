@@ -17,6 +17,7 @@
     </header>
 
     @if (error()) { <div class="inline-error" role="alert">{{ error() }}</div> }
+    @if (expirationNotice()) { <div class="expiry-notice" role="status">{{ expirationNotice() }}</div> }
 
     <section class="hero-card">
       <div class="service-symbol" aria-hidden="true">⚡</div>
@@ -27,6 +28,14 @@
       </div>
       @if (role() === 'PRESTADOR') { <div class="client"><small>Cliente</small><strong>{{ current.client.name }}</strong></div> }
     </section>
+
+    @if (current.cancellation; as cancellation) {
+      <section class="cancellation" role="status">
+        <strong>{{ role() === 'PRESTADOR' ? 'Você recusou esta solicitação' : 'O prestador não pôde atender este pedido' }}</strong>
+        <p>Motivo: {{ cancellation.label }}</p>
+        @if (cancellation.note) { <p class="cancellation-note">“{{ cancellation.note }}”</p> }
+      </section>
+    }
 
     <div class="content-grid">
       <div class="cards-column">

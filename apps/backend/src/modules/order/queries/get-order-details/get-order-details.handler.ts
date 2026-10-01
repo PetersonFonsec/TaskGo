@@ -1,8 +1,15 @@
 import { NotFoundException } from '@nestjs/common';
+import { ConfigService } from '@nestjs/config';
 import { IQueryHandler, QueryHandler } from '@nestjs/cqrs';
-import { OrderEventType } from '@prisma/client';
+import { OrderEventType, OrderStatus, Prisma } from '@prisma/client';
 
 import { PrismaService } from '../../../../prisma/prisma.service';
+import { OrderExpirationPolicy } from '../../expiration/order-expiration.policy';
+import {
+  resolvePlatformFeePct,
+  splitPlatformFee,
+} from '../../../payments/platform-fee';
+import { CANCELLATION_REASON_LABELS } from '../../cancellation-reasons';
 import { GetOrderDetailsQuery } from './get-order-details.query';
 
 const EVENT_COPY: Record<
@@ -30,15 +37,20 @@ const EVENT_COPY: Record<
   PAYMENT_RELEASED: { title: 'Pagamento liberado' },
   CANCELED: { title: 'Pedido cancelado' },
   CLIENT_REVIEWED: { title: 'Atendimento avaliado' },
+  EXPIRED: { title: 'Pedido expirado' },
 };
 
 @QueryHandler(GetOrderDetailsQuery)
 export class GetOrderDetailsHandler
   implements IQueryHandler<GetOrderDetailsQuery>
 {
-  constructor(private readonly prisma: PrismaService) {}
+  constructor(
+    private readonly prisma: PrismaService,
+    private readonly expiration: OrderExpirationPolicy,
+    private readonly configService: ConfigService,
+  ) {}
 
-  async execute({ id }: GetOrderDetailsQuery) {
+  async execute({ id, viewer }: GetOrderDetailsQuery) {
     const order = await this.prisma.order.findUnique({
       where: { id },
       select: {
@@ -46,10 +58,13 @@ export class GetOrderDetailsHandler
         status: true,
         requestedAt: true,
         scheduledFor: true,
+        scheduledEnd: true,
         estimatedPrice: true,
         finalPrice: true,
         priceAdjustmentReason: true,
         providerFinishedAt: true,
+        cancellationReason: true,
+        cancellationNote: true,
         client: { select: { id: true, name: true, photoUrl: true } },
         service: {
           select: {
@@ -57,6 +72,7 @@ export class GetOrderDetailsHandler
             title: true,
             category: true,
             basePrice: true,
+            platformFeePct: true,
             provider: {
               select: {
                 id: true,
@@ -64,6 +80,17 @@ export class GetOrderDetailsHandler
                 ratingCount: true,
                 verified: true,
                 user: { select: { name: true, photoUrl: true } },
+                serviceAreas: {
+                  where: {
+                    active: true,
+                    mode: 'RADIUS',
+                    centerLat: { not: null },
+                    centerLng: { not: null },
+                  },
+                  select: { centerLat: true, centerLng: true },
+                  orderBy: { createdAt: 'asc' },
+                  take: 1,
+                },
               },
             },
           },
@@ -77,6 +104,8 @@ export class GetOrderDetailsHandler
             city: true,
             state: true,
             cep: true,
+            lat: true,
+            lng: true,
           },
         },
         payment: {
@@ -109,10 +138,33 @@ export class GetOrderDetailsHandler
     const timeline = order.orderTimeline.map((event) =>
       this.toTimelineEvent(event),
     );
+    const acceptedAt =
+      order.orderTimeline.findLast(({ event }) => event === 'ACCEPTED')
+        ?.createdAt ?? null;
+    const isProvider = viewer === 'PRESTADOR';
+    const {
+      lat = null,
+      lng = null,
+      ...address
+    } = order.addressSnap ?? {
+      street: null,
+      number: null,
+      complement: null,
+      neighborhood: null,
+      city: null,
+      state: null,
+      cep: null,
+    };
+    const serviceAmount =
+      order.finalPrice === null ? estimatedAmount : Number(order.finalPrice);
+    const canceledAt = order.orderTimeline.find(
+      (event) => event.event === 'CANCELED',
+    )?.createdAt;
 
     return {
       id: order.id.toString(),
       status: order.status,
+      expiresAt: this.expiration.expiresAt({ ...order, acceptedAt }),
       service: {
         id: order.service.id.toString(),
         title: order.service.title,
@@ -131,8 +183,24 @@ export class GetOrderDetailsHandler
       schedule: {
         requestedAt: order.requestedAt,
         scheduledFor: order.scheduledFor,
+        scheduledEnd: order.scheduledEnd,
       },
-      address: order.addressSnap,
+      address: order.addressSnap ? address : null,
+      distanceKm: isProvider
+        ? this.distanceKm(order.service.provider.serviceAreas[0], lat, lng)
+        : null,
+      providerEarnings: isProvider
+        ? await this.providerEarnings(order.service, serviceAmount)
+        : null,
+      cancellation:
+        order.status === OrderStatus.CANCELADO && order.cancellationReason
+          ? {
+              reason: order.cancellationReason,
+              label: CANCELLATION_REASON_LABELS[order.cancellationReason],
+              note: order.cancellationNote,
+              canceledAt: canceledAt ?? null,
+            }
+          : null,
       payment: order.payment
         ? {
             method: order.payment.method,
@@ -157,6 +225,51 @@ export class GetOrderDetailsHandler
       })),
       timeline,
     };
+  }
+
+  private async providerEarnings(
+    service: {
+      category: string;
+      platformFeePct: Prisma.Decimal | null;
+    },
+    amount: number,
+  ) {
+    const feePct = await resolvePlatformFeePct(
+      this.prisma,
+      service,
+      this.configService.getOrThrow<number>('payment.defaultPlatformFeePct'),
+    );
+    const split = splitPlatformFee(amount, feePct);
+    return {
+      grossAmount: split.amountCents / 100,
+      feePct,
+      feeAmount: split.platformAmountCents / 100,
+      netAmount: split.providerAmountCents / 100,
+    };
+  }
+
+  private distanceKm(
+    origin: { centerLat: number | null; centerLng: number | null } | undefined,
+    lat: number | null | undefined,
+    lng: number | null | undefined,
+  ) {
+    if (
+      origin?.centerLat == null ||
+      origin.centerLng == null ||
+      lat == null ||
+      lng == null
+    )
+      return null;
+    const toRad = (value: number) => (value * Math.PI) / 180;
+    const dLat = toRad(lat - origin.centerLat);
+    const dLng = toRad(lng - origin.centerLng);
+    const a =
+      Math.sin(dLat / 2) ** 2 +
+      Math.cos(toRad(origin.centerLat)) *
+        Math.cos(toRad(lat)) *
+        Math.sin(dLng / 2) ** 2;
+    const km = 6371 * 2 * Math.asin(Math.sqrt(Math.min(1, a)));
+    return Math.round(km * 10) / 10;
   }
 
   private toTimelineEvent(event: {

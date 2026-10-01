@@ -114,6 +114,7 @@ integration('Isolated PostgreSQL booking and geographic integrity', () => {
     const handler = new CreateOrderHandler(
       db as any,
       new ProviderService(db as any),
+      { notifyProviderNewOrder: jest.fn() } as any,
     );
     const results = await Promise.allSettled(
       serviceIds.map((serviceId) =>

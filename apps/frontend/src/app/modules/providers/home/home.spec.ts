@@ -1,4 +1,4 @@
-import { provideRouter } from '@angular/router';
+import { provideRouter, Router } from '@angular/router';
 import { provideHttpClient } from '@angular/common/http';
 import { HttpTestingController, provideHttpClientTesting } from '@angular/common/http/testing';
 import { ComponentFixture, TestBed } from '@angular/core/testing';
@@ -96,6 +96,16 @@ describe('ProviderHomePage fresh dashboard', () => {
     expect(order.confirmOrder).toHaveBeenCalledWith('1', '17');
     http.expectOne(endpoint).flush(emptyHome);
     expect(component.pendingCount()).toBe(0);
+  });
+
+  it('sends declines to the acceptance screen to pick a reason', () => {
+    http.expectOne(endpoint).flush({ ...emptyHome, pendingRequests: [pending] });
+    const navigate = spyOn(TestBed.inject(Router), 'navigate').and.resolveTo(true);
+    component.declineRequest('1');
+    expect(navigate).toHaveBeenCalledWith(['/provider', '1', 'aprovacao'], {
+      queryParams: { recusar: 1 },
+    });
+    expect(order.cancelOrder).not.toHaveBeenCalled();
   });
 
   it('preserves pending state if mutation fails', () => {

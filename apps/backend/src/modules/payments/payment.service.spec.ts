@@ -3,6 +3,8 @@ import { PaymentService } from './payment.service';
 
 describe('PaymentService financial integrity', () => {
   let current: any, charge: any, tx: any, gateway: any, service: PaymentService;
+  let notifications: { notifyClientPaymentConfirmed: jest.Mock };
+  let db: any;
   beforeEach(() => {
     current = {
       id: 1n,
@@ -41,9 +43,18 @@ describe('PaymentService financial integrity', () => {
       capturePayment: jest.fn(async () => ({ ...charge, status: 'paid' })),
       cancelPayment: jest.fn(async () => ({ ...charge, status: 'canceled' })),
     };
-    service = new PaymentService(gateway, {
+    notifications = { notifyClientPaymentConfirmed: jest.fn() };
+    db = {
       $transaction: async (cb: any) => cb(tx),
-    } as any);
+      order: {
+        findUnique: jest.fn().mockResolvedValue({
+          scheduledFor: new Date('2026-06-22T12:00:00.000Z'),
+          client: { email: 'cliente@proxi.test', name: 'Cliente' },
+          service: { title: 'Pintura' },
+        }),
+      },
+    };
+    service = new PaymentService(gateway, db, notifications as any);
   });
   it('validates the gateway outcome before saving capture', async () => {
     gateway.capturePayment.mockResolvedValue({ ...charge, status: 'pending' });
@@ -83,6 +94,38 @@ describe('PaymentService financial integrity', () => {
     expect(tx.order.updateMany).toHaveBeenLastCalledWith(
       expect.objectContaining({ data: { status: 'AGENDADO' } }),
     );
+  });
+  it('notifies the client once when reconciliation schedules a paid PIX', async () => {
+    charge.status = 'paid';
+    await service.reconcilePayment(current.id);
+    await new Promise(setImmediate);
+    expect(notifications.notifyClientPaymentConfirmed).toHaveBeenCalledWith(
+      { email: 'cliente@proxi.test', name: 'Cliente' },
+      {
+        id: 2n,
+        serviceTitle: 'Pintura',
+        scheduledFor: new Date('2026-06-22T12:00:00.000Z'),
+      },
+    );
+    tx.order.updateMany.mockResolvedValue({ count: 0 });
+    await service.reconcilePayment(current.id);
+    await new Promise(setImmediate);
+    expect(notifications.notifyClientPaymentConfirmed).toHaveBeenCalledTimes(1);
+  });
+  it('keeps the reconciliation result when the notification lookup fails', async () => {
+    charge.status = 'paid';
+    db.order.findUnique.mockRejectedValue(new Error('db down'));
+    await expect(service.reconcilePayment(current.id)).resolves.toEqual(
+      expect.objectContaining({ status: 'PAGO' }),
+    );
+    await new Promise(setImmediate);
+    expect(notifications.notifyClientPaymentConfirmed).not.toHaveBeenCalled();
+  });
+  it('does not notify while the PIX is still pending', async () => {
+    charge.status = 'pending';
+    await service.reconcilePayment(current.id);
+    await new Promise(setImmediate);
+    expect(notifications.notifyClientPaymentConfirmed).not.toHaveBeenCalled();
   });
   it('keeps order/payment unchanged on refund failure', async () => {
     tx.order.findUniqueOrThrow.mockResolvedValue({ status: 'AGENDADO' });

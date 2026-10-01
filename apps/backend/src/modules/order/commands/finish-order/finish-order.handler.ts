@@ -7,11 +7,15 @@ import { CommandHandler, ICommandHandler } from '@nestjs/cqrs';
 import { OrderStatus, UserType } from '@prisma/client';
 
 import { PrismaService } from '../../../../prisma/prisma.service';
+import { NotificationService } from '../../../notification/notification.service';
 import { FinishOrderCommand } from './finish-order.command';
 
 @CommandHandler(FinishOrderCommand)
 export class FinishOrderHandler implements ICommandHandler<FinishOrderCommand> {
-  constructor(private readonly prisma: PrismaService) {}
+  constructor(
+    private readonly prisma: PrismaService,
+    private readonly notifications: NotificationService,
+  ) {}
 
   async execute({ orderId, providerId, payload }: FinishOrderCommand) {
     if (payload.photos?.length)
@@ -23,8 +27,10 @@ export class FinishOrderHandler implements ICommandHandler<FinishOrderCommand> {
         estimatedPrice: true,
         finalPrice: true,
         payment: { select: { amount: true, status: true, method: true } },
+        client: { select: { email: true, name: true } },
         service: {
           select: {
+            title: true,
             basePrice: true,
             providerId: true,
             provider: { select: { status: true } },
@@ -119,6 +125,10 @@ export class FinishOrderHandler implements ICommandHandler<FinishOrderCommand> {
       return result;
     });
 
+    void this.notifications.notifyClientServiceFinished(order.client, {
+      id: orderId,
+      serviceTitle: order.service.title,
+    });
     return {
       id: updated.id.toString(),
       status: updated.status,

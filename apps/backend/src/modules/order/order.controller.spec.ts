@@ -6,6 +6,7 @@ describe('Order authorization', () => {
   let commands: any;
   let queries: any;
   let db: any;
+  let notifications: { notifyClientProviderOnTheWay: jest.Mock };
   const client = { id: '7', role: 'CLIENTE' } as const;
   const provider = { id: '42', role: 'PRESTADOR' } as const;
   beforeEach(() => {
@@ -14,12 +15,22 @@ describe('Order authorization', () => {
     db = {
       order: {
         findFirst: jest.fn(),
+        findUnique: jest.fn().mockResolvedValue({
+          client: { email: 'cliente@proxi.test', name: 'Cliente' },
+          service: { title: 'Pintura' },
+        }),
         updateMany: jest.fn().mockResolvedValue({ count: 1 }),
       },
       orderTimeline: { create: jest.fn() },
     };
     db.$transaction = jest.fn((fn) => fn(db));
-    controller = new OrderController(queries, commands, db);
+    notifications = { notifyClientProviderOnTheWay: jest.fn() };
+    controller = new OrderController(
+      queries,
+      commands,
+      db,
+      notifications as any,
+    );
   });
   it('rejects anonymous and cross-account list requests', () => {
     expect(() => controller.findByClient(7n, null as any)).toThrow(
@@ -60,9 +71,27 @@ describe('Order authorization', () => {
     expect(() => controller.confirmByProvider(1n, 99n, provider)).toThrow(
       ForbiddenException,
     );
-    expect(() => controller.cancelByProvider(1n, 99n, provider)).toThrow(
-      ForbiddenException,
-    );
+    expect(() =>
+      controller.cancelByProvider(1n, 99n, provider, {
+        reason: 'NO_AVAILABILITY',
+      }),
+    ).toThrow(ForbiddenException);
+  });
+  it('forwards the refusal reason to the cancel command', () => {
+    controller.cancelByProvider(1n, 42n, provider, {
+      reason: 'OTHER',
+      note: 'Agenda cheia',
+    });
+    const command = commands.execute.mock.calls[0][0];
+    expect(command.providerId).toBe(42n);
+    expect(command.payload).toEqual({ reason: 'OTHER', note: 'Agenda cheia' });
+  });
+  it('tells the details query who is viewing the order', async () => {
+    db.order.findFirst.mockResolvedValue({ id: 1n });
+    await controller.findOne(1n, provider);
+    await controller.findOne(1n, client);
+    expect(queries.execute.mock.calls[0][0].viewer).toBe('PRESTADOR');
+    expect(queries.execute.mock.calls[1][0].viewer).toBe('CLIENTE');
   });
   it('atomically guards lifecycle with ownership, prior state and funded payment', async () => {
     await controller.start(1n, provider);
@@ -82,5 +111,21 @@ describe('Order authorization', () => {
       ForbiddenException,
     );
     expect(db.orderTimeline.create).toHaveBeenCalledTimes(1);
+    expect(notifications.notifyClientProviderOnTheWay).not.toHaveBeenCalled();
+  });
+  it('tells the client the provider is on the way only after the transition', async () => {
+    await expect(controller.onTheWay(1n, provider)).resolves.toEqual({
+      id: '1',
+      status: 'EM_DESLOCAMENTO',
+    });
+    expect(notifications.notifyClientProviderOnTheWay).toHaveBeenCalledWith(
+      { email: 'cliente@proxi.test', name: 'Cliente' },
+      { id: 1n, serviceTitle: 'Pintura' },
+    );
+    db.order.updateMany.mockResolvedValue({ count: 0 });
+    await expect(controller.onTheWay(1n, provider)).rejects.toThrow(
+      ForbiddenException,
+    );
+    expect(notifications.notifyClientProviderOnTheWay).toHaveBeenCalledTimes(1);
   });
 });

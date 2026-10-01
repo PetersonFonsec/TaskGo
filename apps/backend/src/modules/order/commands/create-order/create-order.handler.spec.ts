@@ -8,10 +8,12 @@ describe('CreateOrderHandler', () => {
   const service = {
     id: 101n,
     providerId: 42n,
+    title: 'Instalação elétrica',
     status: 'ATIVO',
     basePrice: 150,
     provider: {
       status: 'APPROVED',
+      user: { email: 'prestador@proxi.test', name: 'Prestador' },
       serviceAreas: [
         { mode: 'RADIUS', centerLat: 0, centerLng: 0, radiusKm: 10 },
       ],
@@ -19,6 +21,7 @@ describe('CreateOrderHandler', () => {
   };
   let prisma: any;
   let providerService: { getAvailability: jest.Mock };
+  let notifications: { notifyProviderNewOrder: jest.Mock };
   let handler: CreateOrderHandler;
 
   afterEach(() => jest.restoreAllMocks());
@@ -37,7 +40,12 @@ describe('CreateOrderHandler', () => {
         }),
       },
       service: { findUnique: jest.fn().mockResolvedValue(service) },
-      order: { create: jest.fn().mockResolvedValue({ id: 1n }) },
+      order: {
+        create: jest.fn().mockResolvedValue({
+          id: 1n,
+          scheduledFor: new Date('2026-06-22T12:00:00.000Z'),
+        }),
+      },
       $transaction: jest.fn((operation) => operation(prisma)),
     };
     providerService = {
@@ -56,7 +64,12 @@ describe('CreateOrderHandler', () => {
         ],
       }),
     };
-    handler = new CreateOrderHandler(prisma, providerService as any);
+    notifications = { notifyProviderNewOrder: jest.fn() };
+    handler = new CreateOrderHandler(
+      prisma,
+      providerService as any,
+      notifications as any,
+    );
   });
 
   it('creates the aggregate transactionally when the requested slot is available', async () => {
@@ -100,6 +113,29 @@ describe('CreateOrderHandler', () => {
     );
   });
 
+  it('notifies the provider about the new request after the commit', async () => {
+    await handler.execute(
+      new CreateOrderCommand({
+        addressId: '1',
+        clientId: '7',
+        serviceId: '101',
+        scheduledFor: '2026-06-22T12:00:00.000Z',
+      }),
+    );
+
+    expect(notifications.notifyProviderNewOrder).toHaveBeenCalledWith(
+      { email: 'prestador@proxi.test', name: 'Prestador' },
+      {
+        id: 1n,
+        serviceTitle: 'Instalação elétrica',
+        scheduledFor: new Date('2026-06-22T12:00:00.000Z'),
+      },
+    );
+    expect(
+      notifications.notifyProviderNewOrder.mock.invocationCallOrder[0],
+    ).toBeGreaterThan(prisma.order.create.mock.invocationCallOrder[0]);
+  });
+
   it('rejects invalid dates before consulting availability', async () => {
     await expect(
       handler.execute(
@@ -129,5 +165,6 @@ describe('CreateOrderHandler', () => {
       ),
     ).rejects.toBeInstanceOf(BadRequestException);
     expect(prisma.order.create).not.toHaveBeenCalled();
+    expect(notifications.notifyProviderNewOrder).not.toHaveBeenCalled();
   });
 });

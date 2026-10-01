@@ -17,8 +17,10 @@ import {
 } from '@prisma/client';
 
 import { PrismaService } from '../../../../prisma/prisma.service';
+import { NotificationService } from '../../../notification/notification.service';
 import { toPaymentResponse } from '../../mappers/payment-response.mapper';
 import { PagarmeService } from '../../pagarme.service';
+import { resolvePlatformFeePct } from '../../platform-fee';
 import { CreateOrderPaymentCommand } from './create-order-payment.command';
 
 @CommandHandler(CreateOrderPaymentCommand)
@@ -29,6 +31,7 @@ export class CreateOrderPaymentHandler
     private readonly prisma: PrismaService,
     private readonly pagarme: PagarmeService,
     private readonly configService: ConfigService,
+    private readonly notifications: NotificationService,
   ) {}
 
   async execute({ orderId, clientId, payload }: CreateOrderPaymentCommand) {
@@ -131,6 +134,7 @@ export class CreateOrderPaymentHandler
     const now = new Date();
     const status = gatewayPaymentStatus(gateway.status);
 
+    let scheduled = false;
     const payment = await this.prisma.$transaction(async (tx) => {
       if (order.payment)
         await tx.$queryRaw`SELECT pg_advisory_xact_lock(${order.payment.id})::text`;
@@ -169,13 +173,21 @@ export class CreateOrderPaymentHandler
           },
         });
       }
-      if (paidStatuses.includes(status))
-        await tx.order.updateMany({
+      if (paidStatuses.includes(status)) {
+        const changed = await tx.order.updateMany({
           where: { id: orderId, status: OrderStatus.AGUARDANDO_PAGAMENTO },
           data: { status: OrderStatus.AGENDADO },
         });
+        scheduled = changed.count === 1;
+      }
       return saved;
     });
+    if (scheduled)
+      void this.notifications.notifyClientPaymentConfirmed(order.client, {
+        id: orderId,
+        serviceTitle: order.service.title,
+        scheduledFor: order.scheduledFor,
+      });
     return toPaymentResponse(payment);
   }
 
@@ -194,10 +206,12 @@ export class CreateOrderPaymentHandler
         clientId: true,
         status: true,
         finalPrice: true,
+        scheduledFor: true,
         client: { select: { name: true, email: true, cpf: true } },
         payment: true,
         service: {
           select: {
+            title: true,
             basePrice: true,
             platformFeePct: true,
             category: true,
@@ -233,28 +247,15 @@ export class CreateOrderPaymentHandler
     return order;
   }
 
-  private async resolveFeePercentage(service: {
+  private resolveFeePercentage(service: {
     category: string;
     platformFeePct: Prisma.Decimal | null;
   }) {
-    const category =
-      service.platformFeePct === null
-        ? await this.prisma.category.findFirst({
-            where: {
-              OR: [{ slug: service.category }, { name: service.category }],
-            },
-            select: { platformFeePct: true },
-          })
-        : null;
-    const feePct = Number(
-      service.platformFeePct ??
-        category?.platformFeePct ??
-        this.configService.getOrThrow<number>('payment.defaultPlatformFeePct'),
+    return resolvePlatformFeePct(
+      this.prisma,
+      service,
+      this.configService.getOrThrow<number>('payment.defaultPlatformFeePct'),
     );
-    if (!Number.isFinite(feePct) || feePct < 0 || feePct > 1) {
-      throw new BadRequestException('Taxa da plataforma inválida');
-    }
-    return feePct;
   }
 
   private isReusable(status: PaymentStatus) {

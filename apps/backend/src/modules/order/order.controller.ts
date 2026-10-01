@@ -35,9 +35,11 @@ import { FinishOrderDto } from './dto/finish-order.dto';
 import { User } from '../../shared/decorators/user.decorator';
 import { ConfirmOrderCompletionDto } from './dto/confirm-order-completion.dto';
 import { CreateOrderReviewDto } from './dto/create-order-review.dto';
+import { CancelOrderByProviderDto } from './dto/cancel-order-by-provider.dto';
 import { ParseBigIntPipe } from '../../shared/pipes/parse-bigint.pipe';
 
 import { PrismaService } from '../../prisma/prisma.service';
+import { NotificationService } from '../notification/notification.service';
 import type { AuthenticatedIdentity } from '../../shared/auth/authenticated-identity';
 
 @Controller(['order', 'orders'])
@@ -46,6 +48,7 @@ export class OrderController {
     private readonly queryBus: QueryBus,
     private readonly commandBus: CommandBus,
     private readonly prisma: PrismaService,
+    private readonly notifications: NotificationService,
   ) {}
 
   @Post()
@@ -77,7 +80,12 @@ export class OrderController {
     @User() user: AuthenticatedIdentity,
   ) {
     await this.participant(id, user);
-    return this.queryBus.execute(new GetOrderDetailsQuery(id));
+    return this.queryBus.execute(
+      new GetOrderDetailsQuery(
+        id,
+        user.role === 'PRESTADOR' ? 'PRESTADOR' : 'CLIENTE',
+      ),
+    );
   }
 
   @Get(':id/summary')
@@ -193,11 +201,12 @@ export class OrderController {
     @Param('id', ParseBigIntPipe) id: bigint,
     @Param('providerId', ParseBigIntPipe) providerId: bigint,
     @User() user: AuthenticatedIdentity,
+    @Body() payload: CancelOrderByProviderDto,
   ) {
     this.identity(user, 'PRESTADOR');
     if (BigInt(user.id) !== providerId) throw new ForbiddenException();
     return this.commandBus.execute(
-      new CancelOrderByProviderCommand(id, providerId),
+      new CancelOrderByProviderCommand(id, providerId, payload),
     );
   }
 
@@ -257,7 +266,7 @@ export class OrderController {
     event: 'PROVIDER_ON_THE_WAY' | 'SERVICE_STARTED',
   ) {
     this.identity(user, 'PRESTADOR');
-    return this.prisma.$transaction(async (tx) => {
+    const outcome = await this.prisma.$transaction(async (tx) => {
       const result = await tx.order.updateMany({
         where: {
           id,
@@ -282,7 +291,23 @@ export class OrderController {
           createdAt: new Date(),
         },
       });
-      return { id: id.toString(), status: to };
+      const order =
+        event === 'PROVIDER_ON_THE_WAY'
+          ? await tx.order.findUnique({
+              where: { id },
+              select: {
+                client: { select: { email: true, name: true } },
+                service: { select: { title: true } },
+              },
+            })
+          : null;
+      return { response: { id: id.toString(), status: to }, order };
     });
+    if (outcome.order)
+      void this.notifications.notifyClientProviderOnTheWay(
+        outcome.order.client,
+        { id, serviceTitle: outcome.order.service.title },
+      );
+    return outcome.response;
   }
 }
