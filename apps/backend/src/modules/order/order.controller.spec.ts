@@ -6,6 +6,7 @@ describe('Order authorization', () => {
   let commands: any;
   let queries: any;
   let db: any;
+  let notifications: { notifyClientProviderOnTheWay: jest.Mock };
   const client = { id: '7', role: 'CLIENTE' } as const;
   const provider = { id: '42', role: 'PRESTADOR' } as const;
   beforeEach(() => {
@@ -14,12 +15,22 @@ describe('Order authorization', () => {
     db = {
       order: {
         findFirst: jest.fn(),
+        findUnique: jest.fn().mockResolvedValue({
+          client: { email: 'cliente@proxi.test', name: 'Cliente' },
+          service: { title: 'Pintura' },
+        }),
         updateMany: jest.fn().mockResolvedValue({ count: 1 }),
       },
       orderTimeline: { create: jest.fn() },
     };
     db.$transaction = jest.fn((fn) => fn(db));
-    controller = new OrderController(queries, commands, db);
+    notifications = { notifyClientProviderOnTheWay: jest.fn() };
+    controller = new OrderController(
+      queries,
+      commands,
+      db,
+      notifications as any,
+    );
   });
   it('rejects anonymous and cross-account list requests', () => {
     expect(() => controller.findByClient(7n, null as any)).toThrow(
@@ -82,5 +93,21 @@ describe('Order authorization', () => {
       ForbiddenException,
     );
     expect(db.orderTimeline.create).toHaveBeenCalledTimes(1);
+    expect(notifications.notifyClientProviderOnTheWay).not.toHaveBeenCalled();
+  });
+  it('tells the client the provider is on the way only after the transition', async () => {
+    await expect(controller.onTheWay(1n, provider)).resolves.toEqual({
+      id: '1',
+      status: 'EM_DESLOCAMENTO',
+    });
+    expect(notifications.notifyClientProviderOnTheWay).toHaveBeenCalledWith(
+      { email: 'cliente@proxi.test', name: 'Cliente' },
+      { id: 1n, serviceTitle: 'Pintura' },
+    );
+    db.order.updateMany.mockResolvedValue({ count: 0 });
+    await expect(controller.onTheWay(1n, provider)).rejects.toThrow(
+      ForbiddenException,
+    );
+    expect(notifications.notifyClientProviderOnTheWay).toHaveBeenCalledTimes(1);
   });
 });

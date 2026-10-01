@@ -5,12 +5,14 @@ describe('CreateOrderPaymentHandler', () => {
     tx: any,
     prisma: any,
     gateway: any,
-    handler: CreateOrderPaymentHandler;
+    handler: CreateOrderPaymentHandler,
+    notifications: { notifyClientPaymentConfirmed: jest.Mock };
   beforeEach(() => {
     order = {
       clientId: 2n,
       status: 'AGUARDANDO_PAGAMENTO',
       finalPrice: 120,
+      scheduledFor: new Date('2026-06-22T12:00:00.000Z'),
       client: {
         name: 'Cliente',
         email: 'test@example.com',
@@ -24,6 +26,7 @@ describe('CreateOrderPaymentHandler', () => {
         amount: 120,
       },
       service: {
+        title: 'Pintura',
         basePrice: 120,
         platformFeePct: 0.12,
         category: 'reparo',
@@ -71,10 +74,13 @@ describe('CreateOrderPaymentHandler', () => {
         raw: { status: 'pending' },
       }),
     };
-    handler = new CreateOrderPaymentHandler(prisma, gateway, {
-      get: () => 'rp_platform',
-      getOrThrow: () => 0.12,
-    } as any);
+    notifications = { notifyClientPaymentConfirmed: jest.fn() };
+    handler = new CreateOrderPaymentHandler(
+      prisma,
+      gateway,
+      { get: () => 'rp_platform', getOrThrow: () => 0.12 } as any,
+      notifications as any,
+    );
   });
   const command = () =>
     ({ orderId: 10n, clientId: 2n, payload: { method: 'PIX' } }) as any;
@@ -86,6 +92,25 @@ describe('CreateOrderPaymentHandler', () => {
     );
     expect(tx.order.updateMany).not.toHaveBeenCalled();
     expect(result.platformAmount).toBe(14.4);
+    expect(notifications.notifyClientPaymentConfirmed).not.toHaveBeenCalled();
+  });
+  it('notifies the client when the PIX is paid immediately and the order is scheduled', async () => {
+    tx.order.updateMany.mockResolvedValue({ count: 1 });
+    gateway.createPixPayment.mockResolvedValue({
+      orderId: 'or_1',
+      chargeId: 'ch_1',
+      status: 'paid',
+      raw: {},
+    });
+    await handler.execute(command());
+    expect(notifications.notifyClientPaymentConfirmed).toHaveBeenCalledWith(
+      expect.objectContaining({ email: 'test@example.com', name: 'Cliente' }),
+      {
+        id: 10n,
+        serviceTitle: 'Pintura',
+        scheduledFor: new Date('2026-06-22T12:00:00.000Z'),
+      },
+    );
   });
   it('reuses the immutable key/request after an ambiguous timeout', async () => {
     gateway.createPixPayment.mockRejectedValueOnce(new Error('timeout'));

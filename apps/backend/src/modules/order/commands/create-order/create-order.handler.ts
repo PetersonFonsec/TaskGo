@@ -4,6 +4,7 @@ import { OrderStatus, PaymentMethod, PaymentStatus } from '@prisma/client';
 
 import { PrismaService } from '../../../../prisma/prisma.service';
 import { ProviderService } from '../../../provider/provider.service';
+import { NotificationService } from '../../../notification/notification.service';
 import { CreateOrderCommand } from './create-order.command';
 
 const BOOKING_TIMEZONE = 'America/Sao_Paulo';
@@ -13,6 +14,7 @@ export class CreateOrderHandler implements ICommandHandler<CreateOrderCommand> {
   constructor(
     private readonly prisma: PrismaService,
     private readonly providerService: ProviderService,
+    private readonly notifications: NotificationService,
   ) {}
 
   async execute({ payload }: CreateOrderCommand) {
@@ -36,11 +38,16 @@ export class CreateOrderHandler implements ICommandHandler<CreateOrderCommand> {
       scheduledAt.getTime() > Date.now() + 90 * 86400000
     )
       throw new BadRequestException('Choose a future scheduled slot');
-    return this.prisma.$transaction(async (tx) => {
+    const { order, service } = await this.prisma.$transaction(async (tx) => {
       const service = await tx.service.findUnique({
         where: { id: BigInt(serviceId) },
         include: {
-          provider: { include: { serviceAreas: { where: { active: true } } } },
+          provider: {
+            include: {
+              serviceAreas: { where: { active: true } },
+              user: { select: { email: true, name: true } },
+            },
+          },
         },
       });
       if (!service) throw new NotFoundException('Service not found');
@@ -110,7 +117,7 @@ export class CreateOrderHandler implements ICommandHandler<CreateOrderCommand> {
         lat,
         lng,
       } = address;
-      return tx.order.create({
+      const order = await tx.order.create({
         data: {
           clientId: BigInt(clientId),
           serviceId: service.id,
@@ -150,7 +157,16 @@ export class CreateOrderHandler implements ICommandHandler<CreateOrderCommand> {
         },
         include: { payment: true, addressSnap: true },
       });
+      return { order, service };
     });
+
+    // Após o commit: a entrega do e-mail não bloqueia nem desfaz a reserva.
+    void this.notifications.notifyProviderNewOrder(service.provider.user, {
+      id: order.id,
+      serviceTitle: service.title,
+      scheduledFor: order.scheduledFor,
+    });
+    return order;
   }
 
   private async ensureSlotAvailable(
