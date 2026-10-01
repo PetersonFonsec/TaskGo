@@ -105,6 +105,8 @@ export interface OrderModel {
 	payment?: PaymentModel | null;
 	addressSnap?: AddressSnapModel | null;
 	review?: ReviewModel | null;
+	/** Prazo para aprovação/pagamento antes da expiração automática; null fora desses estados. */
+	expiresAt?: string | null;
 }
 
 export type OrdersResponse = OrderModel[];
@@ -167,6 +169,8 @@ export interface OrderTimelineEvent {
 export interface OrderDetails {
   id: string;
   status: string;
+  /** Prazo para aprovação/pagamento antes da expiração automática; null fora desses estados. */
+  expiresAt: string | null;
   service: { id: string; title: string; category: string; estimatedPrice: number };
   provider: OrderParticipant;
   client: OrderParticipant;
