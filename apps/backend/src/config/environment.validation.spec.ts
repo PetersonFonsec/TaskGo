@@ -16,8 +16,18 @@ describe('environment validation', () => {
         DEFAULT_PLATFORM_FEE_PCT: 0.12,
         ADMIN_INVITATION_TTL_HOURS: 24,
         PAYMENTS_SIMULATION: true,
+        ORDER_EXPIRATION_ENABLED: false,
+        ORDER_EXPIRATION_INTERVAL_SECONDS: 300,
+        ORDER_APPROVAL_TIMEOUT_HOURS: 12,
+        ORDER_PAYMENT_TIMEOUT_HOURS: 2,
       }),
     );
+  });
+
+  it('enables order expiration by default outside tests', () => {
+    expect(
+      validateEnvironment({ ...minimumEnvironment, NODE_ENV: 'development' }),
+    ).toEqual(expect.objectContaining({ ORDER_EXPIRATION_ENABLED: true }));
   });
 
   it.each(['DATABASE_URL', 'JWT_SECRET'])('rejects a missing %s', (key) => {
@@ -75,6 +85,21 @@ describe('environment validation', () => {
       'PAYMENTS_SIMULATION',
       'yes',
       'PAYMENTS_SIMULATION must be either true or false',
+    ],
+    [
+      'ORDER_APPROVAL_TIMEOUT_HOURS',
+      '0',
+      'ORDER_APPROVAL_TIMEOUT_HOURS must be greater than or equal to 0.25',
+    ],
+    [
+      'ORDER_PAYMENT_TIMEOUT_HOURS',
+      'abc',
+      'ORDER_PAYMENT_TIMEOUT_HOURS must be a number',
+    ],
+    [
+      'ORDER_EXPIRATION_INTERVAL_SECONDS',
+      '5',
+      'ORDER_EXPIRATION_INTERVAL_SECONDS must be greater than or equal to 30',
     ],
   ])('rejects invalid %s values', (key, value, message) => {
     expect(() =>

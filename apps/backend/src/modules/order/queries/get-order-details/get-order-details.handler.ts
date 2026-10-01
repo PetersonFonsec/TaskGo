@@ -3,6 +3,7 @@ import { IQueryHandler, QueryHandler } from '@nestjs/cqrs';
 import { OrderEventType } from '@prisma/client';
 
 import { PrismaService } from '../../../../prisma/prisma.service';
+import { OrderExpirationPolicy } from '../../expiration/order-expiration.policy';
 import { GetOrderDetailsQuery } from './get-order-details.query';
 
 const EVENT_COPY: Record<
@@ -30,13 +31,17 @@ const EVENT_COPY: Record<
   PAYMENT_RELEASED: { title: 'Pagamento liberado' },
   CANCELED: { title: 'Pedido cancelado' },
   CLIENT_REVIEWED: { title: 'Atendimento avaliado' },
+  EXPIRED: { title: 'Pedido expirado' },
 };
 
 @QueryHandler(GetOrderDetailsQuery)
 export class GetOrderDetailsHandler
   implements IQueryHandler<GetOrderDetailsQuery>
 {
-  constructor(private readonly prisma: PrismaService) {}
+  constructor(
+    private readonly prisma: PrismaService,
+    private readonly expiration: OrderExpirationPolicy,
+  ) {}
 
   async execute({ id }: GetOrderDetailsQuery) {
     const order = await this.prisma.order.findUnique({
@@ -109,10 +114,14 @@ export class GetOrderDetailsHandler
     const timeline = order.orderTimeline.map((event) =>
       this.toTimelineEvent(event),
     );
+    const acceptedAt =
+      order.orderTimeline.findLast(({ event }) => event === 'ACCEPTED')
+        ?.createdAt ?? null;
 
     return {
       id: order.id.toString(),
       status: order.status,
+      expiresAt: this.expiration.expiresAt({ ...order, acceptedAt }),
       service: {
         id: order.service.id.toString(),
         title: order.service.title,
