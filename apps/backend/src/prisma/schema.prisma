@@ -197,6 +197,8 @@ model Provider {
 model ProviderPayoutProfile {
   providerId           BigInt                    @id @map("provider_id")
   provider             Provider                  @relation(fields: [providerId], references: [id], onDelete: Cascade)
+  pixKey               String?                   @map("pix_key")
+  pixKeyType           String?                   @map("pix_key_type")
   pagarmeRecipientId   String?                   @unique @map("pagarme_recipient_id")
   syncStatus           ProviderPayoutSyncStatus  @default(UNKNOWN) @map("sync_status")
   bankAccountStatus    ProviderBankAccountStatus @default(UNCONFIRMED) @map("bank_account_status")
@@ -401,7 +403,11 @@ model Payment {
   refundedAt    DateTime?     @map("refunded_at")
   failureReason String?       @map("failure_reason")
 
-  provider            String    @default("PAGARME")
+  provider            String    @default("ABACATEPAY")
+  settlementStrategy  String    @default("PIX_TRANSFER") @map("settlement_strategy")
+  settlementDestination Json?   @map("settlement_destination")
+  settlementBlockedAt DateTime? @map("settlement_blocked_at")
+  refundRequestedAt   DateTime? @map("refund_requested_at")
   providerOrderId     String?   @unique @map("provider_order_id")
   providerChargeId    String?   @unique @map("provider_charge_id")
   pixQrCode           String?   @map("pix_qrcode")
@@ -417,6 +423,7 @@ model Payment {
 
   order         Order                 @relation(fields: [orderId], references: [id], onDelete: Cascade)
   webhookEvents PaymentWebhookEvent[]
+  settlement PaymentSettlement?
 
   @@map("pagamentos")
 }
@@ -635,6 +642,8 @@ model OrderDispute {
 // One immutable creation operation per order. Ambiguous attempts require reconciliation.
 model PaymentAttempt {
   orderId BigInt @id @map("order_id")
+  provider String @default("ABACATEPAY")
+  submittedAt DateTime? @map("submitted_at")
   idempotencyKey String @unique @map("idempotency_key")
   method PaymentMethod
   request Json
@@ -651,4 +660,23 @@ model PasswordResetToken {
   @@index([userId])
   @@index([expiresAt])
   @@map("password_reset_tokens")
+}
+
+// Durable outbox: submission is committed before any irreversible gateway call.
+model PaymentSettlement {
+  paymentId BigInt @id @map("payment_id")
+  payment Payment @relation(fields: [paymentId], references: [id], onDelete: Restrict)
+  strategy String
+  status String @default("READY")
+  amountCents Int @map("amount_cents")
+  destination Json
+  externalId String @unique @map("external_id")
+  transferId String? @unique @map("transfer_id")
+  submittedAt DateTime? @map("submitted_at")
+  completedAt DateTime? @map("completed_at")
+  lastError String? @map("last_error")
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+  @@index([status, updatedAt])
+  @@map("payment_settlements")
 }

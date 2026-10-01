@@ -51,6 +51,7 @@ describe('ConfirmOrderCompletionHandler payment capture', () => {
       reconcilePayment: jest
         .fn()
         .mockResolvedValue({ status: PaymentStatus.PAGO }),
+      enqueueSettlement: jest.fn(),
       capturePayment: jest.fn().mockResolvedValue({ capturedAt }),
     } as any;
     const notifications = { notifyProviderOrderConfirmed: jest.fn() };
@@ -73,6 +74,10 @@ describe('ConfirmOrderCompletionHandler payment capture', () => {
           paidAt: capturedAt,
         }),
       }),
+    );
+    expect(payments.enqueueSettlement).toHaveBeenCalledWith(
+      tx,
+      expect.objectContaining({ status: PaymentStatus.PAGO }),
     );
     expect(result.status).toBe(OrderStatus.CONCLUIDO);
     expect(notifications.notifyProviderOrderConfirmed).toHaveBeenCalledWith(

@@ -20,7 +20,10 @@ const otelSDK = new NodeSDK({
     compression: 'gzip',
   } as any),
   instrumentations: [
-    new HttpInstrumentation(),
+    new HttpInstrumentation({
+      ignoreIncomingRequestHook: (request) =>
+        request.url?.startsWith('/payments/webhook/abacatepay') ?? false,
+    }),
     new ExpressInstrumentation(),
     new PrismaInstrumentation(),
     new NestInstrumentation(),

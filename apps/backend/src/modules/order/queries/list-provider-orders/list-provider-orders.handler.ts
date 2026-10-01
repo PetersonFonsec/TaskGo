@@ -1,3 +1,4 @@
+import { orderPaymentSelect } from '../../../payments/mappers/order-payment.select';
 import { IQueryHandler, QueryHandler } from '@nestjs/cqrs';
 
 import { PrismaService } from '../../../../prisma/prisma.service';
@@ -24,7 +25,7 @@ export class ListProviderOrdersHandler
             },
           },
         },
-        payment: true,
+        payment: { select: orderPaymentSelect },
         addressSnap: true,
         review: true,
       },

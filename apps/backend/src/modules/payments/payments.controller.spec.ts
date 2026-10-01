@@ -2,10 +2,7 @@ import { CommandBus, QueryBus } from '@nestjs/cqrs';
 import { Test } from '@nestjs/testing';
 import { PaymentMethod } from '@prisma/client';
 
-import {
-  CreateOrderPaymentCommand,
-  ProcessPagarmeWebhookCommand,
-} from './commands';
+import { CreateOrderPaymentCommand } from './commands';
 import { PaymentsController } from './payments.controller';
 import { GetOrderPaymentQuery } from './queries';
 
@@ -46,18 +43,5 @@ describe('PaymentsController', () => {
     expect(query).toEqual(
       expect.objectContaining({ orderId: 11n, clientId: 21n }),
     );
-  });
-
-  it('delegates the public webhook to its command handler', async () => {
-    const payload = {
-      id: 'evt_1',
-      type: 'charge.paid',
-      data: { id: 'ch_1' },
-    };
-    await controller.webhook(payload);
-
-    const command = commandBus.execute.mock.calls[0][0];
-    expect(command).toBeInstanceOf(ProcessPagarmeWebhookCommand);
-    expect(command.payload).toBe(payload);
   });
 });

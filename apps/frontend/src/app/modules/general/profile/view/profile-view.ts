@@ -1,5 +1,5 @@
 import { Component, inject, OnInit, signal } from '@angular/core';
-import { ActivatedRoute, Router } from '@angular/router';
+import { ActivatedRoute, Router, RouterLink } from '@angular/router';
 import { NgFor, NgIf } from '@angular/common';
 import { ButtonComponent } from '@shared/components/ui/button/button.component';
 import { User } from '@shared/service/users/user';
@@ -8,7 +8,7 @@ import type { PublicUserProfile } from '@taskgo/shared';
 @Component({
   selector: 'app-profile-view',
   standalone: true,
-  imports: [NgIf, NgFor],
+  imports: [NgIf, NgFor, RouterLink],
   templateUrl: './profile-view.html',
   styleUrl: './profile-view.scss',
 })
@@ -22,7 +22,9 @@ export class ProfileView implements OnInit {
   loading = signal(true);
 
   ngOnInit() {
-    const userId = this.#route.snapshot.pathFromRoot.map(route => route.paramMap.get('userId')).find(Boolean);
+    const userId = this.#route.snapshot.pathFromRoot
+      .map((route) => route.paramMap.get('userId'))
+      .find(Boolean);
     if (!userId) {
       this.error.set('Usuário não encontrado');
       this.loading.set(false);

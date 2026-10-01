@@ -137,6 +137,8 @@ export class ConfirmOrderCompletionHandler
       if (changed.count !== 1)
         throw new BadRequestException('Este pedido já foi confirmado');
 
+      await this.paymentService.enqueueSettlement(prisma, currentPayment);
+
       await prisma.orderCompletion.upsert({
         where: { orderId },
         create: {

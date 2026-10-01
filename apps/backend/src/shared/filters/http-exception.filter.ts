@@ -31,7 +31,9 @@ export class CustomExceptionFilter implements ExceptionFilter {
     const envelope: ErrorEnvelope = {
       ...error,
       timestamp: new Date().toISOString(),
-      path: request.url,
+      path: request.url.startsWith('/payments/webhook/abacatepay')
+        ? request.url.split('?')[0]
+        : request.url,
       requestId: request.requestId,
     };
 

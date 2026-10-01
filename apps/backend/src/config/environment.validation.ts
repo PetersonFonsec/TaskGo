@@ -47,8 +47,10 @@ export function validateEnvironment(environment: Environment): Environment {
       throw new Error('PAYMENTS_SIMULATION must be false in production');
     }
     if (normalized.PAYMENTS_SIMULATION !== true) {
-      requireString(environment, 'PAGARME_SECRET_KEY');
-      requireString(environment, 'PAGARME_PLATFORM_RECIPIENT_ID');
+      requireString(environment, 'ABACATEPAY_API_KEY');
+      requireString(environment, 'ABACATEPAY_WEBHOOK_SECRET');
+      if (readBoolean(environment, 'ABACATEPAY_DEV_MODE', false))
+        throw new Error('ABACATEPAY_DEV_MODE must be false in production');
     }
   }
 

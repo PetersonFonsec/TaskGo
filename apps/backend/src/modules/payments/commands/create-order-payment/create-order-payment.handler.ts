@@ -18,7 +18,8 @@ import {
 
 import { PrismaService } from '../../../../prisma/prisma.service';
 import { toPaymentResponse } from '../../mappers/payment-response.mapper';
-import { PagarmeService } from '../../pagarme.service';
+import { PaymentGateway, PixDestination } from '../../payment-gateway';
+import { SettlementStrategies } from '../../settlement/settlement-strategies';
 import { CreateOrderPaymentCommand } from './create-order-payment.command';
 
 @CommandHandler(CreateOrderPaymentCommand)
@@ -27,8 +28,9 @@ export class CreateOrderPaymentHandler
 {
   constructor(
     private readonly prisma: PrismaService,
-    private readonly pagarme: PagarmeService,
+    private readonly gateway: PaymentGateway,
     private readonly configService: ConfigService,
+    private readonly strategies: SettlementStrategies,
   ) {}
 
   async execute({ orderId, clientId, payload }: CreateOrderPaymentCommand) {
@@ -36,6 +38,10 @@ export class CreateOrderPaymentHandler
     const order = await this.findPayableOrder(orderId, clientId);
 
     if (order.payment && order.payment.status !== PaymentStatus.CREATED) {
+      if (order.payment.provider !== this.gateway.provider)
+        throw new ConflictException(
+          'Pagamento legado requer conciliação com o provedor original',
+        );
       if (order.payment.method !== payload.method)
         throw new ConflictException(
           'Troca de método exige conciliação da cobrança anterior',
@@ -58,27 +64,25 @@ export class CreateOrderPaymentHandler
     const providerAmountCents = amountCents - platformAmountCents;
     if (!Number.isSafeInteger(amountCents) || amountCents <= 0)
       throw new BadRequestException('Valor do pedido inválido');
-    if (
-      !this.pagarme.simulated &&
-      !this.configService.get<string>('payment.platformRecipientId')
-    )
-      throw new BadRequestException('Recebedor da plataforma não configurado');
-    const gatewayInput = {
-      idempotencyKey: randomUUID(),
-      orderId,
-      amountCents,
-      platformAmountCents,
-      providerAmountCents,
-      providerRecipientId:
-        order.service.provider.payoutProfile!.pagarmeRecipientId!,
-      platformRecipientId: this.configService.get<string>(
-        'payment.platformRecipientId',
-      ),
-      customer: order.client,
-      card: payload.card ?? undefined,
-    };
+    const settlement = this.strategies.active();
+    const profile = order.service.provider.payoutProfile!;
+    const destination = {
+      key: profile.pixKey!,
+      type: profile.pixKeyType!,
+    } as PixDestination;
+    const gatewayInput = settlement.prepare(
+      {
+        idempotencyKey: randomUUID(),
+        orderId,
+        amountCents,
+        platformAmountCents,
+        providerAmountCents,
+        customer: order.client,
+      },
+      destination,
+    );
     // Persist an immutable request and key before the first network call. Concurrent
-    // retries use exactly this request. Never retry beyond the shortest gateway TTL.
+    // retries only reconcile this request. A network timeout must never create a second charge.
     const attempt = await this.prisma.$transaction(async (tx) => {
       if (order.payment)
         await tx.$queryRaw`SELECT pg_advisory_xact_lock(${order.payment.id})::text`;
@@ -102,28 +106,48 @@ export class CreateOrderPaymentHandler
         where: { orderId },
         create: {
           orderId,
+          provider: this.gateway.provider,
           method: payload.method,
           idempotencyKey: gatewayInput.idempotencyKey,
           request: JSON.parse(
-            JSON.stringify({ ...gatewayInput, orderId: orderId.toString() }),
+            JSON.stringify({
+              ...gatewayInput,
+              orderId: orderId.toString(),
+              settlementStrategy: settlement.code,
+              destination,
+            }),
           ),
         },
         update: {},
       });
     });
     if (
-      attempt.method !== payload.method ||
-      Date.now() - attempt.createdAt.getTime() > 4 * 60 * 1000
+      attempt.provider !== this.gateway.provider ||
+      attempt.method !== payload.method
     )
       throw new ConflictException(
-        'Tentativa pendente de conciliação. Não crie outra cobrança',
+        'Tentativa de outro provedor ou método requer conciliação',
       );
     const stored = attempt.request as any;
-    const gateway = await this.pagarme.createPixPayment({
+    this.strategies.resolve(stored.settlementStrategy);
+    const input = {
       ...stored,
       orderId,
       idempotencyKey: attempt.idempotencyKey,
+    };
+    // Atomic durable claim survives crashes and serializes creation across replicas.
+    const claim = await this.prisma.paymentAttempt.updateMany({
+      where: { orderId, provider: this.gateway.provider, submittedAt: null },
+      data: { submittedAt: new Date() },
     });
+    const gateway =
+      claim.count === 1
+        ? await this.gateway.createPixPayment(input)
+        : await this.gateway.findPixPayment(input);
+    if (!gateway)
+      throw new ConflictException(
+        'Tentativa pendente de conciliação. Não crie outra cobrança',
+      );
     if (!gateway.chargeId || !gateway.orderId)
       throw new ConflictException(
         'Resposta incompleta; pagamento pendente de conciliação',
@@ -138,6 +162,9 @@ export class CreateOrderPaymentHandler
       if (existing && existing.status !== PaymentStatus.CREATED)
         return existing;
       const data = {
+        provider: this.gateway.provider,
+        settlementStrategy: stored.settlementStrategy,
+        settlementDestination: stored.destination,
         method: payload.method,
         status,
         amount: stored.amountCents / 100,
@@ -150,6 +177,8 @@ export class CreateOrderPaymentHandler
         pixQrCodeBase64: gateway.qrCodeBase64,
         pixExpiresAt: gateway.expiresAt,
         authorizedAt: status === PaymentStatus.AUTORIZADO ? now : null,
+        paidAt: paidStatuses.includes(status) ? now : null,
+        capturedAt: paidStatuses.includes(status) ? now : null,
         failureReason: null,
         rawProviderResponse: gateway.raw as Prisma.InputJsonValue,
       };
@@ -222,9 +251,8 @@ export class CreateOrderPaymentHandler
       );
     }
     if (
-      !order.service.provider.payoutProfile?.pagarmeRecipientId ||
-      order.service.provider.payoutProfile.syncStatus !== 'READY' ||
-      order.service.provider.payoutProfile.bankAccountStatus !== 'CONFIRMED'
+      !order.service.provider.payoutProfile?.pixKey ||
+      !order.service.provider.payoutProfile.pixKeyType
     ) {
       throw new BadRequestException(
         'Prestador ainda não está habilitado para receber pagamentos',

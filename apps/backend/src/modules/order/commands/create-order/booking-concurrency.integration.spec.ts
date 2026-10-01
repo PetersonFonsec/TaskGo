@@ -19,7 +19,7 @@ integration('Isolated PostgreSQL booking and geographic integrity', () => {
     const url = new URL(databaseUrl!);
     if (
       !['127.0.0.1', 'localhost'].includes(url.hostname) ||
-      url.pathname !== '/proxi_verify'
+      !['/proxi_verify', '/taskgo_abacatepay_verify'].includes(url.pathname)
     )
       throw new Error(
         'Integration tests require the explicit isolated proxi_verify database',

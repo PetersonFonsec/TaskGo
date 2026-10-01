@@ -13,6 +13,14 @@ import { PrismaClient } from '@prisma/client';
 
 import { CreateProviderStrategy } from '../modules/user/commands/create-user/strategies/create-provider.strategy';
 
+// Historical schema assertions select only columns that existed at this migration.
+const historicalPayoutSelect = {
+  providerId: true,
+  pagarmeRecipientId: true,
+  syncStatus: true,
+  bankAccountStatus: true,
+} as const;
+
 const migrationName = '20260724043000_add_provider_payout_profile_and_social';
 const backendRoot = resolve(__dirname, '../..');
 const migrationRoot = resolve(backendRoot, 'src/prisma/migrations');
@@ -143,6 +151,7 @@ describe('provider payout profile migration', () => {
 
   it('preserves recipient identifiers without confirming bank readiness', async () => {
     const profiles = await prisma.providerPayoutProfile.findMany({
+      select: historicalPayoutSelect,
       where: { providerId: { in: [BigInt(9301), BigInt(9302)] } },
       orderBy: { providerId: 'asc' },
     });
@@ -166,12 +175,14 @@ describe('provider payout profile migration', () => {
   it('enforces one profile per provider and unique recipient identifiers', async () => {
     await expect(
       prisma.providerPayoutProfile.create({
+        select: historicalPayoutSelect,
         data: { providerId: BigInt(9301) },
       }),
     ).rejects.toThrow();
 
     await expect(
       prisma.providerPayoutProfile.update({
+        select: historicalPayoutSelect,
         where: { providerId: BigInt(9302) },
         data: { pagarmeRecipientId: 'rp_existing_03' },
       }),
@@ -194,6 +205,7 @@ describe('provider payout profile migration', () => {
       },
     });
     const profile = await prisma.providerPayoutProfile.findUniqueOrThrow({
+      select: historicalPayoutSelect,
       where: { providerId: provider.id },
     });
 
@@ -219,7 +231,7 @@ describe('provider payout profile migration', () => {
 
     const provider = await prisma.provider.findUniqueOrThrow({
       where: { id: BigInt(9302) },
-      include: { payoutProfile: true },
+      include: { payoutProfile: { select: historicalPayoutSelect } },
     });
 
     expect(provider).toEqual(
@@ -293,7 +305,7 @@ describe('provider payout profile migration', () => {
     const result = await strategy.execute(command as never);
     const provider = await prisma.provider.findUniqueOrThrow({
       where: { id: BigInt(result.id!) },
-      include: { payoutProfile: true },
+      include: { payoutProfile: { select: historicalPayoutSelect } },
     });
 
     expect(provider).toEqual(
