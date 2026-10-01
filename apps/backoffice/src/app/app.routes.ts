@@ -6,6 +6,7 @@ import {
   requireAnonymousAdminGuard,
 } from './core/auth/admin-auth.guards';
 import { DashboardPage } from './features/dashboard/dashboard.page';
+import { FunnelPage } from './features/funnel/funnel.page';
 import { LoginPage } from './features/login/login.page';
 import { NotFoundPage } from './features/not-found/not-found.page';
 import { OperatorAdminPage } from './features/operators/operator-admin.page';
@@ -33,6 +34,12 @@ export const routes: Routes = [
         path: '',
         title: 'Proxi Backoffice',
         component: DashboardPage,
+      },
+      {
+        path: 'funnel',
+        title: 'Funil',
+        component: FunnelPage,
+        canActivate: [requireAdminRoleGuard(['ADMINISTRATOR', 'FINANCE'])],
       },
       {
         path: 'providers',

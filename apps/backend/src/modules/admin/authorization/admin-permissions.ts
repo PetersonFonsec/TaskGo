@@ -8,6 +8,7 @@ export enum AdminCapability {
   ExecuteProviderDecisions = 'providers:decide',
   ReadProviderDashboard = 'provider-dashboard:read',
   ReadAuditLog = 'audit-log:read',
+  ReadFunnelMetrics = 'funnel-metrics:read',
 }
 
 export const ADMIN_ROLE_CAPABILITIES: Record<
@@ -22,13 +23,14 @@ export const ADMIN_ROLE_CAPABILITIES: Record<
     AdminCapability.ExecuteProviderDecisions,
     AdminCapability.ReadProviderDashboard,
     AdminCapability.ReadAuditLog,
+    AdminCapability.ReadFunnelMetrics,
   ],
   [AdminRole.SUPPORT]: [
     AdminCapability.ManageDisputes,
     AdminCapability.ReadProviders,
     AdminCapability.ReadProviderDashboard,
   ],
-  [AdminRole.FINANCE]: [],
+  [AdminRole.FINANCE]: [AdminCapability.ReadFunnelMetrics],
   [AdminRole.MODERATOR]: [],
 };
 
