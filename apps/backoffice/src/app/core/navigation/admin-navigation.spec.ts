@@ -4,6 +4,7 @@ describe('admin navigation matrix', () => {
   it('shows Administrator-only and provider operations entries for administrators', () => {
     expect(navigationForRole('ADMINISTRATOR').map((item) => item.label)).toEqual([
       'Dashboard',
+      'Funil',
       'Providers',
       'Audit log',
       'Categorias',
@@ -18,8 +19,8 @@ describe('admin navigation matrix', () => {
     ]);
   });
 
-  it('shows only finance navigation for finance operators', () => {
-    expect(navigationForRole('FINANCE').map((item) => item.label)).toEqual(['Payments']);
+  it('shows funnel metrics and finance navigation for finance operators', () => {
+    expect(navigationForRole('FINANCE').map((item) => item.label)).toEqual(['Funil', 'Payments']);
   });
 
   it('shows only moderation navigation for moderators', () => {

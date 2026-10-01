@@ -15,6 +15,12 @@ export const ADMIN_NAVIGATION: readonly AdminNavigationItem[] = [
     roles: ['ADMINISTRATOR', 'SUPPORT'],
   },
   {
+    label: 'Funil',
+    path: '/funnel',
+    capability: 'Métricas do funil',
+    roles: ['ADMINISTRATOR', 'FINANCE'],
+  },
+  {
     label: 'Providers',
     path: '/providers',
     capability: 'Provider queue/details',
