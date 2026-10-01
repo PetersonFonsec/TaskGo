@@ -55,6 +55,7 @@ PIX, preço fixo contratado e ofertas com agenda semanal. Cartão, reajuste de p
 5. Suporte: `POST/GET /orders/:id/disputes`; operação administrativa `GET /admin/disputes` e `POST /admin/disputes/:id/resolve`, com `status` RESOLVED/REJECTED e `resolution`. Administrador e suporte têm capability. Resolver um caso não movimenta dinheiro.
 6. Financeiro: homologar recipient, conta, split, PIX pago/expirado, cancelamento, retorno perdido e webhook adiantado. A simulação local não comprova integração e não permite dinheiro fictício em produção.
 7. Não executar `prisma migrate reset` em banco existente. Os testes desta entrega usam `proxi_verify` em contêiner temporário, sem volume do projeto.
+8. E-mails do ciclo do pedido: prestador recebe nova solicitação (link `/provider/:id/aprovacao`); cliente recebe aceite (link `/orders/:id/payment`), recusa ou cancelamento pelo prestador (com aviso de estorno quando houver), pagamento PIX confirmado (transição `AGUARDANDO_PAGAMENTO` → `AGENDADO`, na criação da cobrança ou na conciliação), prestador a caminho e serviço finalizado (link `/orders/:id/confirm`). Os links usam `FRONTEND_URL` (sem ela, a primeira origem de `PUBLIC_FRONTEND_ORIGINS`). O envio ocorre após o commit, sem ser aguardado pela requisição, e falhas são apenas registradas no log. Os textos não incluem telefone, e-mail ou endereço da outra parte.
 
 ## Limitações relevantes
 
