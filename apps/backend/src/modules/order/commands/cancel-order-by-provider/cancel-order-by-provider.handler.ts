@@ -9,6 +9,7 @@ import { OrderStatus, PaymentStatus } from '@prisma/client';
 import { PrismaService } from '../../../../prisma/prisma.service';
 import { PaymentService } from '../../../payments/payment.service';
 import { NotificationService } from '../../../notification/notification.service';
+import { cancellationDescription } from '../../cancellation-reasons';
 import { CancelOrderByProviderCommand } from './cancel-order-by-provider.command';
 
 @CommandHandler(CancelOrderByProviderCommand)
@@ -21,7 +22,14 @@ export class CancelOrderByProviderHandler
     private readonly notifications: NotificationService,
   ) {}
 
-  async execute({ orderId, providerId }: CancelOrderByProviderCommand) {
+  async execute({
+    orderId,
+    providerId,
+    payload,
+  }: CancelOrderByProviderCommand) {
+    if (!payload?.reason)
+      throw new BadRequestException('Informe o motivo da recusa');
+    const note = payload.note?.trim() || null;
     const order = await this.prisma.order.findUnique({
       where: { id: orderId },
       include: {
@@ -51,9 +59,12 @@ export class CancelOrderByProviderHandler
       where: { id: orderId, status: { in: cancellable } },
       data: {
         status: OrderStatus.CANCELADO,
+        cancellationReason: payload.reason,
+        cancellationNote: note,
         orderTimeline: {
           create: {
             event: 'CANCELED',
+            description: cancellationDescription(payload.reason, note),
             createdBy: 'PRESTADOR',
             createdAt: new Date(),
           },

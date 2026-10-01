@@ -3,7 +3,7 @@ import { environment } from '@environments/environment';
 import { CurrencyPipe } from '@angular/common';
 import { Component, computed, DestroyRef, inject, OnInit, signal } from '@angular/core';
 import { HttpClient, HttpErrorResponse } from '@angular/common/http';
-import { RouterLink } from '@angular/router';
+import { Router, RouterLink } from '@angular/router';
 import { FontAwesomeModule } from '@fortawesome/angular-fontawesome';
 import {
   faCalendarDays,
@@ -36,6 +36,7 @@ export class ProviderHomePage implements OnInit {
   private readonly session = inject(UserLoggedService).user();
   private readonly orders = inject(Order);
   private readonly http = inject(HttpClient);
+  private readonly router = inject(Router);
   private readonly destroyRef = inject(DestroyRef);
   private home: ProviderHomeData | null = null;
   readonly loading = signal(false);
@@ -93,7 +94,14 @@ export class ProviderHomePage implements OnInit {
     this.refresh();
   }
 
-  updateRequestStatus(id: string | number, status: Exclude<RequestStatus, 'pending'>): void {
+  // A recusa exige motivo e acontece na tela de aceite.
+  declineRequest(id: string | number): void {
+    void this.router.navigate(['/provider', id, 'aprovacao'], {
+      queryParams: { recusar: 1 },
+    });
+  }
+
+  updateRequestStatus(id: string | number, status: 'accepted'): void {
     if (this.updatingRequestIds().has(id)) return;
 
     const providerId = this.session.user?.id;
@@ -104,12 +112,9 @@ export class ProviderHomePage implements OnInit {
 
     this.requestError.set('');
     this.updatingRequestIds.update((ids) => new Set(ids).add(id));
-    const request =
-      status === 'accepted'
-        ? this.orders.confirmOrder(String(id), String(providerId))
-        : this.orders.cancelOrder(String(id), String(providerId));
 
-    request
+    this.orders
+      .confirmOrder(String(id), String(providerId))
       .pipe(
         finalize(() =>
           this.updatingRequestIds.update((ids) => {

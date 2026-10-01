@@ -2,6 +2,7 @@ import { HttpClient } from '@angular/common/http';
 import { inject, Injectable } from '@angular/core';
 import { environment } from '@environments/environment';
 import {
+  CancelOrderPayload,
   ConfirmOrderResponse,
   CreateOrderPaymentRequest,
   CreateReviewRequest,
@@ -83,7 +84,10 @@ export class Order {
     return this.#http.post<any>(`${this.#urlBase}/${orderId}/provider/${providerId}/confirm`, {});
   }
 
-  cancelOrder(orderId: string, providerId: string) {
-    return this.#http.post<any>(`${this.#urlBase}/${orderId}/provider/${providerId}/cancel`, {});
+  cancelOrder(orderId: string, providerId: string, payload: CancelOrderPayload) {
+    return this.#http.post<any>(
+      `${this.#urlBase}/${orderId}/provider/${providerId}/cancel`,
+      payload,
+    );
   }
 }

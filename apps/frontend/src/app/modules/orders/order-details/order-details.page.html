@@ -29,6 +29,14 @@
       @if (role() === 'PRESTADOR') { <div class="client"><small>Cliente</small><strong>{{ current.client.name }}</strong></div> }
     </section>
 
+    @if (current.cancellation; as cancellation) {
+      <section class="cancellation" role="status">
+        <strong>{{ role() === 'PRESTADOR' ? 'Você recusou esta solicitação' : 'O prestador não pôde atender este pedido' }}</strong>
+        <p>Motivo: {{ cancellation.label }}</p>
+        @if (cancellation.note) { <p class="cancellation-note">“{{ cancellation.note }}”</p> }
+      </section>
+    }
+
     <div class="content-grid">
       <div class="cards-column">
         <section class="card"><div class="card-title"><span>▣</span><div><h2>Agendamento</h2><p>Quando e onde será o atendimento</p></div></div>
