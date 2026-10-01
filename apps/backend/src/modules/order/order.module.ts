@@ -1,3 +1,4 @@
+import { ReservationExpiryService } from './reservation-expiry.service';
 import {
   OrderDisputesController,
   AdminOrderDisputesController,
@@ -18,6 +19,10 @@ import { PaymentsModule } from '../payments/payments.module';
     OrderDisputesController,
     AdminOrderDisputesController,
   ],
-  providers: [...OrderQueryHandlers, ...OrderCommandHandlers],
+  providers: [
+    ReservationExpiryService,
+    ...OrderQueryHandlers,
+    ...OrderCommandHandlers,
+  ],
 })
 export class OrderModule {}

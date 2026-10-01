@@ -6,7 +6,7 @@ const apiUrl = Cypress.env('url');
 
 const customer = {
   email: 'cliente1@teste.com',
-  password: '123456',
+  password: 'isolated-password-2026',
 };
 
 const session = {
@@ -134,15 +134,13 @@ describe('Jornada do cliente', () => {
     cy.contains('.booking-slots button', '09:00').click();
     cy.get('#booking-request-button').should('be.enabled').click();
 
-    cy.wait('@createOrder')
-      .its('request.body')
-      .should('deep.include', {
-        clientId: session.user.id,
-        serviceId: provider.services[0].id,
-        scheduledFor: availability.days[0].slots[0].startsAt,
-        finalPrice: 120,
-        paymentMethod: 'PIX',
-      });
+    cy.wait('@createOrder').its('request.body').should('deep.include', {
+      clientId: session.user.id,
+      serviceId: provider.services[0].id,
+      scheduledFor: availability.days[0].slots[0].startsAt,
+      finalPrice: 120,
+      paymentMethod: 'PIX',
+    });
     cy.contains('Sua solicitação foi feita').should('be.visible');
   });
 });

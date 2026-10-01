@@ -1,7 +1,11 @@
-import { ApplicationConfig, provideBrowserGlobalErrorListeners, provideZonelessChangeDetection } from '@angular/core';
+import {
+  ApplicationConfig,
+  provideBrowserGlobalErrorListeners,
+  provideZonelessChangeDetection,
+} from '@angular/core';
 import { provideHttpClient, withFetch, withInterceptors } from '@angular/common/http';
 import { provideAnimationsAsync } from '@angular/platform-browser/animations/async';
-import { provideClientHydration, withEventReplay } from '@angular/platform-browser';
+import { provideClientHydration } from '@angular/platform-browser';
 import { provideRouter } from '@angular/router';
 
 import { tokenInterceptor } from '@shared/interceptors/token/token.interceptor';
@@ -18,10 +22,11 @@ export const appConfig: ApplicationConfig = {
   providers: [
     provideBrowserGlobalErrorListeners(),
     provideZonelessChangeDetection(),
-    provideRouter(routes), provideClientHydration(withEventReplay()),
+    provideRouter(routes),
+    provideClientHydration(),
     // provideHttpClient(withFetch(), withInterceptors([tokenInterceptor, errorInterceptor])),
     provideHttpClient(withFetch(), withInterceptors([tokenInterceptor])),
     provideEnvironmentNgxMask(maskConfig),
     provideAnimationsAsync(),
-  ]
+  ],
 };

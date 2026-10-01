@@ -18,7 +18,7 @@ const operator: AdminOperatorProfile = {
   email: 'admin@example.com',
   role: 'ADMINISTRATOR',
   active: true,
-  activatedAt: '2026-07-04T12:00:00.000Z'
+  activatedAt: '2026-07-04T12:00:00.000Z',
 };
 
 describe('adminTokenInterceptor', () => {
@@ -41,10 +41,10 @@ describe('adminTokenInterceptor', () => {
           useValue: {
             production: false,
             apiUrl: 'http://localhost:3000/admin',
-            adminTokenStorageKey: 'proxi.backoffice.test.adminToken'
-          }
-        }
-      ]
+            adminTokenStorageKey: 'proxi.backoffice.test.adminToken',
+          },
+        },
+      ],
     });
 
     client = TestBed.inject(HttpClient);
@@ -65,12 +65,14 @@ describe('adminTokenInterceptor', () => {
 
     client.get('http://localhost:3000/admin/providers').subscribe();
     const adminRequest = http.expectOne('http://localhost:3000/admin/providers');
-    expect(adminRequest.request.headers.get('Authorization')).toBe(`Bearer ${token}`);
+    expect(adminRequest.request.headers.has('Authorization')).toBeFalse();
+    expect(adminRequest.request.withCredentials).toBeTrue();
     adminRequest.flush({});
 
     client.get('http://localhost:3000/services').subscribe();
     const publicRequest = http.expectOne('http://localhost:3000/services');
     expect(publicRequest.request.headers.has('Authorization')).toBeFalse();
+    expect(publicRequest.request.withCredentials).toBeFalse();
     publicRequest.flush({});
   });
 
@@ -80,20 +82,18 @@ describe('adminTokenInterceptor', () => {
     auth.establishSession({ token, operator });
 
     client.get('http://localhost:3000/admin/providers').subscribe({
-      error: (error: HttpErrorResponse) => expect(error.status).toBe(401)
+      error: (error: HttpErrorResponse) => expect(error.status).toBe(401),
     });
-    http.expectOne('http://localhost:3000/admin/providers').flush(
-      { message: 'Unauthorized' },
-      { status: 401, statusText: 'Unauthorized' }
-    );
+    http
+      .expectOne('http://localhost:3000/admin/providers')
+      .flush({ message: 'Unauthorized' }, { status: 401, statusText: 'Unauthorized' });
 
     client.get('http://localhost:3000/admin/auth/me').subscribe({
-      error: (error: HttpErrorResponse) => expect(error.status).toBe(401)
+      error: (error: HttpErrorResponse) => expect(error.status).toBe(401),
     });
-    http.expectOne('http://localhost:3000/admin/auth/me').flush(
-      { message: 'Unauthorized' },
-      { status: 401, statusText: 'Unauthorized' }
-    );
+    http
+      .expectOne('http://localhost:3000/admin/auth/me')
+      .flush({ message: 'Unauthorized' }, { status: 401, statusText: 'Unauthorized' });
 
     expect(auth.isAuthenticated()).toBeFalse();
     expect(router.navigate).toHaveBeenCalledTimes(1);
@@ -105,24 +105,25 @@ describe('adminTokenInterceptor', () => {
     auth.establishSession({ token, operator });
 
     client.get('http://localhost:3000/admin/auth/me').subscribe({
-      error: (error: HttpErrorResponse) => expect(error.status).toBe(403)
+      error: (error: HttpErrorResponse) => expect(error.status).toBe(403),
     });
-    http.expectOne('http://localhost:3000/admin/auth/me').flush(
-      { message: 'Administrative operator is inactive' },
-      { status: 403, statusText: 'Forbidden' }
-    );
+    http
+      .expectOne('http://localhost:3000/admin/auth/me')
+      .flush(
+        { message: 'Administrative operator is inactive' },
+        { status: 403, statusText: 'Forbidden' },
+      );
 
     expect(auth.isAuthenticated()).toBeFalse();
     expect(router.navigate).toHaveBeenCalledTimes(1);
 
     auth.establishSession({ token, operator });
     client.get('http://localhost:3000/admin/audit-logs').subscribe({
-      error: (error: HttpErrorResponse) => expect(error.status).toBe(403)
+      error: (error: HttpErrorResponse) => expect(error.status).toBe(403),
     });
-    http.expectOne('http://localhost:3000/admin/audit-logs').flush(
-      { message: 'Forbidden resource' },
-      { status: 403, statusText: 'Forbidden' }
-    );
+    http
+      .expectOne('http://localhost:3000/admin/audit-logs')
+      .flush({ message: 'Forbidden resource' }, { status: 403, statusText: 'Forbidden' });
 
     expect(auth.isAuthenticated()).toBeTrue();
     expect(router.navigate).toHaveBeenCalledTimes(1);
@@ -142,14 +143,14 @@ describe('adminTokenInterceptor', () => {
     expect(
       isConfiguredAdminApiRequest(
         'http://localhost:3000/admin/providers',
-        'http://localhost:3000/admin'
-      )
+        'http://localhost:3000/admin',
+      ),
     ).toBeTrue();
     expect(
       isConfiguredAdminApiRequest(
         'http://localhost:3001/admin/providers',
-        'http://localhost:3000/admin'
-      )
+        'http://localhost:3000/admin',
+      ),
     ).toBeFalse();
   });
 });

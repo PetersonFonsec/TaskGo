@@ -15,9 +15,9 @@ const adminToken = [
   btoa(JSON.stringify({ alg: 'none', typ: 'JWT' })).replace(/=+$/, ''),
   btoa(JSON.stringify({ sub: '42', tokenKind: 'admin', role: 'ADMINISTRATOR', ver: 1 })).replace(
     /=+$/,
-    ''
+    '',
   ),
-  'signature'
+  'signature',
 ].join('.');
 
 describe('Operator administration', () => {
@@ -27,14 +27,14 @@ describe('Operator administration', () => {
 
   it('lets an Administrator invite and activate a Support operator', () => {
     const state = {
-      operators: [operator({ id: '1', name: 'Alice Admin', role: 'ADMINISTRATOR', active: true })]
+      operators: [operator({ id: '1', name: 'Alice Admin', role: 'ADMINISTRATOR', active: true })],
     };
     interceptOperators(state);
     cy.intercept('POST', 'http://localhost:3000/admin/users/invitations', (request) => {
       expect(request.body).to.deep.equal({
         name: 'Sam Support',
         email: 'sam@example.com',
-        role: 'SUPPORT'
+        role: 'SUPPORT',
       });
       const invited = operator({
         id: '2',
@@ -42,22 +42,20 @@ describe('Operator administration', () => {
         email: 'sam@example.com',
         role: 'SUPPORT',
         active: false,
-        activatedAt: null
+        activatedAt: null,
       });
       state.operators.push(invited);
       request.reply({
         statusCode: 201,
         body: {
           operator: invited,
-          invitation: { expiresAt: '2026-07-06T12:00:00.000Z', deliveryStatus: 'SENT' }
-        }
+          invitation: { expiresAt: '2026-07-06T12:00:00.000Z', deliveryStatus: 'SENT' },
+        },
       });
     }).as('inviteSupport');
     cy.intercept('POST', 'http://localhost:3000/admin/users/2/activate', (request) => {
       state.operators = state.operators.map((item) =>
-        item.id === '2'
-          ? { ...item, active: true, activatedAt: '2026-07-04T15:00:00.000Z' }
-          : item
+        item.id === '2' ? { ...item, active: true, activatedAt: '2026-07-04T15:00:00.000Z' } : item,
       );
       request.reply({ statusCode: 200, body: { operator: state.operators[1] } });
     }).as('activateSupport');
@@ -78,7 +76,7 @@ describe('Operator administration', () => {
     cy.findByRole('button', { name: 'Activate' }).click();
     cy.findByRole('dialog', { name: 'Activate Sam Support' }).should(
       'contain.text',
-      'regains Backoffice access'
+      'regains Backoffice access',
     );
     cy.findByRole('button', { name: 'Confirm' }).click();
     cy.wait('@activateSupport');
@@ -90,14 +88,14 @@ describe('Operator administration', () => {
     const state = {
       operators: [
         operator({ id: '1', name: 'Alice Admin', role: 'ADMINISTRATOR', active: true }),
-        operator({ id: '2', name: 'Sam Support', role: 'SUPPORT', active: true })
-      ]
+        operator({ id: '2', name: 'Sam Support', role: 'SUPPORT', active: true }),
+      ],
     };
     interceptOperators(state);
     cy.intercept('PATCH', 'http://localhost:3000/admin/users/2/role', (request) => {
       expect(request.body).to.deep.equal({ role: 'FINANCE' });
       state.operators = state.operators.map((item) =>
-        item.id === '2' ? { ...item, role: 'FINANCE' } : item
+        item.id === '2' ? { ...item, role: 'FINANCE' } : item,
       );
       request.reply({ statusCode: 200, body: { operator: state.operators[1] } });
     }).as('changeRole');
@@ -109,7 +107,7 @@ describe('Operator administration', () => {
     });
     cy.findByRole('dialog', { name: "Change Sam Support's role" }).should(
       'contain.text',
-      'old Backoffice sessions are invalidated immediately'
+      'old Backoffice sessions are invalidated immediately',
     );
     cy.findByRole('button', { name: 'Confirm' }).click();
     cy.wait('@changeRole');
@@ -120,8 +118,8 @@ describe('Operator administration', () => {
     const state = {
       operators: [
         operator({ id: '1', name: 'Alice Admin', role: 'ADMINISTRATOR', active: true }),
-        operator({ id: '2', name: 'Sam Support', role: 'SUPPORT', active: true })
-      ]
+        operator({ id: '2', name: 'Sam Support', role: 'SUPPORT', active: true }),
+      ],
     };
     interceptOperators(state);
 
@@ -139,7 +137,7 @@ describe('Operator administration', () => {
 function visitOperators(): void {
   cy.visit('/operators', {
     onBeforeLoad: (window) => {
-      window.localStorage.setItem('proxi.backoffice.dev.adminToken', adminToken);
+      window.localStorage.setItem('proxi.backoffice.dev.adminToken', 'cookie-session');
       window.localStorage.setItem(
         'proxi.backoffice.dev.adminToken.identity',
         JSON.stringify(
@@ -148,11 +146,11 @@ function visitOperators(): void {
             name: 'Admin Operator',
             email: 'admin@example.com',
             role: 'ADMINISTRATOR',
-            active: true
-          })
-        )
+            active: true,
+          }),
+        ),
       );
-    }
+    },
   });
 }
 
@@ -167,9 +165,9 @@ function interceptOperators(state: { operators: OperatorFixture[] }): void {
         limit: 25,
         totalPages: 1,
         hasPrevPage: false,
-        hasNextPage: false
-      }
-    }
+        hasNextPage: false,
+      },
+    },
   })).as('operators');
 }
 
@@ -184,6 +182,6 @@ function baseOperator(): OperatorFixture {
     email: 'alice@example.com',
     role: 'ADMINISTRATOR' as AdminRole,
     active: true,
-    activatedAt: '2026-07-04T12:00:00.000Z'
+    activatedAt: '2026-07-04T12:00:00.000Z',
   };
 }

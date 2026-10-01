@@ -11,6 +11,7 @@ export class ListProviderOrdersHandler
 
   execute({ providerId }: ListProviderOrdersQuery) {
     return this.prisma.order.findMany({
+      take: 100,
       where: { service: { is: { providerId } } },
       orderBy: { requestedAt: 'desc' },
       include: {

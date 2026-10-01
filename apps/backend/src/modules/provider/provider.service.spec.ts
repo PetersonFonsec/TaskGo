@@ -242,6 +242,10 @@ describe('ProviderService', () => {
     expect(prisma.order.findMany).toHaveBeenCalledWith({
       where: {
         service: { providerId: 42n },
+        OR: expect.arrayContaining([
+          { reservationExpiresAt: { gt: expect.any(Date) } },
+          { paymentAttempt: { isNot: null }, payment: { status: 'CREATED' } },
+        ]),
         status: {
           in: [
             'AGUARDANDO_APROVACAO',

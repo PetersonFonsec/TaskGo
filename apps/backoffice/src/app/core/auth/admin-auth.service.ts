@@ -10,7 +10,7 @@ import { AdminSession } from './admin-session.model';
 import { AdminSessionStorageService } from './admin-session-storage.service';
 
 @Injectable({
-  providedIn: 'root'
+  providedIn: 'root',
 })
 export class AdminAuthService {
   readonly #http = inject(HttpClient);
@@ -25,16 +25,14 @@ export class AdminAuthService {
   readonly token = computed(() => this.#session()?.token ?? '');
   readonly isAuthenticated = computed(() => this.#session() !== null);
 
-  login(credentials: AuthLoginRequest): Observable<AdminSession> {
-    return this.#http
-      .post<AdminAuthSession>(this.#adminUrl('/auth/login'), credentials)
-      .pipe(
-        map((response) => ({
-          token: response.access_token,
-          operator: response.operator
-        })),
-        tap((session) => this.establishSession(session))
-      );
+  login(credentials: AuthLoginRequest & { otp?: string }): Observable<AdminSession> {
+    return this.#http.post<AdminAuthSession>(this.#adminUrl('/auth/login'), credentials).pipe(
+      map((response) => ({
+        token: 'cookie-session',
+        operator: response.operator,
+      })),
+      tap((session) => this.establishSession(session)),
+    );
   }
 
   refreshCurrentOperator(): Observable<AdminSession> {
@@ -51,17 +49,18 @@ export class AdminAuthService {
       catchError((error) => {
         this.expireSession();
         return throwError(() => error);
-      })
+      }),
     );
   }
 
   establishSession(session: AdminSession): void {
     this.#storage.save(session);
-    this.#session.set(session);
+    this.#session.set({ ...session, token: 'cookie-session' });
     this.#redirectingToLogin.set(false);
   }
 
   logout(): void {
+    this.#http.post(this.#adminUrl('/auth/logout'), {}).subscribe({ error: () => {} });
     this.#storage.clear();
     this.#session.set(null);
     this.#router.navigateByUrl('/login');

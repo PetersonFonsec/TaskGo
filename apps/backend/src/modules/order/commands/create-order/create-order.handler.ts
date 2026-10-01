@@ -37,6 +37,22 @@ export class CreateOrderHandler implements ICommandHandler<CreateOrderCommand> {
     )
       throw new BadRequestException('Choose a future scheduled slot');
     return this.prisma.$transaction(async (tx) => {
+      await tx.$queryRaw`SELECT id FROM usuarios WHERE id = ${BigInt(clientId)} FOR UPDATE`;
+      const pending = await tx.order.count({
+        where: {
+          clientId: BigInt(clientId),
+          status: { in: ['AGUARDANDO_APROVACAO', 'AGUARDANDO_PAGAMENTO'] },
+          OR: [
+            { reservationExpiresAt: { gt: new Date() } },
+            { payment: { status: { not: 'CREATED' } } },
+            { paymentAttempt: { isNot: null } },
+          ],
+        },
+      });
+      if (pending >= 3)
+        throw new BadRequestException(
+          'Você já possui três reservas pendentes. Conclua ou aguarde sua expiração.',
+        );
       const service = await tx.service.findUnique({
         where: { id: BigInt(serviceId) },
         include: {
@@ -115,6 +131,7 @@ export class CreateOrderHandler implements ICommandHandler<CreateOrderCommand> {
           clientId: BigInt(clientId),
           serviceId: service.id,
           status: OrderStatus.AGUARDANDO_APROVACAO,
+          reservationExpiresAt: new Date(Date.now() + 15 * 60000),
           estimatedPrice: service.basePrice,
           finalPrice: service.basePrice,
           scheduledFor: scheduledAt,

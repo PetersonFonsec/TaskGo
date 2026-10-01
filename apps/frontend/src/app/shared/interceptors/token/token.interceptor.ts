@@ -1,26 +1,10 @@
 import { HttpInterceptorFn } from '@angular/common/http';
-import { inject } from '@angular/core';
 import { environment } from '../../../../environments/environment';
-import { TokenService } from '@shared/service/token/token.service';
 
-/**
- * @description Clona o request e adiciona o token de autenticação no header Authorization, caso exista um token válido.
- * @param req O request original.
- * @param next O próximo interceptor ou o backend.
- * @returns O request modificado com o token de autenticação, ou o request original se não houver token.
- */
+// The browser sends the HttpOnly session cookie only to the configured API.
 export const tokenInterceptor: HttpInterceptorFn = (req, next) => {
-  const tokenService = inject(TokenService);
-  if (!tokenService.token || !isApiUrl(req.url)) return next(req);
-
-  req = req.clone({
-    setHeaders: {
-      Authorization: `Bearer ${tokenService.token}`,
-      Accept: 'application/json',
-    },
-  });
-
-  return next(req);
+  if (!isApiUrl(req.url)) return next(req);
+  return next(req.clone({ withCredentials: true, setHeaders: { Accept: 'application/json' } }));
 };
 
 export function isApiUrl(url: string): boolean {

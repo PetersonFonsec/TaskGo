@@ -98,7 +98,7 @@ function visitAs(path: string, role: AdminRole): void {
 
   cy.visit(path, {
     onBeforeLoad: (window) => {
-      window.localStorage.setItem('proxi.backoffice.dev.adminToken', adminToken(role));
+      window.localStorage.setItem('proxi.backoffice.dev.adminToken', 'cookie-session');
       window.localStorage.setItem(
         'proxi.backoffice.dev.adminToken.identity',
         JSON.stringify(operator),

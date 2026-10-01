@@ -62,6 +62,7 @@ describe('AdminAuthController', () => {
     expect(authService.login).toHaveBeenCalledWith(
       'admin@example.com',
       'password',
+      undefined,
     );
   });
 

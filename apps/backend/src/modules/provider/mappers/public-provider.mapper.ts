@@ -12,6 +12,7 @@ export const publicProviderSelect = {
   isAvailable24h: true,
   user: { select: { id: true, name: true, photoUrl: true } },
   services: {
+    take: 100,
     where: { status: 'ATIVO' },
     select: {
       id: true,

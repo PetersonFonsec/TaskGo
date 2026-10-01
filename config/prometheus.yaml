@@ -8,17 +8,20 @@ rule_files:
 scrape_configs:
   - job_name: backend
     metrics_path: /metrics
+    authorization:
+      type: Bearer
+      credentials_file: /run/secrets/metrics-token
     static_configs:
       - targets:
-        - backend:3000
+          - backend:3000
 
   - job_name: backoffice
     metrics_path: /health
     static_configs:
       - targets:
-        - backoffice:80
+          - backoffice:80
 
   - job_name: prometheus
     static_configs:
       - targets:
-        - localhost:9090
+          - localhost:9090

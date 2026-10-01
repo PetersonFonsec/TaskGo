@@ -4,13 +4,7 @@
     <h1 id="login-title">Sign in to Proxi Backoffice</h1>
 
     @if (apiError() || (form.touched && form.invalid)) {
-      <div
-        #formError
-        class="form-error"
-        tabindex="-1"
-        role="alert"
-        aria-live="assertive"
-      >
+      <div #formError class="form-error" tabindex="-1" role="alert" aria-live="assertive">
         @if (apiError()) {
           {{ apiError() }}
         } @else {
@@ -50,6 +44,14 @@
         }
       </p>
 
+      <label for="admin-otp">Código do autenticador</label>
+      <input
+        id="admin-otp"
+        formControlName="otp"
+        inputmode="numeric"
+        autocomplete="one-time-code"
+        maxlength="6"
+      />
       <button type="submit" [disabled]="loading()">
         @if (loading()) {
           Signing in...

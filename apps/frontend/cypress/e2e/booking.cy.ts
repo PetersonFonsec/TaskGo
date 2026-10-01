@@ -84,13 +84,13 @@ function visitBookingPage() {
 
   cy.visit('http://localhost:4200/authenticate/login', {
     onBeforeLoad(win) {
-      win.localStorage.setItem('@ODIN/TOKEN', customerSession.access_token);
+      win.localStorage.setItem('@ODIN/TOKEN', 'cookie-session');
       win.localStorage.setItem('@ODIN/USER', JSON.stringify(customerSession));
     },
   });
 
   cy.window().then((win) => {
-    win.localStorage.setItem('@ODIN/TOKEN', customerSession.access_token);
+    win.localStorage.setItem('@ODIN/TOKEN', 'cookie-session');
     win.localStorage.setItem('@ODIN/USER', JSON.stringify(customerSession));
   });
 
@@ -131,15 +131,13 @@ describe('Booking flow', () => {
 
     cy.get('#booking-request-button').should('be.enabled').click();
 
-    cy.wait('@createOrder')
-      .its('request.body')
-      .should('deep.include', {
-        clientId: 'client-1',
-        serviceId: 's1',
-        scheduledFor: '2026-06-22T12:00:00.000Z',
-        finalPrice: 120,
-        paymentMethod: 'PIX',
-      });
+    cy.wait('@createOrder').its('request.body').should('deep.include', {
+      clientId: 'client-1',
+      serviceId: 's1',
+      scheduledFor: '2026-06-22T12:00:00.000Z',
+      finalPrice: 120,
+      paymentMethod: 'PIX',
+    });
 
     cy.contains('Sua solicitação foi feita').should('be.visible');
   });

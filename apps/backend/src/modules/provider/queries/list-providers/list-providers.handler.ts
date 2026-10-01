@@ -27,6 +27,7 @@ export class ListProvidersHandler implements IQueryHandler<ListProvidersQuery> {
     const areaWhere = await providerCoverageWhere(this.prisma, coverage);
     if (!onlyFavorites) {
       const providers = await this.prisma.provider.findMany({
+        take: 100,
         where: {
           ...areaWhere,
           status: 'APPROVED',
@@ -47,6 +48,7 @@ export class ListProvidersHandler implements IQueryHandler<ListProvidersQuery> {
 
     const clientId = BigInt(authenticatedUserId);
     const favorites = await this.prisma.clientFavorite.findMany({
+      take: 100,
       where: {
         clientId,
         provider: {

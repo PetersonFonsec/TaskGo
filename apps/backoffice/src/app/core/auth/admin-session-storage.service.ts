@@ -6,7 +6,7 @@ import type { AdminOperatorProfile } from '@taskgo/shared';
 import { AdminSession, AdminTokenPayload } from './admin-session.model';
 
 @Injectable({
-  providedIn: 'root'
+  providedIn: 'root',
 })
 export class AdminSessionStorageService {
   readonly #environment = inject(BACKOFFICE_ENVIRONMENT);
@@ -20,27 +20,25 @@ export class AdminSessionStorageService {
   }
 
   restore(): AdminSession | null {
-    const token = this.#getItem(this.tokenStorageKey);
+    const marker = this.#getItem(this.tokenStorageKey);
     const identity = this.#readOperator();
-
-    if (!token || !identity || !this.isAdministrativeToken(token)) {
+    if (marker !== 'cookie-session' || !identity) {
       this.clear();
       return null;
     }
-
-    return { token, operator: identity };
+    return { token: 'cookie-session', operator: identity };
   }
-
   save(session: AdminSession): void {
-    if (!this.isAdministrativeToken(session.token) || !session.operator.active) {
+    if (
+      !session.operator.active ||
+      (session.token !== 'cookie-session' && !this.isAdministrativeToken(session.token))
+    ) {
       this.clear();
-      throw new Error('Backoffice session requires an active administrative token.');
+      throw new Error('Active administrative session required');
     }
-
-    this.#setItem(this.tokenStorageKey, session.token);
+    this.#setItem(this.tokenStorageKey, 'cookie-session');
     this.#setItem(this.identityStorageKey, JSON.stringify(session.operator));
   }
-
   clear(): void {
     this.#removeItem(this.tokenStorageKey);
     this.#removeItem(this.identityStorageKey);

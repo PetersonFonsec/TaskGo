@@ -16,7 +16,7 @@ import { CreateProviderStrategy } from '../modules/user/commands/create-user/str
 const migrationName = '20260724043000_add_provider_payout_profile_and_social';
 const backendRoot = resolve(__dirname, '../..');
 const migrationRoot = resolve(backendRoot, 'src/prisma/migrations');
-const prismaBinary = resolve(backendRoot, 'node_modules/.bin/prisma');
+const prismaBinary = require.resolve('prisma/build/index.js');
 
 function readEnvDatabaseUrl() {
   if (process.env.PROXI_TEST_DATABASE_URL)
@@ -44,8 +44,8 @@ function executeSql(sql: string, databaseUrl: string, tempDir: string) {
   const file = join(tempDir, `sql-${Date.now()}-${Math.random()}.sql`);
   writeFileSync(file, sql);
   const result = spawnSync(
-    prismaBinary,
-    ['db', 'execute', '--url', databaseUrl, '--file', file],
+    process.execPath,
+    [prismaBinary, 'db', 'execute', '--url', databaseUrl, '--file', file],
     {
       cwd: backendRoot,
       env: { ...process.env, DATABASE_URL: databaseUrl },

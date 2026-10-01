@@ -43,7 +43,11 @@ describe('Favorites MVP', () => {
   };
 
   beforeEach(() => {
-    let currentFavorites = [] as Array<{ id: string; user: { name: string; phone: string }; services: any[] }>;
+    let currentFavorites = [] as Array<{
+      id: string;
+      user: { name: string; phone: string };
+      services: any[];
+    }>;
 
     cy.intercept('POST', '**/auth/login', {
       statusCode: 200,
@@ -101,8 +105,17 @@ describe('Favorites MVP', () => {
     cy.wait('@loginRequest');
     cy.url().should('include', '/customer');
 
-    cy.window().its('localStorage').invoke('getItem', '@ODIN/TOKEN').should('equal', userResponse.access_token);
-    cy.window().its('localStorage').invoke('getItem', '@ODIN/USER').should('equal', JSON.stringify(userResponse));
+    cy.window()
+      .its('localStorage')
+      .invoke('getItem', '@ODIN/TOKEN')
+      .should('equal', 'cookie-session');
+    cy.window()
+      .its('localStorage')
+      .invoke('getItem', '@ODIN/USER')
+      .should(
+        'equal',
+        JSON.stringify({ user: { id: userResponse.user.id, type: userResponse.user.type } }),
+      );
     cy.window().then((win) => {
       const storedUser = JSON.parse(win.localStorage.getItem('@ODIN/USER') ?? '{}');
       expect(storedUser.user.type).to.equal('CLIENTE');
@@ -125,7 +138,10 @@ describe('Favorites MVP', () => {
     cy.get('#customer-search_filters_actions input[type="checkbox"]').check({ force: true });
     cy.wait('@searchProviders');
 
-    cy.window().its('localStorage').invoke('getItem', 'search.onlyFavorites.10').should('equal', 'true');
+    cy.window()
+      .its('localStorage')
+      .invoke('getItem', 'search.onlyFavorites.10')
+      .should('equal', 'true');
 
     cy.get('#customer-search').within(() => {
       cy.contains('Provider Favorito').should('exist');

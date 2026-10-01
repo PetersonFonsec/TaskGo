@@ -1,3 +1,4 @@
+import { SafePassword } from '../../../../shared/security/password-policy';
 import {
   IsEmail,
   IsEnum,
@@ -26,5 +27,6 @@ export class ActivateAdminInvitationDto {
 
   @IsString()
   @MinLength(8)
+  @SafePassword()
   password: string;
 }

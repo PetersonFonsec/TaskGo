@@ -1,3 +1,4 @@
+import { sessionToken } from '../fixtures/session-cookie';
 import { INestApplication, ValidationPipe } from '@nestjs/common';
 import { Test } from '@nestjs/testing';
 import { ServiceStatus } from '@prisma/client';
@@ -8,7 +9,7 @@ import { PrismaService } from '../../src/prisma/prisma.service';
 
 const clientEmail = 'e2e.client.booking@taskgo.test';
 const providerEmail = 'e2e.provider.booking@taskgo.test';
-const password = 'password123';
+const password = 'isolated-booking-passphrase';
 
 const address = {
   label: 'Principal',
@@ -34,6 +35,7 @@ describe('Customer booking journey E2E', () => {
   let app: INestApplication;
   let prisma: PrismaService;
   let serviceId: string;
+  let subcategoryId: string;
 
   beforeAll(async () => {
     const moduleFixture = await Test.createTestingModule({
@@ -53,6 +55,11 @@ describe('Customer booking journey E2E', () => {
     prisma = app.get(PrismaService);
     await removeJourneyData();
 
+    subcategoryId = (
+      await prisma.subcategory.findFirstOrThrow({
+        where: { category: { slug: 'limpeza' } },
+      })
+    ).id.toString();
     const seedProvider = await prisma.provider.findFirstOrThrow();
     const service = await prisma.service.create({
       data: {
@@ -109,12 +116,12 @@ describe('Customer booking journey E2E', () => {
         type: 'PRESTADOR',
         bio: 'Especialista em limpeza residencial',
         address,
-        services: [serviceId],
+        subcategoryIds: [subcategoryId],
       })
       .expect(201);
 
     expect(providerRegistration.body.user.type).toBe('PRESTADOR');
-    expect(providerRegistration.body.access_token).toEqual(expect.any(String));
+    expect(sessionToken(providerRegistration)).toEqual(expect.any(String));
 
     const clientRegistration = await request(app.getHttpServer())
       .post('/auth/register')
@@ -146,6 +153,19 @@ describe('Customer booking journey E2E', () => {
       .expect(201);
 
     const providerId = providerRegistration.body.user.id;
+    await prisma.provider.update({
+      where: { id: BigInt(providerId) },
+      data: { status: 'APPROVED', verified: true },
+    });
+    await prisma.service.update({
+      where: { id: BigInt(serviceId) },
+      data: { providerId: BigInt(providerId) },
+    });
+    const addressId = (
+      await prisma.address.findFirstOrThrow({
+        where: { userId: BigInt(clientLogin.body.user.id) },
+      })
+    ).id.toString();
     const providers = await request(app.getHttpServer())
       .get('/provider/by-category/limpeza')
       .expect(200);
@@ -154,7 +174,7 @@ describe('Customer booking journey E2E', () => {
       expect.arrayContaining([
         expect.objectContaining({
           id: providerId,
-          user: expect.objectContaining({ email: providerEmail }),
+          user: expect.objectContaining({ id: providerId }),
           services: expect.arrayContaining([
             expect.objectContaining({ id: serviceId, category: 'limpeza' }),
           ]),
@@ -176,22 +196,14 @@ describe('Customer booking journey E2E', () => {
 
     const booking = await request(app.getHttpServer())
       .post('/order')
-      .set('Authorization', `Bearer ${clientLogin.body.access_token}`)
+      .set('Authorization', `Bearer ${sessionToken(clientLogin)}`)
       .send({
         clientId: clientLogin.body.user.id,
         serviceId,
         scheduledFor: slot.startsAt,
         finalPrice: 150,
         paymentMethod: 'PIX',
-        address: {
-          street: address.street,
-          number: address.number,
-          city: address.city,
-          state: address.state,
-          cep: address.cep,
-          lat: address.lat,
-          lng: address.lng,
-        },
+        addressId,
       })
       .expect(201);
 

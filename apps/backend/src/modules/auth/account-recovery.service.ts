@@ -1,3 +1,4 @@
+import { assertSafePassword } from '../../shared/security/password-policy';
 import {
   BadRequestException,
   Injectable,
@@ -69,7 +70,13 @@ export class AccountRecoveryService {
     if (!created) return response;
     // Fragment avoids tokens in reverse-proxy access logs and referrer headers.
     resetUrl.hash = `token=${token}`;
-    const transport = nodemailer.createTransport(smtpUrl);
+    const transport = nodemailer.createTransport({
+      url: smtpUrl,
+      requireTLS: process.env.NODE_ENV === 'production',
+      connectionTimeout: 5000,
+      greetingTimeout: 5000,
+      socketTimeout: 10000,
+    });
     try {
       await transport.sendMail({
         from,
@@ -87,9 +94,10 @@ export class AccountRecoveryService {
   }
 
   async reset(token: string, password: string) {
+    assertSafePassword(password);
     if (
       !/^[a-f0-9]{64}$/.test(token) ||
-      password.length < 10 ||
+      password.length < 12 ||
       Buffer.byteLength(password, 'utf8') > 72
     )
       throw new BadRequestException(

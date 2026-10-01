@@ -18,6 +18,7 @@ export class GetProvidersByCategoryHandler
     if (!slug) return [];
     const areaWhere = await providerCoverageWhere(this.prisma, coverage);
     const providers = await this.prisma.provider.findMany({
+      take: 100,
       where: {
         ...areaWhere,
         status: 'APPROVED',

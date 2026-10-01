@@ -1,3 +1,4 @@
+import { sessionToken } from '../fixtures/session-cookie';
 import { INestApplication, ValidationPipe } from '@nestjs/common';
 import { Test } from '@nestjs/testing';
 import { JwtService } from '@nestjs/jwt';
@@ -154,7 +155,7 @@ describe('Admin users lifecycle E2E', () => {
       .send({ email: operatorEmail, password: 'operator-password' })
       .expect(201);
 
-    const operatorAuthorization = `Bearer ${loginResponse.body.access_token}`;
+    const operatorAuthorization = `Bearer ${sessionToken(loginResponse)}`;
     await request(app.getHttpServer())
       .get('/admin/auth/me')
       .set('Authorization', operatorAuthorization)
@@ -173,7 +174,7 @@ describe('Admin users lifecycle E2E', () => {
 
     await request(app.getHttpServer())
       .post('/admin/auth/change-password')
-      .set('Authorization', `Bearer ${financeLoginResponse.body.access_token}`)
+      .set('Authorization', `Bearer ${sessionToken(financeLoginResponse)}`)
       .send({
         currentPassword: 'operator-password',
         newPassword: 'operator-password-2',

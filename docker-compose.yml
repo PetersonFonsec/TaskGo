@@ -3,13 +3,13 @@ services:
     image: postgres:17
     restart: always
     ports:
-      - "5432:5432"
+      - '127.0.0.1:5432:5432'
     volumes:
       - postgres_db:/var/lib/postgresql/data
     env_file:
       - ./config/db.env
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U admin -d taskgo"]
+      test: ['CMD-SHELL', 'pg_isready -U admin -d taskgo']
       interval: 5s
       timeout: 5s
       retries: 10
@@ -17,17 +17,18 @@ services:
   prometheus:
     image: prom/prometheus:v2.47.2
     ports:
-      - 9090:9090
+      - '127.0.0.1:9090:9090'
     networks:
       - live_prometheus
     volumes:
       - ./config/prometheus.yaml:/etc/prometheus/prometheus.yml
       - ./config/prometheus/alerts.yml:/etc/prometheus/alerts.yml
-  
+      - ./config/metrics-token:/run/secrets/metrics-token:ro
+
   grafana:
     image: grafana/grafana:10.2.2
     ports:
-      - 3300:3000
+      - '127.0.0.1:3300:3000'
     networks:
       - live_prometheus
     env_file:
@@ -35,29 +36,29 @@ services:
     volumes:
       - ./config/grafana/provisioning:/etc/grafana/provisioning
       - ./config/grafana/dashboards:/var/lib/grafana/dashboards
-      
+
   jaeger:
     image: jaegertracing/all-in-one:latest
     container_name: jaeger
     ports:
-      - "8081:16686" # Jaeger UI
-      - "14268"
-      - "14250"
+      - '127.0.0.1:8081:16686' # Jaeger UI
+      - '14268'
+      - '14250'
     depends_on:
       - postgres_db
-  
+
   otel-collector:
     image: otel/opentelemetry-collector:latest
     container_name: otel-collector
-    command: ["--config=/etc/otel-collector-config.yml"]
+    command: ['--config=/etc/otel-collector-config.yml']
     volumes:
       - ./config/otel-collector-config.yml:/etc/otel-collector-config.yml
     ports:
-      - "1888:1888" # pprof extension
-      - "13133:13133" # health_check extension
-      - "4317:4317" # OTLP gRPC receiver
-      - "4318:4318" # http gRPC receiver
-      - "55679:55679" # zpages extension
+      - '127.0.0.1:1888:1888' # pprof extension
+      - '127.0.0.1:13133:13133' # health_check extension
+      - '127.0.0.1:4317:4317' # OTLP gRPC receiver
+      - '127.0.0.1:4318:4318' # http gRPC receiver
+      - '127.0.0.1:55679:55679' # zpages extension
     depends_on:
       - jaeger
     links:

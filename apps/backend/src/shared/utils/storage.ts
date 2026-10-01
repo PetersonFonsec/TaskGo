@@ -1,13 +1,13 @@
 import { diskStorage } from 'multer';
 import path from 'path';
-import { v4 as uuidv4 } from 'uuid';
+import { randomUUID } from 'node:crypto';
 
 export const storage = (destination) => ({
   storage: diskStorage({
     destination: `./assets/uploads/${destination}`,
     filename: (req, file, cb) => {
       const filename =
-        path.parse(file.originalname).name.replace(/\s/g, '') + uuidv4();
+        path.parse(file.originalname).name.replace(/\s/g, '') + randomUUID();
       const extension = path.parse(file.originalname).ext;
       cb(null, `${filename}${extension}`);
     },

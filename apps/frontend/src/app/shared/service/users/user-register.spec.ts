@@ -70,7 +70,7 @@ describe('UserRegister', () => {
 
     request.flush(response);
 
-    expect(assignedToken).toBe('TOKEN');
+    expect(assignedToken).toBe('cookie-session');
     expect(userLoggedService.setUserLogged).toHaveBeenCalledWith(response as any);
   });
 
@@ -113,7 +113,7 @@ describe('UserRegister', () => {
 
     request.flush(response);
 
-    expect(assignedToken).toBe('TOKEN');
+    expect(assignedToken).toBe('cookie-session');
     expect(userLoggedService.setUserLogged).toHaveBeenCalledWith(response as any);
   });
 });

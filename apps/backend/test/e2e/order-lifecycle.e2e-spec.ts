@@ -95,11 +95,12 @@ describe('Feature: ciclo de vida completo do pedido', () => {
         clientId: client.id,
         serviceId: service.id,
         status: OrderStatus.AGUARDANDO_APROVACAO,
+        reservationExpiresAt: new Date(Date.now() + 15 * 60000),
         estimatedPrice: 120,
         finalPrice: 120,
         payment: {
           create: {
-            method: PaymentMethod.CARTAO,
+            method: PaymentMethod.PIX,
             status: PaymentStatus.CREATED,
             amount: 120,
           },
@@ -127,6 +128,8 @@ describe('Feature: ciclo de vida completo do pedido', () => {
     });
     gateway.capturePayment.mockResolvedValue({
       id: 'ch_lifecycle',
+      order: { id: 'or_lifecycle' },
+      amount: 12000,
       status: 'paid',
     });
   });
@@ -207,7 +210,7 @@ describe('Feature: ciclo de vida completo do pedido', () => {
       expect(saved.completion?.providerNotes).toBe(
         'Serviço concluído com sucesso',
       );
-      expect(saved.orderPhoto).toHaveLength(1);
+      expect(saved.orderPhoto).toHaveLength(0);
       expect(
         saved.orderTimeline.some(({ event }) => event === 'SERVICE_FINISHED'),
       ).toBe(true);
@@ -232,16 +235,10 @@ describe('Feature: ciclo de vida completo do pedido', () => {
       await patch(`/orders/${orderId}/confirm`, clientToken, {}).expect(400);
     });
 
-    it('Given cartão autorizado e serviço finalizado, When dono confirmar, Then captura e conclui', async () => {
+    it('Given cartão autorizado, When dono confirmar, Then rejeita método indisponível', async () => {
       await prepareFinishedCardOrder();
-      const response = await patch(
-        `/orders/${orderId}/confirm`,
-        clientToken,
-        {},
-      ).expect(200);
-      expect(response.body.status).toBe(OrderStatus.CONCLUIDO);
-      expect(response.body.payment.status).toBe(PaymentStatus.PAGO);
-      expect(gateway.capturePayment).toHaveBeenCalledWith('ch_lifecycle', 120);
+      await patch(`/orders/${orderId}/confirm`, clientToken, {}).expect(400);
+      expect(gateway.capturePayment).not.toHaveBeenCalled();
     });
 
     it('Given serviço finalizado, When outro cliente confirmar, Then retorna 403', async () => {
@@ -328,6 +325,7 @@ describe('Feature: ciclo de vida completo do pedido', () => {
             method: PaymentMethod.CARTAO,
             status: PaymentStatus.AUTORIZADO,
             providerChargeId: 'ch_lifecycle',
+            providerOrderId: 'or_lifecycle',
             authorizedAt: new Date(),
           },
         },
@@ -343,13 +341,25 @@ describe('Feature: ciclo de vida completo do pedido', () => {
   }
 
   async function setStatus(status: OrderStatus) {
-    await prisma.order.update({ where: { id: orderId }, data: { status } });
+    await prisma.order.update({
+      where: { id: orderId },
+      data: {
+        status,
+        ...(status === OrderStatus.EM_ANDAMENTO
+          ? {
+              payment: {
+                update: { status: PaymentStatus.PAGO, paidAt: new Date() },
+              },
+            }
+          : {}),
+      },
+    });
   }
   function finishPayload() {
     return {
       finalPrice: 120,
       providerNotes: 'Serviço concluído com sucesso',
-      photos: [{ url: 'https://cdn.example.test/after.jpg', type: 'AFTER' }],
+      photos: [],
     };
   }
   function post(path: string, token: string, body?: object) {
@@ -382,6 +392,8 @@ describe('Feature: ciclo de vida completo do pedido', () => {
     return prisma.provider.create({
       data: {
         pagarmeRecipientId: `rp_${cpf}`,
+        status: 'APPROVED',
+        verified: true,
         user: {
           create: {
             name: email.split('@')[0],

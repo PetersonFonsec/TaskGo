@@ -1,4 +1,8 @@
 import {
+  CUSTOMER_COOKIE,
+  readSessionCookie,
+} from '../../shared/security/session-cookie';
+import {
   Injectable,
   CanActivate,
   ExecutionContext,
@@ -39,7 +43,11 @@ export class AuthGuard implements CanActivate {
     );
 
     const req = context.switchToHttp().getRequest();
-    const authorization = req.headers?.authorization;
+    const authorization =
+      req.headers?.authorization ??
+      (readSessionCookie(req, CUSTOMER_COOKIE)
+        ? `Bearer ${readSessionCookie(req, CUSTOMER_COOKIE)}`
+        : undefined);
     if (isPublic && !isOptionalAuth) return true;
     if (isOptionalAuth && !authorization) return true;
     if (!authorization || typeof authorization !== 'string') {

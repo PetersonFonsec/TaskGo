@@ -1,4 +1,17 @@
-import { Body, Controller, Get, Post, Req, UseGuards } from '@nestjs/common';
+import { Response } from 'express';
+import {
+  writeSessionCookie,
+  clearSessionCookie,
+} from '../../../shared/security/session-cookie';
+import {
+  Body,
+  Controller,
+  Get,
+  Post,
+  Req,
+  Res,
+  UseGuards,
+} from '@nestjs/common';
 import { AdminRole } from '@prisma/client';
 
 import { Public } from '../../../shared/decorators/public.decorator';
@@ -21,8 +34,33 @@ export class AdminAuthController {
 
   @AdminPublic()
   @Post('login')
-  login(@Body() body: AdminAuthLoginDto): Promise<AdminAuthSession> {
-    return this.authService.login(body.email, body.password);
+  async login(
+    @Body() body: AdminAuthLoginDto,
+    @Res({ passthrough: true }) response?: Response,
+  ): Promise<AdminAuthSession> {
+    const session = await this.authService.login(
+      body.email,
+      body.password,
+      body.otp,
+    );
+    if (response) writeSessionCookie(response, session.access_token, true);
+    return { ...session, access_token: response ? '' : session.access_token };
+  }
+
+  @AdminRoles(
+    AdminRole.ADMINISTRATOR,
+    AdminRole.SUPPORT,
+    AdminRole.FINANCE,
+    AdminRole.MODERATOR,
+  )
+  @Post('logout')
+  async logout(
+    @Res({ passthrough: true }) response: Response,
+    @Req() request: AdminRequest,
+  ) {
+    await this.authService.logout(request[ADMIN_ACTOR_KEY]!.id);
+    clearSessionCookie(response, true);
+    return { success: true };
   }
 
   @AdminRoles(

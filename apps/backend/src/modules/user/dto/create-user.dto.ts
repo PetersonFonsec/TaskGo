@@ -1,3 +1,4 @@
+import { SafePassword } from '../../../shared/security/password-policy';
 import { UserType } from '@prisma/client';
 import { Type } from 'class-transformer';
 import {
@@ -20,7 +21,7 @@ export class UserRegistrationSocialDto {
 }
 
 export class CreateUserDto {
-  @IsNotEmpty() @IsString() password: string;
+  @IsNotEmpty() @IsString() @SafePassword() password: string;
   @IsNotEmpty() @IsString() phone: string;
   @IsNotEmpty() @IsString() name: string;
   @IsNotEmpty() @IsEmail() email: string;

@@ -1,4 +1,8 @@
 import {
+  ADMIN_COOKIE,
+  readSessionCookie,
+} from '../../../shared/security/session-cookie';
+import {
   CanActivate,
   ExecutionContext,
   Injectable,
@@ -52,7 +56,11 @@ export class AdminAuthGuard implements CanActivate {
   }
 
   private extractBearerToken(request: AdminRequest) {
-    const authorization = request.headers.authorization;
+    const authorization =
+      request.headers.authorization ??
+      (readSessionCookie(request, ADMIN_COOKIE)
+        ? `Bearer ${readSessionCookie(request, ADMIN_COOKIE)}`
+        : undefined);
     if (!authorization || typeof authorization !== 'string') {
       throw new UnauthorizedException(
         'Administrative authentication token required',

@@ -15,7 +15,7 @@ const operator: AdminOperatorProfile = {
   email: 'admin@example.com',
   role: 'ADMINISTRATOR',
   active: true,
-  activatedAt: '2026-07-04T12:00:00.000Z'
+  activatedAt: '2026-07-04T12:00:00.000Z',
 };
 
 describe('AdminAuthService', () => {
@@ -36,10 +36,10 @@ describe('AdminAuthService', () => {
           useValue: {
             production: false,
             apiUrl: 'http://localhost:3000/admin',
-            adminTokenStorageKey: 'proxi.backoffice.test.adminToken'
-          }
-        }
-      ]
+            adminTokenStorageKey: 'proxi.backoffice.test.adminToken',
+          },
+        },
+      ],
     });
 
     service = TestBed.inject(AdminAuthService);
@@ -56,7 +56,7 @@ describe('AdminAuthService', () => {
     const token = adminJwt({ tokenKind: 'admin', role: 'ADMINISTRATOR' });
 
     service.login({ email: 'admin@example.com', password: 'secret' }).subscribe((session) => {
-      expect(session.token).toBe(token);
+      expect(session.token).toBe('cookie-session');
       expect(session.operator).toEqual(operator);
     });
 
@@ -64,9 +64,9 @@ describe('AdminAuthService', () => {
     expect(request.request.method).toBe('POST');
     request.flush({ access_token: token, operator });
 
-    expect(localStorage.getItem('proxi.backoffice.test.adminToken')).toBe(token);
+    expect(localStorage.getItem('proxi.backoffice.test.adminToken')).toBe('cookie-session');
     expect(localStorage.getItem('proxi.backoffice.test.adminToken.identity')).toContain(
-      'admin@example.com'
+      'admin@example.com',
     );
     expect(localStorage.getItem('token')).toBeNull();
   });
@@ -75,7 +75,7 @@ describe('AdminAuthService', () => {
     const ordinaryToken = adminJwt({ tokenKind: 'user', role: 'CUSTOMER' });
 
     expect(() => service.establishSession({ token: ordinaryToken, operator })).toThrowError(
-      /administrative token/
+      /Active administrative session/,
     );
     expect(service.isAuthenticated()).toBeFalse();
     expect(localStorage.getItem('proxi.backoffice.test.adminToken')).toBeNull();
@@ -90,12 +90,13 @@ describe('AdminAuthService', () => {
     });
 
     http.expectOne('http://localhost:3000/admin/auth/me').flush({
-      operator: { ...operator, name: 'Updated Operator' }
+      operator: { ...operator, name: 'Updated Operator' },
     });
 
     expect(service.operator()?.name).toBe('Updated Operator');
 
     service.logout();
+    http.expectOne('http://localhost:3000/admin/auth/logout').flush({ success: true });
     expect(service.isAuthenticated()).toBeFalse();
   });
 
@@ -107,14 +108,14 @@ describe('AdminAuthService', () => {
     service.refreshCurrentOperator().subscribe({
       error: (error) => {
         expect(error.message).toContain('Missing administrative token');
-      }
+      },
     });
 
     http.expectOne('http://localhost:3000/admin/auth/me').flush({ operator });
 
     expect(service.isAuthenticated()).toBeFalse();
     expect(router.navigate).toHaveBeenCalledOnceWith(['/login'], {
-      queryParams: { returnUrl: '/operators' }
+      queryParams: { returnUrl: '/operators' },
     });
   });
 
@@ -128,7 +129,9 @@ describe('AdminAuthService', () => {
     service.expireSession();
     service.expireSession();
 
-    expect(router.navigate).toHaveBeenCalledOnceWith(['/login'], { queryParams: { returnUrl: '/' } });
+    expect(router.navigate).toHaveBeenCalledOnceWith(['/login'], {
+      queryParams: { returnUrl: '/' },
+    });
   });
 
   it('redirects expired non-login sessions back to their current URL', () => {
@@ -141,7 +144,7 @@ describe('AdminAuthService', () => {
     service.expireSession();
 
     expect(router.navigate).toHaveBeenCalledOnceWith(['/login'], {
-      queryParams: { returnUrl: '/providers' }
+      queryParams: { returnUrl: '/providers' },
     });
   });
 });
@@ -150,7 +153,7 @@ export function adminJwt(payload: Record<string, unknown>): string {
   return [
     base64Url({ alg: 'none', typ: 'JWT' }),
     base64Url({ sub: '42', ver: 1, ...payload }),
-    'signature'
+    'signature',
   ].join('.');
 }
 

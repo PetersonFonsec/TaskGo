@@ -1,3 +1,4 @@
+import { createHash } from 'node:crypto';
 import {
   BadRequestException,
   ServiceUnavailableException,
@@ -25,24 +26,25 @@ export class ProcessPagarmeWebhookHandler
     });
     // A notification is only a wake-up hint. No status, amount or customer data
     // from its public body is trusted. GET with our secret authenticates the resource.
-    if (payment) await this.payments.reconcilePayment(payment.id);
-    await this.prisma.paymentWebhookEvent.upsert({
-      where: { id: payload.id },
-      create: {
-        id: payload.id,
-        type: payload.type,
-        paymentId: payment?.id,
-        payload: { chargeId },
-        processedAt: payment ? new Date() : null,
-      },
-      update: payment ? { paymentId: payment.id, processedAt: new Date() } : {},
-    });
-    // Unknown charges stay pending and are retried by the gateway. This also
-    // recovers notifications arriving before the creation transaction commits.
     if (!payment)
       throw new ServiceUnavailableException(
         'Cobrança ainda não vinculada; reenviar evento',
       );
+    const canonical = await this.payments.reconcilePayment(payment.id);
+    const eventKey = createHash('sha256')
+      .update(chargeId + ':' + (canonical?.status ?? 'reconciled'))
+      .digest('hex');
+    await this.prisma.paymentWebhookEvent.upsert({
+      where: { id: eventKey },
+      create: {
+        id: eventKey,
+        type: 'pagarme.reconciled',
+        paymentId: payment.id,
+        payload: { chargeId },
+        processedAt: new Date(),
+      },
+      update: { paymentId: payment.id, processedAt: new Date() },
+    });
     return { received: true };
   }
 }

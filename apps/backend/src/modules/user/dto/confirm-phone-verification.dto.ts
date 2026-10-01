@@ -1,7 +1,7 @@
-import { IsString, Length } from 'class-validator';
+import { IsString, Matches } from 'class-validator';
 
 export class ConfirmPhoneVerificationDto {
   @IsString()
-  @Length(4, 10)
+  @Matches(/^\d{6}$/)
   verificationCode: string;
 }

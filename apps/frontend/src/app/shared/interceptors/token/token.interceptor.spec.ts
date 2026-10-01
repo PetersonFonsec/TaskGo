@@ -22,6 +22,7 @@ describe('tokenInterceptor', () => {
       const next = jasmine.createSpy('next').and.returnValue(of(new HttpResponse()));
       TestBed.runInInjectionContext(() => tokenInterceptor(new HttpRequest('GET', url), next));
       expect(next.calls.mostRecent().args[0].headers.has('Authorization')).toBeFalse();
+      expect(next.calls.mostRecent().args[0].withCredentials).toBeFalse();
     });
   }
   it('authenticates requests to the application API', () => {
@@ -29,8 +30,7 @@ describe('tokenInterceptor', () => {
     TestBed.runInInjectionContext(() =>
       tokenInterceptor(new HttpRequest('GET', environment.url + '/user/1'), next),
     );
-    expect(next.calls.mostRecent().args[0].headers.get('Authorization')).toBe(
-      'Bearer secret-token',
-    );
+    expect(next.calls.mostRecent().args[0].headers.has('Authorization')).toBeFalse();
+    expect(next.calls.mostRecent().args[0].withCredentials).toBeTrue();
   });
 });

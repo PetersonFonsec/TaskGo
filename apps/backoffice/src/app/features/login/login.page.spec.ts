@@ -15,7 +15,7 @@ const operator: AdminOperatorProfile = {
   email: 'admin@example.com',
   role: 'ADMINISTRATOR',
   active: true,
-  activatedAt: '2026-07-04T12:00:00.000Z'
+  activatedAt: '2026-07-04T12:00:00.000Z',
 };
 
 describe('LoginPage', () => {
@@ -35,9 +35,9 @@ describe('LoginPage', () => {
         { provide: Router, useValue: router },
         {
           provide: ActivatedRoute,
-          useValue: { snapshot: { queryParamMap: convertToParamMap({ returnUrl: '/providers' }) } }
-        }
-      ]
+          useValue: { snapshot: { queryParamMap: convertToParamMap({ returnUrl: '/providers' }) } },
+        },
+      ],
     });
 
     fixture = TestBed.createComponent(LoginPage);
@@ -53,24 +53,25 @@ describe('LoginPage', () => {
 
     expect(auth.login).toHaveBeenCalledWith({
       email: 'admin@example.com',
-      password: 'admin-password'
+      password: 'admin-password',
+      otp: '',
     });
     expect(router.navigateByUrl).toHaveBeenCalledWith('/providers');
   });
 
   it('focuses the API error after rejected credentials', () => {
     auth.login.and.returnValue(
-      throwError(() => new HttpErrorResponse({ status: 403, statusText: 'Forbidden' }))
+      throwError(() => new HttpErrorResponse({ status: 403, statusText: 'Forbidden' })),
     );
 
     fillAndSubmit(fixture);
     fixture.detectChanges();
 
     expect(fixture.nativeElement.textContent).toContain(
-      'Administrative credentials were not accepted.'
+      'Administrative credentials were not accepted.',
     );
     expect(document.activeElement?.textContent).toContain(
-      'Administrative credentials were not accepted.'
+      'Administrative credentials were not accepted.',
     );
   });
 });

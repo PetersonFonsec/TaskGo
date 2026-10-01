@@ -19,7 +19,7 @@ import { environment } from '../../../../environments/environment';
             name="password"
             type="password"
             autocomplete="new-password"
-            minlength="10"
+            minlength="12"
             maxlength="72"
             required
             [(ngModel)]="password"

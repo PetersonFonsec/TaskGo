@@ -83,6 +83,8 @@ describe('Feature: pagamento de pedidos', () => {
     const provider = await prisma.provider.create({
       data: {
         pagarmeRecipientId: 'rp_e2e_provider',
+        status: 'APPROVED',
+        verified: true,
         user: {
           create: {
             name: 'Prestador Pagamento E2E',
@@ -92,6 +94,14 @@ describe('Feature: pagamento de pedidos', () => {
             type: UserType.PRESTADOR,
           },
         },
+      },
+    });
+    await prisma.providerPayoutProfile.update({
+      where: { providerId: provider.id },
+      data: {
+        pagarmeRecipientId: 'rp_e2e_provider',
+        syncStatus: 'READY',
+        bankAccountStatus: 'CONFIRMED',
       },
     });
     const service = await prisma.service.create({
@@ -205,8 +215,8 @@ describe('Feature: pagamento de pedidos', () => {
 
   describe('Scenario: habilitação financeira do prestador', () => {
     it('Given prestador sem recipientId, When pagar, Then retorna 400 e não chama gateway', async () => {
-      await prisma.provider.update({
-        where: { id: providerId },
+      await prisma.providerPayoutProfile.update({
+        where: { providerId },
         data: { pagarmeRecipientId: null },
       });
       const response = await postPayment(orderId, clientToken, {
@@ -220,7 +230,7 @@ describe('Feature: pagamento de pedidos', () => {
   });
 
   describe('Scenario: pagamento PIX', () => {
-    it('Given pedido elegível, When gerar PIX, Then persiste split, QR Code e agenda pedido', async () => {
+    it('Given pedido elegível, When gerar PIX, Then persiste split e QR Code sem confirmar PIX pendente', async () => {
       const response = await postPayment(orderId, clientToken, {
         method: 'PIX',
       }).expect(201);
@@ -244,7 +254,7 @@ describe('Feature: pagamento de pedidos', () => {
       expect(
         (await prisma.order.findUniqueOrThrow({ where: { id: orderId } }))
           .status,
-      ).toBe(OrderStatus.AGENDADO);
+      ).toBe(OrderStatus.AGUARDANDO_PAGAMENTO);
     });
 
     it('Given pedido sem preço final, When gerar PIX, Then usa o preço-base do serviço', async () => {
@@ -290,26 +300,21 @@ describe('Feature: pagamento de pedidos', () => {
   });
 
   describe('Scenario: autorização de cartão', () => {
-    it('Given cartão válido, When autorizar, Then salva somente referências não sensíveis', async () => {
+    it('Given cartão válido, When autorizar, Then rejeita sem persistir dados sensíveis', async () => {
       const card = validCard();
-      const response = await postPayment(orderId, clientToken, {
+      await postPayment(orderId, clientToken, {
         method: 'CARTAO',
         card,
-      }).expect(201);
-      expect(response.body.status).toBe('AUTORIZADO');
+      }).expect(400);
+      expect(gateway.authorizeCardPayment).not.toHaveBeenCalled();
+      expect(await prisma.paymentAttempt.count({ where: { orderId } })).toBe(0);
       const saved = await prisma.payment.findUniqueOrThrow({
         where: { orderId },
       });
-      expect(saved.providerChargeId).toBe('ch_e2e_card');
+      expect(saved.status).toBe(PaymentStatus.CREATED);
       expect(JSON.stringify(saved.rawProviderResponse)).not.toContain(
         card.number,
       );
-      expect(JSON.stringify(saved.rawProviderResponse)).not.toContain(card.cvv);
-      expect(
-        await prisma.orderTimeline.count({
-          where: { orderId, event: 'PAYMENT_AUTHORIZED' },
-        }),
-      ).toBe(1);
     });
   });
 
@@ -363,6 +368,9 @@ describe('Feature: pagamento de pedidos', () => {
     });
     const ids = users.map(({ id }) => id);
     if (!ids.length) return;
+    await prisma.paymentAttempt.deleteMany({
+      where: { order: { clientId: { in: ids } } },
+    });
     await prisma.order.deleteMany({
       where: {
         OR: [

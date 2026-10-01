@@ -12,7 +12,7 @@ describe('environment validation', () => {
       expect.objectContaining({
         NODE_ENV: 'test',
         PORT: 3000,
-        EXPIRES_IN: '1d',
+        EXPIRES_IN: '15m',
         DEFAULT_PLATFORM_FEE_PCT: 0.12,
         ADMIN_INVITATION_TTL_HOURS: 24,
         PAYMENTS_SIMULATION: true,

@@ -110,7 +110,6 @@ export interface UserRegistrationRequest {
 
 export interface UserProfileUpdateRequest {
   readonly name?: string;
-  readonly email?: string;
   readonly phone?: string;
   readonly photoUrl?: string | null;
   readonly bio?: string | null;

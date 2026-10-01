@@ -15,7 +15,7 @@ const migrationName =
   '20260702120000_add_backoffice_admin_provider_audit_models';
 const backendRoot = resolve(__dirname, '../..');
 const migrationRoot = resolve(backendRoot, 'src/prisma/migrations');
-const prismaBinary = resolve(backendRoot, 'node_modules/.bin/prisma');
+const prismaBinary = require.resolve('prisma/build/index.js');
 
 function readEnvDatabaseUrl() {
   if (process.env.PROXI_TEST_DATABASE_URL)
@@ -45,8 +45,8 @@ function executeSql(sql: string, databaseUrl: string, tempDir: string) {
   writeFileSync(file, sql);
 
   const result = spawnSync(
-    prismaBinary,
-    ['db', 'execute', '--url', databaseUrl, '--file', file],
+    process.execPath,
+    [prismaBinary, 'db', 'execute', '--url', databaseUrl, '--file', file],
     {
       cwd: backendRoot,
       env: { ...process.env, DATABASE_URL: databaseUrl },
@@ -155,22 +155,9 @@ describe('backoffice persistence migration', () => {
   });
 
   it('rejects duplicate admin email and invalid lifecycle history relations', async () => {
-    await prisma.adminUser.create({
-      data: {
-        name: 'Admin',
-        email: 'admin@example.com',
-        role: 'ADMINISTRATOR',
-      },
-    });
-
+    await prisma.$executeRaw`INSERT INTO admin_users (name, email, role, updated_at) VALUES ('Admin', 'admin@example.com', 'ADMINISTRATOR', NOW())`;
     await expect(
-      prisma.adminUser.create({
-        data: {
-          name: 'Admin duplicate',
-          email: 'admin@example.com',
-          role: 'SUPPORT',
-        },
-      }),
+      prisma.$executeRaw`INSERT INTO admin_users (name, email, role, updated_at) VALUES ('Duplicate', 'admin@example.com', 'SUPPORT', NOW())`,
     ).rejects.toThrow();
 
     await expect(

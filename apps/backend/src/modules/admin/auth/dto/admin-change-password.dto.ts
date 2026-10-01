@@ -1,3 +1,4 @@
+import { SafePassword } from '../../../../shared/security/password-policy';
 import { IsNotEmpty, IsString, MinLength } from 'class-validator';
 
 export class AdminChangePasswordDto {
@@ -7,5 +8,6 @@ export class AdminChangePasswordDto {
 
   @IsString()
   @MinLength(8)
+  @SafePassword()
   newPassword: string;
 }

@@ -5,7 +5,7 @@ const adminToken = (role: AdminRole) =>
   [
     btoa(JSON.stringify({ alg: 'none', typ: 'JWT' })).replace(/=+$/, ''),
     btoa(JSON.stringify({ sub: '42', tokenKind: 'admin', role, ver: 1 })).replace(/=+$/, ''),
-    'signature'
+    'signature',
   ].join('.');
 
 describe('Provider operations', () => {
@@ -32,9 +32,9 @@ describe('Provider operations', () => {
             name: 'Admin Operator',
             email: 'admin@example.com',
             role: 'ADMINISTRATOR',
-            active: true
-          }
-        }
+            active: true,
+          },
+        },
       ];
       request.reply({ statusCode: 200, body: lifecycle('APPROVED') });
     }).as('approve');
@@ -60,7 +60,7 @@ describe('Provider operations', () => {
 
     cy.findByRole('heading', { name: 'Provider Example' }).should('be.visible');
     cy.findByText('No provider decisions are available for your role and this status.').should(
-      'be.visible'
+      'be.visible',
     );
     cy.findByRole('button', { name: 'Approve' }).should('not.exist');
     cy.findByRole('button', { name: 'Reject' }).should('not.exist');
@@ -109,31 +109,31 @@ function visitAs(path: string, role: AdminRole): void {
     email: role === 'ADMINISTRATOR' ? 'admin@example.com' : 'support@example.com',
     role,
     active: true,
-    activatedAt: '2026-07-04T12:00:00.000Z'
+    activatedAt: '2026-07-04T12:00:00.000Z',
   };
 
   cy.visit(path, {
     onBeforeLoad: (window) => {
-      window.localStorage.setItem('proxi.backoffice.dev.adminToken', adminToken(role));
+      window.localStorage.setItem('proxi.backoffice.dev.adminToken', 'cookie-session');
       window.localStorage.setItem(
         'proxi.backoffice.dev.adminToken.identity',
-        JSON.stringify(operator)
+        JSON.stringify(operator),
       );
-    }
+    },
   });
 }
 
 function interceptProvider(state: { status: ProviderStatus; history: unknown[] }): void {
   cy.intercept('GET', 'http://localhost:3000/admin/providers/42', () => ({
     statusCode: 200,
-    body: { provider: provider(state.status) }
+    body: { provider: provider(state.status) },
   })).as('providerDetails');
   cy.intercept('GET', 'http://localhost:3000/admin/providers/42/history?page=1&limit=100', () => ({
     statusCode: 200,
     body: {
       data: state.history,
-      meta: { total: state.history.length, page: 1, limit: 100, totalPages: 1 }
-    }
+      meta: { total: state.history.length, page: 1, limit: 100, totalPages: 1 },
+    },
   })).as('providerHistory');
 }
 
@@ -149,12 +149,12 @@ function provider(status: ProviderStatus) {
       phone: '+5511999999999',
       cpf: '12345678900',
       photoUrl: null,
-      userCreatedAt: '2026-07-01T12:00:00.000Z'
+      userCreatedAt: '2026-07-01T12:00:00.000Z',
     },
     verification: {
       providerVerified: status === 'APPROVED',
       emailVerified: true,
-      phoneVerified: true
+      phoneVerified: true,
     },
     status: { current: status, changedAt: '2026-07-02T12:00:00.000Z' },
     serviceSummary: { count: 1 },
@@ -164,7 +164,7 @@ function provider(status: ProviderStatus) {
       acceptsPix: true,
       acceptsCard: true,
       emergencyCare: false,
-      available24h: false
+      available24h: false,
     },
     bio: 'Provider under review',
     paymentContext: { pagarmeRecipientId: 'rp_123' },
@@ -177,8 +177,8 @@ function provider(status: ProviderStatus) {
         basePrice: 120,
         status: 'ACTIVE',
         createdAt: '2026-07-01T12:00:00.000Z',
-        updatedAt: '2026-07-01T12:00:00.000Z'
-      }
+        updatedAt: '2026-07-01T12:00:00.000Z',
+      },
     ],
     serviceAreas: [],
     locations: [],
@@ -186,8 +186,8 @@ function provider(status: ProviderStatus) {
     decisionContext: {
       latestDecision: null,
       recentDecisions: [],
-      firstDecisionAt: null
-    }
+      firstDecisionAt: null,
+    },
   };
 }
 
@@ -196,8 +196,8 @@ function lifecycle(status: ProviderStatus) {
     provider: {
       id: '42',
       verification: { providerVerified: status === 'APPROVED' },
-      status: { current: status, changedAt: '2026-07-04T13:00:00.000Z' }
-    }
+      status: { current: status, changedAt: '2026-07-04T13:00:00.000Z' },
+    },
   };
 }
 

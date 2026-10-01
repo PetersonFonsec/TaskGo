@@ -45,7 +45,6 @@ describe('User', () => {
   it('patches only shared editable profile fields', () => {
     const payload: UserProfileUpdateRequest = {
       name: 'Updated User',
-      email: 'updated@example.com',
       phone: '+5511888888888',
     };
     const response = {
@@ -55,7 +54,7 @@ describe('User', () => {
 
     service.updateUser('1', payload).subscribe((profile) => {
       expect(profile.name).toBe('Updated User');
-      expect(profile.email).toBe('updated@example.com');
+      expect(profile.email).toBe(buildPublicProfile().email);
     });
 
     const request = httpMock.expectOne(`${environment.url}/user/1`);

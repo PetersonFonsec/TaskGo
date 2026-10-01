@@ -106,7 +106,13 @@ describe('ListCardAddress actions', () => {
     const form = fixture.debugElement.query(By.directive(AddressForm))
       .componentInstance as AddressForm;
     form.payload.label = 'Rascunho';
+    const dialog: HTMLDialogElement = fixture.nativeElement.querySelector('dialog');
+    const closed = new Promise<void>((resolve) =>
+      dialog.addEventListener('close', () => resolve(), { once: true }),
+    );
     await click('dialog header button');
+    await closed;
+    await fixture.whenStable();
     expect(fixture.componentInstance.formOpen()).toBeFalse();
     await click('.list-card-address_add');
     const reopened = fixture.debugElement.query(By.directive(AddressForm))

@@ -1,3 +1,4 @@
+import { assertSafePassword } from '../../../../shared/security/password-policy';
 import { CommandHandler, EventBus, ICommandHandler } from '@nestjs/cqrs';
 import * as bcrypt from 'bcrypt';
 import { env } from 'process';
@@ -10,7 +11,7 @@ import { UserCreatedEvent } from '../../events/user-created.event';
 export class CreateUserHandler
   implements ICommandHandler<CreateUserCommand, string>
 {
-  #saltRounds = env.SALT_ROUNDS || '8';
+  #saltRounds = env.NODE_ENV === 'test' ? '4' : '12';
 
   constructor(
     private readonly eventBus: EventBus,
@@ -19,7 +20,11 @@ export class CreateUserHandler
 
   async execute(command: CreateUserCommand): Promise<string> {
     const user = command;
-    user.password = bcrypt.hashSync(user.password, parseInt(this.#saltRounds));
+    assertSafePassword(user.password);
+    user.password = await bcrypt.hash(
+      user.password,
+      parseInt(this.#saltRounds),
+    );
 
     const strategy = this.createUserFactory.getStrategy(user);
     const result = await strategy.execute(command);

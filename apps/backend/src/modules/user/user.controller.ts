@@ -1,3 +1,5 @@
+import { Response } from 'express';
+import { clearSessionCookie } from '../../shared/security/session-cookie';
 import {
   Controller,
   Get,
@@ -7,6 +9,7 @@ import {
   Param,
   Delete,
   Query,
+  Res,
   ForbiddenException,
 } from '@nestjs/common';
 import { CommandBus, QueryBus } from '@nestjs/cqrs';
@@ -96,9 +99,11 @@ export class UserController {
     @Param('id', ParseBigIntPipe) id: bigint,
     @Body() payload: ConfirmEmailVerificationDto,
     @User('id') actorId?: string,
+    @Res({ passthrough: true }) response?: Response,
   ) {
     this.assertOwner(id, actorId);
     await this.userService.confirmEmailVerification(id, payload);
+    if (response) clearSessionCookie(response);
     return { success: true };
   }
 

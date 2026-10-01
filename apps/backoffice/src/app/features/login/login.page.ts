@@ -9,7 +9,7 @@ import { AdminAuthService } from '@app/core/auth/admin-auth.service';
   selector: 'bo-login-page',
   imports: [ReactiveFormsModule],
   templateUrl: './login.page.html',
-  styleUrl: './login.page.scss'
+  styleUrl: './login.page.scss',
 })
 export class LoginPage {
   readonly #auth = inject(AdminAuthService);
@@ -23,12 +23,13 @@ export class LoginPage {
   protected readonly form = new FormGroup({
     email: new FormControl('', {
       nonNullable: true,
-      validators: [Validators.required, Validators.email]
+      validators: [Validators.required, Validators.email],
     }),
+    otp: new FormControl('', { nonNullable: true, validators: [Validators.pattern(/^\d{6}$/)] }),
     password: new FormControl('', {
       nonNullable: true,
-      validators: [Validators.required]
-    })
+      validators: [Validators.required],
+    }),
   });
 
   protected submit(): void {
@@ -49,17 +50,19 @@ export class LoginPage {
         finalize(() => {
           this.loading.set(false);
           this.form.enable();
-        })
+        }),
       )
       .subscribe({
         next: () => {
-          const returnUrl = this.#route.snapshot.queryParamMap.get('returnUrl') || '/';
+          const requested = this.#route.snapshot.queryParamMap.get('returnUrl');
+          const returnUrl =
+            requested?.startsWith('/') && !requested.startsWith('//') ? requested : '/';
           this.#router.navigateByUrl(returnUrl);
         },
         error: () => {
           this.apiError.set('Administrative credentials were not accepted.');
           this.#focusError();
-        }
+        },
       });
   }
 

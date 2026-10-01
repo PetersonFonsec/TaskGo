@@ -22,7 +22,7 @@ export class UserRegister {
 
   login(data: AuthLoginRequest) {
     return this.#http.post<CustomerAuthSession>(environment.url + '/auth/login', data).pipe(
-      tap(({ access_token }) => (this.#tokenService.token = access_token)),
+      tap(() => (this.#tokenService.token = 'cookie-session')),
       tap((response) => {
         this.#userService.setUserLogged(response as any);
       }),
@@ -31,7 +31,7 @@ export class UserRegister {
 
   registerUser(data: UserRegistrationRequest) {
     return this.#http.post<CustomerAuthSession>(environment.url + '/auth/register', data).pipe(
-      tap(({ access_token }) => (this.#tokenService.token = access_token)),
+      tap(() => (this.#tokenService.token = 'cookie-session')),
       tap((response) => {
         this.#userService.setUserLogged(response as any);
       }),

@@ -47,3 +47,24 @@
     </form>
   </div>
 </div>
+
+<section aria-label="Alterar e-mail de acesso">
+  <h2>Alterar e-mail de acesso</h2>
+  <label for="email-change-password">Senha atual</label>
+  <input
+    id="email-change-password"
+    type="password"
+    autocomplete="current-password"
+    [(ngModel)]="currentPassword"
+  />
+  <button type="button" (click)="requestEmailChange()">Enviar código ao novo e-mail</button>
+  <label for="email-change-code">Código de confirmação</label>
+  <input
+    id="email-change-code"
+    inputmode="numeric"
+    autocomplete="one-time-code"
+    maxlength="6"
+    [(ngModel)]="verificationCode"
+  />
+  <button type="button" (click)="confirmEmailChange()">Confirmar alteração de e-mail</button>
+</section>

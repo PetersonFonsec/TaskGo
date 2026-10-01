@@ -96,7 +96,7 @@ function visitAuthenticated(path: string, role: 'CLIENTE' | 'PRESTADOR' = 'CLIEN
 
   cy.visit(path, {
     onBeforeLoad(win) {
-      win.localStorage.setItem('@ODIN/TOKEN', authenticatedSession.access_token);
+      win.localStorage.setItem('@ODIN/TOKEN', 'cookie-session');
       win.localStorage.setItem('@ODIN/USER', JSON.stringify(authenticatedSession));
     },
   });

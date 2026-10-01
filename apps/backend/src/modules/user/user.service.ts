@@ -1,8 +1,5 @@
-import {
-  BadRequestException,
-  Injectable,
-  NotFoundException,
-} from '@nestjs/common';
+import { assertSafePassword } from '../../shared/security/password-policy';
+import { BadRequestException, Injectable } from '@nestjs/common';
 import * as bcrypt from 'bcrypt';
 import { Prisma } from '@prisma/client';
 
@@ -50,7 +47,8 @@ export class UserService extends PaginationService<User> {
     const user = new User(payload as any);
     user.validate();
 
-    user.password = bcrypt.hashSync(user.password, 8);
+    assertSafePassword(user.password);
+    user.password = await bcrypt.hash(user.password, 12);
 
     const createUser = async (prisma: Prisma.TransactionClient) => {
       const existingUser = await prisma.user.findFirst({
@@ -123,7 +121,7 @@ export class UserService extends PaginationService<User> {
 
   async update(id: bigint, updateUserDto: UpdateUserDto) {
     if (
-      ['password', 'passwordHash', 'cpf', 'type'].some(
+      ['password', 'passwordHash', 'cpf', 'type', 'email'].some(
         (key) => key in updateUserDto,
       )
     ) {
@@ -152,13 +150,6 @@ export class UserService extends PaginationService<User> {
       data.name = updateUserDto.name;
     }
 
-    if (updateUserDto.email !== undefined) {
-      new Email(updateUserDto.email);
-      data.email = updateUserDto.email;
-      data.emailVerified = false;
-      data.pendingEmail = null;
-    }
-
     if (updateUserDto.phone !== undefined) {
       const phone = new Phone(updateUserDto.phone);
       data.phone = phone.getValue();
@@ -173,114 +164,59 @@ export class UserService extends PaginationService<User> {
     return data;
   }
 
+  private async reauthenticate(id: bigint, password: string) {
+    const user = await this.prisma.user.findUnique({
+      where: { id },
+      select: { passwordHash: true },
+    });
+    if (
+      !user ||
+      !password ||
+      !(await bcrypt.compare(password, user.passwordHash))
+    )
+      throw new BadRequestException(
+        'Confirme sua senha atual para alterar o contato',
+      );
+  }
   async requestEmailVerification(
     id: bigint,
     payload: RequestEmailVerificationDto,
   ) {
     new Email(payload.email);
-
-    const user: any = await this.findOne(id);
-    if (!user) {
-      throw new NotFoundException(`User with id ${id} not found`);
-    }
-
-    const updatedUser = await this.prisma.user.update({
-      where: { id },
-      data: {
-        pendingEmail: payload.email,
-        emailVerified: false,
-      } as any,
-    });
-
-    await this.userVerificationService.requestEmailVerification(
+    await this.reauthenticate(id, payload.currentPassword);
+    return this.userVerificationService.requestEmailVerification(
       id,
-      payload.email,
+      payload.email.trim().toLowerCase(),
     );
-    return updatedUser;
   }
-
   async confirmEmailVerification(
     id: bigint,
     payload: ConfirmEmailVerificationDto,
   ) {
-    const user: any = await this.findOne(id);
-    if (!user || !user.pendingEmail) {
-      throw new BadRequestException(
-        'No pending email verification found for this user.',
-      );
-    }
-
-    const verified = await this.userVerificationService.verifyEmailCode(
+    return this.userVerificationService.verifyEmailCode(
       id,
       payload.verificationCode,
     );
-    if (!verified) {
-      throw new BadRequestException('Invalid verification code.');
-    }
-
-    return await this.prisma.user.update({
-      where: { id },
-      data: {
-        email: user.pendingEmail,
-        pendingEmail: null,
-        emailVerified: true,
-      } as any,
-    });
   }
-
   async requestPhoneVerification(
     id: bigint,
     payload: RequestPhoneVerificationDto,
   ) {
     const phone = new Phone(payload.phone);
-
-    const user: any = await this.findOne(id);
-    if (!user) {
-      throw new NotFoundException(`User with id ${id} not found`);
-    }
-
-    const updatedUser = await this.prisma.user.update({
-      where: { id },
-      data: {
-        pendingPhone: phone.getValue(),
-        phoneVerified: false,
-      } as any,
-    });
-
-    await this.userVerificationService.requestPhoneVerification(
+    await this.reauthenticate(id, payload.currentPassword);
+    return this.userVerificationService.requestPhoneVerification(
       id,
-      payload.phone,
+      phone.getValue(),
     );
-    return updatedUser;
   }
-
   async confirmPhoneVerification(
     id: bigint,
     payload: ConfirmPhoneVerificationDto,
   ) {
-    const user: any = await this.findOne(id);
-    if (!user || !user.pendingPhone) {
-      throw new BadRequestException(
-        'No pending phone verification found for this user.',
-      );
-    }
-
-    const verified = await this.userVerificationService.verifyPhoneCode(
+    return this.userVerificationService.verifyPhoneCode(
       id,
       payload.verificationCode,
     );
-    if (!verified) {
-      throw new BadRequestException('Invalid verification code.');
-    }
-
-    return await this.prisma.user.update({
-      where: { id },
-      data: {
-        phone: user.pendingPhone,
-        pendingPhone: null,
-        phoneVerified: true,
-      } as any,
-    });
   }
 
   async remove(id: bigint) {

@@ -10,18 +10,29 @@ import {
 import * as request from 'supertest';
 
 import { AppModule } from '../../src/app.module';
+import { PagarmeService } from '../../src/modules/payments/pagarme.service';
 import { PrismaService } from '../../src/prisma/prisma.service';
 
 describe('Feature: webhook de pagamentos Pagar.me', () => {
   let app: INestApplication;
   let prisma: PrismaService;
   let paymentId: bigint;
-  const chargeId = 'ch_webhook_e2e';
+  const chargeId = 'ch_webhooke2e';
+  const gateway = { simulated: false, getCharge: jest.fn() };
+  const canonical = (status: string) => ({
+    id: chargeId,
+    order: { id: 'or_webhooke2e' },
+    amount: 10000,
+    status,
+  });
 
   beforeAll(async () => {
     const moduleFixture = await Test.createTestingModule({
       imports: [AppModule],
-    }).compile();
+    })
+      .overrideProvider(PagarmeService)
+      .useValue(gateway)
+      .compile();
     app = moduleFixture.createNestApplication();
     app.useGlobalPipes(
       new ValidationPipe({
@@ -36,6 +47,7 @@ describe('Feature: webhook de pagamentos Pagar.me', () => {
 
   beforeEach(async () => {
     await cleanScenario();
+    gateway.getCharge.mockResolvedValue(canonical('pending'));
     const client = await prisma.user.create({
       data: {
         name: 'Cliente Webhook',
@@ -80,6 +92,7 @@ describe('Feature: webhook de pagamentos Pagar.me', () => {
             status: PaymentStatus.PENDENTE,
             amount: 100,
             providerChargeId: chargeId,
+            providerOrderId: 'or_webhooke2e',
           },
         },
       },
@@ -100,6 +113,9 @@ describe('Feature: webhook de pagamentos Pagar.me', () => {
   ])(
     'Scenario: Given evento %s, When webhook processar, Then atualiza para %s',
     async (type, status, dateField) => {
+      gateway.getCharge.mockResolvedValue(
+        canonical(type.slice('charge.'.length)),
+      );
       await sendWebhook({
         id: `evt_${status}`,
         type,
@@ -113,7 +129,8 @@ describe('Feature: webhook de pagamentos Pagar.me', () => {
     },
   );
 
-  it('Scenario: Given charge.payment_failed, When processar, Then salva motivo da falha', async () => {
+  it('Scenario: Given charge.payment_failed, When processar, Then confirma falha no gateway sem confiar no motivo recebido', async () => {
+    gateway.getCharge.mockResolvedValue(canonical('payment_failed'));
     await sendWebhook({
       id: 'evt_failed',
       type: 'charge.payment_failed',
@@ -128,7 +145,7 @@ describe('Feature: webhook de pagamentos Pagar.me', () => {
       where: { id: paymentId },
     });
     expect(payment.status).toBe(PaymentStatus.FALHOU);
-    expect(payment.failureReason).toBe('Saldo insuficiente');
+    expect(payment.failureReason).toBeNull();
   });
 
   it('Scenario: Given evento já processado, When webhook repetir, Then permanece idempotente', async () => {
@@ -140,7 +157,7 @@ describe('Feature: webhook de pagamentos Pagar.me', () => {
     await sendWebhook(payload).expect(200);
     await sendWebhook(payload).expect(200);
     expect(
-      await prisma.paymentWebhookEvent.count({ where: { id: payload.id } }),
+      await prisma.paymentWebhookEvent.count({ where: { paymentId } }),
     ).toBe(1);
   });
 
@@ -155,7 +172,7 @@ describe('Feature: webhook de pagamentos Pagar.me', () => {
         .status,
     ).toBe(PaymentStatus.PENDENTE);
     expect(
-      await prisma.paymentWebhookEvent.count({ where: { id: 'evt_unknown' } }),
+      await prisma.paymentWebhookEvent.count({ where: { paymentId } }),
     ).toBe(1);
   });
 
@@ -172,7 +189,7 @@ describe('Feature: webhook de pagamentos Pagar.me', () => {
 
   async function cleanScenario() {
     await prisma.paymentWebhookEvent.deleteMany({
-      where: { id: { startsWith: 'evt_' } },
+      where: { payload: { path: ['chargeId'], equals: chargeId } },
     });
     const users = await prisma.user.findMany({
       where: { email: { startsWith: 'webhook.' } },

@@ -2,9 +2,9 @@ const adminToken = [
   btoa(JSON.stringify({ alg: 'none', typ: 'JWT' })).replace(/=+$/, ''),
   btoa(JSON.stringify({ sub: '42', tokenKind: 'admin', role: 'ADMINISTRATOR', ver: 1 })).replace(
     /=+$/,
-    ''
+    '',
   ),
-  'signature'
+  'signature',
 ].join('.');
 
 const operator = {
@@ -13,7 +13,7 @@ const operator = {
   email: 'admin@example.com',
   role: 'ADMINISTRATOR',
   active: true,
-  activatedAt: '2026-07-04T12:00:00.000Z'
+  activatedAt: '2026-07-04T12:00:00.000Z',
 };
 
 describe('Backoffice authentication shell', () => {
@@ -24,7 +24,7 @@ describe('Backoffice authentication shell', () => {
   it('redirects anonymous users to login and completes the administrative login journey', () => {
     cy.intercept('POST', 'http://localhost:3000/admin/auth/login', {
       statusCode: 201,
-      body: { access_token: adminToken, operator }
+      body: { access_token: adminToken, operator },
     }).as('login');
 
     cy.visit('/unknown-route', { failOnStatusCode: false });

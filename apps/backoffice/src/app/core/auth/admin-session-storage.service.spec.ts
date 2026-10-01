@@ -12,7 +12,7 @@ const operator: AdminOperatorProfile = {
   email: 'admin@example.com',
   role: 'ADMINISTRATOR',
   active: true,
-  activatedAt: '2026-07-04T12:00:00.000Z'
+  activatedAt: '2026-07-04T12:00:00.000Z',
 };
 
 describe('AdminSessionStorageService', () => {
@@ -27,10 +27,10 @@ describe('AdminSessionStorageService', () => {
           useValue: {
             production: false,
             apiUrl: '/admin',
-            adminTokenStorageKey: 'proxi.backoffice.test.adminToken'
-          }
-        }
-      ]
+            adminTokenStorageKey: 'proxi.backoffice.test.adminToken',
+          },
+        },
+      ],
     });
 
     service = TestBed.inject(AdminSessionStorageService);
@@ -46,7 +46,8 @@ describe('AdminSessionStorageService', () => {
 
     service.save({ token, operator });
 
-    expect(service.restore()).toEqual({ token, operator });
+    expect(service.restore()).toEqual({ token: 'cookie-session', operator });
+    expect(localStorage.getItem(service.tokenStorageKey)).toBe('cookie-session');
   });
 
   it('clears corrupt or non-administrative restored sessions', () => {
@@ -67,9 +68,9 @@ describe('AdminSessionStorageService', () => {
   it('rejects inactive operators when saving a Backoffice session', () => {
     const token = adminJwt({ tokenKind: 'admin', role: 'ADMINISTRATOR' });
 
-    expect(() =>
-      service.save({ token, operator: { ...operator, active: false } })
-    ).toThrowError(/active administrative token/);
+    expect(() => service.save({ token, operator: { ...operator, active: false } })).toThrowError(
+      /Active administrative session/,
+    );
     expect(localStorage.getItem('proxi.backoffice.test.adminToken')).toBeNull();
   });
 
@@ -83,7 +84,7 @@ describe('AdminSessionStorageService', () => {
     localStorage.setItem('proxi.backoffice.test.adminToken', adminJwt({ tokenKind: 'admin' }));
     localStorage.setItem(
       'proxi.backoffice.test.adminToken.identity',
-      JSON.stringify({ ...operator, active: 'yes' })
+      JSON.stringify({ ...operator, active: 'yes' }),
     );
 
     expect(service.restore()).toBeNull();

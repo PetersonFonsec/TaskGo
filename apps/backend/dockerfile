@@ -1,36 +1,26 @@
-# Imagem base com glibc (melhor p/ Prisma) + apt
-FROM node:22-bookworm-slim
+# Build from the monorepo root: docker build -f apps/backend/dockerfile .
+FROM node:22-bookworm-slim AS build
+RUN apt-get update && apt-get install -y --no-install-recommends openssl && rm -rf /var/lib/apt/lists/*
+WORKDIR /app
+COPY package.json package-lock.json ./
+COPY apps/backend/package.json apps/backend/package.json
+COPY apps/frontend/package.json apps/frontend/package.json
+COPY apps/backoffice/package.json apps/backoffice/package.json
+COPY apps/landing-page/package.json apps/landing-page/package.json
+RUN npm install --global npm@11 && npm ci --workspace apps/backend --include-workspace-root --ignore-scripts
+COPY tsconfig.base.json ./
+COPY libs/shared libs/shared
+COPY apps/backend apps/backend
+RUN npm exec --workspace apps/backend -- prisma generate && npm run build --workspace apps/backend
+RUN npm prune --workspace apps/backend --include-workspace-root --omit=dev --ignore-scripts
 
-# Instala OpenSSL (necessário para o Prisma engine)
-RUN apt-get update -y && \
-    apt-get install -y openssl && \
-    rm -rf /var/lib/apt/lists/*
-
-# Diretório de trabalho
-WORKDIR /usr/src/app
-
-# Copia apenas package.json + package-lock (se tiver)
-COPY package*.json ./
-
-# Instala dependências (inclui prisma e @prisma/client)
-RUN npm install
-
-# Agora copia o restante do código
-COPY . .
-
-# O tsconfig do backend estende ../../tsconfig.base.json. Como o contexto desta
-# imagem é apps/backend, fornecemos uma configuração equivalente no caminho
-# esperado dentro do container.
-COPY tsconfig.docker-base.json /usr/tsconfig.base.json
-
-# Gera o Prisma Client na build (usa o schema configurado no package.json)
-RUN npx prisma generate
-
-# Gera alguns registros previamente (só para ter algum conteudo para interagir)
-# RUN npx prisma migrate reset --force
-
-# Porta da API Nest
+FROM node:22-bookworm-slim AS runtime
+RUN apt-get update && apt-get install -y --no-install-recommends openssl && rm -rf /var/lib/apt/lists/*
+ENV NODE_ENV=production
+WORKDIR /app
+COPY --from=build --chown=node:node /app/node_modules ./node_modules
+COPY --from=build --chown=node:node /app/apps/backend/node_modules ./apps/backend/node_modules
+COPY --from=build --chown=node:node /app/apps/backend/dist ./apps/backend/dist
+USER node
 EXPOSE 3000
-
-# Usa o prestart:dev (que roda prisma migrate deploy) + start:dev
-CMD ["npm", "run", "start:dev"]
+CMD ["node", "apps/backend/dist/apps/backend/src/main.js"]

@@ -1,3 +1,5 @@
+import { SecurityModule } from './shared/security/security.module';
+import { SecurityRateLimitGuard } from './shared/security/security-rate-limit.guard';
 import { Module } from '@nestjs/common';
 import { APP_GUARD, APP_INTERCEPTOR } from '@nestjs/core';
 
@@ -25,6 +27,7 @@ import { ConfigModule } from './config/config.module';
 @Module({
   imports: [
     ConfigModule,
+    SecurityModule,
     PrismaModule,
     UserModule,
     AuthModule,
@@ -41,6 +44,7 @@ import { ConfigModule } from './config/config.module';
   ],
   controllers: [AppController],
   providers: [
+    { provide: APP_GUARD, useClass: SecurityRateLimitGuard },
     AppService,
     {
       provide: APP_GUARD,

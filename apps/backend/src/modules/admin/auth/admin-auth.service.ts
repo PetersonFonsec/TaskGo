@@ -1,3 +1,5 @@
+import { assertSafePassword } from '../../../shared/security/password-policy';
+import { AdminMfaService } from '../../../shared/security/admin-mfa.service';
 import {
   ForbiddenException,
   Injectable,
@@ -32,9 +34,14 @@ export class AdminAuthService {
     private readonly tokenService: AdminAuthTokenService,
     private readonly audit: AdminAuditService,
     @Optional() private readonly telemetry?: AdminTelemetryService,
+    @Optional() private readonly mfa?: AdminMfaService,
   ) {}
 
-  async login(email: string, password: string): Promise<AdminAuthSession> {
+  async login(
+    email: string,
+    password: string,
+    otp?: string,
+  ): Promise<AdminAuthSession> {
     const normalizedEmail = this.normalizeEmail(email);
 
     try {
@@ -58,6 +65,7 @@ export class AdminAuthService {
         throw new ForbiddenException(ADMIN_LOGIN_ERROR);
       }
 
+      await this.mfa?.verify(operator.id, otp);
       const { access_token } = this.tokenService.createToken(operator);
       this.telemetry?.recordLogin('success', {
         adminId: operator.id.toString(),
@@ -76,6 +84,13 @@ export class AdminAuthService {
       });
       throw error;
     }
+  }
+
+  async logout(id: bigint) {
+    await this.prisma.adminUser.update({
+      where: { id },
+      data: { tokenVersion: { increment: 1 } },
+    });
   }
 
   async validatePayload(payload: AdminTokenPayload) {
@@ -128,7 +143,8 @@ export class AdminAuthService {
       throw new ForbiddenException(ADMIN_LOGIN_ERROR);
     }
 
-    const passwordHash = await bcrypt.hash(dto.newPassword, 10);
+    assertSafePassword(dto.newPassword);
+    const passwordHash = await bcrypt.hash(dto.newPassword, 12);
 
     const updated = await this.prisma.$transaction(async (tx) => {
       const saved = await tx.adminUser.update({

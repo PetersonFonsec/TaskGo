@@ -37,7 +37,10 @@ describe('CreateOrderHandler', () => {
         }),
       },
       service: { findUnique: jest.fn().mockResolvedValue(service) },
-      order: { create: jest.fn().mockResolvedValue({ id: 1n }) },
+      order: {
+        count: jest.fn().mockResolvedValue(0),
+        create: jest.fn().mockResolvedValue({ id: 1n }),
+      },
       $transaction: jest.fn((operation) => operation(prisma)),
     };
     providerService = {
@@ -57,6 +60,22 @@ describe('CreateOrderHandler', () => {
       }),
     };
     handler = new CreateOrderHandler(prisma, providerService as any);
+  });
+
+  it('rejects attempts to hold more than three unpaid slots', async () => {
+    prisma.order.count.mockResolvedValue(3);
+    await expect(
+      handler.execute(
+        new CreateOrderCommand({
+          addressId: '1',
+          clientId: '7',
+          serviceId: '101',
+          scheduledFor: '2026-06-22T12:00:00.000Z',
+          paymentMethod: 'PIX',
+        }),
+      ),
+    ).rejects.toThrow('três reservas');
+    expect(prisma.order.create).not.toHaveBeenCalled();
   });
 
   it('creates the aggregate transactionally when the requested slot is available', async () => {

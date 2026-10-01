@@ -1,8 +1,22 @@
+import { PrismaService } from '../../prisma/prisma.service';
+import { Response } from 'express';
+import {
+  writeSessionCookie,
+  clearSessionCookie,
+} from '../../shared/security/session-cookie';
 import { RecoveryRateLimitGuard } from './recovery-rate-limit.guard';
 import { ProviderOnly } from '../../shared/decorators/roles.decorator';
 import { User } from '../../shared/decorators/user.decorator';
 import { CommandBus } from '@nestjs/cqrs/dist/command-bus';
-import { Body, Controller, Get, Post, UseGuards } from '@nestjs/common';
+import {
+  Body,
+  Controller,
+  Get,
+  Post,
+  Res,
+  Optional,
+  UseGuards,
+} from '@nestjs/common';
 import { QueryBus } from '@nestjs/cqrs/dist/query-bus';
 import { plainToClass } from 'class-transformer';
 import type { CustomerAuthSession } from '@taskgo/shared';
@@ -25,6 +39,7 @@ export class AuthController {
     private readonly commandBus: CommandBus,
     private readonly queryBus: QueryBus,
     private readonly providerHomeService: ProviderHomeService,
+    @Optional() private readonly prisma?: PrismaService,
   ) {}
 
   @ProviderOnly()
@@ -35,7 +50,10 @@ export class AuthController {
 
   @Public()
   @Post('login')
-  async login(@Body() body: AuthLoginDTO) {
+  async login(
+    @Body() body: AuthLoginDTO,
+    @Res({ passthrough: true }) response?: Response,
+  ) {
     const query = plainToClass(LoginQuery, body);
     const result = await this.queryBus.execute(query);
 
@@ -47,9 +65,10 @@ export class AuthController {
         ? await this.providerHomeService.getForProvider(BigInt(result.id))
         : undefined;
 
+    if (response) writeSessionCookie(response, access_token);
     const session: CustomerAuthSession = {
       user: result,
-      access_token,
+      access_token: response ? '' : access_token,
     };
 
     return {
@@ -60,7 +79,10 @@ export class AuthController {
 
   @Public()
   @Post('register')
-  async register(@Body() body: AuthRegisterDTO) {
+  async register(
+    @Body() body: AuthRegisterDTO,
+    @Res({ passthrough: true }) response?: Response,
+  ) {
     const command = plainToClass(CreateUserCommand, body);
     const userId = await this.commandBus.execute(command);
 
@@ -68,9 +90,33 @@ export class AuthController {
     const user = await this.queryBus.execute(query);
 
     const { access_token } = await this.tokenService.createToken(userId);
-    const session: CustomerAuthSession = { user, access_token };
+    if (response) writeSessionCookie(response, access_token);
+    const session: CustomerAuthSession = {
+      user,
+      access_token: response ? '' : access_token,
+    };
 
     return session;
+  }
+
+  @Post('logout')
+  async logout(
+    @Res({ passthrough: true }) response: Response,
+    @User('id') id: string,
+  ) {
+    await this.prisma?.user.update({
+      where: { id: BigInt(id) },
+      data: { passwordChangedAt: new Date() },
+    });
+    clearSessionCookie(response);
+    return { success: true };
+  }
+
+  @Get('me')
+  async me(@User('id') id: string) {
+    return this.queryBus.execute(
+      plainToClass(GetUserQuery, { id: BigInt(id) }),
+    );
   }
 
   @Public()

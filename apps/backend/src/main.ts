@@ -25,6 +25,17 @@ async function bootstrap() {
     }),
   );
   app.use(helmet());
+  app
+    .getHttpAdapter()
+    .getInstance()
+    .set(
+      'trust proxy',
+      configService
+        .get<string>('TRUST_PROXY_CIDRS')
+        ?.split(',')
+        .map((value) => value.trim())
+        .filter(Boolean) ?? false,
+    );
   app.use(requestCorrelationMiddleware);
   app.useGlobalPipes(
     new ValidationPipe({
@@ -45,7 +56,8 @@ async function bootstrap() {
     .build();
 
   const document = SwaggerModule.createDocument(app, config);
-  SwaggerModule.setup('api', app, document);
+  if (configService.get('app.nodeEnv') !== 'production')
+    SwaggerModule.setup('api', app, document);
 
   await app.listen(configService.getOrThrow<number>('app.port'));
 }

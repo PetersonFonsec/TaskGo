@@ -7,7 +7,7 @@ import { CreateUserDto } from './create-user.dto';
 
 describe('CreateUserDto social compatibility boundary', () => {
   const registration = {
-    password: 'secret',
+    password: 'unique-secret-passphrase',
     phone: '+5511999999999',
     name: 'Provider',
     email: 'provider@example.com',

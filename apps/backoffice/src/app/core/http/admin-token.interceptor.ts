@@ -10,15 +10,14 @@ export const adminTokenInterceptor: HttpInterceptorFn = (request, next) => {
   const environment = inject(BACKOFFICE_ENVIRONMENT);
   const isAdminRequest = isConfiguredAdminApiRequest(request.url, environment.apiUrl);
   const token = auth.token();
-  const authorizedRequest =
-    isAdminRequest && token
-      ? request.clone({
-          setHeaders: {
-            Authorization: `Bearer ${token}`,
-            Accept: 'application/json'
-          }
-        })
-      : request;
+  const authorizedRequest = isAdminRequest
+    ? request.clone({
+        withCredentials: true,
+        setHeaders: {
+          Accept: 'application/json',
+        },
+      })
+    : request;
 
   return next(authorizedRequest).pipe(
     catchError((error: unknown) => {
@@ -27,7 +26,7 @@ export const adminTokenInterceptor: HttpInterceptorFn = (request, next) => {
       }
 
       return throwError(() => error);
-    })
+    }),
   );
 };
 

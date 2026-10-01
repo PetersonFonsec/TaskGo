@@ -33,10 +33,17 @@ export class ConfirmOrderByProviderHandler
         'Only AGUARDANDO_APROVACAO orders can be confirmed',
       );
     }
+    if (order.reservationExpiresAt && order.reservationExpiresAt <= new Date())
+      throw new BadRequestException('Reserva expirada');
     return this.prisma.order.update({
-      where: { id: orderId, status: OrderStatus.AGUARDANDO_APROVACAO },
+      where: {
+        id: orderId,
+        status: OrderStatus.AGUARDANDO_APROVACAO,
+        reservationExpiresAt: { gt: new Date() },
+      },
       data: {
         status: OrderStatus.AGUARDANDO_PAGAMENTO,
+        reservationExpiresAt: new Date(Date.now() + 60 * 60000),
         orderTimeline: {
           create: {
             event: 'ACCEPTED',

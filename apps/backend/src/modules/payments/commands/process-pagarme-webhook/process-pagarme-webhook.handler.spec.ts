@@ -34,9 +34,7 @@ describe('ProcessPagarmeWebhookHandler', () => {
     await expect(handler.execute(command)).rejects.toThrow(
       'ainda não vinculada',
     );
-    expect(
-      prisma.paymentWebhookEvent.upsert.mock.calls[0][0].create.processedAt,
-    ).toBeNull();
+    expect(prisma.paymentWebhookEvent.upsert).not.toHaveBeenCalled();
     await handler.execute(command);
     expect(payments.reconcilePayment).toHaveBeenCalledTimes(1);
   });

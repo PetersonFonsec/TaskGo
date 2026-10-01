@@ -4,11 +4,20 @@
   "testEnvironment": "node",
   "testRegex": ".e2e-spec.ts$",
   "transform": {
-    "^.+\\.(t|j)s$": "ts-jest"
+    "^.+\\.(t|j)s$": [
+      "@swc/jest",
+      {
+        "module": {
+          "type": "commonjs",
+          "noInterop": true
+        }
+      }
+    ]
   },
   "moduleNameMapper": {
     "^@PrismaDir/(.*)$": "<rootDir>/../src/prisma/$1",
     "^@taskgo/backend/shared/(.*)$": "<rootDir>/../src/shared/$1",
     "^@shared/(.*)$": "<rootDir>/../src/shared/$1"
-  }
+  },
+  "setupFilesAfterEnv": ["<rootDir>/security-test-isolation.ts"]
 }

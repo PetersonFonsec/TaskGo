@@ -1,3 +1,4 @@
+import { assertSafePassword } from '../../../shared/security/password-policy';
 import { createHash, randomBytes } from 'node:crypto';
 
 import {
@@ -185,7 +186,8 @@ export class AdminUsersService {
       );
     }
 
-    const passwordHash = await bcrypt.hash(dto.password, 10);
+    assertSafePassword(dto.password);
+    const passwordHash = await bcrypt.hash(dto.password, 12);
 
     const activatedAt = new Date();
     const activated = await this.prisma.$transaction(async (tx) => {
@@ -431,7 +433,12 @@ export class AdminUsersService {
   private buildActivationUrl(token: string) {
     const baseUrl = this.configService.getOrThrow<string>('auth.invitationUrl');
     const url = new URL(baseUrl);
-    url.searchParams.set('token', token);
+    if (
+      this.configService.get('app.nodeEnv') === 'production' &&
+      url.protocol !== 'https:'
+    )
+      throw new BadRequestException('Invitation URL requires HTTPS');
+    url.hash = `token=${token}`;
     return url.toString();
   }
 

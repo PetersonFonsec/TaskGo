@@ -48,12 +48,11 @@ const registration: UserRegistrationRequest = {
     state: 'SP',
     cep: '01001000',
   },
-  services: ['7'],
+  subcategoryIds: ['7'],
 };
 
 const profileUpdate: UserProfileUpdateRequest = {
   name: 'Updated User',
-  email: 'updated@example.com',
   phone: '+5511777777777',
 };
 
@@ -83,3 +82,9 @@ const rejectsDate: PublicUserProfile = {
 void rejectsPassword;
 void rejectsBigInt;
 void rejectsDate;
+
+const rejectsUnverifiedEmailUpdate: UserProfileUpdateRequest = {
+  // @ts-expect-error Email changes require the separate verified contact flow.
+  email: 'attacker@example.invalid',
+};
+void rejectsUnverifiedEmailUpdate;

@@ -26,20 +26,32 @@
     "docker:down": "docker compose down"
   },
   "devDependencies": {
-    "@nx/js": "^22.7.5",
-    "@nx/vite": "22.7.5",
-    "@nx/vitest": "22.7.5",
+    "@nx/js": "23.2.1",
+    "@nx/vite": "23.2.1",
+    "@nx/vitest": "23.2.1",
     "@swc-node/register": "~1.11.1",
     "@swc/core": "~1.15.5",
     "@swc/helpers": "~0.5.18",
     "@types/node": "20.19.9",
     "@vitest/coverage-v8": "~4.1.0",
-    "nx": "^21.0.0",
+    "nx": "23.2.1",
     "prettier": "~3.6.2",
     "tslib": "^2.3.0",
     "typescript": "~5.9.2",
     "vite": "^8.0.0",
     "vitest": "~4.1.0"
   },
-  "dependencies": {}
+  "dependencies": {},
+  "overrides": {
+    "webpack-dev-middleware": "^7.4.5",
+    "qs": "^6.16.0",
+    "js-yaml@>=5.0.0": "^5.4.2",
+    "sockjs": {
+      "uuid": "^11.1.1"
+    },
+    "electron-to-chromium": "1.5.441",
+    "axios": "^1.20.0",
+    "brace-expansion@>=4.0.0": "^5.0.12",
+    "smol-toml": "^1.9.0"
+  }
 }

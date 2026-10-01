@@ -1,3 +1,4 @@
+import { sessionToken } from '../fixtures/session-cookie';
 import * as request from 'supertest';
 import { Test } from '@nestjs/testing';
 import { INestApplication, ValidationPipe } from '@nestjs/common';
@@ -61,15 +62,15 @@ describe('Auth E2E', () => {
       })
       .expect(201);
 
-    expect(res.body).toHaveProperty('access_token');
+    expect(res.body.access_token).toBe('');
     expect(res.body.user).toHaveProperty('id');
-    const tokenPayload = jwtService.decode(res.body.access_token);
+    const tokenPayload = jwtService.decode(sessionToken(res));
     expect(tokenPayload).toHaveProperty('id', res.body.user.id);
-    expect(tokenPayload).not.toHaveProperty('tokenKind');
+    expect(tokenPayload).toHaveProperty('tokenKind', 'customer');
 
     await request(app.getHttpServer())
       .get('/admin/auth/me')
-      .set('Authorization', `Bearer ${res.body.access_token}`)
+      .set('Authorization', `Bearer ${sessionToken(res)}`)
       .expect(401);
   });
 
@@ -107,7 +108,7 @@ describe('Auth E2E', () => {
       })
       .expect(201);
 
-    expect(res.body).toHaveProperty('access_token');
+    expect(res.body.access_token).toBe('');
     expect(res.body.operator).toEqual(
       expect.objectContaining({
         email: 'task02.admin@example.com',
@@ -119,7 +120,7 @@ describe('Auth E2E', () => {
     expect(res.body.operator).not.toHaveProperty('invitationTokenHash');
     expect(res.body.operator).not.toHaveProperty('invitationExpiresAt');
 
-    const payload = jwtService.decode(res.body.access_token);
+    const payload = jwtService.decode(sessionToken(res));
     expect(payload).toEqual(
       expect.objectContaining({
         sub: res.body.operator.id,
@@ -214,7 +215,7 @@ describe('Auth E2E', () => {
       })
       .expect(201);
 
-    expect(res.body).toHaveProperty('access_token');
+    expect(res.body.access_token).toBe('');
   });
 
   it('✅ should create user type PROVIDER successfully', async () => {
@@ -230,7 +231,7 @@ describe('Auth E2E', () => {
       .expect(201);
 
     expect(res.body.user).toHaveProperty('id');
-    expect(res.body).toHaveProperty('access_token');
+    expect(res.body.access_token).toBe('');
   });
 
   it('✅ should return token when user is created', async () => {
@@ -244,7 +245,7 @@ describe('Auth E2E', () => {
       .send(payload)
       .expect(201);
 
-    expect(res.body).toHaveProperty('access_token');
+    expect(res.body.access_token).toBe('');
   });
 
   it('❌ should fail when password and email is wrong', async () => {

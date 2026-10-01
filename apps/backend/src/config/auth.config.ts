@@ -2,7 +2,7 @@ import { registerAs } from '@nestjs/config';
 
 export default registerAs('auth', () => ({
   jwtSecret: process.env.JWT_SECRET as string,
-  expiresIn: process.env.EXPIRES_IN ?? '1d',
+  expiresIn: process.env.EXPIRES_IN ?? '15m',
   invitationTtlHours: Number(process.env.ADMIN_INVITATION_TTL_HOURS ?? 24),
   invitationUrl:
     process.env.ADMIN_INVITATION_URL ??

@@ -7,7 +7,7 @@ const apiUrl = Cypress.env('url');
 const client = {
   name: 'Cliente Teste',
   email: 'cliente.teste@taskgo.com',
-  password: '123456',
+  password: 'isolated-password-2026',
   cpf: '123.456.789-01',
   phone: '(11) 91234-5678',
 };
@@ -15,7 +15,7 @@ const client = {
 const provider = {
   name: 'Prestador Teste',
   email: 'prestador.teste@taskgo.com',
-  password: '123456',
+  password: 'isolated-password-2026',
   cpf: '123.456.789-10',
   phone: '(11) 92345-6789',
 };
@@ -173,7 +173,7 @@ function assertRegisteredSession(role: 'client' | 'provider') {
   cy.contains('.full-modal button', 'Acessar Plataforma').click();
   cy.location('pathname').should('eq', path);
   cy.window().then((win) => {
-    expect(win.localStorage.getItem('@ODIN/TOKEN')).to.equal(response.access_token);
+    expect(win.localStorage.getItem('@ODIN/TOKEN')).to.equal('cookie-session');
     expect(JSON.parse(win.localStorage.getItem('@ODIN/USER')!).user.type).to.equal(
       response.user.type,
     );
@@ -264,7 +264,7 @@ describe('Autenticação', () => {
     cy.wait('@loginClient');
     cy.url().should('include', '/customer');
     cy.window().then((win) => {
-      expect(win.localStorage.getItem('@ODIN/TOKEN')).to.equal(authResponses.client.access_token);
+      expect(win.localStorage.getItem('@ODIN/TOKEN')).to.equal('cookie-session');
     });
   });
 
@@ -283,7 +283,7 @@ describe('Autenticação', () => {
     cy.wait('@loginProvider');
     cy.url().should('include', '/provider');
     cy.window().then((win) => {
-      expect(win.localStorage.getItem('@ODIN/TOKEN')).to.equal(authResponses.provider.access_token);
+      expect(win.localStorage.getItem('@ODIN/TOKEN')).to.equal('cookie-session');
     });
   });
 });

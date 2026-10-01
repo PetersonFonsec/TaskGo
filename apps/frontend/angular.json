@@ -26,19 +26,14 @@
                 "input": "public"
               }
             ],
-            "styles": [
-              "leaflet/dist/leaflet.css",
-              "src/styles.scss"
-            ],
+            "styles": ["leaflet/dist/leaflet.css", "src/styles.scss"],
             "server": "src/main.server.ts",
             "outputMode": "server",
             "ssr": {
               "entry": "src/server.ts"
             },
             "stylePreprocessorOptions": {
-              "includePaths": [
-                "src/app/scss"
-              ]
+              "includePaths": ["src/app/scss"]
             }
           },
           "configurations": {
@@ -55,7 +50,15 @@
                   "maximumError": "8kB"
                 }
               ],
-              "outputHashing": "all"
+              "outputHashing": "all",
+              "optimization": {
+                "scripts": true,
+                "styles": {
+                  "minify": true,
+                  "inlineCritical": false
+                },
+                "fonts": false
+              }
             },
             "development": {
               "optimization": false,
@@ -97,14 +100,9 @@
                 "input": "public"
               }
             ],
-            "styles": [
-              "leaflet/dist/leaflet.css",
-              "src/styles.scss"
-            ],
+            "styles": ["leaflet/dist/leaflet.css", "src/styles.scss"],
             "stylePreprocessorOptions": {
-              "includePaths": [
-                "src/app/scss"
-              ]
+              "includePaths": ["src/app/scss"]
             }
           }
         },
@@ -114,10 +112,7 @@
             "configDir": ".storybook",
             "browserTarget": "frontend:build",
             "compodoc": true,
-            "styles": [
-              "leaflet/dist/leaflet.css",
-              "src/styles.scss"
-            ],
+            "styles": ["leaflet/dist/leaflet.css", "src/styles.scss"],
             "compodocArgs": ["-e", "json", "-d", "."],
             "port": 6006
           }
@@ -130,10 +125,7 @@
             "compodoc": true,
             "compodocArgs": ["-e", "json", "-d", "."],
             "outputDir": "storybook-static",
-            "styles": [
-              "leaflet/dist/leaflet.css",
-              "src/styles.scss"
-            ]
+            "styles": ["leaflet/dist/leaflet.css", "src/styles.scss"]
           }
         }
       }

@@ -117,6 +117,33 @@ export class ProviderService {
             OrderStatus.AGUARDANDO_CONFIRMACAO_CLIENTE,
           ],
         },
+        OR: [
+          {
+            status: {
+              notIn: [
+                OrderStatus.AGUARDANDO_APROVACAO,
+                OrderStatus.AGUARDANDO_PAGAMENTO,
+              ],
+            },
+          },
+          { reservationExpiresAt: { gt: new Date() } },
+          {
+            payment: {
+              status: {
+                notIn: [
+                  'CREATED',
+                  'CANCELADO',
+                  'CANCELED',
+                  'FALHOU',
+                  'FAILED',
+                  'REEMBOLSADO',
+                  'REFUNDED',
+                ],
+              },
+            },
+          },
+          { paymentAttempt: { isNot: null }, payment: { status: 'CREATED' } },
+        ],
         scheduledFor: {
           gte: this.startOfDate(query.from),
           lt: this.dayAfter(query.to),

@@ -17,7 +17,7 @@ export function validateEnvironment(environment: Environment): Environment {
     min: 1,
     max: 65535,
   });
-  normalized.EXPIRES_IN = readString(environment, 'EXPIRES_IN') ?? '1d';
+  normalized.EXPIRES_IN = readString(environment, 'EXPIRES_IN') ?? '15m';
   normalized.DEFAULT_PLATFORM_FEE_PCT = readNumber(
     environment,
     'DEFAULT_PLATFORM_FEE_PCT',
@@ -52,6 +52,83 @@ export function validateEnvironment(environment: Environment): Environment {
     }
   }
 
+  if (nodeEnv === 'production') {
+    const secret = requireString(environment, 'JWT_SECRET');
+    if (
+      !/^[a-fA-F0-9]{64,}$/.test(secret) ||
+      new Set(secret.toLowerCase()).size < 8
+    )
+      throw new Error(
+        'JWT_SECRET must contain at least 32 random bytes encoded as hexadecimal',
+      );
+    for (const key of [
+      'PUBLIC_FRONTEND_ORIGINS',
+      'BACKOFFICE_FRONTEND_ORIGINS',
+    ]) {
+      for (const origin of requireString(environment, key).split(',')) {
+        const url = new URL(origin.trim());
+        if (
+          url.protocol !== 'https:' ||
+          url.origin !== origin.trim() ||
+          url.username ||
+          url.password
+        )
+          throw new Error(`${key} must contain HTTPS origins only`);
+      }
+    }
+    if (normalized.EXPIRES_IN !== '15m')
+      throw new Error('EXPIRES_IN must be 15m in production');
+    const mfa = JSON.parse(requireString(environment, 'ADMIN_MFA_SECRETS'));
+    if (
+      !mfa ||
+      typeof mfa !== 'object' ||
+      Array.isArray(mfa) ||
+      !Object.keys(mfa).length ||
+      Object.entries(mfa).some(
+        ([id, secret]) =>
+          !/^[1-9]\d*$/.test(id) ||
+          typeof secret !== 'string' ||
+          !/^[A-Z2-7]{32,}$/.test(secret),
+      )
+    )
+      throw new Error(
+        'ADMIN_MFA_SECRETS must map operator ids to random Base32 secrets',
+      );
+    const invitation = new URL(
+      requireString(environment, 'ADMIN_INVITATION_URL'),
+    );
+    if (
+      invitation.protocol !== 'https:' ||
+      !requireString(environment, 'BACKOFFICE_FRONTEND_ORIGINS')
+        .split(',')
+        .map((value) => value.trim())
+        .includes(invitation.origin)
+    )
+      throw new Error(
+        'ADMIN_INVITATION_URL must use an allowed HTTPS backoffice origin',
+      );
+    const smtp = new URL(requireString(environment, 'SMTP_URL'));
+    if (!['smtp:', 'smtps:'].includes(smtp.protocol))
+      throw new Error('SMTP_URL must use SMTP with TLS');
+    const reset = new URL(
+      requireString(environment, 'PASSWORD_RESET_FRONTEND_URL'),
+    );
+    if (
+      reset.protocol !== 'https:' ||
+      !requireString(environment, 'PUBLIC_FRONTEND_ORIGINS')
+        .split(',')
+        .map((value) => value.trim())
+        .includes(reset.origin)
+    )
+      throw new Error(
+        'PASSWORD_RESET_FRONTEND_URL must use an allowed HTTPS frontend origin',
+      );
+    requireString(environment, 'MAIL_FROM');
+    if (requireString(environment, 'METRICS_TOKEN').length < 32)
+      throw new Error(
+        'METRICS_TOKEN must contain at least 32 random characters',
+      );
+  }
   return normalized;
 }
 

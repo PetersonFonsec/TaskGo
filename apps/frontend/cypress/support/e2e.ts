@@ -14,7 +14,23 @@
 // ***********************************************************
 
 // Import commands.js using ES2015 syntax:
-import './commands'
+import './commands';
 
 // Alternatively you can use CommonJS syntax:
 // require('./commands')
+
+// These browser scenarios stub the API; real cookie authority is tested by verify-http.cjs.
+beforeEach(() => {
+  let storage: Storage | undefined;
+  cy.on('window:before:load', (win) => {
+    storage = win.localStorage;
+  });
+  cy.intercept('GET', 'http://localhost:3000/auth/me', (request) => {
+    const saved = JSON.parse(storage?.getItem('@ODIN/USER') ?? '{}');
+    request.reply({ statusCode: saved.user?.id ? 200 : 401, body: saved.user ?? {} });
+  });
+  cy.intercept('POST', 'http://localhost:3000/auth/logout', {
+    statusCode: 201,
+    body: { success: true },
+  });
+});

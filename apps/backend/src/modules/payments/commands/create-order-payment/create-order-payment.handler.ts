@@ -52,6 +52,12 @@ export class CreateOrderPaymentHandler
     }
 
     const feePct = await this.resolveFeePercentage(order.service);
+    if (
+      order.reservationExpiresAt &&
+      order.reservationExpiresAt <= new Date() &&
+      order.payment?.status === PaymentStatus.CREATED
+    )
+      throw new ConflictException('Reserva expirada');
     const amount = Number(order.finalPrice ?? order.service.basePrice);
     const amountCents = Math.round(amount * 100);
     const platformAmountCents = Math.round(amountCents * feePct);
@@ -89,6 +95,7 @@ export class CreateOrderPaymentHandler
         throw new ConflictException(
           'Pagamento já iniciado; consulte seu estado',
         );
+      await tx.$queryRaw`SELECT id FROM pedidos WHERE id = ${orderId} FOR UPDATE`;
       const current = await tx.order.findUniqueOrThrow({
         where: { id: orderId },
       });
@@ -98,6 +105,11 @@ export class CreateOrderPaymentHandler
         )
       )
         throw new ConflictException('Pedido não disponível para pagamento');
+      if (
+        current.reservationExpiresAt &&
+        current.reservationExpiresAt <= new Date()
+      )
+        throw new ConflictException('Reserva expirada');
       return tx.paymentAttempt.upsert({
         where: { orderId },
         create: {
@@ -192,6 +204,7 @@ export class CreateOrderPaymentHandler
       where: { id: orderId },
       select: {
         clientId: true,
+        reservationExpiresAt: true,
         status: true,
         finalPrice: true,
         client: { select: { name: true, email: true, cpf: true } },

@@ -1,5 +1,8 @@
+import { UserLoggedService } from '@shared/service/user-logged/user-logged.service';
 import { Component, inject, OnInit, signal } from '@angular/core';
 import { ActivatedRoute, Router } from '@angular/router';
+import { HttpClient } from '@angular/common/http';
+import { environment } from '@environments/environment';
 import { FormsModule, NgForm } from '@angular/forms';
 import { NgIf } from '@angular/common';
 import { InputTextComponent } from '@shared/components/forms/input-text/input-text.component';
@@ -17,6 +20,10 @@ export class ProfileEdit implements OnInit {
   #route = inject(ActivatedRoute);
   #router = inject(Router);
   #userService = inject(User);
+  #http = inject(HttpClient);
+  #session = inject(UserLoggedService);
+  currentPassword = '';
+  verificationCode = '';
 
   user = signal<PublicUserProfile | null>(null);
   error = signal('');
@@ -28,7 +35,9 @@ export class ProfileEdit implements OnInit {
   phoneValue = '';
 
   ngOnInit() {
-    const userId = this.#route.snapshot.pathFromRoot.map(route => route.paramMap.get('userId')).find(Boolean);
+    const userId = this.#route.snapshot.pathFromRoot
+      .map((route) => route.paramMap.get('userId'))
+      .find(Boolean);
     if (!userId) {
       this.error.set('Usuário não encontrado');
       this.loading.set(false);
@@ -67,7 +76,9 @@ export class ProfileEdit implements OnInit {
   }
 
   save(form: NgForm) {
-    const userId = this.#route.snapshot.pathFromRoot.map(route => route.paramMap.get('userId')).find(Boolean);
+    const userId = this.#route.snapshot.pathFromRoot
+      .map((route) => route.paramMap.get('userId'))
+      .find(Boolean);
     if (!userId) {
       this.error.set('Usuário não encontrado');
       return;
@@ -85,7 +96,7 @@ export class ProfileEdit implements OnInit {
 
     const payload: UserProfileUpdateRequest = {
       name: this.nameValue,
-      email: this.emailValue,
+
       phone: this.phoneValue,
     };
 
@@ -99,6 +110,43 @@ export class ProfileEdit implements OnInit {
         this.success.set('');
       },
     });
+  }
+
+  requestEmailChange() {
+    const id = this.user()?.id;
+    if (!id) return;
+    this.#http
+      .post(environment.url + `/user/${id}/verify-email`, {
+        email: this.emailValue,
+        currentPassword: this.currentPassword,
+      })
+      .subscribe({
+        next: () => {
+          this.currentPassword = '';
+          this.success.set('Código enviado ao novo e-mail.');
+          this.error.set('');
+        },
+        error: () =>
+          this.error.set(
+            'Não foi possível solicitar a alteração. Confira sua senha e tente novamente.',
+          ),
+      });
+  }
+  confirmEmailChange() {
+    const id = this.user()?.id;
+    if (!id) return;
+    this.#http
+      .post(environment.url + `/user/${id}/confirm-email`, {
+        verificationCode: this.verificationCode,
+      })
+      .subscribe({
+        next: () => {
+          this.verificationCode = '';
+          this.#session.clearSession();
+          this.#router.navigateByUrl('/authenticate/login');
+        },
+        error: () => this.error.set('Código inválido ou expirado.'),
+      });
   }
 
   cancel() {

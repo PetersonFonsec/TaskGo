@@ -25,7 +25,7 @@ describe('Backoffice deployment and observability configuration', () => {
 
   it('documents runtime CORS and Backoffice environment variables', () => {
     const exampleEnv = readRepoFile('config/example.env');
-    const backendEnv = readRepoFile('config/backend.env');
+    const backendEnv = readRepoFile('config/backend.env.example');
 
     expect(exampleEnv).toContain('PUBLIC_FRONTEND_ORIGINS=');
     expect(exampleEnv).toContain('BACKOFFICE_FRONTEND_ORIGINS=');
