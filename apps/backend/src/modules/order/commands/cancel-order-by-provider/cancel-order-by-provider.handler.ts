@@ -4,10 +4,11 @@ import {
   NotFoundException,
 } from '@nestjs/common';
 import { CommandHandler, ICommandHandler } from '@nestjs/cqrs';
-import { OrderStatus } from '@prisma/client';
+import { OrderStatus, PaymentStatus } from '@prisma/client';
 
 import { PrismaService } from '../../../../prisma/prisma.service';
 import { PaymentService } from '../../../payments/payment.service';
+import { NotificationService } from '../../../notification/notification.service';
 import { CancelOrderByProviderCommand } from './cancel-order-by-provider.command';
 
 @CommandHandler(CancelOrderByProviderCommand)
@@ -17,12 +18,17 @@ export class CancelOrderByProviderHandler
   constructor(
     private readonly prisma: PrismaService,
     private readonly payments: PaymentService,
+    private readonly notifications: NotificationService,
   ) {}
 
   async execute({ orderId, providerId }: CancelOrderByProviderCommand) {
     const order = await this.prisma.order.findUnique({
       where: { id: orderId },
-      include: { service: true, payment: true },
+      include: {
+        service: true,
+        payment: true,
+        client: { select: { email: true, name: true } },
+      },
     });
     if (!order) throw new NotFoundException('Order not found');
     if (!order.service || order.service.providerId !== providerId) {
@@ -38,8 +44,10 @@ export class CancelOrderByProviderHandler
         'Only orders awaiting approval, awaiting payment, or scheduled can be cancelled by provider',
       );
     }
-    if (order.payment) await this.payments.cancelPayment(order.payment);
-    return this.prisma.order.update({
+    const canceledPayment = order.payment
+      ? await this.payments.cancelPayment(order.payment)
+      : null;
+    const updated = await this.prisma.order.update({
       where: { id: orderId, status: { in: cancellable } },
       data: {
         status: OrderStatus.CANCELADO,
@@ -52,5 +60,15 @@ export class CancelOrderByProviderHandler
         },
       },
     });
+
+    void this.notifications.notifyClientOrderCanceledByProvider(
+      order.client,
+      { id: orderId, serviceTitle: order.service.title },
+      {
+        refused: order.status === OrderStatus.AGUARDANDO_APROVACAO,
+        refunded: canceledPayment?.status === PaymentStatus.REEMBOLSADO,
+      },
+    );
+    return updated;
   }
 }

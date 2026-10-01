@@ -1,6 +1,7 @@
-import { BadRequestException, Injectable } from '@nestjs/common';
+import { BadRequestException, Injectable, Logger } from '@nestjs/common';
 import { OrderStatus, Payment, PaymentStatus, UserType } from '@prisma/client';
 import { PrismaService } from '../../prisma/prisma.service';
+import { NotificationService } from '../notification/notification.service';
 import { PagarmeService } from './pagarme.service';
 import {
   authorizedStatuses,
@@ -16,9 +17,12 @@ type FinancialPayment = Pick<
 
 @Injectable()
 export class PaymentService {
+  private readonly logger = new Logger(PaymentService.name);
+
   constructor(
     private readonly pagarme: PagarmeService,
     private readonly prisma: PrismaService,
+    private readonly notifications: NotificationService,
   ) {}
 
   // The database lock serializes capture/cancel/reconciliation across API replicas.
@@ -174,7 +178,8 @@ export class PaymentService {
   }
 
   async reconcilePayment(paymentId: bigint) {
-    return this.prisma.$transaction(
+    let scheduledOrderId = null as bigint | null;
+    const reconciled = await this.prisma.$transaction(
       async (tx) => {
         await tx.$queryRaw`SELECT pg_advisory_xact_lock(${paymentId})::text`;
         const payment = await tx.payment.findUniqueOrThrow({
@@ -233,6 +238,7 @@ export class PaymentService {
               : OrderStatus.AGUARDANDO_PAGAMENTO,
           },
         });
+        if (usable && changed.count === 1) scheduledOrderId = payment.orderId;
         if (changed.count || payment.status !== status)
           await tx.orderTimeline.create({
             data: {
@@ -259,5 +265,33 @@ export class PaymentService {
       },
       { timeout: 20000 },
     );
+    // Somente a transição AGUARDANDO_PAGAMENTO -> AGENDADO avisa o cliente, após o commit.
+    if (scheduledOrderId !== null)
+      void this.notifyPaymentConfirmed(scheduledOrderId);
+    return reconciled;
+  }
+
+  /** Disparado sem aguardar: falhas são apenas registradas e não afetam a conciliação. */
+  private async notifyPaymentConfirmed(orderId: bigint) {
+    try {
+      const order = await this.prisma.order.findUnique({
+        where: { id: orderId },
+        select: {
+          scheduledFor: true,
+          client: { select: { email: true, name: true } },
+          service: { select: { title: true } },
+        },
+      });
+      if (!order) return;
+      await this.notifications.notifyClientPaymentConfirmed(order.client, {
+        id: orderId,
+        serviceTitle: order.service.title,
+        scheduledFor: order.scheduledFor,
+      });
+    } catch (error) {
+      this.logger.error(
+        `Falha ao preparar aviso de pagamento do pedido ${orderId.toString()}: ${(error as Error).message}`,
+      );
+    }
   }
 }

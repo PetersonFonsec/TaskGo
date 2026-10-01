@@ -7,18 +7,25 @@ import { CommandHandler, ICommandHandler } from '@nestjs/cqrs';
 import { OrderStatus } from '@prisma/client';
 
 import { PrismaService } from '../../../../prisma/prisma.service';
+import { NotificationService } from '../../../notification/notification.service';
 import { ConfirmOrderByProviderCommand } from './confirm-order-by-provider.command';
 
 @CommandHandler(ConfirmOrderByProviderCommand)
 export class ConfirmOrderByProviderHandler
   implements ICommandHandler<ConfirmOrderByProviderCommand>
 {
-  constructor(private readonly prisma: PrismaService) {}
+  constructor(
+    private readonly prisma: PrismaService,
+    private readonly notifications: NotificationService,
+  ) {}
 
   async execute({ orderId, providerId }: ConfirmOrderByProviderCommand) {
     const order = await this.prisma.order.findUnique({
       where: { id: orderId },
-      include: { service: { include: { provider: true } } },
+      include: {
+        service: { include: { provider: true } },
+        client: { select: { email: true, name: true } },
+      },
     });
     if (!order) throw new NotFoundException('Order not found');
     if (!order.service || order.service.providerId !== providerId) {
@@ -33,7 +40,7 @@ export class ConfirmOrderByProviderHandler
         'Only AGUARDANDO_APROVACAO orders can be confirmed',
       );
     }
-    return this.prisma.order.update({
+    const updated = await this.prisma.order.update({
       where: { id: orderId, status: OrderStatus.AGUARDANDO_APROVACAO },
       data: {
         status: OrderStatus.AGUARDANDO_PAGAMENTO,
@@ -46,5 +53,12 @@ export class ConfirmOrderByProviderHandler
         },
       },
     });
+
+    void this.notifications.notifyClientOrderAccepted(order.client, {
+      id: orderId,
+      serviceTitle: order.service.title,
+      scheduledFor: order.scheduledFor,
+    });
+    return updated;
   }
 }

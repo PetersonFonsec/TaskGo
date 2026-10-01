@@ -7,9 +7,10 @@ import { PaymentsController } from './payments.controller';
 import { ConfigModule } from '../../config/config.module';
 import { PaymentCommandHandlers } from './commands';
 import { PaymentQueryHandlers } from './queries';
+import { NotificationModule } from '../notification/notification.module';
 
 @Module({
-  imports: [ConfigModule, CqrsModule],
+  imports: [ConfigModule, CqrsModule, NotificationModule],
   controllers: [PaymentsController],
   providers: [
     PagarmeService,

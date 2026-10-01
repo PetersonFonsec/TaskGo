@@ -1,3 +1,5 @@
+import { ConfigService } from '@nestjs/config';
+
 import { EmailTransport } from './email-transport';
 import { NotificationService } from './notification.service';
 
@@ -52,5 +54,122 @@ describe('NotificationService', () => {
         text: expect.stringContaining('ABC123'),
       }),
     );
+  });
+
+  describe('ciclo do pedido', () => {
+    const client = { email: 'cliente@proxi.test', name: 'Cliente' };
+    const order = {
+      id: 42n,
+      serviceTitle: 'Instalação elétrica',
+      scheduledFor: new Date('2026-06-22T12:00:00.000Z'),
+    };
+    const config = (values: Record<string, string>) =>
+      ({ get: (key: string) => values[key] }) as unknown as ConfigService;
+    const sent = () => transport.send.mock.calls[0][0];
+
+    beforeEach(() => {
+      service = new NotificationService(
+        transport as unknown as EmailTransport,
+        config({ FRONTEND_URL: 'https://app.proxi.test/' }),
+      );
+    });
+
+    it('avisa o prestador sobre a nova solicitação com link de aceite', async () => {
+      await service.notifyProviderNewOrder(provider, order);
+
+      expect(sent()).toEqual(
+        expect.objectContaining({
+          to: provider.email,
+          subject: 'Nova solicitação de serviço',
+        }),
+      );
+      expect(sent().text).toContain('Instalação elétrica');
+      expect(sent().text).toContain('22/06/2026');
+      expect(sent().text).toContain('09:00');
+      expect(sent().text).toContain(
+        'https://app.proxi.test/provider/42/aprovacao',
+      );
+    });
+
+    it('convida o cliente a pagar após o aceite', async () => {
+      await service.notifyClientOrderAccepted(client, order);
+
+      expect(sent().to).toBe(client.email);
+      expect(sent().subject).toBe('Seu pedido foi aceito');
+      expect(sent().text).toContain('https://app.proxi.test/orders/42/payment');
+    });
+
+    it('diferencia recusa de cancelamento e informa o estorno', async () => {
+      await service.notifyClientOrderCanceledByProvider(client, order, {
+        refused: true,
+        refunded: false,
+      });
+      await service.notifyClientOrderCanceledByProvider(client, order, {
+        refused: false,
+        refunded: true,
+      });
+
+      const [refused, canceled] = transport.send.mock.calls.map(([m]) => m);
+      expect(refused.subject).toBe('Seu pedido foi recusado');
+      expect(refused.text).not.toContain('estornado');
+      expect(canceled.subject).toBe('Seu pedido foi cancelado');
+      expect(canceled.text).toContain('estornado');
+      expect(canceled.text).toContain('https://app.proxi.test/orders/42');
+    });
+
+    it('confirma o pagamento com a data do agendamento', async () => {
+      await service.notifyClientPaymentConfirmed(client, order);
+
+      expect(sent().subject).toBe('Pagamento confirmado: serviço agendado');
+      expect(sent().text).toContain('agendado para 22/06/2026');
+    });
+
+    it('avisa que o prestador está a caminho', async () => {
+      await service.notifyClientProviderOnTheWay(client, order);
+
+      expect(sent().subject).toBe('O prestador está a caminho');
+      expect(sent().text).toContain('https://app.proxi.test/orders/42');
+    });
+
+    it('pede a confirmação da conclusão com link', async () => {
+      await service.notifyClientServiceFinished(client, order);
+
+      expect(sent().subject).toBe('Serviço finalizado: confirme a conclusão');
+      expect(sent().text).toContain('https://app.proxi.test/orders/42/confirm');
+    });
+
+    it('usa a primeira origem pública quando FRONTEND_URL não existe', async () => {
+      service = new NotificationService(
+        transport as unknown as EmailTransport,
+        config({
+          PUBLIC_FRONTEND_ORIGINS:
+            'https://www.proxi.test, https://m.proxi.test',
+        }),
+      );
+
+      await service.notifyClientServiceFinished(client, order);
+
+      expect(sent().text).toContain('https://www.proxi.test/orders/42/confirm');
+    });
+
+    it('não inclui contatos da outra parte nos avisos ao cliente', async () => {
+      await service.notifyClientOrderAccepted(client, order);
+
+      expect(sent().text).not.toContain(provider.email);
+    });
+
+    it('não propaga falhas de entrega nem de montagem da mensagem', async () => {
+      transport.send.mockRejectedValue(new Error('smtp down'));
+      await expect(
+        service.notifyProviderNewOrder(provider, order),
+      ).resolves.toBeUndefined();
+
+      await expect(
+        service.notifyClientServiceFinished(client, {
+          id: undefined as unknown as bigint,
+          serviceTitle: 'x',
+        }),
+      ).resolves.toBeUndefined();
+    });
   });
 });
