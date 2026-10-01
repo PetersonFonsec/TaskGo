@@ -60,9 +60,27 @@ describe('Order authorization', () => {
     expect(() => controller.confirmByProvider(1n, 99n, provider)).toThrow(
       ForbiddenException,
     );
-    expect(() => controller.cancelByProvider(1n, 99n, provider)).toThrow(
-      ForbiddenException,
-    );
+    expect(() =>
+      controller.cancelByProvider(1n, 99n, provider, {
+        reason: 'NO_AVAILABILITY',
+      }),
+    ).toThrow(ForbiddenException);
+  });
+  it('forwards the refusal reason to the cancel command', () => {
+    controller.cancelByProvider(1n, 42n, provider, {
+      reason: 'OTHER',
+      note: 'Agenda cheia',
+    });
+    const command = commands.execute.mock.calls[0][0];
+    expect(command.providerId).toBe(42n);
+    expect(command.payload).toEqual({ reason: 'OTHER', note: 'Agenda cheia' });
+  });
+  it('tells the details query who is viewing the order', async () => {
+    db.order.findFirst.mockResolvedValue({ id: 1n });
+    await controller.findOne(1n, provider);
+    await controller.findOne(1n, client);
+    expect(queries.execute.mock.calls[0][0].viewer).toBe('PRESTADOR');
+    expect(queries.execute.mock.calls[1][0].viewer).toBe('CLIENTE');
   });
   it('atomically guards lifecycle with ownership, prior state and funded payment', async () => {
     await controller.start(1n, provider);

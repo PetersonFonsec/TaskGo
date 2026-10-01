@@ -19,6 +19,7 @@ import {
 import { PrismaService } from '../../../../prisma/prisma.service';
 import { toPaymentResponse } from '../../mappers/payment-response.mapper';
 import { PagarmeService } from '../../pagarme.service';
+import { resolvePlatformFeePct } from '../../platform-fee';
 import { CreateOrderPaymentCommand } from './create-order-payment.command';
 
 @CommandHandler(CreateOrderPaymentCommand)
@@ -233,28 +234,15 @@ export class CreateOrderPaymentHandler
     return order;
   }
 
-  private async resolveFeePercentage(service: {
+  private resolveFeePercentage(service: {
     category: string;
     platformFeePct: Prisma.Decimal | null;
   }) {
-    const category =
-      service.platformFeePct === null
-        ? await this.prisma.category.findFirst({
-            where: {
-              OR: [{ slug: service.category }, { name: service.category }],
-            },
-            select: { platformFeePct: true },
-          })
-        : null;
-    const feePct = Number(
-      service.platformFeePct ??
-        category?.platformFeePct ??
-        this.configService.getOrThrow<number>('payment.defaultPlatformFeePct'),
+    return resolvePlatformFeePct(
+      this.prisma,
+      service,
+      this.configService.getOrThrow<number>('payment.defaultPlatformFeePct'),
     );
-    if (!Number.isFinite(feePct) || feePct < 0 || feePct > 1) {
-      throw new BadRequestException('Taxa da plataforma inválida');
-    }
-    return feePct;
   }
 
   private isReusable(status: PaymentStatus) {

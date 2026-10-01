@@ -78,6 +78,13 @@ enum OrderEventType {
   CLIENT_REVIEWED
 }
 
+enum OrderCancellationReason {
+  NO_AVAILABILITY
+  OUT_OF_AREA
+  SERVICE_NOT_OFFERED
+  OTHER
+}
+
 enum OrderPhotoType {
   BEFORE
   AFTER
@@ -329,6 +336,8 @@ model Order {
   priceAdjustmentReason String?     @map("motivo_ajuste_preco")
   providerFinishedAt    DateTime?   @map("provider_finished_at")
   clientConfirmedAt     DateTime?   @map("client_confirmed_at")
+  cancellationReason    OrderCancellationReason? @map("cancellation_reason")
+  cancellationNote      String?     @map("cancellation_note")
 
   // Relations
   client        User             @relation("UserOrders", fields: [clientId], references: [id])
