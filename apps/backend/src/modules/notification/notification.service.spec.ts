@@ -99,6 +99,18 @@ describe('NotificationService', () => {
       expect(sent().text).toContain('https://app.proxi.test/orders/42/payment');
     });
 
+    it('avisa cliente e prestador quando o pedido expira', async () => {
+      await service.notifyOrderExpired(client, provider, order, 'PROVIDER');
+
+      const [toClient, toProvider] = transport.send.mock.calls.map(([m]) => m);
+      expect(toClient.to).toBe(client.email);
+      expect(toClient.subject).toBe('Seu pedido expirou');
+      expect(toClient.text).toContain('prestador não respondeu');
+      expect(toClient.text).toContain('https://app.proxi.test/customer/search');
+      expect(toProvider.to).toBe(provider.email);
+      expect(toProvider.text).toContain('sem resposta');
+    });
+
     it('diferencia recusa de cancelamento e informa o estorno', async () => {
       await service.notifyClientOrderCanceledByProvider(client, order, {
         refused: true,

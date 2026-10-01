@@ -97,6 +97,39 @@ export class NotificationService {
     }));
   }
 
+  async notifyOrderExpired(
+    client: Recipient,
+    provider: Recipient,
+    order: OrderNotification,
+    waitingFor: 'PROVIDER' | 'PAYMENT',
+  ): Promise<void> {
+    const id = order.id.toString();
+    const clientReason =
+      waitingFor === 'PROVIDER'
+        ? 'o prestador não respondeu a tempo'
+        : 'o pagamento não foi concluído a tempo';
+    await this.sendSafely(() => ({
+      to: client.email,
+      subject: 'Seu pedido expirou',
+      text:
+        `Olá, ${client.name}.\n\n` +
+        `O pedido #${id} para "${order.serviceTitle}" expirou porque ${clientReason}. ` +
+        'O horário foi liberado e nenhum valor foi cobrado.\n' +
+        `Encontre outro profissional em ${this.link('/customer/search')}`,
+    }));
+    await this.sendSafely(() => ({
+      to: provider.email,
+      subject: 'Uma solicitação expirou',
+      text:
+        `Olá, ${provider.name}.\n\n` +
+        `A solicitação #${id} para "${order.serviceTitle}" expirou` +
+        (waitingFor === 'PROVIDER'
+          ? ' sem resposta e o horário voltou para a sua agenda.\n'
+          : ' porque o cliente não concluiu o pagamento. O horário voltou para a sua agenda.\n') +
+        `Veja seus pedidos em ${this.link('/provider')}`,
+    }));
+  }
+
   async notifyClientOrderAccepted(
     client: Recipient,
     order: OrderNotification,
