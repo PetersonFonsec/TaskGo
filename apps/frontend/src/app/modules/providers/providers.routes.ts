@@ -8,6 +8,12 @@ export const ProvidersRoutes: Routes = [
       import('./services/provider-services.page').then((c) => c.ProviderServicesPage),
   },
   {
+    path: 'payouts',
+    title: 'Recebimentos',
+    loadComponent: () =>
+      import('./payouts/provider-payouts.page').then((c) => c.ProviderPayoutsPage),
+  },
+  {
     path: '',
     pathMatch: 'full',
     title: `Seja bem vindo ao TaskGo`,

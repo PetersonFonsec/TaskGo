@@ -9,6 +9,7 @@
       <app-button color="light" (click)="refresh()" [disabled]="loading()">
         {{ loading() ? 'Atualizando...' : 'Atualizar painel' }}
       </app-button>
+      <a routerLink="/provider/payouts" class="button button--secondary">Recebimentos</a>
       <a routerLink="/provider/services" class="button button--primary">Gerenciar meus serviços</a>
     </div>
   </header>
