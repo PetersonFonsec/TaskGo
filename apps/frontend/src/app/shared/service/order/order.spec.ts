@@ -22,6 +22,15 @@ describe('Order', () => {
   it('should be created', () => {
     expect(service).toBeTruthy();
   });
+  it('sends the refusal reason when the provider declines', () => {
+    service.cancelOrder('order-1', '17', { reason: 'OTHER', note: 'Agenda cheia' }).subscribe();
+    const request = TestBed.inject(HttpTestingController).expectOne(
+      `${environment.url}/order/order-1/provider/17/cancel`,
+    );
+    expect(request.request.method).toBe('POST');
+    expect(request.request.body).toEqual({ reason: 'OTHER', note: 'Agenda cheia' });
+    request.flush({});
+  });
   it('updates the selected order status without sending unrelated fields', () => {
     service.updateOrderStatus('order-1', 'EM_ANDAMENTO').subscribe();
     const request = TestBed.inject(HttpTestingController).expectOne(

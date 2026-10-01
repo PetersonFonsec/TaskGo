@@ -164,14 +164,44 @@ export interface OrderTimelineEvent {
   completed: boolean;
 }
 
+export interface OrderProviderEarnings {
+  grossAmount: number;
+  feePct: number;
+  feeAmount: number;
+  netAmount: number;
+}
+
+export type OrderCancellationReason =
+  | 'NO_AVAILABILITY'
+  | 'OUT_OF_AREA'
+  | 'SERVICE_NOT_OFFERED'
+  | 'OTHER';
+
+export interface OrderCancellation {
+  reason: OrderCancellationReason;
+  label: string;
+  note: string | null;
+  canceledAt: string | null;
+}
+
+export interface CancelOrderPayload {
+  reason: OrderCancellationReason;
+  note?: string;
+}
+
 export interface OrderDetails {
   id: string;
   status: string;
   service: { id: string; title: string; category: string; estimatedPrice: number };
   provider: OrderParticipant;
   client: OrderParticipant;
-  schedule: { requestedAt: string; scheduledFor: string | null };
+  schedule: { requestedAt: string; scheduledFor: string | null; scheduledEnd?: string | null };
   address: OrderAddressSummary | null;
+  /** Apenas para o prestador: distância da área de atendimento até o endereço. */
+  distanceKm?: number | null;
+  /** Apenas para o prestador: valor estimado após a taxa da plataforma. */
+  providerEarnings?: OrderProviderEarnings | null;
+  cancellation?: OrderCancellation | null;
   payment: OrderPaymentSummary | null;
   review: { id: string; rating: number; comment?: string | null; reviewedAt: string } | null;
   timeline: OrderTimelineEvent[];
