@@ -18,6 +18,8 @@ import { AdminShellComponent } from './layout/admin-shell/admin-shell.component'
 
 import { CategoriesPage } from './features/categories/categories.page';
 
+import { FeatureFlagsPage } from './features/feature-flags/feature-flags.page';
+
 export const routes: Routes = [
   {
     path: 'login',
@@ -67,6 +69,12 @@ export const routes: Routes = [
         path: 'categories',
         title: 'Categorias de serviços',
         component: CategoriesPage,
+        canActivate: [requireAdminRoleGuard(['ADMINISTRATOR'])],
+      },
+      {
+        path: 'feature-flags',
+        title: 'Feature flags',
+        component: FeatureFlagsPage,
         canActivate: [requireAdminRoleGuard(['ADMINISTRATOR'])],
       },
       {

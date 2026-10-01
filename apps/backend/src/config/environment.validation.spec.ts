@@ -58,7 +58,7 @@ describe('environment validation', () => {
         BACKOFFICE_FRONTEND_ORIGINS: 'https://admin.taskgo.example',
         PAYMENTS_SIMULATION: 'false',
       }),
-    ).toThrow('PAGARME_SECRET_KEY is required');
+    ).toThrow('ABACATEPAY_API_KEY is required');
   });
 
   it('forbids simulated money in production', () => {

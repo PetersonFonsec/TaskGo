@@ -86,23 +86,25 @@
       </div>
 
       <div class="booking-group">
-        <label
-          >Serviço
+        <label class="booking-field"
+          ><span class="booking-group-title">Serviço</span>
           <select [ngModel]="selectedService()?.id" (ngModelChange)="selectService($event)">
             @for (service of provider()?.services; track service.id) {
               <option [value]="service.id">
-                {{ service.title }} — {{ formatPrice(service.basePrice) }}
+                {{ service.title }} —
+                {{ formatPrice(service.basePrice ?? service.price ?? provider()?.priceFrom ?? 0) }}
               </option>
             }
           </select></label
         >
-        <label
-          >Endereço de atendimento
+        <label class="booking-field"
+          ><span class="booking-group-title">Endereço de atendimento</span>
           <select [ngModel]="selectedAddressId()" (ngModelChange)="selectedAddressId.set($event)">
             <option value="">Selecione um endereço</option>
             @for (address of addresses(); track address.id) {
               <option [value]="address.id">
-                {{ address.label }} — {{ address.street }}, {{ address.number }}
+                {{ address.label ? address.label + ' — ' : '' }}{{ address.street }},
+                {{ address.number }}
               </option>
             }
           </select></label

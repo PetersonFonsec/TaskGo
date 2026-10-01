@@ -6,6 +6,13 @@
 
     <form #form="ngForm" (ngSubmit)="save(form)">
       <app-input-text
+        name="photoUrl"
+        label="Link da foto de perfil (HTTPS)"
+        type="text"
+        [(ngModel)]="photoUrlValue"
+      ></app-input-text>
+      <p>Use o link de uma imagem. Deixe vazio para remover a foto.</p>
+      <app-input-text
         name="name"
         label="Nome"
         [(ngModel)]="nameValue"

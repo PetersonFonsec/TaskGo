@@ -225,10 +225,11 @@ async function main() {
           create: {
             method: PaymentMethod.PIX,
             status: isProviderFlowFixture
-              ? PaymentStatus.AUTHORIZED
+              ? PaymentStatus.PAGO
               : PaymentStatus.CREATED,
             amount: servico.basePrice,
-            authorizedAt: isProviderFlowFixture ? SEED_NOW : null,
+            paidAt: isProviderFlowFixture ? SEED_NOW : null,
+            capturedAt: isProviderFlowFixture ? SEED_NOW : null,
           },
         },
         addressSnap: {
@@ -274,9 +275,10 @@ async function main() {
       payment: {
         create: {
           method: PaymentMethod.PIX,
-          status: PaymentStatus.AUTHORIZED,
+          status: PaymentStatus.PAGO,
           amount: providerFlowService.basePrice,
-          authorizedAt: SEED_NOW,
+          paidAt: SEED_NOW,
+          capturedAt: SEED_NOW,
         },
       },
       addressSnap: {

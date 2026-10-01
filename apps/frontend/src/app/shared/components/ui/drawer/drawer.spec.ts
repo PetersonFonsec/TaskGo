@@ -19,6 +19,25 @@ import { Drawer } from './drawer';
 class DrawerHost {}
 
 describe('Drawer slots', () => {
+  it('ignores a delayed close event after reopening', async () => {
+    await TestBed.configureTestingModule({ imports: [Drawer] }).compileComponents();
+    const fixture = TestBed.createComponent(Drawer);
+    await fixture.whenStable();
+    const drawer = fixture.componentInstance;
+    const closed = jasmine.createSpy('closed');
+    drawer.closed.subscribe(closed);
+    drawer.open();
+    drawer.close();
+    drawer.open();
+    const dialog: HTMLDialogElement = fixture.nativeElement.querySelector('dialog');
+    dialog.dispatchEvent(new Event('close'));
+    expect(drawer.isOpen()).toBeTrue();
+    expect(dialog.open).toBeTrue();
+    expect(closed).toHaveBeenCalledTimes(1);
+    drawer.close();
+    fixture.destroy();
+  });
+
   it('keeps header and footer visible while only content scrolls', async () => {
     await TestBed.configureTestingModule({ imports: [DrawerHost] }).compileComponents();
     const fixture = TestBed.createComponent(DrawerHost);

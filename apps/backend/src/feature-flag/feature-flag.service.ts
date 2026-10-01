@@ -1,26 +1,93 @@
-import { Injectable } from '@nestjs/common';
+import {
+  BadRequestException,
+  Injectable,
+  NotFoundException,
+} from '@nestjs/common';
+import { PrismaService } from '../prisma/prisma.service';
+import { PaginationQuery } from '../shared/services/pagination/pagination.interface';
 import { CreateFeatureFlagDto } from './dto/create-feature-flag.dto';
 import { UpdateFeatureFlagDto } from './dto/update-feature-flag.dto';
 
 @Injectable()
 export class FeatureFlagService {
-  create(_createFeatureFlagDto: CreateFeatureFlagDto) {
-    return 'This action adds a new featureFlag';
+  constructor(private readonly prisma: PrismaService) {}
+
+  create(body: CreateFeatureFlagDto) {
+    return this.prisma.featureFlag.create({
+      data: {
+        name: body.name,
+        description: body.description?.trim() || null,
+        isActive: body.isActive ?? false,
+      },
+    });
   }
 
-  findAll() {
-    return `This action returns all featureFlag`;
+  async findAll(query: PaginationQuery = {}) {
+    const page = query.page ?? 1;
+    const limit = query.limit ?? 20;
+    const [data, total] = await this.prisma.$transaction([
+      this.prisma.featureFlag.findMany({
+        skip: (page - 1) * limit,
+        take: limit,
+        orderBy: [{ name: 'asc' }, { id: 'asc' }],
+      }),
+      this.prisma.featureFlag.count(),
+    ]);
+    return {
+      data,
+      meta: {
+        total,
+        page,
+        limit,
+        totalPages: Math.max(1, Math.ceil(total / limit)),
+      },
+    };
   }
 
-  findOne(id: number) {
-    return `This action returns a #${id} featureFlag`;
+  async findOne(id: string) {
+    const flag = await this.prisma.featureFlag.findUnique({
+      where: { id: this.id(id) },
+    });
+    if (!flag) throw new NotFoundException('Feature flag não encontrada.');
+    return flag;
   }
 
-  update(id: number, _updateFeatureFlagDto: UpdateFeatureFlagDto) {
-    return `This action updates a #${id} featureFlag`;
+  async update(id: string, body: UpdateFeatureFlagDto) {
+    try {
+      return await this.prisma.featureFlag.update({
+        where: { id: this.id(id) },
+        data: {
+          ...(body.name !== undefined ? { name: body.name } : {}),
+          ...(body.description !== undefined
+            ? { description: body.description.trim() || null }
+            : {}),
+          ...(body.isActive !== undefined ? { isActive: body.isActive } : {}),
+        },
+      });
+    } catch (error) {
+      this.rethrow(error);
+    }
   }
 
-  remove(id: number) {
-    return `This action removes a #${id} featureFlag`;
+  async remove(id: string) {
+    try {
+      return await this.prisma.featureFlag.delete({
+        where: { id: this.id(id) },
+      });
+    } catch (error) {
+      this.rethrow(error);
+    }
+  }
+
+  private id(value: string): bigint {
+    if (!/^[1-9]\d*$/.test(value))
+      throw new BadRequestException('Feature flag inválida.');
+    return BigInt(value);
+  }
+
+  private rethrow(error: unknown): never {
+    if ((error as { code?: string }).code === 'P2025')
+      throw new NotFoundException('Feature flag não encontrada.');
+    throw error;
   }
 }

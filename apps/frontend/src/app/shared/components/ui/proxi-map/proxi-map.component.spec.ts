@@ -311,7 +311,10 @@ describe('ProxiMapComponent', () => {
     await settleMap();
 
     expect(leafletMock.layerGroupInstance.clearLayers).toHaveBeenCalled();
-    expect(leafletMock.mapInstance.fitBounds).toHaveBeenCalled();
+    expect(leafletMock.mapInstance.fitBounds).toHaveBeenCalledWith(
+      jasmine.anything(),
+      jasmine.objectContaining({ animate: false }),
+    );
   });
 
   it('should remove Leaflet resources on destroy', async () => {

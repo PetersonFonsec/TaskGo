@@ -15,6 +15,8 @@ export class ProviderProfile implements OnInit {
   readonly #route = inject(ActivatedRoute);
   readonly #userService = inject(User);
 
+  readonly preview = this.#route.snapshot.data['preview'] === true;
+  readonly profileUserId = this.#route.snapshot.paramMap.get('userId') ?? '';
   provider = signal<any>(null);
   loading = signal(true);
   error = signal('');

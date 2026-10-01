@@ -21,7 +21,7 @@ cp apps/backend/.env.example apps/backend/.env
 
 Os comandos substituem arquivos existentes: use-os no primeiro setup, preservando configurações locais que já existam. Os arquivos `config/*.env` existentes já são versionados; `.gitignore` não protege arquivos já rastreados. `config/db.env` já é versionado neste repositório; não inclua suas alterações locais desse arquivo em commits. `apps/backend/.env` é ignorado pelo Git.
 
-Troque o `JWT_SECRET` do arquivo local por um valor gerado com `openssl rand -hex 32`. O exemplo configura PostgreSQL local e pagamentos simulados. Credenciais CDN e Pagar.me são opcionais para funcionalidades que não usam essas integrações; uploads e pagamentos reais precisam de configuração própria. Não use credenciais de produção.
+Troque o `JWT_SECRET` do arquivo local por um valor gerado com `openssl rand -hex 32`. O exemplo configura PostgreSQL local e pagamentos simulados. Credenciais CDN e AbacatePay são opcionais para funcionalidades que não usam essas integrações; uploads e pagamentos reais precisam de configuração própria. Não use credenciais de produção.
 
 O frontend usa `apps/frontend/src/environments/environment.development.ts`. O backoffice usa `apps/backoffice/src/environments/environment.development.ts`; configurações públicas de navegador não devem conter segredos. API local: porta 3000; backoffice: 4300. A API permite essas origens no exemplo.
 

@@ -7,9 +7,11 @@ describe('provider payout profile schema', () => {
     /model ProviderPayoutProfile \{([\s\S]*?)\n\}/,
   )?.[1];
 
-  it('stores only approved payout synchronization and masked metadata', () => {
+  it('stores legacy synchronization and the new PIX destination', () => {
     expect(model).toBeDefined();
     expect(model).toContain('pagarmeRecipientId');
+    expect(model).toContain('pixKey');
+    expect(model).toContain('pixKeyType');
     expect(model).toContain('syncStatus');
     expect(model).toContain('bankAccountStatus');
     expect(model).toContain('branchLastDigits');
@@ -19,7 +21,7 @@ describe('provider payout profile schema', () => {
 
   it('does not define raw financial credentials or provider documents', () => {
     expect(model).not.toMatch(
-      /\b(accountNumber|branchNumber|holderDocument|password|pixKey)\b/,
+      /\b(accountNumber|branchNumber|holderDocument|password)\b/,
     );
   });
 

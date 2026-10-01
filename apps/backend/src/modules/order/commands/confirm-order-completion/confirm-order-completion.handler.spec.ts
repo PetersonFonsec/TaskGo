@@ -51,11 +51,14 @@ describe('ConfirmOrderCompletionHandler payment capture', () => {
       reconcilePayment: jest
         .fn()
         .mockResolvedValue({ status: PaymentStatus.PAGO }),
+      enqueueSettlement: jest.fn(),
       capturePayment: jest.fn().mockResolvedValue({ capturedAt }),
     } as any;
+    const email = { order: jest.fn() } as any;
     const notifications = { notifyProviderOrderConfirmed: jest.fn() };
     const handler = new ConfirmOrderCompletionHandler(
       prisma,
+      email,
       payments,
       notifications as any,
     );
@@ -74,11 +77,16 @@ describe('ConfirmOrderCompletionHandler payment capture', () => {
         }),
       }),
     );
+    expect(payments.enqueueSettlement).toHaveBeenCalledWith(
+      tx,
+      expect.objectContaining({ status: PaymentStatus.PAGO }),
+    );
     expect(result.status).toBe(OrderStatus.CONCLUIDO);
     expect(notifications.notifyProviderOrderConfirmed).toHaveBeenCalledWith(
       { email: 'prestador@proxi.test', name: 'Prestador' },
       10n,
     );
+    expect(email.order).toHaveBeenCalledWith('review', 10n);
   });
 });
 
@@ -119,9 +127,12 @@ describe('Dispute confirmation boundary', () => {
       reconcilePayment: jest.fn().mockResolvedValue({ status: 'PAGO' }),
     };
     await expect(
-      new ConfirmOrderCompletionHandler(prisma, payment, {} as any).execute(
-        new ConfirmOrderCompletionCommand(10n, 2n, {}),
-      ),
+      new ConfirmOrderCompletionHandler(
+        prisma,
+        { order: jest.fn() } as any,
+        payment,
+        {} as any,
+      ).execute(new ConfirmOrderCompletionCommand(10n, 2n, {})),
     ).rejects.toThrow('Aguarde a análise');
     expect(tx.order.updateMany).not.toHaveBeenCalled();
   });

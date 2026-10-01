@@ -1,6 +1,6 @@
 import { Component, inject, signal } from '@angular/core';
 import { HttpErrorResponse } from '@angular/common/http';
-import { Router, RouterLink } from '@angular/router';
+import { ActivatedRoute, Router, RouterLink } from '@angular/router';
 import { LiveAnnouncer } from '@angular/cdk/a11y';
 import { FormsModule } from '@angular/forms';
 
@@ -12,13 +12,7 @@ import { Utils } from '@shared/service/utils/utils.service';
 
 @Component({
   selector: 'app-login',
-  imports: [
-    InputTextComponent,
-    ButtonComponent,
-    RouterLink,
-    FormsModule,
-    AlertComponent,
-  ],
+  imports: [InputTextComponent, ButtonComponent, RouterLink, FormsModule, AlertComponent],
   templateUrl: './login.html',
   styleUrl: './login.scss',
 })
@@ -26,19 +20,29 @@ export class Login {
   #liveAnnouncer = inject(LiveAnnouncer);
   #userRegister = inject(UserRegister);
   #router = inject(Router);
-  error = signal("");
+  #route = inject(ActivatedRoute);
+  error = signal('');
   payload: any = {};
 
   login() {
     this.#userRegister.login(this.payload).subscribe({
       next: ({ user }) => {
-        this.#liveAnnouncer.announce("Login realizado com sucesso");
-        this.#router.navigateByUrl(Utils.getRouteByRoleBack(user.type));
+        this.#liveAnnouncer.announce('Login realizado com sucesso');
+        const returnUrl = this.#route.snapshot.queryParamMap.get('returnUrl');
+        // Only allow known order destinations from notification emails.
+        const destination =
+          returnUrl &&
+          /^\/orders\/[1-9]\d*(?:\/(?:review|confirm|payment|finish|report-problem))?$/.test(
+            returnUrl,
+          )
+            ? returnUrl
+            : Utils.getRouteByRoleBack(user.type);
+        this.#router.navigateByUrl(destination);
       },
       error: (error: HttpErrorResponse) => {
-        this.#liveAnnouncer.announce("Houve um erro ao realizar login");
+        this.#liveAnnouncer.announce('Houve um erro ao realizar login');
         this.error.set(error.error.message);
-      }
-    })
+      },
+    });
   }
 }

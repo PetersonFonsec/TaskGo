@@ -2,6 +2,7 @@ import { AdminRole } from '@prisma/client';
 
 export enum AdminCapability {
   ManageDisputes = 'disputes:manage',
+  ManageFeatureFlags = 'feature-flags:manage',
   ManageCatalog = 'catalog:manage',
   ManageAdministrativeUsers = 'admin-users:manage',
   ReadProviders = 'providers:read',
@@ -18,6 +19,7 @@ export const ADMIN_ROLE_CAPABILITIES: Record<
   [AdminRole.ADMINISTRATOR]: [
     AdminCapability.ManageDisputes,
     AdminCapability.ManageCatalog,
+    AdminCapability.ManageFeatureFlags,
     AdminCapability.ManageAdministrativeUsers,
     AdminCapability.ReadProviders,
     AdminCapability.ExecuteProviderDecisions,

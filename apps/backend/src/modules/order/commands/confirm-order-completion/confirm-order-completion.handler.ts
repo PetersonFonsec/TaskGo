@@ -1,3 +1,4 @@
+import { NotificationEmailService } from '../../../notifications/notification-email.service';
 import {
   BadRequestException,
   ForbiddenException,
@@ -17,6 +18,7 @@ export class ConfirmOrderCompletionHandler
 {
   constructor(
     private readonly prisma: PrismaService,
+    private readonly email: NotificationEmailService,
     private readonly paymentService: PaymentService,
     private readonly notifications: NotificationService,
   ) {}
@@ -137,6 +139,8 @@ export class ConfirmOrderCompletionHandler
       if (changed.count !== 1)
         throw new BadRequestException('Este pedido já foi confirmado');
 
+      await this.paymentService.enqueueSettlement(prisma, currentPayment);
+
       await prisma.orderCompletion.upsert({
         where: { orderId },
         create: {
@@ -183,6 +187,7 @@ export class ConfirmOrderCompletionHandler
       order.service.provider.user,
       orderId,
     );
+    await this.email.order('review', orderId);
     return {
       id: orderId.toString(),
       status: OrderStatus.CONCLUIDO,

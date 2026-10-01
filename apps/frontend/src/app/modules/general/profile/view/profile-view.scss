@@ -1,35 +1,246 @@
+:host {
+  display: block;
+  min-width: 0;
+}
+
 .profile-view {
-  padding: 1.5rem;
+  padding-bottom: var(--space-19);
+  color: var(--font-color-dark);
+}
+
+.profile-summary,
+.profile-addresses {
+  display: grid;
+  gap: var(--space-6);
+  min-width: 0;
+  padding: clamp(16px, 3vw, 24px);
+  border: 1px solid var(--color-neutral-3);
+  border-radius: 8px;
+  background: var(--background-color);
+  overflow-wrap: anywhere;
 }
 
 .profile-summary {
-  display: grid;
-  gap: 1rem;
-  margin-bottom: 2rem;
+  margin-bottom: var(--space-8);
+
+  app-button {
+    justify-self: start;
+    max-width: 100%;
+  }
 }
 
 .profile-photo {
   width: 96px;
   height: 96px;
-  border-radius: 999px;
+  border-radius: 50%;
   object-fit: cover;
 }
 
+.profile-details {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(min(100%, 240px), 1fr));
+  gap: var(--space-6);
+
+  div {
+    min-width: 0;
+  }
+
+  dt {
+    margin-bottom: var(--space-2);
+    color: var(--font-color-neutral);
+    font-size: var(--font-size-2);
+  }
+
+  dd {
+    margin: 0;
+    font-size: var(--font-size-3);
+    font-weight: var(--font-weight-medium);
+  }
+}
+
 .status.pending {
-  color: #b76e79;
+  justify-self: start;
+  padding: var(--space-3) var(--space-4);
+  border: 1px solid var(--color-neutral-3);
+  border-radius: 8px;
+  color: var(--font-color-neutral);
+  font-size: var(--font-size-2);
+  line-height: 1.5;
 }
 
 .profile-addresses ul {
+  display: grid;
+  gap: var(--space-4);
   list-style: none;
   padding: 0;
+  margin: 0;
 }
 
 .profile-addresses li {
-  margin-bottom: 0.75rem;
+  display: grid;
+  gap: var(--space-2);
+  padding: var(--space-6);
+  border: 1px solid var(--color-neutral-3);
+  border-radius: 8px;
+  line-height: 1.5;
+
+  span {
+    color: var(--font-color-neutral);
+  }
 }
 
 .loading,
 .error {
-  padding: 1rem;
-  color: #333;
+  padding: var(--space-8);
+  font-size: var(--font-size-3);
+  line-height: 1.5;
+}
+
+.loading {
+  color: var(--font-color-neutral);
+}
+
+.error {
+  color: var(--color-error-1);
+}
+
+.account-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 20px;
+}
+.account-card {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  padding: clamp(16px, 3vw, 24px);
+  border: 1px solid var(--color-neutral-3);
+  border-radius: 12px;
+  background: var(--background-color);
+  min-width: 0;
+  overflow-wrap: anywhere;
+}
+.identity {
+  display: flex;
+  gap: 20px;
+  align-items: center;
+}
+.identity h2,
+.account-card h2 {
+  margin: 0;
+  font-size: 1.2rem;
+}
+.profile-view p {
+  margin: 0;
+  line-height: 1.6;
+}
+.eyebrow {
+  font-size: 0.75rem;
+  font-weight: 600;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+}
+.muted,
+.contact-status {
+  color: var(--font-color-neutral);
+  font-size: 0.875rem;
+}
+.contact-status {
+  display: block;
+  margin-top: 8px;
+}
+.avatar-placeholder {
+  display: grid;
+  place-items: center;
+  background: #f1ebfc;
+  color: #5f24d6;
+  font-size: 2rem;
+  flex-shrink: 0;
+}
+.section-heading {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 16px;
+}
+progress {
+  width: 100%;
+  height: 8px;
+  accent-color: #5f24d6;
+}
+.checklist {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+}
+.checklist li {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 16px 0;
+  border-bottom: 1px solid var(--color-neutral-3);
+  font-size: 0.875rem;
+}
+.checklist li:last-child {
+  border: 0;
+  padding-bottom: 0;
+}
+.check {
+  margin-right: 8px;
+}
+.done {
+  color: #5f24d6;
+}
+a {
+  color: #5f24d6;
+  font-weight: 600;
+  text-underline-offset: 4px;
+}
+a:focus-visible {
+  outline: 2px solid currentColor;
+  outline-offset: 4px;
+  border-radius: 4px;
+}
+.shortcuts {
+  display: grid;
+  gap: 12px;
+}
+.shortcuts a {
+  display: grid;
+  gap: 6px;
+  text-decoration: none;
+  padding: 14px;
+  border: 1px solid var(--color-neutral-3);
+  border-radius: 8px;
+}
+.shortcuts a:hover {
+  background: #f7f4fc;
+}
+.shortcuts strong {
+  display: flex;
+  justify-content: space-between;
+  gap: 12px;
+}
+.shortcuts a > span {
+  color: var(--font-color-neutral);
+  font-size: 0.875rem;
+  font-weight: 400;
+}
+.address-summary {
+  display: grid;
+  gap: 6px;
+  line-height: 1.5;
+}
+.professional-card {
+  background: #f7f4fc;
+}
+@media (max-width: 680px) {
+  .account-grid {
+    grid-template-columns: 1fr;
+  }
+  .identity {
+    align-items: flex-start;
+    flex-wrap: wrap;
+  }
 }

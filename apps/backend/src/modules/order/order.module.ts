@@ -1,3 +1,4 @@
+import { NotificationsModule } from '../notifications/notifications.module';
 import {
   OrderDisputesController,
   AdminOrderDisputesController,
@@ -17,6 +18,7 @@ import { OrderExpiredHandler } from './events/order-expired.handler';
 
 @Module({
   imports: [
+    NotificationsModule,
     AdminAuthModule,
     ProviderModule,
     CqrsModule,

@@ -1,7 +1,14 @@
 <main class="provider-profile-page">
-  <a class="back-link" routerLink="/customer" aria-label="Voltar para profissionais">
-    <span aria-hidden="true">←</span> Voltar para profissionais
-  </a>
+  @if (preview) {
+    <a class="back-link" [routerLink]="['/general', profileUserId, 'profile', 'view']"
+      >← Voltar para minha conta</a
+    >
+    <p class="eyebrow">Prévia do seu perfil público</p>
+  } @else {
+    <a class="back-link" routerLink="/customer" aria-label="Voltar para profissionais">
+      <span aria-hidden="true">←</span> Voltar para profissionais
+    </a>
+  }
 
   @if (loading()) {
     <div class="page-state" role="status">Carregando perfil profissional...</div>
@@ -135,7 +142,9 @@
           }
         </dl>
 
-        <a class="booking-link" [routerLink]="['/customer', provider().id]">Agendar serviço</a>
+        @if (!preview) {
+          <a class="booking-link" [routerLink]="['/customer', provider().id]">Agendar serviço</a>
+        }
       </aside>
     </div>
   }

@@ -250,6 +250,9 @@ export class ProxiMapComponent implements AfterViewInit, DoCheck, OnDestroy {
 
     if (points.length > 1) {
       this.map.fitBounds(this.leaflet.latLngBounds(points), {
+        // Input changes can be followed immediately by route destruction.
+        // Avoid leaving a zoom transition running against a removed map.
+        animate: false,
         padding: [32, 32],
         maxZoom: 15,
       });
@@ -257,7 +260,7 @@ export class ProxiMapComponent implements AfterViewInit, DoCheck, OnDestroy {
     }
 
     if (points.length === 1) {
-      this.map.setView(points[0], 13);
+      this.map.setView(points[0], 13, { animate: false });
     }
   }
 

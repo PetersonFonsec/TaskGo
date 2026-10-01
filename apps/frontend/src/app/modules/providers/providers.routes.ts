@@ -2,16 +2,22 @@ import { Routes } from '@angular/router';
 
 export const ProvidersRoutes: Routes = [
   {
+    path: 'recebimentos',
+    title: 'Recebimentos',
+    loadComponent: () => import('./payout/provider-payout.page').then((c) => c.ProviderPayoutPage),
+  },
+  {
+    path: 'profile/:userId',
+    title: 'Prévia do perfil público',
+    data: { preview: true },
+    loadComponent: () =>
+      import('@modules/customer/provider-profile/provider-profile').then((c) => c.ProviderProfile),
+  },
+  {
     path: 'services',
     title: 'Meus serviços',
     loadComponent: () =>
       import('./services/provider-services.page').then((c) => c.ProviderServicesPage),
-  },
-  {
-    path: 'payouts',
-    title: 'Recebimentos',
-    loadComponent: () =>
-      import('./payouts/provider-payouts.page').then((c) => c.ProviderPayoutsPage),
   },
   {
     path: '',

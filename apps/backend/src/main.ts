@@ -14,7 +14,7 @@ import { requestCorrelationMiddleware } from './shared/http/request-correlation.
 
 async function bootstrap() {
   await otelSDK.start();
-  const app = await NestFactory.create(AppModule);
+  const app = await NestFactory.create(AppModule, { rawBody: true });
   const configService = app.get(ConfigService);
 
   app.enableCors(

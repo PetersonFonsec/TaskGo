@@ -39,6 +39,12 @@ export const ADMIN_NAVIGATION: readonly AdminNavigationItem[] = [
     roles: ['ADMINISTRATOR'],
   },
   {
+    label: 'Feature flags',
+    path: '/feature-flags',
+    capability: 'Gerenciamento de feature flags',
+    roles: ['ADMINISTRATOR'],
+  },
+  {
     label: 'Operators',
     path: '/operators',
     capability: 'Administrative users',

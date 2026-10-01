@@ -9,6 +9,7 @@ import {
   Query,
   ForbiddenException,
   UnauthorizedException,
+  ConflictException,
 } from '@nestjs/common';
 
 import { PaginationQuery } from '../../shared/services/pagination/pagination.interface';
@@ -279,10 +280,40 @@ export class OrderController {
         },
         data: { status: to },
       });
-      if (result.count !== 1)
-        throw new ForbiddenException(
-          'Order, payment or lifecycle does not permit this action',
+      if (result.count !== 1) {
+        const order = await tx.order.findFirst({
+          where: { id, service: { providerId: BigInt(user.id) } },
+          select: {
+            status: true,
+            service: { select: { provider: { select: { status: true } } } },
+            payment: { select: { method: true, status: true } },
+          },
+        });
+        if (!order)
+          throw new ForbiddenException(
+            'Pedido indisponível para este prestador',
+          );
+        if (order.service.provider.status !== 'APPROVED')
+          throw new ForbiddenException(
+            'O prestador precisa estar aprovado para realizar o serviço',
+          );
+        if (
+          order.payment?.method !== 'PIX' ||
+          !['CAPTURED', 'PAGO'].includes(order.payment.status)
+        )
+          throw new ConflictException(
+            'O PIX deste pedido ainda não está confirmado como pago',
+          );
+        if (order.status !== from)
+          throw new ConflictException(
+            from === 'EM_DESLOCAMENTO'
+              ? 'Para iniciar o serviço, o pedido precisa estar em deslocamento'
+              : 'Para sair para o atendimento, o pedido precisa estar agendado',
+          );
+        throw new ConflictException(
+          'O pedido foi atualizado. Atualize a página e tente novamente',
         );
+      }
       await tx.orderTimeline.create({
         data: {
           orderId: id,

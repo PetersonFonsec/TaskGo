@@ -26,10 +26,12 @@ describe('ProfileEdit', () => {
 
     mockUserService = {
       getUser: jasmine.createSpy('getUser').and.returnValue(of(profile)),
-      updateUser: jasmine.createSpy('updateUser').and.returnValue(of({
-        ...profile,
-        name: 'User',
-      })),
+      updateUser: jasmine.createSpy('updateUser').and.returnValue(
+        of({
+          ...profile,
+          name: 'User',
+        }),
+      ),
     };
 
     mockRouter = {
@@ -44,7 +46,9 @@ describe('ProfileEdit', () => {
           provide: ActivatedRoute,
           useValue: {
             snapshot: {
-              pathFromRoot: [{ paramMap: { get: (key: string) => key === 'userId' ? '1' : null } }],
+              pathFromRoot: [
+                { paramMap: { get: (key: string) => (key === 'userId' ? '1' : null) } },
+              ],
               paramMap: {
                 get: (key: string) => (key === 'userId' ? '1' : null),
               },
@@ -85,16 +89,33 @@ describe('ProfileEdit', () => {
     component.save({} as any);
 
     expect(mockUserService.updateUser).toHaveBeenCalledWith('1', {
+      photoUrl: null,
       name: 'User',
       email: 'test@example.com',
       phone: '+5511999999999',
     });
-    expect((mockUserService.updateUser as jasmine.Spy).calls.mostRecent().args[1] as any)
-      .not.toEqual(jasmine.objectContaining({
+    expect(
+      (mockUserService.updateUser as jasmine.Spy).calls.mostRecent().args[1] as any,
+    ).not.toEqual(
+      jasmine.objectContaining({
         id: jasmine.anything(),
         passwordHash: jasmine.anything(),
         orders: jasmine.anything(),
-      }));
+      }),
+    );
     expect(component.success()).toBe('Perfil salvo com sucesso');
+  });
+  it('saves an HTTPS photo and rejects unsafe links', () => {
+    component.photoUrlValue = 'https://example.com/avatar.jpg';
+    component.save({} as any);
+    expect(mockUserService.updateUser).toHaveBeenCalledWith(
+      '1',
+      jasmine.objectContaining({ photoUrl: component.photoUrlValue }),
+    );
+    (mockUserService.updateUser as jasmine.Spy).calls.reset();
+    component.photoUrlValue = 'javascript:alert(1)';
+    component.save({} as any);
+    expect(mockUserService.updateUser).not.toHaveBeenCalled();
+    expect(component.error()).toContain('HTTPS');
   });
 });

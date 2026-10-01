@@ -8,6 +8,7 @@ describe('admin navigation matrix', () => {
       'Providers',
       'Audit log',
       'Categorias',
+      'Feature flags',
       'Operators',
     ]);
   });

@@ -1,47 +1,53 @@
-import { OrderStatus, PaymentStatus } from '@prisma/client';
 import { PaymentService } from './payment.service';
 
 describe('PaymentService financial integrity', () => {
-  let current: any, charge: any, tx: any, gateway: any, service: PaymentService;
+  let payment: any, charge: any, tx: any, gateway: any, service: PaymentService;
   let notifications: { notifyClientPaymentConfirmed: jest.Mock };
   let db: any;
   beforeEach(() => {
-    current = {
+    payment = {
       id: 1n,
       orderId: 2n,
-      status: PaymentStatus.AUTORIZADO,
+      provider: 'ABACATEPAY',
+      status: 'PAGO',
       amount: 120,
-      providerChargeId: 'ch_1',
-      providerOrderId: 'or_1',
+      providerChargeId: 'pix_1',
+      providerOrderId: 'pix_1',
       method: 'PIX',
+      refundRequestedAt: null,
+      settlementStrategy: 'PIX_TRANSFER',
+      settlementDestination: { key: 'test@example.com', type: 'EMAIL' },
+      providerAmount: 105.6,
     };
     charge = {
-      id: 'ch_1',
-      order: { id: 'or_1' },
+      id: 'pix_1',
+      order: { id: 'pix_1' },
       amount: 12000,
-      status: 'authorized_pending_capture',
+      status: 'paid',
     };
     tx = {
       $queryRaw: jest.fn(),
       payment: {
-        findUniqueOrThrow: jest.fn(async () => current),
-        update: jest.fn(async ({ data }) => Object.assign(current, data)),
+        findUniqueOrThrow: jest.fn(async () => payment),
+        update: jest.fn(async ({ data }) => Object.assign(payment, data)),
+        updateMany: jest.fn(async ({ data }) => {
+          if (payment.refundRequestedAt) return { count: 0 };
+          Object.assign(payment, data);
+          return { count: 1 };
+        }),
       },
       order: {
-        findUniqueOrThrow: jest.fn().mockResolvedValue({
-          status: OrderStatus.AGUARDANDO_CONFIRMACAO_CLIENTE,
-          finalPrice: 120,
-        }),
+        findUniqueOrThrow: jest.fn().mockResolvedValue({ status: 'AGENDADO' }),
         updateMany: jest.fn().mockResolvedValue({ count: 1 }),
       },
       paymentAttempt: { findUnique: jest.fn().mockResolvedValue(null) },
       orderTimeline: { create: jest.fn() },
-      paymentWebhookEvent: { updateMany: jest.fn() },
+      paymentSettlement: { upsert: jest.fn() },
     };
     gateway = {
+      provider: 'ABACATEPAY',
       getCharge: jest.fn(async () => charge),
-      capturePayment: jest.fn(async () => ({ ...charge, status: 'paid' })),
-      cancelPayment: jest.fn(async () => ({ ...charge, status: 'canceled' })),
+      refundPayment: jest.fn(),
     };
     notifications = { notifyClientPaymentConfirmed: jest.fn() };
     db = {
@@ -54,50 +60,40 @@ describe('PaymentService financial integrity', () => {
         }),
       },
     };
-    service = new PaymentService(gateway, db, notifications as any);
-  });
-  it('validates the gateway outcome before saving capture', async () => {
-    gateway.capturePayment.mockResolvedValue({ ...charge, status: 'pending' });
-    await expect(service.capturePayment(current)).rejects.toThrow(
-      'Captura ainda não confirmada',
+    service = new PaymentService(
+      gateway,
+      db,
+      { resolve: jest.fn() } as any,
+      notifications as any,
     );
-    expect(tx.payment.update).not.toHaveBeenCalled();
   });
-  it('recovers a successful gateway capture followed by a lost DB transaction without recapturing', async () => {
-    charge.status = 'paid';
-    await service.capturePayment(current);
-    expect(gateway.capturePayment).not.toHaveBeenCalled();
-    expect(current.status).toBe('PAGO');
-  });
-  it('rejects amount and account/order mismatches without mutations', async () => {
-    charge.order.id = 'or_other';
-    await expect(service.capturePayment(current)).rejects.toThrow(
+  it.each(['amount', 'id'])('rejects a mismatched %s', async (field) => {
+    charge[field] = field === 'amount' ? 1 : 'another';
+    await expect(service.reconcilePayment(1n)).rejects.toThrow(
       'Cobrança divergente',
     );
-    expect(gateway.capturePayment).not.toHaveBeenCalled();
     expect(tx.payment.update).not.toHaveBeenCalled();
   });
-  it('does not regress a refund when stale canonical state is paid', async () => {
-    current.status = 'REEMBOLSADO';
-    charge.status = 'paid';
-    await service.reconcilePayment(current.id);
+  it('never sends legacy payments to the new provider', async () => {
+    payment.provider = 'PAGARME';
+    await expect(service.reconcilePayment(1n)).rejects.toThrow('legado');
+    expect(gateway.getCharge).not.toHaveBeenCalled();
+  });
+  it('does not regress a refund', async () => {
+    payment.status = 'REEMBOLSADO';
+    await service.reconcilePayment(1n);
     expect(tx.payment.update).not.toHaveBeenCalled();
   });
-  it('only schedules a PIX after canonical paid state', async () => {
-    charge.status = 'pending';
-    await service.reconcilePayment(current.id);
-    expect(tx.order.updateMany).toHaveBeenLastCalledWith(
-      expect.objectContaining({ data: { status: 'AGUARDANDO_PAGAMENTO' } }),
-    );
-    charge.status = 'paid';
-    await service.reconcilePayment(current.id);
-    expect(tx.order.updateMany).toHaveBeenLastCalledWith(
+  it('schedules only after confirmed receipt', async () => {
+    payment.status = 'PENDENTE';
+    await service.reconcilePayment(1n);
+    expect(tx.order.updateMany).toHaveBeenCalledWith(
       expect.objectContaining({ data: { status: 'AGENDADO' } }),
     );
   });
   it('notifies the client once when reconciliation schedules a paid PIX', async () => {
-    charge.status = 'paid';
-    await service.reconcilePayment(current.id);
+    payment.status = 'PENDENTE';
+    await service.reconcilePayment(1n);
     await new Promise(setImmediate);
     expect(notifications.notifyClientPaymentConfirmed).toHaveBeenCalledWith(
       { email: 'cliente@proxi.test', name: 'Cliente' },
@@ -107,51 +103,84 @@ describe('PaymentService financial integrity', () => {
         scheduledFor: new Date('2026-06-22T12:00:00.000Z'),
       },
     );
+    payment.status = 'PENDENTE';
     tx.order.updateMany.mockResolvedValue({ count: 0 });
-    await service.reconcilePayment(current.id);
+    await service.reconcilePayment(1n);
     await new Promise(setImmediate);
     expect(notifications.notifyClientPaymentConfirmed).toHaveBeenCalledTimes(1);
   });
   it('keeps the reconciliation result when the notification lookup fails', async () => {
-    charge.status = 'paid';
+    payment.status = 'PENDENTE';
     db.order.findUnique.mockRejectedValue(new Error('db down'));
-    await expect(service.reconcilePayment(current.id)).resolves.toEqual(
+    await expect(service.reconcilePayment(1n)).resolves.toEqual(
       expect.objectContaining({ status: 'PAGO' }),
     );
     await new Promise(setImmediate);
     expect(notifications.notifyClientPaymentConfirmed).not.toHaveBeenCalled();
   });
   it('does not notify while the PIX is still pending', async () => {
+    payment.status = 'PENDENTE';
     charge.status = 'pending';
-    await service.reconcilePayment(current.id);
+    await service.reconcilePayment(1n);
     await new Promise(setImmediate);
     expect(notifications.notifyClientPaymentConfirmed).not.toHaveBeenCalled();
   });
-  it('keeps order/payment unchanged on refund failure', async () => {
-    tx.order.findUniqueOrThrow.mockResolvedValue({ status: 'AGENDADO' });
-    charge.status = 'paid';
-    gateway.cancelPayment.mockRejectedValue(new Error('timeout'));
-    await expect(service.cancelPayment(current)).rejects.toThrow('timeout');
-    expect(tx.payment.update).not.toHaveBeenCalled();
+  it('keeps the refund claim on timeout and does not resubmit', async () => {
+    gateway.refundPayment.mockRejectedValue(new Error('timeout'));
+    await expect(service.cancelPayment(payment)).rejects.toThrow('timeout');
+    expect(payment.refundRequestedAt).toBeInstanceOf(Date);
+    await expect(service.cancelPayment(payment)).rejects.toThrow(
+      'aguarde confirmação',
+    );
+    expect(gateway.refundPayment).toHaveBeenCalledTimes(1);
+    expect(payment.status).toBe('PAGO');
   });
-  it('cancels an uncharged order but blocks an ambiguous creation attempt', async () => {
-    tx.order.findUniqueOrThrow.mockResolvedValue({ status: 'AGENDADO' });
-    current.status = 'CREATED';
-    current.providerChargeId = null;
+  it('does not locally cancel a payable pending QR', async () => {
+    payment.status = 'PENDENTE';
+    charge.status = 'pending';
+    await expect(service.cancelPayment(payment)).rejects.toThrow(
+      'aguarde expiração',
+    );
+    expect(gateway.refundPayment).not.toHaveBeenCalled();
+  });
+  it('rechecks order eligibility at the durable refund claim', async () => {
+    tx.order.findUniqueOrThrow
+      .mockResolvedValueOnce({ status: 'AGENDADO' })
+      .mockResolvedValueOnce({ status: 'EM_ANDAMENTO' });
+    await expect(service.cancelPayment(payment)).rejects.toThrow(
+      'não pode mais',
+    );
+    expect(gateway.refundPayment).not.toHaveBeenCalled();
+  });
+  it('blocks cancellation during ambiguous creation', async () => {
+    payment.status = 'CREATED';
+    payment.providerChargeId = null;
     tx.paymentAttempt.findUnique.mockResolvedValue({ orderId: 2n });
-    await expect(service.cancelPayment(current)).rejects.toThrow(
+    await expect(service.cancelPayment(payment)).rejects.toThrow(
       'pendente de conciliação',
     );
     tx.paymentAttempt.findUnique.mockResolvedValue(null);
-    await service.cancelPayment(current);
-    expect(current.status).toBe('CANCELADO');
-    expect(gateway.cancelPayment).not.toHaveBeenCalled();
+    await service.cancelPayment(payment);
+    expect(payment.status).toBe('CANCELADO');
   });
-  it('does not refund a service already started', async () => {
-    tx.order.findUniqueOrThrow.mockResolvedValue({ status: 'EM_EXECUCAO' });
-    await expect(service.cancelPayment(current)).rejects.toThrow(
-      'não pode mais ser cancelado',
+  it('queues the stored allocation in the caller transaction', async () => {
+    await service.enqueueSettlement(tx, payment);
+    expect(tx.paymentSettlement.upsert).toHaveBeenCalledWith(
+      expect.objectContaining({
+        create: expect.objectContaining({
+          amountCents: 10560,
+          externalId: 'taskgo-payment-1',
+          strategy: 'PIX_TRANSFER',
+          destination: payment.settlementDestination,
+        }),
+      }),
     );
-    expect(gateway.getCharge).not.toHaveBeenCalled();
+  });
+  it('does not queue disputed money', async () => {
+    payment.settlementBlockedAt = new Date();
+    await expect(service.enqueueSettlement(tx, payment)).rejects.toThrow(
+      'em análise',
+    );
+    expect(tx.paymentSettlement.upsert).not.toHaveBeenCalled();
   });
 });

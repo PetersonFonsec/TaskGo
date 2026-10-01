@@ -23,12 +23,15 @@ export class ProfileEdit implements OnInit {
   success = signal('');
   loading = signal(true);
 
+  photoUrlValue = '';
   nameValue = '';
   emailValue = '';
   phoneValue = '';
 
   ngOnInit() {
-    const userId = this.#route.snapshot.pathFromRoot.map(route => route.paramMap.get('userId')).find(Boolean);
+    const userId = this.#route.snapshot.pathFromRoot
+      .map((route) => route.paramMap.get('userId'))
+      .find(Boolean);
     if (!userId) {
       this.error.set('Usuário não encontrado');
       this.loading.set(false);
@@ -38,6 +41,7 @@ export class ProfileEdit implements OnInit {
     this.#userService.getUser(userId).subscribe({
       next: (response) => {
         this.user.set(response);
+        this.photoUrlValue = response.photoUrl ?? '';
         this.nameValue = response.name;
         this.emailValue = response.email;
         this.phoneValue = response.phone;
@@ -63,11 +67,17 @@ export class ProfileEdit implements OnInit {
       errors.push('Telefone inválido');
     }
 
+    if (this.photoUrlValue.trim() && !/^https:\/\//i.test(this.photoUrlValue.trim())) {
+      errors.push('Use um link HTTPS para a foto');
+    }
+
     return errors;
   }
 
   save(form: NgForm) {
-    const userId = this.#route.snapshot.pathFromRoot.map(route => route.paramMap.get('userId')).find(Boolean);
+    const userId = this.#route.snapshot.pathFromRoot
+      .map((route) => route.paramMap.get('userId'))
+      .find(Boolean);
     if (!userId) {
       this.error.set('Usuário não encontrado');
       return;
@@ -84,6 +94,7 @@ export class ProfileEdit implements OnInit {
     this.success.set('');
 
     const payload: UserProfileUpdateRequest = {
+      photoUrl: this.photoUrlValue.trim() || null,
       name: this.nameValue,
       email: this.emailValue,
       phone: this.phoneValue,
@@ -102,6 +113,6 @@ export class ProfileEdit implements OnInit {
   }
 
   cancel() {
-    this.#router.navigate(['../home'], { relativeTo: this.#route });
+    this.#router.navigate(['../view'], { relativeTo: this.#route });
   }
 }

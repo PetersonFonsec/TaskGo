@@ -1,3 +1,4 @@
+import { NotificationsModule } from '../notifications/notifications.module';
 import { Module } from '@nestjs/common';
 import { CqrsModule } from '@nestjs/cqrs';
 
@@ -13,7 +14,7 @@ import { CreateClientStrategy } from './commands/create-user/strategies/create-c
 import { CreateUserFactory } from './commands/create-user/factories/create-user.factory';
 
 @Module({
-  imports: [CqrsModule, NotificationModule],
+  imports: [NotificationsModule, CqrsModule, NotificationModule],
   controllers: [UserController],
   providers: [
     UserService,

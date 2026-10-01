@@ -1,9 +1,9 @@
 import { registerAs } from '@nestjs/config';
 
 export default registerAs('payment', () => ({
-  baseUrl: process.env.PAGARME_BASE_URL ?? 'https://api.pagar.me/core/v5',
-  secretKey: process.env.PAGARME_SECRET_KEY ?? '',
-  platformRecipientId: process.env.PAGARME_PLATFORM_RECIPIENT_ID,
+  secretKey: process.env.ABACATEPAY_API_KEY ?? '',
+  webhookSecret: process.env.ABACATEPAY_WEBHOOK_SECRET ?? '',
+  devMode: process.env.ABACATEPAY_DEV_MODE === 'true',
   simulated: process.env.PAYMENTS_SIMULATION === 'true',
   defaultPlatformFeePct: Number(process.env.DEFAULT_PLATFORM_FEE_PCT ?? 0.12),
 }));

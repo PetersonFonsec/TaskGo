@@ -1,5 +1,9 @@
 import { OrderController } from './order.controller';
-import { ForbiddenException, UnauthorizedException } from '@nestjs/common';
+import {
+  ConflictException,
+  ForbiddenException,
+  UnauthorizedException,
+} from '@nestjs/common';
 
 describe('Order authorization', () => {
   let controller: OrderController;
@@ -127,5 +131,78 @@ describe('Order authorization', () => {
       ForbiddenException,
     );
     expect(notifications.notifyClientProviderOnTheWay).toHaveBeenCalledTimes(1);
+  });
+
+  it.each(['AUTHORIZED', 'AUTORIZADO', 'PENDENTE', 'CREATED', 'REEMBOLSADO'])(
+    'explains why PIX in %s cannot start a service without recording a transition',
+    async (status) => {
+      db.order.updateMany.mockResolvedValue({ count: 0 });
+      db.order.findFirst.mockResolvedValue({
+        status: 'EM_DESLOCAMENTO',
+        service: { provider: { status: 'APPROVED' } },
+        payment: { method: 'PIX', status },
+      });
+      await expect(controller.start(12n, provider)).rejects.toThrow(
+        'O PIX deste pedido ainda não está confirmado como pago',
+      );
+      expect(db.order.findFirst).toHaveBeenCalledWith(
+        expect.objectContaining({
+          where: { id: 12n, service: { providerId: 42n } },
+        }),
+      );
+      expect(db.orderTimeline.create).not.toHaveBeenCalled();
+    },
+  );
+
+  it.each([
+    ['start', 'AGENDADO', 'em deslocamento'],
+    ['onTheWay', 'AGUARDANDO_PAGAMENTO', 'agendado'],
+  ] as const)(
+    'explains the required prior state for %s',
+    async (action, status, message) => {
+      db.order.updateMany.mockResolvedValue({ count: 0 });
+      db.order.findFirst.mockResolvedValue({
+        status,
+        service: { provider: { status: 'APPROVED' } },
+        payment: { method: 'PIX', status: 'PAGO' },
+      });
+      await expect(controller[action](12n, provider)).rejects.toThrow(message);
+      expect(db.orderTimeline.create).not.toHaveBeenCalled();
+    },
+  );
+
+  it('does not disclose payment information to another provider', async () => {
+    db.order.updateMany.mockResolvedValue({ count: 0 });
+    db.order.findFirst.mockResolvedValue(null);
+    await expect(controller.start(12n, provider)).rejects.toThrow(
+      ForbiddenException,
+    );
+    expect(db.orderTimeline.create).not.toHaveBeenCalled();
+  });
+
+  it('rejects a provider whose approval was revoked', async () => {
+    db.order.updateMany.mockResolvedValue({ count: 0 });
+    db.order.findFirst.mockResolvedValue({
+      status: 'EM_DESLOCAMENTO',
+      service: { provider: { status: 'PENDING' } },
+      payment: { method: 'PIX', status: 'PAGO' },
+    });
+    await expect(controller.start(12n, provider)).rejects.toThrow(
+      'precisa estar aprovado',
+    );
+    expect(db.orderTimeline.create).not.toHaveBeenCalled();
+  });
+
+  it('asks for a refresh when the state changes during a rejected transition', async () => {
+    db.order.updateMany.mockResolvedValue({ count: 0 });
+    db.order.findFirst.mockResolvedValue({
+      status: 'EM_DESLOCAMENTO',
+      service: { provider: { status: 'APPROVED' } },
+      payment: { method: 'PIX', status: 'PAGO' },
+    });
+    await expect(controller.start(12n, provider)).rejects.toThrow(
+      ConflictException,
+    );
+    expect(db.orderTimeline.create).not.toHaveBeenCalled();
   });
 });

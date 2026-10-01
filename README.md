@@ -18,6 +18,10 @@ Siga o [guia de instalação e execução](docs/development/setup.md), incluindo
 
 ## Contribuição e qualidade
 
+O gateway escolhido para pagamentos é o **AbacatePay**. Consulte a
+[fluxo de cobrança, repasse PIX e migração futura para split](docs/abacatepay-migration.md),
+incluindo configuração, homologação e tratamento dos pagamentos legados.
+
 Consulte o [fluxo de contribuição](CONTRIBUTING.md), o [quadro de trabalho](docs/development/board.md) e a [definição de pronto](docs/development/definition-of-done.md). A [auditoria de qualidade](docs/development/quality-baseline.md) descreve o escopo do CI e as limitações conhecidas.
 
 Os procedimentos de [publicação](docs/operations/deploy.md) e [recuperação](docs/operations/rollback.md) registram os passos operacionais e as informações de infraestrutura ainda necessárias. O [acompanhamento das 16 tasks](docs/development/process-tasks.md) distingue as entregas locais das configurações remotas pendentes.

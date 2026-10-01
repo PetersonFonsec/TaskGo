@@ -1,34 +1,154 @@
 <div class="profile-view">
-  <ng-container *ngIf="loading() === false; else loadingTemplate">
-    <div *ngIf="user(); else errorTemplate">
-      <section class="profile-summary">
-        <img *ngIf="user()?.photoUrl" [src]="user()?.photoUrl" alt="Foto do perfil" class="profile-photo" />
-        <h1 data-cy="profile-name">{{ user()?.name }}</h1>
-        <p data-cy="profile-email">Email: {{ user()?.email }}</p>
-        <p data-cy="profile-phone">Telefone: {{ user()?.phone }}</p>
-        <p *ngIf="user()?.emailVerified === false" class="status pending">Email pendente de verificação</p>
-        <p *ngIf="user()?.phoneVerified === false" class="status pending">Telefone pendente de verificação</p>
-        <button app-button type="button" data-cy="edit-profile" (click)="goToEdit()">Editar perfil</button>
-      </section>
+  @if (loading()) {
+    <div class="loading" role="status">Carregando perfil...</div>
+  } @else if (user(); as profile) {
+    <section class="profile-summary">
+      <div class="identity">
+        @if (profile.photoUrl) {
+          <img [src]="profile.photoUrl" alt="Foto do perfil" class="profile-photo" />
+        } @else {
+          <span class="profile-photo avatar-placeholder" aria-label="Perfil sem foto">{{
+            profile.name.charAt(0)
+          }}</span>
+        }
+        <div>
+          <p class="eyebrow">
+            Minha conta · {{ isProvider() ? 'Prestador' : isCustomer() ? 'Cliente' : 'Perfil' }}
+          </p>
+          <h2 data-cy="profile-name">{{ profile.name }}</h2>
+          <p class="muted">Seus dados e atalhos, em um só lugar.</p>
+        </div>
+      </div>
+      <dl class="profile-details">
+        <div>
+          <dt>E-mail</dt>
+          <dd data-cy="profile-email">{{ profile.email || 'Não informado' }}</dd>
+          @if (profile.emailVerified !== undefined) {
+            <span class="contact-status">{{
+              profile.emailVerified ? 'E-mail verificado' : 'E-mail pendente de verificação'
+            }}</span>
+          }
+        </div>
+        <div>
+          <dt>Telefone</dt>
+          <dd data-cy="profile-phone">{{ profile.phone || 'Não informado' }}</dd>
+          @if (profile.phoneVerified !== undefined) {
+            <span class="contact-status">{{
+              profile.phoneVerified ? 'Telefone verificado' : 'Telefone pendente de verificação'
+            }}</span>
+          }
+        </div>
+      </dl>
+      <app-button type="button" data-cy="edit-profile" (click)="goToEdit()"
+        >Editar perfil</app-button
+      >
+    </section>
 
-      <section class="profile-addresses">
-        <h2>Endereços</h2>
-        <ul>
-          <li *ngFor="let address of user()?.addresses || []" data-cy="profile-address-item">
-            <strong>{{ address.label }}</strong>
-            <span>{{ address.street }}, {{ address.city }} {{ address.state }}</span>
-          </li>
+    <div class="account-grid">
+      <section class="account-card completion-card" aria-labelledby="completion-title">
+        <div class="section-heading">
+          <h2 id="completion-title">
+            {{ completion() === 100 ? 'Cadastro completo' : 'Complete seu cadastro' }}
+          </h2>
+          <strong>{{ completion() }}%</strong>
+        </div>
+        <p class="muted">{{ completed() }} de {{ checklist().length }} etapas concluídas</p>
+        <progress
+          [value]="completed()"
+          [max]="checklist().length"
+          aria-label="Progresso do cadastro"
+        ></progress>
+        <ul class="checklist">
+          @for (item of checklist(); track item.label) {
+            <li>
+              <span
+                ><span class="check" [class.done]="item.done" aria-hidden="true">{{
+                  item.done ? '✓' : '○'
+                }}</span
+                >{{ item.label }}</span
+              >
+              @if (item.done) {
+                <span class="muted">Concluído</span>
+              } @else {
+                <a [routerLink]="item.link">{{ item.action }} <span aria-hidden="true">→</span></a>
+              }
+            </li>
+          }
         </ul>
-        <p *ngIf="!(user()?.addresses?.length)">Nenhum endereço cadastrado.</p>
       </section>
+
+      <section class="account-card" aria-labelledby="shortcuts-title">
+        <h2 id="shortcuts-title">Acessos rápidos</h2>
+        <nav class="shortcuts" aria-label="Atalhos da conta">
+          <a [routerLink]="['/general', profile.id, 'history']"
+            ><strong>Histórico de serviços <span aria-hidden="true">↗</span></strong
+            ><span>Acompanhe seus atendimentos.</span></a
+          >
+          @if (isCustomer()) {
+            <a routerLink="/customer/favorites"
+              ><strong>Profissionais favoritos <span aria-hidden="true">↗</span></strong
+              ><span>Encontre novamente quem você salvou.</span></a
+            >
+          }
+          @if (isProvider()) {
+            <a routerLink="/provider/recebimentos"
+              ><strong>Recebimentos PIX</strong
+              ><span>Cadastre sua chave e acompanhe os repasses.</span></a
+            >
+            <a routerLink="/provider/services"
+              ><strong>Meus serviços <span aria-hidden="true">↗</span></strong
+              ><span>Gerencie os serviços que você oferece.</span></a
+            >
+          }
+          <a [routerLink]="addressesLink()"
+            ><strong>Meus endereços <span aria-hidden="true">↗</span></strong
+            ><span>Cadastre e atualize seus locais.</span></a
+          >
+        </nav>
+      </section>
+
+      <section class="account-card profile-addresses" aria-labelledby="address-title">
+        <h2 id="address-title">
+          {{
+            primaryAddress()?.isPrimary || primaryAddress()?.isDefault
+              ? 'Endereço principal'
+              : 'Endereço cadastrado'
+          }}
+        </h2>
+        @if (primaryAddress(); as address) {
+          <div data-cy="profile-address-item" class="address-summary">
+            <strong>{{ address.label || 'Endereço de atendimento' }}</strong>
+            <span>{{ address.street }}{{ address.number ? ', ' + address.number : '' }}</span>
+            @if (address.complement) {
+              <span>{{ address.complement }}</span>
+            }
+            <span>{{ address.city }} · {{ address.state }}</span>
+          </div>
+        } @else {
+          <p class="muted">
+            Nenhum endereço cadastrado. Adicione um local para facilitar seus próximos serviços.
+          </p>
+        }
+        <a [routerLink]="addressesLink()"
+          >{{ primaryAddress() ? 'Gerenciar endereços' : 'Adicionar endereço' }}
+          <span aria-hidden="true">→</span></a
+        >
+      </section>
+
+      @if (isProvider()) {
+        <section class="account-card professional-card" aria-labelledby="public-title">
+          <p class="eyebrow">Seu perfil profissional</p>
+          <h2 id="public-title">Veja como você se apresenta</h2>
+          <p class="muted">
+            Confira os serviços, a apresentação e as avaliações exibidos aos clientes.
+          </p>
+          <a [routerLink]="['/provider/profile', profile.id]"
+            >Ver meu perfil público <span aria-hidden="true">→</span></a
+          >
+        </section>
+      }
     </div>
-  </ng-container>
+  } @else {
+    <div class="error" role="alert">{{ error() }}</div>
+  }
 </div>
-
-<ng-template #loadingTemplate>
-  <div class="loading">Carregando perfil...</div>
-</ng-template>
-
-<ng-template #errorTemplate>
-  <div class="error">{{ error() }}</div>
-</ng-template>
