@@ -9,11 +9,16 @@ export class AuthTokenService {
     private readonly configService: ConfigService,
   ) {}
 
-  async createToken(id: bigint) {
+  /** `sessionId` liga o access token à sessão (família do refresh token). */
+  async createToken(id: bigint, sessionId?: string) {
     const idString = id.toString();
 
     const access_token = this.jwtService.sign(
-      { id: idString, tokenKind: 'customer' },
+      {
+        id: idString,
+        tokenKind: 'customer',
+        ...(sessionId ? { sid: sessionId } : {}),
+      },
       {
         expiresIn: this.configService.getOrThrow('auth.expiresIn'),
         subject: idString,

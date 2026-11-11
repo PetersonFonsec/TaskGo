@@ -16,8 +16,23 @@ export interface FcmServiceAccount {
 const TOKEN_URL = 'https://oauth2.googleapis.com/token';
 const FCM_SCOPE = 'https://www.googleapis.com/auth/firebase.messaging';
 const REQUEST_TIMEOUT_MS = 10_000;
-/** Erros do FCM que significam que o token não serve mais. */
-const INVALID_TOKEN_ERRORS = new Set(['UNREGISTERED', 'INVALID_ARGUMENT']);
+/**
+ * Códigos do FCM (`details[].errorCode`) que comprovam que o token não serve
+ * mais para este projeto: app desinstalado ou token de outro remetente.
+ */
+const INVALID_TOKEN_CODES = new Set(['UNREGISTERED', 'SENDER_ID_MISMATCH']);
+/** Campo apontado por `google.rpc.BadRequest` quando o token é malformado. */
+const TOKEN_FIELD = 'message.token';
+
+interface FcmErrorBody {
+  error?: {
+    status?: string;
+    details?: Array<{
+      errorCode?: string;
+      fieldViolations?: Array<{ field?: string }>;
+    }>;
+  };
+}
 
 type Fetch = typeof fetch;
 
@@ -59,7 +74,8 @@ export class FcmPushTransport extends PushTransport {
     const accessToken = await this.getAccessToken();
     const url = `https://fcm.googleapis.com/v1/projects/${this.account.project_id}/messages:send`;
 
-    await Promise.all(
+    // Falha num aparelho não interrompe nem descarta o resultado dos outros.
+    const results = await Promise.allSettled(
       tokens.map(async (token) => {
         const response = await this.http(url, {
           method: 'POST',
@@ -77,17 +93,54 @@ export class FcmPushTransport extends PushTransport {
           signal: AbortSignal.timeout(REQUEST_TIMEOUT_MS),
         });
         if (response.ok) return;
-        const status = await this.readErrorStatus(response);
-        if (status && INVALID_TOKEN_ERRORS.has(status)) {
+        const error = await this.readError(response);
+        if (this.provesTokenInvalid(error)) {
           invalidTokens.push(token);
           return;
         }
         this.logger.warn(
-          `FCM recusou o envio (${response.status} ${status ?? 'sem código'})`,
+          `FCM recusou o envio para ${this.mask(token)} (HTTP ${response.status}, ${this.describe(error)})`,
         );
       }),
     );
+    results.forEach((result, index) => {
+      if (result.status === 'rejected') {
+        this.logger.warn(
+          `Falha ao enviar push para ${this.mask(tokens.at(index) ?? '')}: ${(result.reason as Error)?.name ?? 'erro'}`,
+        );
+      }
+    });
     return { invalidTokens };
+  }
+
+  /**
+   * Só remove o token quando o FCM aponta o próprio token: um código
+   * específico de token, ou INVALID_ARGUMENT com violação no campo
+   * `message.token`. INVALID_ARGUMENT sem isso pode ser erro de payload.
+   */
+  private provesTokenInvalid(error: FcmErrorBody | null): boolean {
+    const details = error?.error?.details ?? [];
+    if (
+      details.some((d) => d.errorCode && INVALID_TOKEN_CODES.has(d.errorCode))
+    )
+      return true;
+    return (
+      error?.error?.status === 'INVALID_ARGUMENT' &&
+      details.some((d) =>
+        d.fieldViolations?.some((v) => v.field === TOKEN_FIELD),
+      )
+    );
+  }
+
+  private describe(error: FcmErrorBody | null): string {
+    if (!error?.error) return 'resposta sem corpo de erro válido';
+    const code = error.error.details?.find((d) => d.errorCode)?.errorCode;
+    return [error.error.status, code].filter(Boolean).join('/') || 'sem código';
+  }
+
+  /** Nunca registra o token inteiro. */
+  private mask(token: string): string {
+    return `aparelho …${token.slice(-6)}`;
   }
 
   private async getAccessToken(): Promise<string> {
@@ -135,16 +188,10 @@ export class FcmPushTransport extends PushTransport {
     return `${unsigned}.${signature}`;
   }
 
-  private async readErrorStatus(response: Response): Promise<string | null> {
+  private async readError(response: Response): Promise<FcmErrorBody | null> {
     try {
-      const body = (await response.json()) as {
-        error?: {
-          status?: string;
-          details?: Array<{ errorCode?: string }>;
-        };
-      };
-      const fcmCode = body.error?.details?.find((d) => d.errorCode)?.errorCode;
-      return fcmCode ?? body.error?.status ?? null;
+      const body = (await response.json()) as unknown;
+      return body && typeof body === 'object' ? (body as FcmErrorBody) : null;
     } catch {
       return null;
     }

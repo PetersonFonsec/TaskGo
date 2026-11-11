@@ -49,10 +49,13 @@ export class AuthController {
     const query = plainToClass(LoginQuery, body);
     const result = await this.queryBus.execute(query);
 
+    const { refresh_token, familyId } = await this.refreshTokens.issue(
+      BigInt(result.id),
+    );
     const { access_token } = await this.tokenService.createToken(
       result.id.toString(),
+      familyId,
     );
-    const { refresh_token } = await this.refreshTokens.issue(BigInt(result.id));
     const providerHome =
       result.type === 'PRESTADOR'
         ? await this.providerHomeService.getForProvider(BigInt(result.id))
@@ -79,8 +82,13 @@ export class AuthController {
     const query = plainToClass(GetUserQuery, { id: BigInt(userId) });
     const user = await this.queryBus.execute(query);
 
-    const { access_token } = await this.tokenService.createToken(userId);
-    const { refresh_token } = await this.refreshTokens.issue(BigInt(userId));
+    const { refresh_token, familyId } = await this.refreshTokens.issue(
+      BigInt(userId),
+    );
+    const { access_token } = await this.tokenService.createToken(
+      userId,
+      familyId,
+    );
     const session: CustomerAuthSession = { user, access_token, refresh_token };
 
     return session;
@@ -91,10 +99,13 @@ export class AuthController {
   @Post('refresh')
   @HttpCode(200)
   async refresh(@Body() body: RefreshTokenDto) {
-    const { userId, refresh_token } = await this.refreshTokens.rotate(
+    const { userId, familyId, refresh_token } = await this.refreshTokens.rotate(
       body.refresh_token,
     );
-    const { access_token } = await this.tokenService.createToken(userId);
+    const { access_token } = await this.tokenService.createToken(
+      userId,
+      familyId,
+    );
     return { access_token, refresh_token };
   }
 

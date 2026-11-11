@@ -28,22 +28,39 @@ describe('PushService', () => {
   });
 
   it('registra o token e transfere de dono quando o aparelho troca de conta', async () => {
-    await service.registerDevice(7n, 'token-abc', 'ANDROID');
+    await service.registerDevice(7n, 'token-abc', 'ANDROID', 'family-1');
 
     expect(prisma.deviceToken.upsert).toHaveBeenCalledWith(
       expect.objectContaining({
         where: { token: 'token-abc' },
-        create: { userId: 7n, token: 'token-abc', platform: 'ANDROID' },
-        update: expect.objectContaining({ userId: 7n, platform: 'ANDROID' }),
+        create: {
+          userId: 7n,
+          token: 'token-abc',
+          platform: 'ANDROID',
+          sessionFamilyId: 'family-1',
+        },
+        update: expect.objectContaining({
+          userId: 7n,
+          platform: 'ANDROID',
+          sessionFamilyId: 'family-1',
+        }),
       }),
     );
   });
 
-  it('remove apenas o token do próprio usuário', async () => {
+  it('remove só aparelhos do usuário na própria sessão ou sem sessão', async () => {
+    await service.unregisterDevice(7n, 'token-abc', 'family-1');
     await service.unregisterDevice(7n, 'token-abc');
 
-    expect(prisma.deviceToken.deleteMany).toHaveBeenCalledWith({
-      where: { userId: 7n, token: 'token-abc' },
+    expect(prisma.deviceToken.deleteMany).toHaveBeenNthCalledWith(1, {
+      where: {
+        userId: 7n,
+        token: 'token-abc',
+        OR: [{ sessionFamilyId: 'family-1' }, { sessionFamilyId: null }],
+      },
+    });
+    expect(prisma.deviceToken.deleteMany).toHaveBeenNthCalledWith(2, {
+      where: { userId: 7n, token: 'token-abc', sessionFamilyId: null },
     });
   });
 
@@ -68,6 +85,22 @@ describe('PushService', () => {
     });
     expect(prisma.deviceToken.deleteMany).toHaveBeenCalledWith({
       where: { token: { in: ['velho'] } },
+    });
+  });
+
+  it('apaga só os inválidos quando o lote tem sucessos e falhas temporárias', async () => {
+    prisma.deviceToken.findMany.mockResolvedValue([
+      { token: 'device-a' },
+      { token: 'device-b' },
+      { token: 'device-c' },
+    ]);
+    transport.send.mockResolvedValue({ invalidTokens: ['device-c'] });
+
+    await service.sendToUser(7n, { title: 't', body: 'b' });
+
+    expect(prisma.deviceToken.deleteMany).toHaveBeenCalledTimes(1);
+    expect(prisma.deviceToken.deleteMany).toHaveBeenCalledWith({
+      where: { token: { in: ['device-c'] } },
     });
   });
 

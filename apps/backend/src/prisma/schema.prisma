@@ -713,10 +713,14 @@ model DeviceToken {
   platform   DevicePlatform
   createdAt  DateTime       @default(now()) @map("created_at")
   lastSeenAt DateTime       @default(now()) @map("last_seen_at")
+  /// Família do refresh token da sessão que registrou o aparelho. O logout
+  /// dessa sessão apaga o registro. Nulo para registros sem sessão (site).
+  sessionFamilyId String?   @map("session_family_id")
 
   user User @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@index([userId])
+  @@index([sessionFamilyId])
   @@map("device_tokens")
 }
 

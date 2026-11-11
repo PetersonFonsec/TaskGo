@@ -5,6 +5,8 @@ export type CustomerRole = 'CLIENTE' | 'PRESTADOR';
 export interface AuthenticatedIdentity {
   readonly id: string;
   readonly role: CustomerRole;
+  /** Família do refresh token (sessão do app); ausente em tokens do site. */
+  readonly sessionId?: string;
 }
 
 export const CUSTOMER_ROLES = new Set<CustomerRole>([

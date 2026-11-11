@@ -14,23 +14,41 @@ export class PushService {
   ) {}
 
   /**
-   * Registra (ou transfere) o token para o usuário. Um token pertence a um
-   * aparelho só: se outra conta entrou no mesmo aparelho, ele muda de dono.
+   * Registra (ou transfere) o token para o usuário e a sessão atuais. Um token
+   * pertence a um aparelho só: se outra conta entrou no mesmo aparelho, ele
+   * muda de dono e de sessão, e a conta anterior deixa de receber nele.
    */
   async registerDevice(
     userId: bigint,
     token: string,
     platform: DevicePlatform,
+    sessionFamilyId: string | null = null,
   ): Promise<void> {
     await this.prisma.deviceToken.upsert({
       where: { token },
-      create: { userId, token, platform },
-      update: { userId, platform, lastSeenAt: new Date() },
+      create: { userId, token, platform, sessionFamilyId },
+      update: { userId, platform, sessionFamilyId, lastSeenAt: new Date() },
     });
   }
 
-  async unregisterDevice(userId: bigint, token: string): Promise<void> {
-    await this.prisma.deviceToken.deleteMany({ where: { userId, token } });
+  /**
+   * Remove o aparelho do usuário. Uma sessão só remove os aparelhos dela ou
+   * os registrados sem sessão; nunca os de outra sessão da mesma conta.
+   */
+  async unregisterDevice(
+    userId: bigint,
+    token: string,
+    sessionFamilyId: string | null = null,
+  ): Promise<void> {
+    await this.prisma.deviceToken.deleteMany({
+      where: sessionFamilyId
+        ? {
+            userId,
+            token,
+            OR: [{ sessionFamilyId }, { sessionFamilyId: null }],
+          }
+        : { userId, token, sessionFamilyId: null },
+    });
   }
 
   /** Nunca rejeita: o push complementa o e-mail e não pode travar o pedido. */
