@@ -22,12 +22,14 @@ export class OrderExpiredHandler implements IEventHandler<OrderExpiredEvent> {
         select: {
           id: true,
           scheduledFor: true,
-          client: { select: { email: true, name: true } },
+          client: { select: { id: true, email: true, name: true } },
           service: {
             select: {
               title: true,
               provider: {
-                select: { user: { select: { email: true, name: true } } },
+                select: {
+                  user: { select: { id: true, email: true, name: true } },
+                },
               },
             },
           },

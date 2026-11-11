@@ -236,7 +236,7 @@ export class CreateOrderPaymentHandler
         status: true,
         finalPrice: true,
         scheduledFor: true,
-        client: { select: { name: true, email: true, cpf: true } },
+        client: { select: { id: true, name: true, email: true, cpf: true } },
         payment: true,
         service: {
           select: {

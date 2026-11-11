@@ -3,10 +3,12 @@ import { ConfigService } from '@nestjs/config';
 
 import { EmailTransport } from './email-transport';
 import { LogEmailTransport } from './log-email.transport';
+import { PushModule } from '../push/push.module';
 import { NotificationService } from './notification.service';
 import { SmtpEmailTransport } from './smtp-email.transport';
 
 @Module({
+  imports: [PushModule],
   providers: [
     {
       provide: EmailTransport,

@@ -1,9 +1,13 @@
-import { Injectable, Logger } from '@nestjs/common';
+import { Injectable, Logger, Optional } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 
+import { PushMessage } from '../push/push-transport';
+import { PushService } from '../push/push.service';
 import { EmailMessage, EmailTransport } from './email-transport';
 
 export interface Recipient {
+  /** Com o id, o aviso também sai por push nos aparelhos do usuário. */
+  id?: bigint;
   email: string;
   name: string;
 }
@@ -24,7 +28,8 @@ export class NotificationService {
 
   constructor(
     private readonly transport: EmailTransport,
-    config?: ConfigService,
+    @Optional() config?: ConfigService,
+    @Optional() private readonly push?: PushService,
   ) {
     this.frontendUrl = this.resolveFrontendUrl(config);
   }
@@ -67,6 +72,11 @@ export class NotificationService {
         `Olá, ${provider.name}.\n\n` +
         `O cliente do pedido #${orderId.toString()} avaliou seu atendimento com nota ${rating} de 5.`,
     }));
+    await this.pushTo(provider, () => ({
+      title: 'Nova avaliação',
+      body: `Você recebeu nota ${rating} de 5 no pedido #${orderId.toString()}.`,
+      data: this.orderData('REVIEW_RECEIVED', orderId),
+    }));
   }
 
   async notifyProviderOrderConfirmed(
@@ -79,6 +89,11 @@ export class NotificationService {
       text:
         `Olá, ${provider.name}.\n\n` +
         `O cliente confirmou a conclusão do pedido #${orderId.toString()} e o pagamento foi registrado.`,
+    }));
+    await this.pushTo(provider, () => ({
+      title: 'Serviço confirmado',
+      body: `O cliente confirmou a conclusão do pedido #${orderId.toString()}.`,
+      data: this.orderData('COMPLETION_CONFIRMED', orderId),
     }));
   }
 
@@ -94,6 +109,11 @@ export class NotificationService {
         `Você recebeu a solicitação #${order.id.toString()} para "${order.serviceTitle}"` +
         `${this.describeSchedule(order)}.\n` +
         `Aceite ou recuse em ${this.link(`/provider/${order.id.toString()}/aprovacao`)}`,
+    }));
+    await this.pushTo(provider, () => ({
+      title: 'Nova solicitação',
+      body: `"${order.serviceTitle}"${this.describeSchedule(order)}. Aceite ou recuse.`,
+      data: this.orderData('ORDER_REQUESTED', order.id),
     }));
   }
 
@@ -128,6 +148,16 @@ export class NotificationService {
           : ' porque o cliente não concluiu o pagamento. O horário voltou para a sua agenda.\n') +
         `Veja seus pedidos em ${this.link('/provider')}`,
     }));
+    await this.pushTo(client, () => ({
+      title: 'Seu pedido expirou',
+      body: `O pedido de "${order.serviceTitle}" expirou porque ${clientReason}. Nenhum valor foi cobrado.`,
+      data: this.orderData('ORDER_EXPIRED', order.id),
+    }));
+    await this.pushTo(provider, () => ({
+      title: 'Solicitação expirada',
+      body: `A solicitação #${id} expirou e o horário voltou para a sua agenda.`,
+      data: this.orderData('ORDER_EXPIRED', order.id),
+    }));
   }
 
   async notifyClientOrderAccepted(
@@ -143,6 +173,11 @@ export class NotificationService {
         `${this.describeSchedule(order)}.\n` +
         `Conclua o pagamento para garantir o agendamento: ` +
         this.link(`/orders/${order.id.toString()}/payment`),
+    }));
+    await this.pushTo(client, () => ({
+      title: 'Pedido aceito',
+      body: `O prestador aceitou "${order.serviceTitle}". Pague o PIX para garantir o horário.`,
+      data: this.orderData('ORDER_ACCEPTED', order.id),
     }));
   }
 
@@ -165,6 +200,16 @@ export class NotificationService {
           : '') +
         `Veja os detalhes em ${this.link(`/orders/${order.id.toString()}`)}`,
     }));
+    await this.pushTo(client, () => ({
+      title: outcome.refused ? 'Pedido recusado' : 'Pedido cancelado',
+      body:
+        `O prestador ${action} "${order.serviceTitle}".` +
+        (outcome.refunded ? ' O valor pago será estornado.' : ''),
+      data: this.orderData(
+        outcome.refused ? 'ORDER_REFUSED' : 'ORDER_CANCELED',
+        order.id,
+      ),
+    }));
   }
 
   async notifyClientPaymentConfirmed(
@@ -180,6 +225,11 @@ export class NotificationService {
         `O serviço está agendado${this.describeSchedule(order, 'para')}.\n` +
         `Acompanhe em ${this.link(`/orders/${order.id.toString()}`)}`,
     }));
+    await this.pushTo(client, () => ({
+      title: 'Pagamento confirmado',
+      body: `"${order.serviceTitle}" está agendado${this.describeSchedule(order, 'para')}.`,
+      data: this.orderData('PAYMENT_CONFIRMED', order.id),
+    }));
   }
 
   async notifyClientProviderOnTheWay(
@@ -193,6 +243,11 @@ export class NotificationService {
         `Olá, ${client.name}.\n\n` +
         `O prestador do pedido #${order.id.toString()} ("${order.serviceTitle}") está a caminho.\n` +
         `Acompanhe em ${this.link(`/orders/${order.id.toString()}`)}`,
+    }));
+    await this.pushTo(client, () => ({
+      title: 'Prestador a caminho',
+      body: `O prestador de "${order.serviceTitle}" está indo até você.`,
+      data: this.orderData('PROVIDER_ON_THE_WAY', order.id),
     }));
   }
 
@@ -208,6 +263,11 @@ export class NotificationService {
         `O prestador informou a conclusão do pedido #${order.id.toString()} ("${order.serviceTitle}").\n` +
         `Confirme a conclusão ou reporte um problema em ` +
         this.link(`/orders/${order.id.toString()}/confirm`),
+    }));
+    await this.pushTo(client, () => ({
+      title: 'Serviço finalizado',
+      body: `Confirme a conclusão de "${order.serviceTitle}" ou reporte um problema.`,
+      data: this.orderData('SERVICE_FINISHED', order.id),
     }));
   }
 
@@ -226,6 +286,20 @@ export class NotificationService {
         `Falha ao enviar notificação "${subject}": ${(error as Error).message}`,
       );
     }
+  }
+
+  /** Push só para quem tem id; como o e-mail, nunca rejeita. */
+  private async pushTo(recipient: Recipient, build: () => PushMessage) {
+    if (!this.push || recipient.id === undefined) return;
+    try {
+      await this.push.sendToUser(recipient.id, build());
+    } catch (error) {
+      this.logger.error(`Falha ao montar o push: ${(error as Error).message}`);
+    }
+  }
+
+  private orderData(type: string, orderId: bigint): Record<string, string> {
+    return { type, orderId: orderId.toString() };
   }
 
   private describeSchedule(order: OrderNotification, preposition = 'em') {

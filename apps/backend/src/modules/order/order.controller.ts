@@ -327,7 +327,7 @@ export class OrderController {
           ? await tx.order.findUnique({
               where: { id },
               select: {
-                client: { select: { email: true, name: true } },
+                client: { select: { id: true, email: true, name: true } },
                 service: { select: { title: true } },
               },
             })

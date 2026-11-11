@@ -18,6 +18,12 @@ export function validateEnvironment(environment: Environment): Environment {
     max: 65535,
   });
   normalized.EXPIRES_IN = readString(environment, 'EXPIRES_IN') ?? '1d';
+  normalized.REFRESH_TOKEN_TTL_DAYS = readInteger(
+    environment,
+    'REFRESH_TOKEN_TTL_DAYS',
+    60,
+    { min: 1, max: 365 },
+  );
   normalized.DEFAULT_PLATFORM_FEE_PCT = readNumber(
     environment,
     'DEFAULT_PLATFORM_FEE_PCT',

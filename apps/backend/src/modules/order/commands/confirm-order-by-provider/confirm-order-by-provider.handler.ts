@@ -24,7 +24,7 @@ export class ConfirmOrderByProviderHandler
       where: { id: orderId },
       include: {
         service: { include: { provider: true } },
-        client: { select: { email: true, name: true } },
+        client: { select: { id: true, email: true, name: true } },
       },
     });
     if (!order) throw new NotFoundException('Order not found');

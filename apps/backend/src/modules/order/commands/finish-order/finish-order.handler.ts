@@ -27,7 +27,7 @@ export class FinishOrderHandler implements ICommandHandler<FinishOrderCommand> {
         estimatedPrice: true,
         finalPrice: true,
         payment: { select: { amount: true, status: true, method: true } },
-        client: { select: { email: true, name: true } },
+        client: { select: { id: true, email: true, name: true } },
         service: {
           select: {
             title: true,
