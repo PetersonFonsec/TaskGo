@@ -5,6 +5,7 @@ import { createHash, randomBytes, randomUUID } from 'node:crypto';
 
 import { PrismaService } from '../../prisma/prisma.service';
 import { isCustomerRole } from '../../shared/auth/authenticated-identity';
+import { lockSession } from './session-lock';
 
 const DAY_MS = 86_400_000;
 const INVALID = 'Invalid or expired refresh token';
@@ -95,6 +96,14 @@ export class RefreshTokenService {
     tx: Prisma.TransactionClient,
     tokenHash: string,
   ): Promise<RotationOutcome> {
+    // Ordem de bloqueio comum a rotação, logout e registro de aparelho:
+    // primeiro a sessão, depois as linhas. Evita deadlock entre eles.
+    const family = await tx.refreshToken.findUnique({
+      where: { tokenHash },
+      select: { familyId: true },
+    });
+    if (!family) return { kind: 'rejected' };
+    await lockSession(tx, family.familyId);
     // FOR UPDATE serializa renovações concorrentes do mesmo token entre
     // instâncias; o relógio é o do banco, comum a todas elas.
     const [stored] = await tx.$queryRaw<LockedToken[]>`
@@ -163,6 +172,7 @@ export class RefreshTokenService {
     familyId: string,
     userId: bigint,
   ) {
+    await lockSession(tx, familyId);
     await tx.refreshToken.updateMany({
       where: { familyId, revokedAt: null },
       data: { revokedAt: new Date() },

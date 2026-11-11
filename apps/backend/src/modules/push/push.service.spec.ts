@@ -3,21 +3,34 @@ import { PushTransport } from './push-transport';
 
 describe('PushService', () => {
   let prisma: {
+    $transaction: jest.Mock;
+    $queryRaw: jest.Mock;
     deviceToken: {
       upsert: jest.Mock;
       deleteMany: jest.Mock;
-      findMany: jest.Mock;
     };
   };
+  let activeSession: unknown[];
+  let deviceRows: Array<{ token: string }>;
   let transport: { send: jest.Mock };
   let service: PushService;
 
   beforeEach(() => {
+    activeSession = [{ id: 1n }];
+    deviceRows = [];
     prisma = {
+      $transaction: jest.fn((run: (tx: unknown) => unknown) => run(prisma)),
+      // Roteia pelo SQL: bloqueio, checagem de sessão ou aparelhos ativos.
+      $queryRaw: jest.fn((sql: TemplateStringsArray) => {
+        const text = sql.join('?');
+        if (text.includes('pg_advisory_xact_lock')) return Promise.resolve([]);
+        if (text.includes('FROM device_tokens'))
+          return Promise.resolve(deviceRows);
+        return Promise.resolve(activeSession);
+      }),
       deviceToken: {
         upsert: jest.fn().mockResolvedValue({}),
         deleteMany: jest.fn().mockResolvedValue({ count: 1 }),
-        findMany: jest.fn().mockResolvedValue([]),
       },
     };
     transport = { send: jest.fn().mockResolvedValue({ invalidTokens: [] }) };
@@ -28,7 +41,9 @@ describe('PushService', () => {
   });
 
   it('registra o token e transfere de dono quando o aparelho troca de conta', async () => {
-    await service.registerDevice(7n, 'token-abc', 'ANDROID', 'family-1');
+    await expect(
+      service.registerDevice(7n, 'token-abc', 'ANDROID', 'family-1'),
+    ).resolves.toBe(true);
 
     expect(prisma.deviceToken.upsert).toHaveBeenCalledWith(
       expect.objectContaining({
@@ -46,6 +61,23 @@ describe('PushService', () => {
         }),
       }),
     );
+  });
+
+  it('não registra quando a sessão não está ativa para o usuário', async () => {
+    activeSession = [];
+
+    await expect(
+      service.registerDevice(7n, 'token-abc', 'ANDROID', 'family-1'),
+    ).resolves.toBe(false);
+    expect(prisma.deviceToken.upsert).not.toHaveBeenCalled();
+  });
+
+  it('apaga os registros legados sem sessão antes de enviar', async () => {
+    await service.sendToUser(7n, { title: 't', body: 'b' });
+
+    expect(prisma.deviceToken.deleteMany).toHaveBeenCalledWith({
+      where: { userId: 7n, sessionFamilyId: null },
+    });
   });
 
   it('remove só aparelhos do usuário na própria sessão ou sem sessão', async () => {
@@ -71,10 +103,7 @@ describe('PushService', () => {
   });
 
   it('envia para todos os aparelhos e apaga os tokens inválidos', async () => {
-    prisma.deviceToken.findMany.mockResolvedValue([
-      { token: 'ok' },
-      { token: 'velho' },
-    ]);
+    deviceRows = [{ token: 'ok' }, { token: 'velho' }];
     transport.send.mockResolvedValue({ invalidTokens: ['velho'] });
 
     await service.sendToUser(7n, { title: 't', body: 'b' });
@@ -89,23 +118,24 @@ describe('PushService', () => {
   });
 
   it('apaga só os inválidos quando o lote tem sucessos e falhas temporárias', async () => {
-    prisma.deviceToken.findMany.mockResolvedValue([
+    deviceRows = [
       { token: 'device-a' },
       { token: 'device-b' },
       { token: 'device-c' },
-    ]);
+    ];
     transport.send.mockResolvedValue({ invalidTokens: ['device-c'] });
 
     await service.sendToUser(7n, { title: 't', body: 'b' });
 
-    expect(prisma.deviceToken.deleteMany).toHaveBeenCalledTimes(1);
-    expect(prisma.deviceToken.deleteMany).toHaveBeenCalledWith({
+    // 1ª chamada: limpeza dos legados sem sessão; 2ª: só o token inválido.
+    expect(prisma.deviceToken.deleteMany).toHaveBeenCalledTimes(2);
+    expect(prisma.deviceToken.deleteMany).toHaveBeenLastCalledWith({
       where: { token: { in: ['device-c'] } },
     });
   });
 
   it('não propaga falhas do provedor', async () => {
-    prisma.deviceToken.findMany.mockResolvedValue([{ token: 'ok' }]);
+    deviceRows = [{ token: 'ok' }];
     transport.send.mockRejectedValue(new Error('fcm down'));
 
     await expect(

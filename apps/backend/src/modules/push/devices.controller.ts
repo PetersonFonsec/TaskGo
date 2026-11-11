@@ -5,6 +5,7 @@ import {
   HttpCode,
   Param,
   Post,
+  UnauthorizedException,
 } from '@nestjs/common';
 
 import type { AuthenticatedIdentity } from '../../shared/auth/authenticated-identity';
@@ -23,12 +24,21 @@ export class DevicesController {
     @Body() body: RegisterDeviceDto,
     @User() user: AuthenticatedIdentity,
   ): Promise<void> {
-    await this.push.registerDevice(
-      BigInt(user.id),
-      body.token,
-      body.platform,
-      user.sessionId ?? null,
-    );
+    // Tokens sem sessão (emitidos antes do sid) e sessões encerradas não
+    // registram aparelhos: o cliente precisa entrar de novo.
+    const registered =
+      !!user.sessionId &&
+      (await this.push.registerDevice(
+        BigInt(user.id),
+        body.token,
+        body.platform,
+        user.sessionId,
+      ));
+    if (!registered) {
+      throw new UnauthorizedException(
+        'Session is not active; sign in again to register this device',
+      );
+    }
   }
 
   @Delete(':token')

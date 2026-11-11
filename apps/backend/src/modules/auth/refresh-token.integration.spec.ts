@@ -315,4 +315,189 @@ integration('Refresh tokens e aparelhos no PostgreSQL', () => {
       endSession.mockRestore();
     });
   });
+  describe('registro de aparelho exige sessão ativa', () => {
+    let transport: { send: jest.Mock };
+    let pushA: PushService;
+    let pushB: PushService;
+    const token = (label: string) => `fcm-${label}-${randomUUID()}`;
+    const sentTo = () =>
+      transport.send.mock.calls.flatMap(([tokens]) => tokens as string[]);
+    const deviceRow = (fcm: string) =>
+      db.deviceToken.findUnique({ where: { token: fcm } });
+
+    beforeEach(() => {
+      transport = { send: jest.fn().mockResolvedValue({ invalidTokens: [] }) };
+      pushA = new PushService(
+        db as unknown as PrismaService,
+        transport as unknown as PushTransport,
+      );
+      // Outra instância da API, com conexão própria.
+      pushB = new PushService(
+        connect() as unknown as PrismaService,
+        transport as unknown as PushTransport,
+      );
+    });
+
+    it('sessão ativa registra; revogada, expirada, de outro usuário ou inexistente não', async () => {
+      const active = await instanceA.issue(userA);
+      const revoked = await instanceA.issue(userA);
+      await instanceA.revoke(revoked.refresh_token);
+      const expired = await instanceA.issue(userA);
+      await db.refreshToken.updateMany({
+        where: { familyId: expired.familyId },
+        data: { expiresAt: new Date(Date.now() - 1_000) },
+      });
+      const ofB = await instanceA.issue(userB);
+
+      const ok = token('ok');
+      await expect(
+        pushA.registerDevice(userA, ok, 'ANDROID', active.familyId),
+      ).resolves.toBe(true);
+      expect(await deviceRow(ok)).toEqual(
+        expect.objectContaining({
+          userId: userA,
+          sessionFamilyId: active.familyId,
+        }),
+      );
+
+      for (const familyId of [
+        revoked.familyId,
+        expired.familyId,
+        ofB.familyId,
+        randomUUID(),
+      ]) {
+        const fcm = token('rejected');
+        await expect(
+          pushB.registerDevice(userA, fcm, 'ANDROID', familyId),
+        ).resolves.toBe(false);
+        expect(await deviceRow(fcm)).toBeNull();
+      }
+    });
+
+    it('registro depois do logout é recusado e não reativa a sessão', async () => {
+      const session = await instanceA.issue(userA);
+      const fcm = token('late');
+      await pushA.registerDevice(userA, fcm, 'IOS', session.familyId);
+      await instanceA.revoke(session.refresh_token);
+      expect(await deviceRow(fcm)).toBeNull();
+
+      await expect(
+        pushB.registerDevice(userA, fcm, 'IOS', session.familyId),
+      ).resolves.toBe(false);
+      expect(await deviceRow(fcm)).toBeNull();
+      await expect(
+        instanceB.rotate(session.refresh_token),
+      ).rejects.toBeInstanceOf(UnauthorizedException);
+    });
+
+    it('registro e logout simultâneos em instâncias diferentes nunca deixam o aparelho vinculado', async () => {
+      const outcomes = { registeredFirst: 0, rejected: 0 };
+      for (let round = 0; round < 25; round++) {
+        const session = await instanceA.issue(userA);
+        const fcm = token(`race-${round}`);
+
+        const [registered] = await Promise.all([
+          pushB.registerDevice(userA, fcm, 'ANDROID', session.familyId),
+          instanceA.revoke(session.refresh_token),
+        ]);
+
+        if (registered) outcomes.registeredFirst++;
+        else outcomes.rejected++;
+        expect(await deviceRow(fcm)).toBeNull();
+        const rows = await familyRows(session.familyId);
+        expect(rows.every((row) => row.revokedAt !== null)).toBe(true);
+      }
+      expect(outcomes.registeredFirst + outcomes.rejected).toBe(25);
+    });
+
+    it('rotação legítima mantém o aparelho ativo e permite registrar de novo', async () => {
+      const session = await instanceA.issue(userA);
+      const fcm = token('rotating');
+      await pushA.registerDevice(userA, fcm, 'ANDROID', session.familyId);
+
+      const next = await instanceB.rotate(session.refresh_token);
+      await pushB.sendToUser(userA, { title: 't', body: 'b' });
+
+      expect(sentTo()).toContain(fcm);
+      await expect(
+        pushB.registerDevice(userA, fcm, 'ANDROID', next.familyId),
+      ).resolves.toBe(true);
+    });
+
+    it('aparelho de sessão expirada não recebe push', async () => {
+      const session = await instanceA.issue(userA);
+      const fcm = token('expired-session');
+      await pushA.registerDevice(userA, fcm, 'ANDROID', session.familyId);
+      await db.refreshToken.updateMany({
+        where: { familyId: session.familyId },
+        data: { expiresAt: new Date(Date.now() - 1_000) },
+      });
+
+      await pushA.sendToUser(userA, { title: 't', body: 'b' });
+
+      expect(sentTo()).not.toContain(fcm);
+    });
+  });
+
+  describe('aparelhos legados sem sessão', () => {
+    let transport: { send: jest.Mock };
+    let push: PushService;
+    const sentTo = () =>
+      transport.send.mock.calls.flatMap(([tokens]) => tokens as string[]);
+
+    beforeEach(() => {
+      transport = { send: jest.fn().mockResolvedValue({ invalidTokens: [] }) };
+      push = new PushService(
+        db as unknown as PrismaService,
+        transport as unknown as PushTransport,
+      );
+    });
+
+    it('não recebem push, são limpos no envio e voltam com um novo login', async () => {
+      const legacy = `fcm-legacy-${randomUUID()}`;
+      const otherSession = await instanceA.issue(userA);
+      const kept = `fcm-kept-${randomUUID()}`;
+      await push.registerDevice(userA, kept, 'IOS', otherSession.familyId);
+      // Linha como as gravadas antes desta correção (sem sessão).
+      await db.deviceToken.create({
+        data: { userId: userA, token: legacy, platform: 'ANDROID' },
+      });
+
+      await push.sendToUser(userA, { title: 't', body: 'b' });
+
+      expect(sentTo()).toContain(kept);
+      expect(sentTo()).not.toContain(legacy);
+      expect(
+        await db.deviceToken.findUnique({ where: { token: legacy } }),
+      ).toBeNull();
+
+      const relogin = await instanceA.issue(userA);
+      await expect(
+        push.registerDevice(userA, legacy, 'ANDROID', relogin.familyId),
+      ).resolves.toBe(true);
+      expect(
+        await db.deviceToken.findUnique({ where: { token: legacy } }),
+      ).toEqual(expect.objectContaining({ sessionFamilyId: relogin.familyId }));
+
+      // O logout da nova sessão não toca no aparelho da outra sessão.
+      await instanceA.revoke(relogin.refresh_token);
+      expect(
+        await db.deviceToken.findUnique({ where: { token: kept } }),
+      ).not.toBeNull();
+    });
+
+    it('a limpeza de legados de um usuário não apaga os de outro', async () => {
+      const legacyB = `fcm-legacy-b-${randomUUID()}`;
+      await db.deviceToken.create({
+        data: { userId: userB, token: legacyB, platform: 'ANDROID' },
+      });
+
+      await push.sendToUser(userA, { title: 't', body: 'b' });
+
+      expect(
+        await db.deviceToken.findUnique({ where: { token: legacyB } }),
+      ).not.toBeNull();
+      await db.deviceToken.delete({ where: { token: legacyB } });
+    });
+  });
 });

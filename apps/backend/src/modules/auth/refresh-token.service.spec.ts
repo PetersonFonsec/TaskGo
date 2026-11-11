@@ -41,9 +41,21 @@ describe('RefreshTokenService', () => {
     ...overrides,
   });
 
+  let lockedRows: unknown[];
+  const lockCalls = () =>
+    tx.$queryRaw.mock.calls.filter(([sql]) =>
+      (sql as TemplateStringsArray).join('?').includes('pg_advisory_xact_lock'),
+    );
+
   beforeEach(() => {
+    lockedRows = [locked()];
     tx = {
-      $queryRaw: jest.fn().mockResolvedValue([locked()]),
+      // Responde ao bloqueio de sessão com [] e ao SELECT FOR UPDATE com a linha.
+      $queryRaw: jest.fn((sql: TemplateStringsArray) =>
+        Promise.resolve(
+          sql.join('?').includes('pg_advisory_xact_lock') ? [] : lockedRows,
+        ),
+      ),
       user: {
         findUnique: jest
           .fn()
@@ -53,7 +65,7 @@ describe('RefreshTokenService', () => {
         create: jest.fn().mockResolvedValue({}),
         update: jest.fn().mockResolvedValue({}),
         updateMany: jest.fn().mockResolvedValue({ count: 1 }),
-        findUnique: jest.fn(),
+        findUnique: jest.fn().mockResolvedValue({ familyId: 'family-1' }),
       },
       deviceToken: { deleteMany: jest.fn().mockResolvedValue({ count: 0 }) },
     };
@@ -83,7 +95,9 @@ describe('RefreshTokenService', () => {
   it('consome o token e grava o sucessor na mesma transação e família', async () => {
     const result = await service.rotate('RAW');
 
-    expect(tx.$queryRaw).toHaveBeenCalledTimes(1);
+    // Bloqueia a sessão antes da linha (mesma ordem do logout e do registro).
+    expect(lockCalls()).toHaveLength(1);
+    expect(lockCalls()[0][1]).toBe('family-1');
     expect(tx.refreshToken.update).toHaveBeenCalledWith({
       where: { id: 1n },
       data: { usedAt: now },
@@ -112,9 +126,9 @@ describe('RefreshTokenService', () => {
   });
 
   it('recusa sem revogar a sessão quando a corrida cai na janela de tolerância', async () => {
-    tx.$queryRaw.mockResolvedValue([
+    lockedRows = [
       locked({ usedAt: new Date(now.getTime() - REFRESH_REUSE_GRACE_MS) }),
-    ]);
+    ];
 
     await expect(service.rotate('RAW')).rejects.toBeInstanceOf(
       UnauthorizedException,
@@ -124,11 +138,11 @@ describe('RefreshTokenService', () => {
   });
 
   it('revoga a família e solta os aparelhos quando o reuso passa da janela', async () => {
-    tx.$queryRaw.mockResolvedValue([
+    lockedRows = [
       locked({
         usedAt: new Date(now.getTime() - REFRESH_REUSE_GRACE_MS - 1),
       }),
-    ]);
+    ];
 
     await expect(service.rotate('RAW')).rejects.toBeInstanceOf(
       UnauthorizedException,
@@ -144,7 +158,7 @@ describe('RefreshTokenService', () => {
   });
 
   it('não renova token revogado, mesmo dentro da janela', async () => {
-    tx.$queryRaw.mockResolvedValue([locked({ usedAt: now, revokedAt: now })]);
+    lockedRows = [locked({ usedAt: now, revokedAt: now })];
 
     await expect(service.rotate('RAW')).rejects.toBeInstanceOf(
       UnauthorizedException,
@@ -153,9 +167,7 @@ describe('RefreshTokenService', () => {
   });
 
   it('não renova token expirado', async () => {
-    tx.$queryRaw.mockResolvedValue([
-      locked({ expiresAt: new Date(now.getTime() - 1) }),
-    ]);
+    lockedRows = [locked({ expiresAt: new Date(now.getTime() - 1) })];
 
     await expect(service.rotate('RAW')).rejects.toBeInstanceOf(
       UnauthorizedException,
@@ -176,7 +188,7 @@ describe('RefreshTokenService', () => {
   });
 
   it('recusa token desconhecido', async () => {
-    tx.$queryRaw.mockResolvedValue([]);
+    tx.refreshToken.findUnique.mockResolvedValueOnce(null);
 
     await expect(service.rotate('OUTRO')).rejects.toBeInstanceOf(
       UnauthorizedException,

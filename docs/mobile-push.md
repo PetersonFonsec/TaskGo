@@ -14,10 +14,16 @@ prestador. Ver o brief do app para o contexto de produto.
   conta continuam ativos. Se outra conta registrar o mesmo token, ele passa para a
   nova conta e sessão.
 - `DELETE /devices/:token` remove o aparelho. Uma sessão só remove aparelhos dela
-  ou registrados sem sessão (como os do site); nunca os de outra sessão.
-- Registros sem sessão (feitos pelo site ou antes desta mudança) não são apagados
-  pelo logout do app; continuam removíveis por `DELETE /devices/:token` e pela
-  limpeza automática de tokens inválidos.
+  ou registros legados sem sessão; nunca os de outra sessão.
+- `POST /devices` exige um access token com `sid` de uma sessão ativa do próprio
+  usuário (com refresh token não usado, não revogado e não expirado). Tokens sem
+  `sid` (emitidos antes desta mudança) e sessões encerradas recebem 401: o cliente
+  precisa entrar de novo e registrar o aparelho. A checagem e a gravação rodam sob
+  o mesmo bloqueio de sessão do logout (`pg_advisory_xact_lock` por família), então
+  um registro concorrente com o logout nunca deixa o aparelho vinculado.
+- Registros sem sessão (gravados antes desta mudança) não recebem push e são
+  apagados no próximo envio para o usuário. Aparelhos de sessão expirada também
+  deixam de receber até um novo login registrá-los de novo.
 - O token só é apagado quando o FCM prova que ele não serve mais: `UNREGISTERED`,
   `SENDER_ID_MISMATCH` ou `INVALID_ARGUMENT` com violação no campo `message.token`.
   `INVALID_ARGUMENT` sem isso (erro de payload), falhas temporárias, 401/403 e
