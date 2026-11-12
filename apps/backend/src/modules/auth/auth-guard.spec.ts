@@ -124,6 +124,32 @@ describe('AuthGuard', () => {
     });
   });
 
+  it('expõe a sessão do app quando o token traz sid', async () => {
+    reflectorMock.getAllAndOverride.mockReturnValue(false);
+    authTokenServiceMock.checkToken.mockReturnValue({
+      id: '1',
+      sid: 'family-1',
+    });
+    prismaMock.user.findUnique.mockResolvedValue({
+      id: BigInt(1),
+      type: UserType.CLIENTE,
+    });
+    const request = { headers: { authorization: 'Bearer VALID_TOKEN' } } as any;
+    const context = {
+      switchToHttp: () => ({ getRequest: () => request }),
+      getHandler: () => ({}),
+      getClass: () => ({}),
+    } as unknown as any;
+
+    await authGuard.canActivate(context);
+
+    expect(request[TOKEN_KEY]).toEqual({
+      id: '1',
+      role: UserType.CLIENTE,
+      sessionId: 'family-1',
+    });
+  });
+
   it('should reject requests without Authorization header', async () => {
     reflectorMock.getAllAndOverride.mockReturnValue(false);
     const context = makeContext({});

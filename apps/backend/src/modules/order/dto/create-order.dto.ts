@@ -1,4 +1,4 @@
-import { PaymentMethod } from '@prisma/client';
+import { OrderChannel, PaymentMethod } from '@prisma/client';
 import {
   IsNotEmpty,
   IsOptional,
@@ -72,6 +72,11 @@ export class CreateOrderDto {
   @IsOptional()
   @IsEnum(PaymentMethod)
   paymentMethod?: PaymentMethod;
+
+  /** Origem do pedido para o funil; ausente significa site. */
+  @IsOptional()
+  @IsEnum(OrderChannel)
+  channel?: OrderChannel;
 
   @IsOptional()
   @ValidateNested()

@@ -184,4 +184,32 @@ describe('NotificationService', () => {
       ).resolves.toBeUndefined();
     });
   });
+
+  describe('push', () => {
+    it('envia push quando o destinatário tem id', async () => {
+      const push = { sendToUser: jest.fn().mockResolvedValue(undefined) };
+      const withPush = new NotificationService(
+        transport as unknown as EmailTransport,
+        undefined,
+        push as any,
+      );
+
+      await withPush.notifyClientOrderAccepted(
+        { id: 5n, email: 'cliente@proxi.test', name: 'Cliente' },
+        { id: 9n, serviceTitle: 'Faxina' },
+      );
+      await withPush.notifyClientOrderAccepted(
+        { email: 'sem-id@proxi.test', name: 'Sem id' },
+        { id: 10n, serviceTitle: 'Faxina' },
+      );
+
+      expect(transport.send).toHaveBeenCalledTimes(2);
+      expect(push.sendToUser).toHaveBeenCalledTimes(1);
+      expect(push.sendToUser).toHaveBeenCalledWith(5n, {
+        title: 'Pedido aceito',
+        body: expect.stringContaining('Faxina'),
+        data: { type: 'ORDER_ACCEPTED', orderId: '9' },
+      });
+    });
+  });
 });

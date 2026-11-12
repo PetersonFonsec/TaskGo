@@ -1,6 +1,11 @@
 import { BadRequestException, NotFoundException } from '@nestjs/common';
 import { CommandHandler, ICommandHandler } from '@nestjs/cqrs';
-import { OrderStatus, PaymentMethod, PaymentStatus } from '@prisma/client';
+import {
+  OrderChannel,
+  OrderStatus,
+  PaymentMethod,
+  PaymentStatus,
+} from '@prisma/client';
 
 import { PrismaService } from '../../../../prisma/prisma.service';
 import { ProviderService } from '../../../provider/provider.service';
@@ -18,8 +23,14 @@ export class CreateOrderHandler implements ICommandHandler<CreateOrderCommand> {
   ) {}
 
   async execute({ payload }: CreateOrderCommand) {
-    const { clientId, serviceId, scheduledFor, paymentMethod, addressId } =
-      payload;
+    const {
+      clientId,
+      serviceId,
+      scheduledFor,
+      paymentMethod,
+      addressId,
+      channel,
+    } = payload;
     if (
       !clientId ||
       !/^[1-9]\d*$/.test(serviceId) ||
@@ -45,7 +56,7 @@ export class CreateOrderHandler implements ICommandHandler<CreateOrderCommand> {
           provider: {
             include: {
               serviceAreas: { where: { active: true } },
-              user: { select: { email: true, name: true } },
+              user: { select: { id: true, email: true, name: true } },
             },
           },
         },
@@ -127,6 +138,7 @@ export class CreateOrderHandler implements ICommandHandler<CreateOrderCommand> {
           scheduledFor: scheduledAt,
           scheduledEnd: new Date(slot.endsAt),
           priceAdjusted: false,
+          channel: channel ?? OrderChannel.WEB,
           payment: {
             create: {
               method: paymentMethod || PaymentMethod.PIX,

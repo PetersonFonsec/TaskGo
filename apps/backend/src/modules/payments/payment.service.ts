@@ -267,7 +267,7 @@ export class PaymentService {
         where: { id: orderId },
         select: {
           scheduledFor: true,
-          client: { select: { email: true, name: true } },
+          client: { select: { id: true, email: true, name: true } },
           service: { select: { title: true } },
         },
       });

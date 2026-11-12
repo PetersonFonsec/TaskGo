@@ -14,6 +14,7 @@ import { UserModule } from '../user/user.module';
 import { AuthCommands } from './commands';
 import { AuthQueries } from './queries';
 import { ProviderHomeService } from './provider-home.service';
+import { RefreshTokenService } from './refresh-token.service';
 import { ConfigModule } from '../../config/config.module';
 
 @Module({
@@ -23,6 +24,7 @@ import { ConfigModule } from '../../config/config.module';
     RecoveryRateLimitGuard,
     AuthTokenService,
     ProviderHomeService,
+    RefreshTokenService,
     ...AuthCommands,
     ...AuthQueries,
   ],

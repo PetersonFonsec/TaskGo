@@ -21,6 +21,7 @@ import { ObservabilityModule } from './observability/observability.module';
 import { AdminTelemetryInterceptor } from './observability/admin-telemetry.interceptor';
 import { RolesGuard } from './shared/guards/roles/roles.guard';
 import { ConfigModule } from './config/config.module';
+import { PushModule } from './modules/push/push.module';
 
 @Module({
   imports: [
@@ -38,6 +39,7 @@ import { ConfigModule } from './config/config.module';
     PaymentsModule,
     AdminModule,
     ObservabilityModule,
+    PushModule,
   ],
   controllers: [AppController],
   providers: [

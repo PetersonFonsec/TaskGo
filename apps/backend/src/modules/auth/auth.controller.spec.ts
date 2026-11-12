@@ -5,6 +5,7 @@ import type { PublicUserProfile } from '@taskgo/shared';
 import { AuthController } from './auth.controller';
 import { AuthTokenService } from './auth-token.service';
 import { ProviderHomeService } from './provider-home.service';
+import { RefreshTokenService } from './refresh-token.service';
 
 describe('Auth Controller', () => {
   let authController: AuthController;
@@ -12,6 +13,11 @@ describe('Auth Controller', () => {
   let queryBus: { execute: jest.Mock };
   let tokenService: { createToken: jest.Mock };
   let providerHomeService: { getForProvider: jest.Mock };
+  let refreshTokens: {
+    issue: jest.Mock;
+    rotate: jest.Mock;
+    revoke: jest.Mock;
+  };
 
   const publicUser: PublicUserProfile = {
     id: '42',
@@ -31,6 +37,13 @@ describe('Auth Controller', () => {
     queryBus = { execute: jest.fn() };
     tokenService = { createToken: jest.fn() };
     providerHomeService = { getForProvider: jest.fn() };
+    refreshTokens = {
+      issue: jest
+        .fn()
+        .mockResolvedValue({ refresh_token: 'REFRESH', familyId: 'family-1' }),
+      rotate: jest.fn(),
+      revoke: jest.fn(),
+    };
 
     const module: TestingModule = await Test.createTestingModule({
       controllers: [AuthController],
@@ -39,6 +52,7 @@ describe('Auth Controller', () => {
         { provide: CommandBus, useValue: commandBus },
         { provide: QueryBus, useValue: queryBus },
         { provide: ProviderHomeService, useValue: providerHomeService },
+        { provide: RefreshTokenService, useValue: refreshTokens },
       ],
     }).compile();
 
@@ -60,11 +74,12 @@ describe('Auth Controller', () => {
 
     expect(result).toEqual({
       access_token: 'TOKEN',
+      refresh_token: 'REFRESH',
       user: publicUser,
     });
     expect(result.user).not.toHaveProperty('password');
     expect(result.user).not.toHaveProperty('passwordHash');
-    expect(tokenService.createToken).toHaveBeenCalledWith('42');
+    expect(tokenService.createToken).toHaveBeenCalledWith('42', 'family-1');
   });
 
   it('keeps providerHome outside the shared customer session contract', async () => {
@@ -84,6 +99,7 @@ describe('Auth Controller', () => {
 
     expect(result).toEqual({
       access_token: 'TOKEN',
+      refresh_token: 'REFRESH',
       user: providerUser,
       providerHome,
     });
@@ -106,6 +122,7 @@ describe('Auth Controller', () => {
 
     expect(result).toEqual({
       access_token: 'TOKEN',
+      refresh_token: 'REFRESH',
       user: publicUser,
     });
     expect(result.user).not.toHaveProperty('orders');
@@ -123,10 +140,42 @@ describe('provider dashboard identity', () => {
       {} as any,
       {} as any,
       dashboard as any,
+      {} as any,
     );
     await expect(controller.providerHome('42')).resolves.toEqual({
       pendingRequests: [],
     });
     expect(dashboard.getForProvider).toHaveBeenCalledWith(42n);
+  });
+});
+
+describe('refresh token rotation', () => {
+  it('troca o refresh token por um novo par de tokens', async () => {
+    const tokenService = {
+      createToken: jest.fn().mockResolvedValue({ access_token: 'NEW_ACCESS' }),
+    };
+    const refreshTokens = {
+      rotate: jest.fn().mockResolvedValue({
+        userId: 42n,
+        familyId: 'family-1',
+        refresh_token: 'NEW_REFRESH',
+      }),
+    };
+    const controller = new AuthController(
+      tokenService as any,
+      {} as any,
+      {} as any,
+      {} as any,
+      refreshTokens as any,
+    );
+
+    await expect(
+      controller.refresh({ refresh_token: 'OLD_REFRESH' }),
+    ).resolves.toEqual({
+      access_token: 'NEW_ACCESS',
+      refresh_token: 'NEW_REFRESH',
+    });
+    expect(refreshTokens.rotate).toHaveBeenCalledWith('OLD_REFRESH');
+    expect(tokenService.createToken).toHaveBeenCalledWith(42n, 'family-1');
   });
 });

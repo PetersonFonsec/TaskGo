@@ -34,7 +34,9 @@ export class ConfirmOrderCompletionHandler
         service: {
           select: {
             provider: {
-              select: { user: { select: { email: true, name: true } } },
+              select: {
+                user: { select: { id: true, email: true, name: true } },
+              },
             },
           },
         },

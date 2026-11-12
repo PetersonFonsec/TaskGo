@@ -162,6 +162,8 @@ model User {
   orders    Order[]          @relation("UserOrders")
   reviews   Avaliacao[]      @relation("UserReviews")
   favorites ClientFavorite[]
+  deviceTokens  DeviceToken[]
+  refreshTokens RefreshToken[]
 
   @@map("usuarios")
 }
@@ -341,6 +343,7 @@ model Order {
   clientConfirmedAt     DateTime?   @map("client_confirmed_at")
   cancellationReason    OrderCancellationReason? @map("cancellation_reason")
   cancellationNote      String?     @map("cancellation_note")
+  channel               OrderChannel @default(WEB) @map("canal")
 
   // Relations
   client        User             @relation("UserOrders", fields: [clientId], references: [id])
@@ -689,4 +692,53 @@ model PaymentSettlement {
   updatedAt DateTime @updatedAt @map("updated_at")
   @@index([status, updatedAt])
   @@map("payment_settlements")
+}
+
+enum OrderChannel {
+  WEB
+  APP
+}
+
+enum DevicePlatform {
+  ANDROID
+  IOS
+  WEB
+}
+
+/// Tokens de push (FCM) dos aparelhos e navegadores de cada usuário.
+model DeviceToken {
+  id         BigInt         @id @default(autoincrement())
+  userId     BigInt         @map("usuario_id")
+  token      String         @unique
+  platform   DevicePlatform
+  createdAt  DateTime       @default(now()) @map("created_at")
+  lastSeenAt DateTime       @default(now()) @map("last_seen_at")
+  /// Família do refresh token da sessão que registrou o aparelho. O logout
+  /// dessa sessão apaga o registro. Nulo para registros sem sessão (site).
+  sessionFamilyId String?   @map("session_family_id")
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@index([sessionFamilyId])
+  @@map("device_tokens")
+}
+
+/// Refresh tokens com rotação. Só o hash é guardado; tokens da mesma
+/// família são revogados juntos quando um token já usado reaparece.
+model RefreshToken {
+  id         BigInt    @id @default(autoincrement())
+  userId     BigInt    @map("usuario_id")
+  tokenHash  String    @unique @map("token_hash")
+  familyId   String    @map("family_id")
+  expiresAt  DateTime  @map("expires_at")
+  usedAt     DateTime? @map("used_at")
+  revokedAt  DateTime? @map("revoked_at")
+  createdAt  DateTime  @default(now()) @map("created_at")
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@index([familyId])
+  @@map("refresh_tokens")
 }

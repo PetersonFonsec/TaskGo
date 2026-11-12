@@ -56,6 +56,7 @@ export class AuthGuard implements CanActivate {
     const payload = this.authTokenService.checkToken(token) as {
       id?: unknown;
       sub?: unknown;
+      sid?: unknown;
       iat?: number;
     };
     const id = payload?.id ?? payload?.sub;
@@ -81,6 +82,7 @@ export class AuthGuard implements CanActivate {
     const identity: AuthenticatedIdentity = {
       id: user.id.toString(),
       role: user.type,
+      ...(typeof payload.sid === 'string' ? { sessionId: payload.sid } : {}),
     };
     req[TOKEN_KEY] = identity;
     return true;

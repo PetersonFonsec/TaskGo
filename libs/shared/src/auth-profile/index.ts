@@ -53,6 +53,8 @@ export interface PublicUserProfile {
 
 export interface CustomerAuthSession {
   readonly access_token: string;
+  /** Troca por um novo par em POST /auth/refresh; usado pelo app mobile. */
+  readonly refresh_token?: string;
   readonly user: PublicUserProfile;
 }
 
