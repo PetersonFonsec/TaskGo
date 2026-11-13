@@ -1,0 +1,6 @@
+# Saída do build web copiada para os projetos nativos pelo `cap sync`.
+android/app/src/main/assets/public
+ios/App/App/public
+# Credenciais do Firebase ficam fora do repositório.
+android/app/google-services.json
+ios/App/App/GoogleService-Info.plist
