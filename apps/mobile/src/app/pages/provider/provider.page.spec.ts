@@ -222,6 +222,37 @@ describe('ProviderPage', () => {
     expect(orders.list).not.toHaveBeenCalled();
   });
 
+  it('I: a key conflict on the retry asks to check the orders and blocks new orders until then', async () => {
+    const fixture = await render();
+    const page = fixture.componentInstance;
+    orders.create.and.returnValue(throwError(() => new HttpErrorResponse({ status: 0 })));
+    page.selectSlot('2026-11-15T13:00:00.000Z');
+    await page.submit();
+    orders.create.and.returnValue(
+      throwError(
+        () =>
+          new HttpErrorResponse({
+            status: 409,
+            error: { errorCode: 'IDEMPOTENCY_KEY_PAYLOAD_MISMATCH', message: ['x'] }
+          })
+      )
+    );
+    await page.retry();
+    await stable(fixture);
+
+    expect(text(fixture)).toContain('Não conseguimos confirmar esta solicitação');
+    expect(page.pending()).toBeNull();
+    page.selectSlot('2026-11-15T13:00:00.000Z');
+    expect(page.canSubmit()).toBeFalse();
+    await page.submit();
+    expect(orders.create).toHaveBeenCalledTimes(2);
+
+    await page.reviewOrders();
+    expect(navigate).toHaveBeenCalledWith(['/pedidos']);
+    expect(page.conflict()).toBeNull();
+    expect(store.data.has('order_intent_7')).toBeFalse();
+  });
+
   it('B: when the device cannot save the attempt nothing is sent and the slot stays chosen', async () => {
     const fixture = await render();
     const page = fixture.componentInstance;

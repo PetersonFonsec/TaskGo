@@ -16,6 +16,8 @@ export interface OrderIntent extends NewOrder {
   readonly startedAt: string;
   /** Só para mostrar ao cliente o que está pendente. */
   readonly summary: string;
+  /** A API disse que a chave pertence a outro pedido; nunca é repetida. */
+  readonly conflict?: true;
 }
 
 export type SubmissionState =
@@ -24,6 +26,12 @@ export type SubmissionState =
   | { readonly kind: 'created'; readonly intent: OrderIntent; readonly orderId: string }
   /** A API pode ter criado o pedido; nada novo é enviado até isso se resolver. */
   | { readonly kind: 'unknown'; readonly intent: OrderIntent }
+  /**
+   * A API recusou a chave por já pertencer a outro pedido. Não prova que nada
+   * foi criado: o cliente confere os pedidos antes de pedir de novo. Bloqueia
+   * novos pedidos (também após reiniciar) até `reviewed()`.
+   */
+  | { readonly kind: 'conflict'; readonly intent: OrderIntent; readonly message: string }
   /**
    * Nada foi criado. `rejected`: a API recusou (o cliente escolhe outro horário).
    * `storage`: o aparelho não gravou a tentativa, então nada foi enviado.
@@ -37,6 +45,10 @@ export type SubmissionState =
 
 const IDLE: SubmissionState = { kind: 'idle' };
 const STORAGE_FAILED = 'Não foi possível guardar o pedido neste aparelho. Nada foi enviado; tente de novo.';
+const CONFLICT =
+  'Não conseguimos confirmar esta solicitação. Confira seus pedidos antes de pedir de novo.';
+/** `errorCode` da API para uma Idempotency-Key já usada com outro pedido. */
+export const IDEMPOTENCY_KEY_PAYLOAD_MISMATCH = 'IDEMPOTENCY_KEY_PAYLOAD_MISMATCH';
 
 /**
  * Cria pedidos sem duplicar quando a resposta se perde.
@@ -85,7 +97,9 @@ export class OrderSubmission {
     const session = this.#auth.generation();
     const user = this.#auth.user();
     const state = this.state();
-    if (!user || state.kind === 'submitting' || state.kind === 'unknown') return state;
+    if (!user || state.kind === 'submitting' || state.kind === 'unknown' || state.kind === 'conflict') {
+      return state;
+    }
     const intent: OrderIntent = {
       id: crypto.randomUUID(),
       serviceId: order.serviceId,
@@ -123,6 +137,15 @@ export class OrderSubmission {
     return this.#send(session, state.intent, true);
   }
 
+  /** O cliente foi conferir os pedidos: encerra o conflito e libera novos pedidos. */
+  async reviewed(): Promise<void> {
+    const session = this.#auth.generation();
+    const state = this.state();
+    if (state.kind !== 'conflict') return;
+    this.#set(session, IDLE);
+    await this.#forgetIfCurrent(session, state.intent);
+  }
+
   /** O cliente já viu o resultado (pedido aberto ou outro horário escolhido). */
   acknowledge(): void {
     const state = this.state();
@@ -140,6 +163,13 @@ export class OrderSubmission {
       await this.#forgetIfCurrent(session, intent);
       return this.#set(session, { kind: 'created', intent, orderId: String(order.id) });
     } catch (error) {
+      if (isKeyConflict(error)) {
+        // A chave nunca mais é enviada; o registro fica marcado para o aviso
+        // sobreviver a um reinício.
+        const marked: OrderIntent = { ...intent, conflict: true };
+        if (session === this.#auth.generation()) await this.#markConflict(marked);
+        return this.#set(session, { kind: 'conflict', intent: marked, message: CONFLICT });
+      }
       if (!isRejectedBeforeCreation(error, repeat)) {
         return this.#set(session, { kind: 'unknown', intent });
       }
@@ -167,6 +197,15 @@ export class OrderSubmission {
       await this.#removeIfOwned(intent).catch(() => undefined);
       return true;
     });
+  }
+
+  /** Regrava a própria tentativa como conflito; não toca numa tentativa posterior. */
+  #markConflict(intent: OrderIntent): Promise<void> {
+    return this.#run(async () => {
+      const key = storageKey(intent.userId);
+      const stored = parseIntent(await this.#store.getItem(key), intent.userId);
+      if (stored?.id === intent.id) await this.#store.setItem(key, JSON.stringify(intent));
+    }).catch(() => undefined);
   }
 
   /** Resultado conhecido: só a sessão que iniciou a operação mexe no armazenamento. */
@@ -207,6 +246,10 @@ export class OrderSubmission {
     const raw = await this.#run(() => this.#store.getItem(storageKey(userId))).catch(() => null);
     const intent = parseIntent(raw, userId);
     if (!intent || session !== this.#auth.generation() || this.state().kind !== 'idle') return;
+    if (intent.conflict) {
+      this.#set(session, { kind: 'conflict', intent, message: CONFLICT });
+      return;
+    }
     this.#set(session, { kind: 'unknown', intent });
     // Repetir a mesma chave é seguro: resolve a tentativa sem risco de duplicar.
     await this.retry();
@@ -219,6 +262,14 @@ export class OrderSubmission {
  * repetição, só 400 e 404, que a API devolve depois de procurar a chave; 401,
  * 403 ou 429 podem vir antes disso e não dizem nada sobre o envio anterior.
  */
+function isKeyConflict(error: unknown): boolean {
+  return (
+    error instanceof HttpErrorResponse &&
+    error.status === 409 &&
+    error.error?.errorCode === IDEMPOTENCY_KEY_PAYLOAD_MISMATCH
+  );
+}
+
 function isRejectedBeforeCreation(error: unknown, repeat: boolean): boolean {
   if (!(error instanceof HttpErrorResponse)) return false;
   if (repeat) return error.status === 400 || error.status === 404;

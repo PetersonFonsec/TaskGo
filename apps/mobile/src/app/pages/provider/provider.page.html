@@ -164,6 +164,19 @@
               <ion-button expand="block" fill="clear" routerLink="/pedidos">Ver meus pedidos</ion-button>
             </div>
           }
+          @if (conflict(); as c) {
+            <div role="alert" data-testid="conflict">
+              <ion-text color="danger">
+                <p>
+                  <strong>{{ c.message }}</strong>
+                  @if (c.intent.summary) {
+                    ({{ c.intent.summary }})
+                  }
+                </p>
+              </ion-text>
+              <ion-button expand="block" fill="outline" (click)="reviewOrders()">Ver meus pedidos</ion-button>
+            </div>
+          }
           @if (found(); as f) {
             <ion-text color="success" data-testid="found">
               <p>Seu pedido #{{ f.orderId }} foi registrado.</p>

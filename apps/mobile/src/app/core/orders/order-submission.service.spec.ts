@@ -433,6 +433,133 @@ describe('OrderSubmission', () => {
     });
   });
 
+  describe('key conflict (409 IDEMPOTENCY_KEY_PAYLOAD_MISMATCH)', () => {
+    const keyConflict = () =>
+      new HttpErrorResponse({
+        status: 409,
+        error: {
+          statusCode: 409,
+          message: ['Idempotency-Key already used for a different order'],
+          errorCode: 'IDEMPOTENCY_KEY_PAYLOAD_MISMATCH'
+        }
+      });
+    /** Envia, perde a resposta e deixa a tentativa em `unknown`. */
+    const lostAttempt = async () => {
+      const result = submission.submit(monday10, 'Troca de chuveiro');
+      await settle();
+      api.lose(0);
+      await result;
+    };
+
+    it('I: a retry refused with the key conflict ends the attempt, never repeats the key and blocks until reviewed', async () => {
+      await lostAttempt();
+      const retried = submission.retry();
+      await settle();
+      api.reject(1, keyConflict());
+      const state = await retried;
+      expect(state).toEqual(jasmine.objectContaining({ kind: 'conflict' }));
+      expect((state as { message: string }).message).toContain('Confira seus pedidos');
+
+      // Nada é repetido nem enviado de novo, nem por retry nem por novo pedido.
+      expect((await submission.retry()).kind).toBe('conflict');
+      expect((await submission.submit(monday11, '')).kind).toBe('conflict');
+      submission.acknowledge(); // trocar de horário não apaga o aviso
+      expect(submission.state().kind).toBe('conflict');
+      expect(api.sent.length).toBe(2);
+
+      // Após reiniciar, o aviso volta e a chave não é enviada.
+      const reopened = restart();
+      await reopened.load();
+      expect(reopened.state().kind).toBe('conflict');
+      expect(api.sent.length).toBe(2);
+
+      // Depois de conferir os pedidos, um novo pedido usa uma chave nova.
+      await submission.reviewed();
+      expect(stored()).toBeUndefined();
+      const fresh = submission.submit(monday11, '');
+      await settle();
+      expect(api.sent[2].key).not.toBe(api.sent[0].key);
+      api.answer(2);
+      expect((await fresh).kind).toBe('created');
+    });
+
+    it('I: the conflict on a first send is also recognised and not taken as a plain refusal', async () => {
+      const result = submission.submit(monday10, '');
+      await settle();
+      api.reject(0, keyConflict());
+      expect((await result).kind).toBe('conflict');
+      expect(stored()?.conflict).toBeTrue();
+    });
+
+    it('J: another 409 on a retry is not a key conflict and keeps the attempt unknown', async () => {
+      await lostAttempt();
+      for (const error of [
+        { message: ['Something else'], errorCode: 'OTHER_CONFLICT' },
+        { message: ['Idempotency-Key already used for a different order'] } // sem código
+      ]) {
+        const retried = submission.retry();
+        await settle();
+        api.reject(api.sent.length - 1, new HttpErrorResponse({ status: 409, error }));
+        expect((await retried).kind).toBe('unknown');
+      }
+      expect(stored()?.conflict).toBeUndefined();
+    });
+
+    it('K: a 503 on a retry keeps the attempt unknown and stored', async () => {
+      await lostAttempt();
+      const retried = submission.retry();
+      await settle();
+      api.reject(1, new HttpErrorResponse({ status: 503 }));
+      expect((await retried).kind).toBe('unknown');
+      expect(stored()).toBeDefined();
+    });
+
+    it('L: with the network down the attempt stays recoverable and later resolves with the same key', async () => {
+      await lostAttempt();
+      const retried = submission.retry();
+      await settle();
+      api.sent[1].response.error(offline());
+      expect((await retried).kind).toBe('unknown');
+      const again = submission.retry();
+      await settle();
+      expect(api.sent[2].key).toBe(api.sent[0].key);
+      api.answer(2);
+      expect(await again).toEqual(jasmine.objectContaining({ kind: 'created', orderId: '99' }));
+    });
+
+    it('M/N: a legitimate replay after a restart is created, not a conflict', async () => {
+      await lostAttempt();
+      const reopened = restart();
+      const loading = reopened.load();
+      await settle();
+      expect(api.sent[1].key).toBe(api.sent[0].key);
+      api.answer(1);
+      await loading;
+      expect(reopened.state()).toEqual(jasmine.objectContaining({ kind: 'created', orderId: '99' }));
+      expect(api.created.size).toBe(1);
+    });
+
+    it('O: a conflict of account A never shows for, nor is cleared by, account B', async () => {
+      await lostAttempt();
+      const retried = submission.retry();
+      await settle();
+      auth.signOut();
+      auth.signIn(otherCustomer);
+      api.reject(1, keyConflict());
+      await retried;
+      await submission.load();
+      expect(submission.state().kind).toBe('idle');
+      await submission.reviewed();
+      expect(stored('7')).toBeDefined();
+      expect(stored('8')).toBeUndefined();
+      const fromB = submission.submit(monday11, '');
+      await settle();
+      expect(api.sent[2].key).not.toBe(api.sent[0].key);
+      api.answer(2);
+      expect((await fromB).kind).toBe('created');
+    });
+  });
+
   describe('restart and accounts', () => {
     it('after a restart the pending attempt is repeated with its key and resolved', async () => {
       void submission.submit(monday10, 'Troca de chuveiro');

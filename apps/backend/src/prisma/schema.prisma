@@ -346,6 +346,8 @@ model Order {
   channel               OrderChannel @default(WEB) @map("canal")
   /// Chave enviada pelo cliente em POST /orders (header Idempotency-Key) para repetir a criação sem duplicar.
   idempotencyKey        String?     @map("idempotency_key")
+  /// Impressão digital da intenção (serviço, horário, endereço, pagamento, canal) ligada à chave.
+  idempotencyFingerprint String?    @map("idempotency_fingerprint")
 
   // Relations
   client        User             @relation("UserOrders", fields: [clientId], references: [id])

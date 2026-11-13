@@ -157,6 +157,11 @@ export class ProviderPage {
     const state = this.submission();
     return state.kind === 'unknown' ? state : null;
   });
+  /** A API recusou a chave da tentativa: o cliente confere os pedidos antes de pedir de novo. */
+  readonly conflict = computed(() => {
+    const state = this.submission();
+    return state.kind === 'conflict' ? state : null;
+  });
   readonly found = computed(() => {
     const state = this.submission();
     return state.kind === 'created' ? state : null;
@@ -171,6 +176,7 @@ export class ProviderPage {
       !this.auth.isAuthenticated() ||
       (!this.submitting() &&
         !this.pending() &&
+        !this.conflict() &&
         !!this.service() &&
         !!this.slot() &&
         !!this.addressId())
@@ -241,6 +247,11 @@ export class ProviderPage {
     } finally {
       this.#busy.set(false);
     }
+  }
+
+  async reviewOrders(): Promise<void> {
+    await this.#submission.reviewed();
+    await this.#router.navigate(['/pedidos']);
   }
 
   async openFound(): Promise<void> {

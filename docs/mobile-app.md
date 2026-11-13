@@ -100,6 +100,12 @@ sessão o app vai para `/entrar?voltar=...` e volta depois.
   já criado quando recebe a mesma chave do mesmo cliente, inclusive em requisições
   simultâneas (a checagem acontece dentro do lock de reserva do prestador; há
   índice único em `pedidos(cliente_id, idempotency_key)`). Sem chave, nada muda.
+  A chave só devolve o pedido original se a intenção for a mesma: serviço,
+  instante do horário, endereço, pagamento e canal (com os defaults da API) viram
+  uma impressão digital gravada com o pedido. Qualquer diferença é `409` com
+  `errorCode: IDEMPOTENCY_KEY_PAYLOAD_MISMATCH`; o app então encerra a tentativa,
+  nunca repete a chave e pede ao cliente que confira os pedidos antes de pedir de
+  novo (o aviso volta após reiniciar até ele tocar em "Ver meus pedidos").
   - Nada é enviado antes de a tentativa estar gravada no armazenamento seguro e de
     a sessão que a iniciou ainda ser a atual. Se a gravação falhar, o cliente vê o
     aviso e tenta de novo; nada foi enviado.
