@@ -68,6 +68,8 @@ jobs:
         run: npm run test:ci --workspace apps/frontend
       - name: Test backoffice in ChromeHeadless
         run: npm run backoffice:test -- --skip-nx-cache
+      - name: Test mobile app in ChromeHeadless
+        run: npm run mobile:test -- --skip-nx-cache
       - name: Build all applications
         run: npm run build -- --skip-nx-cache --parallel=1
 

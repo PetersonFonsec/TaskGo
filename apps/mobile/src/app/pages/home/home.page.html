@@ -1,0 +1,80 @@
+<ion-header>
+  <ion-toolbar color="primary">
+    <ion-title>TaskGo</ion-title>
+    <ion-buttons slot="end">
+      @if (auth.isAuthenticated()) {
+        <ion-button (click)="logout()" aria-label="Sair">
+          <ion-icon slot="icon-only" name="log-out-outline" />
+        </ion-button>
+      } @else {
+        <ion-button routerLink="/entrar">
+          <ion-icon slot="start" name="person-circle-outline" />
+          Entrar
+        </ion-button>
+      }
+    </ion-buttons>
+  </ion-toolbar>
+  <ion-toolbar>
+    <ion-searchbar
+      placeholder="Do que você precisa?"
+      [debounce]="150"
+      (ionInput)="onSearch($event)"
+    />
+  </ion-toolbar>
+</ion-header>
+
+<ion-content>
+  <div class="ion-padding-horizontal ion-padding-top">
+    <h2>{{ firstName() ? 'Olá, ' + firstName() + '!' : 'Encontre um profissional' }}</h2>
+    <ion-text color="medium"><p>Escolha uma categoria para ver quem atende perto de você.</p></ion-text>
+  </div>
+
+  @switch (state().status) {
+    @case ('loading') {
+      <ion-list>
+        @for (i of [1, 2, 3, 4]; track i) {
+          <ion-item>
+            <ion-thumbnail slot="start"><ion-skeleton-text [animated]="true" /></ion-thumbnail>
+            <ion-label><ion-skeleton-text [animated]="true" style="width: 60%" /></ion-label>
+          </ion-item>
+        }
+      </ion-list>
+    }
+    @case ('error') {
+      <div class="ion-padding">
+        <ion-text color="danger"><p>Não foi possível carregar as categorias. Verifique sua conexão.</p></ion-text>
+      </div>
+    }
+    @default {
+      <ion-list>
+        @for (category of visible(); track category.slug) {
+          <ion-item
+            [routerLink]="['/categorias', category.slug]"
+            [queryParams]="{ nome: category.name }"
+            [detail]="true"
+          >
+            @if (category.thumb) {
+              <ion-thumbnail slot="start">
+                <img [src]="category.thumb" alt="" (error)="$any($event.target).hidden = true" />
+              </ion-thumbnail>
+            }
+            <ion-label>
+              <h3>{{ category.name }}</h3>
+              @if (category.description) {
+                <p>{{ category.description }}</p>
+              }
+            </ion-label>
+          </ion-item>
+        } @empty {
+          <div class="ion-padding">
+            <ion-text color="medium">
+              <p>
+                {{ term() ? 'Nenhuma categoria com "' + term() + '".' : 'Ainda não há categorias ativas.' }}
+              </p>
+            </ion-text>
+          </div>
+        }
+      </ion-list>
+    }
+  }
+</ion-content>

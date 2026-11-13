@@ -6,6 +6,7 @@
     "apps/backend",
     "apps/backoffice",
     "apps/frontend",
+    "apps/mobile",
     "apps/landing-page",
     "libs/*"
   ],
@@ -23,7 +24,10 @@
     "test": "nx run-many -t test",
     "lint": "nx run-many -t lint",
     "docker:up": "docker compose up -d --build",
-    "docker:down": "docker compose down"
+    "docker:down": "docker compose down",
+    "mobile": "nx serve mobile",
+    "mobile:build": "nx build mobile",
+    "mobile:test": "nx test mobile"
   },
   "devDependencies": {
     "@nx/js": "^22.7.5",

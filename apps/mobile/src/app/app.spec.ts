@@ -1,0 +1,48 @@
+import { provideZonelessChangeDetection } from '@angular/core';
+import { TestBed } from '@angular/core/testing';
+import { provideRouter } from '@angular/router';
+import { provideIonicAngular } from '@ionic/angular';
+
+import { App } from './app';
+import { routes } from './app.routes';
+import { AuthService } from './core/auth/auth.service';
+import { PushRegistrationService } from './core/push/push-registration.service';
+
+describe('App', () => {
+  function setup(authenticated: boolean) {
+    const auth = { restore: jasmine.createSpy().and.resolveTo(), isAuthenticated: () => authenticated };
+    const push = { sync: jasmine.createSpy().and.resolveTo('registering') };
+    TestBed.configureTestingModule({
+      imports: [App],
+      providers: [
+        provideZonelessChangeDetection(),
+        provideIonicAngular(),
+        provideRouter([]),
+        { provide: AuthService, useValue: auth },
+        { provide: PushRegistrationService, useValue: push }
+      ]
+    });
+    return { app: TestBed.createComponent(App).componentInstance, auth, push };
+  }
+
+  it('restores the session and refreshes the device token on open', async () => {
+    const { app, auth, push } = setup(true);
+    await app.ngOnInit();
+    expect(auth.restore).toHaveBeenCalled();
+    expect(push.sync).toHaveBeenCalled();
+  });
+
+  it('skips push when nobody is logged in', async () => {
+    const { app, push } = setup(false);
+    await app.ngOnInit();
+    expect(push.sync).not.toHaveBeenCalled();
+  });
+
+  it('lazy-loads the three screens', async () => {
+    const paths = routes.map((route) => route.path);
+    expect(paths).toEqual(['', 'categorias/:slug', 'entrar', '**']);
+    for (const route of routes.filter((r) => r.loadComponent)) {
+      expect(await route.loadComponent!()).toBeDefined();
+    }
+  });
+});
