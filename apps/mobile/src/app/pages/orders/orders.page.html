@@ -32,7 +32,7 @@
       @if (state(); as current) {
         @if (current.status === 'ready') {
           <ion-list>
-            @for (order of current.orders; track order.id) {
+            @for (order of current.value; track order.id) {
               <ion-item [routerLink]="['/pedidos', order.id]" [detail]="true">
                 <ion-label>
                   <h2>{{ order.service.title }}</h2>

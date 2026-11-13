@@ -1,13 +1,15 @@
 import { HttpErrorResponse } from '@angular/common/http';
-import { provideZonelessChangeDetection, signal } from '@angular/core';
+import { provideZonelessChangeDetection } from '@angular/core';
 import { ComponentFixture, TestBed } from '@angular/core/testing';
 import { provideRouter, Router } from '@angular/router';
 import { provideIonicAngular } from '@ionic/angular';
 import { of, Subject, throwError } from 'rxjs';
 
 import { AuthService } from '@app/core/auth/auth.service';
+import { SECURE_STORE } from '@app/core/auth/session-storage';
 import { Availability, ProviderProfile, SavedAddress } from '@app/core/orders/orders.models';
 import { OrdersService } from '@app/core/orders/orders.service';
+import { FakeAuth, MemorySecureStore, otherCustomer, settle } from '../../../testing/fakes';
 import { ProviderPage } from './provider.page';
 
 const profile: ProviderProfile = {
@@ -47,20 +49,24 @@ const work: SavedAddress = { id: '8', label: 'Trabalho', street: 'Rua B', number
 
 describe('ProviderPage', () => {
   let orders: jasmine.SpyObj<OrdersService>;
-  let signedIn: ReturnType<typeof signal<boolean>>;
+  let auth: FakeAuth;
+  let store: MemorySecureStore;
   let navigate: jasmine.Spy;
 
   async function render(options: { signedIn?: boolean; addresses?: readonly SavedAddress[] } = {}) {
-    signedIn = signal(options.signedIn ?? true);
+    auth = new FakeAuth(options.signedIn === false ? null : undefined);
+    store = new MemorySecureStore();
     orders = jasmine.createSpyObj<OrdersService>('OrdersService', [
       'provider',
       'availability',
       'addresses',
-      'create'
+      'create',
+      'list'
     ]);
     orders.provider.and.returnValue(of(profile));
     orders.availability.and.callFake((_p, serviceId) => of(agenda(serviceId)));
     orders.addresses.and.returnValue(of(options.addresses ?? [home, work]));
+    orders.list.and.returnValue(of([]));
     TestBed.configureTestingModule({
       imports: [ProviderPage],
       providers: [
@@ -68,7 +74,8 @@ describe('ProviderPage', () => {
         provideIonicAngular(),
         provideRouter([]),
         { provide: OrdersService, useValue: orders },
-        { provide: AuthService, useValue: { isAuthenticated: signedIn.asReadonly() } }
+        { provide: AuthService, useValue: auth },
+        { provide: SECURE_STORE, useValue: store }
       ]
     });
     navigate = spyOn(TestBed.inject(Router), 'navigate').and.resolveTo(true);
@@ -156,17 +163,18 @@ describe('ProviderPage', () => {
     expect(orders.create).toHaveBeenCalledTimes(1);
   });
 
-  it('explains a refused order and asks for another slot', async () => {
+  it('E: explains a refused order and lets the customer pick another slot', async () => {
     const fixture = await render();
     const page = fixture.componentInstance;
-    orders.create.and.returnValue(
+    orders.create.and.returnValues(
       throwError(
         () =>
           new HttpErrorResponse({
             status: 400,
             error: { message: 'Selected scheduled slot is no longer available' }
           })
-      )
+      ),
+      of({ id: '100' })
     );
     page.selectSlot('2026-11-15T13:00:00.000Z');
 
@@ -177,6 +185,89 @@ describe('ProviderPage', () => {
     expect(page.slot()).toBeNull();
     expect(page.submitting()).toBeFalse();
     expect(navigate).not.toHaveBeenCalled();
+
+    page.selectSlot('2026-11-15T13:00:00.000Z');
+    expect(page.error()).toBeNull();
+    await page.submit();
+    expect(orders.create).toHaveBeenCalledTimes(2);
+    expect(navigate).toHaveBeenCalledWith(['/pedidos', '100'], { replaceUrl: true });
+  });
+
+  it('C/D: a lost answer blocks new orders, survives a slot change and resolves by checking', async () => {
+    const fixture = await render();
+    const page = fixture.componentInstance;
+    orders.create.and.returnValue(throwError(() => new HttpErrorResponse({ status: 0 })));
+    orders.list.and.returnValue(throwError(() => new HttpErrorResponse({ status: 0 })));
+    page.selectSlot('2026-11-15T13:00:00.000Z');
+
+    await page.submit();
+    await stable(fixture);
+
+    expect(text(fixture)).toContain('Não sabemos se o seu último pedido chegou ao TaskGo');
+    expect(text(fixture)).toContain('Troca de chuveiro');
+    expect(page.canSubmit()).toBeFalse();
+
+    // Outro horário não libera um novo pedido nem descarta o pendente.
+    page.selectSlot('2026-11-15T13:00:00.000Z');
+    await page.submit();
+    expect(page.pending()).not.toBeNull();
+    expect(orders.create).toHaveBeenCalledTimes(1);
+
+    // A lista volta e mostra o pedido: o app abre o pedido em vez de criar outro.
+    orders.list.and.returnValue(
+      of([
+        {
+          id: '99',
+          status: 'AGUARDANDO_APROVACAO' as const,
+          serviceId: '1',
+          scheduledFor: '2026-11-15T13:00:00.000Z',
+          requestedAt: new Date().toISOString(),
+          service: { title: 'Troca de chuveiro' }
+        }
+      ])
+    );
+    await page.check();
+    expect(navigate).toHaveBeenCalledWith(['/pedidos', '99'], { replaceUrl: true });
+    expect(orders.create).toHaveBeenCalledTimes(1);
+  });
+
+  it('F: reopening the page after a restart shows the pending attempt again', async () => {
+    const fixture = await render();
+    // Tentativa gravada por uma execução anterior do app, ainda sem resultado.
+    store.data.set(
+      'order_intent_7',
+      JSON.stringify({
+        userId: '7',
+        serviceId: '1',
+        scheduledFor: '2026-11-15T13:00:00.000Z',
+        addressId: '8',
+        startedAt: new Date().toISOString(),
+        summary: 'Troca de chuveiro'
+      })
+    );
+    auth.signOut();
+    auth.signIn(); // como abrir o app de novo com a sessão salva
+    await stable(fixture);
+    await settle();
+    fixture.detectChanges();
+    expect(fixture.componentInstance.pending()).not.toBeNull();
+    expect(text(fixture)).toContain('Não sabemos se o seu último pedido chegou');
+  });
+
+  it('G: the pending attempt of account A is not shown to account B', async () => {
+    const fixture = await render();
+    const page = fixture.componentInstance;
+    orders.create.and.returnValue(throwError(() => new HttpErrorResponse({ status: 0 })));
+    page.selectSlot('2026-11-15T13:00:00.000Z');
+    await page.submit();
+    expect(page.pending()).not.toBeNull();
+
+    auth.signOut();
+    auth.signIn(otherCustomer);
+    await stable(fixture);
+    await settle();
+    expect(page.pending()).toBeNull();
+    expect(text(fixture)).not.toContain('Não sabemos se o seu último pedido');
   });
 
   it('asks anonymous visitors to log in and come back', async () => {
@@ -211,7 +302,7 @@ describe('ProviderPage', () => {
         provideIonicAngular(),
         provideRouter([]),
         { provide: OrdersService, useValue: orders },
-        { provide: AuthService, useValue: { isAuthenticated: signal(false).asReadonly() } }
+        { provide: AuthService, useValue: new FakeAuth(null) }
       ]
     });
     orders.provider.and.returnValue(of(null));
@@ -230,7 +321,7 @@ describe('ProviderPage', () => {
         provideIonicAngular(),
         provideRouter([]),
         { provide: OrdersService, useValue: orders },
-        { provide: AuthService, useValue: { isAuthenticated: signal(false).asReadonly() } }
+        { provide: AuthService, useValue: new FakeAuth(null) }
       ]
     });
     orders.provider.and.returnValue(throwError(() => new Error('x')));

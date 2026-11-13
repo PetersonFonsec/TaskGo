@@ -88,8 +88,13 @@ export class AuthService {
   /** Revogações não confirmadas que o armazenamento não conseguiu gravar. */
   readonly #unsaved = new Map<string, string>();
 
+  /** Espelho reativo de `#generation`, para telas que exibem dados da conta. */
+  readonly #session = signal(0);
+
   readonly user = this.#user.asReadonly();
   readonly isAuthenticated = computed(() => this.#user() !== null);
+  /** Muda junto com `generation()`; dados privados devem ser descartados quando muda. */
+  readonly session = this.#session.asReadonly();
 
   /** Identifica a sessão atual; muda a cada login, logout ou restauração. */
   generation(): number {
@@ -319,7 +324,7 @@ export class AuthService {
     accessToken: string | null,
     user: PublicUserProfile
   ): number {
-    this.#generation++;
+    this.#session.set(++this.#generation);
     this.#sessionId = id;
     this.#refreshToken = refreshToken;
     this.#accessToken.set(accessToken);
@@ -328,7 +333,7 @@ export class AuthService {
   }
 
   #discard(): void {
-    this.#generation++;
+    this.#session.set(++this.#generation);
     this.#sessionId = null;
     this.#refreshToken = null;
     this.#accessToken.set(null);

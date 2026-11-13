@@ -70,6 +70,8 @@ export interface NewOrder {
 export interface OrderListItem {
   readonly id: string;
   readonly status: OrderStatus;
+  readonly serviceId?: string;
+  readonly requestedAt?: string;
   readonly scheduledFor?: string | null;
   readonly finalPrice?: number | null;
   readonly estimatedPrice?: number | null;

@@ -1,5 +1,4 @@
 import { Component, inject, signal } from '@angular/core';
-import { toObservable, toSignal } from '@angular/core/rxjs-interop';
 import { RouterLink } from '@angular/router';
 import {
   IonBackButton,
@@ -18,15 +17,10 @@ import {
   IonToolbar,
   RefresherCustomEvent
 } from '@ionic/angular';
-import { catchError, identity, map, of, startWith, switchMap, tap } from 'rxjs';
 
 import { OrderListItem } from '@app/core/orders/orders.models';
 import { orderStatusColor, orderStatusLabel, OrdersService } from '@app/core/orders/orders.service';
-
-type OrdersState =
-  | { status: 'loading' }
-  | { status: 'error' }
-  | { status: 'ready'; orders: readonly OrderListItem[] };
+import { privateResource } from '@app/core/orders/private-resource';
 
 @Component({
   selector: 'app-orders',
@@ -51,35 +45,26 @@ type OrdersState =
 })
 export class OrdersPage {
   readonly #orders = inject(OrdersService);
-  readonly #reload = signal(0);
-  #refresher: RefresherCustomEvent | null = null;
+  readonly #list = privateResource(signal(null), () => this.#orders.list());
 
-  readonly state = toSignal(
-    toObservable(this.#reload).pipe(
-      switchMap((attempt) =>
-        this.#orders.list().pipe(
-          map((orders): OrdersState => ({ status: 'ready', orders })),
-          catchError(() => of<OrdersState>({ status: 'error' })),
-          tap(() => this.#finishRefresh()),
-          // Ao puxar para atualizar, a lista atual continua na tela.
-          attempt === 0 ? startWith<OrdersState>({ status: 'loading' }) : identity
-        )
-      )
-    ),
-    { initialValue: { status: 'loading' } as OrdersState }
-  );
+  /** Pedidos da sessão atual; some na hora em logout ou troca de conta. */
+  readonly state = this.#list.state;
 
   readonly statusLabel = orderStatusLabel;
   readonly statusColor = orderStatusColor;
 
   refresh(event: RefresherCustomEvent): void {
-    this.#refresher = event;
-    this.#reload.update((n) => n + 1);
+    this.#list.refresh(event);
   }
 
   /** Atualiza ao voltar para a tela (o Ionic mantém a página viva na pilha). */
   ionViewWillEnter(): void {
-    if (this.state().status !== 'loading') this.#reload.update((n) => n + 1);
+    const status = this.state().status;
+    if (status === 'ready' || status === 'error') this.#list.reload();
+  }
+
+  ionViewWillLeave(): void {
+    this.#list.cancelRefreshes();
   }
 
   providerName(order: OrderListItem): string {
@@ -88,11 +73,6 @@ export class OrdersPage {
 
   when(order: OrderListItem): string {
     return order.scheduledFor ? formatDateTime(order.scheduledFor) : 'Data a combinar';
-  }
-
-  #finishRefresh(): void {
-    void this.#refresher?.target.complete();
-    this.#refresher = null;
   }
 }
 

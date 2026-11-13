@@ -1,3 +1,4 @@
+import { computed, signal } from '@angular/core';
 import type { PluginListenerHandle } from '@capacitor/core';
 import type { CustomerAuthSession, PublicUserProfile } from '@taskgo/shared';
 
@@ -127,3 +128,42 @@ export class FakeResumeEvents {
     [...this.listeners].forEach((listener) => listener());
   }
 }
+
+/**
+ * Sessão controlável para telas e serviços que dependem da conta logada. Cada
+ * entrada ou saída cria uma geração nova, como no AuthService.
+ */
+export class FakeAuth {
+  readonly #user = signal<PublicUserProfile | null>(null);
+  readonly #session = signal(0);
+  #generation = 0;
+  readonly user = this.#user.asReadonly();
+  readonly session = this.#session.asReadonly();
+  readonly isAuthenticated = computed(() => this.#user() !== null);
+
+  constructor(user: PublicUserProfile | null = customer) {
+    if (user) this.signIn(user);
+  }
+
+  generation(): number {
+    return this.#generation;
+  }
+
+  signIn(user: PublicUserProfile = customer): void {
+    this.#session.set(++this.#generation);
+    this.#user.set(user);
+  }
+
+  /** Logout ou sessão perdida (refresh recusado). */
+  signOut(): void {
+    this.#session.set(++this.#generation);
+    this.#user.set(null);
+  }
+}
+
+export const otherCustomer: PublicUserProfile = {
+  ...customer,
+  id: '8',
+  name: 'Bruno Dias',
+  email: 'bruno@example.com'
+};

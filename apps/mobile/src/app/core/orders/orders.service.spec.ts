@@ -7,6 +7,7 @@ import { firstValueFrom } from 'rxjs';
 import { MOBILE_ENVIRONMENT } from '@app/core/config/mobile-environment.token';
 import { API } from '../../../testing/fakes';
 import {
+  availabilityRange,
   createOrderErrorMessage,
   decimal,
   orderStatusColor,
@@ -56,7 +57,8 @@ describe('OrdersService', () => {
   });
 
   it('asks for 14 days of slots of the chosen service', async () => {
-    const result = firstValueFrom(orders.availability('10', '3', new Date(2026, 11, 25)));
+    // 25/12/2026 às 9h em São Paulo.
+    const result = firstValueFrom(orders.availability('10', '3', new Date('2026-12-25T12:00:00Z')));
     const request = http.expectOne((r) => r.url === `${API}/provider/10/availability`);
     expect(request.request.params.get('from')).toBe('2026-12-25');
     expect(request.request.params.get('to')).toBe('2027-01-07');
@@ -100,6 +102,49 @@ describe('OrdersService', () => {
     const one = firstValueFrom(orders.details('1'));
     http.expectOne(`${API}/orders/1`).flush({ id: '1' });
     expect((await one).id).toBe('1');
+  });
+});
+
+describe('availabilityRange (agenda em São Paulo)', () => {
+  const days = (from: string, to: string) =>
+    (Date.parse(`${to}T00:00:00Z`) - Date.parse(`${from}T00:00:00Z`)) / 86400000 + 1;
+
+  it('N: starts today in São Paulo and covers exactly 14 calendar days', () => {
+    const range = availabilityRange(new Date('2026-11-13T19:00:00Z')); // 16h em SP
+    expect(range).toEqual({ from: '2026-11-13', to: '2026-11-26' });
+    expect(days(range.from, range.to)).toBe(14);
+  });
+
+  it('O: near midnight it follows São Paulo, not UTC', () => {
+    // 02:30 UTC do dia 14 ainda é 23:30 do dia 13 em São Paulo.
+    expect(availabilityRange(new Date('2026-11-14T02:30:00Z')).from).toBe('2026-11-13');
+    // 03:00 UTC do dia 14 já é meia-noite do dia 14 em São Paulo.
+    expect(availabilityRange(new Date('2026-11-14T03:00:00Z')).from).toBe('2026-11-14');
+  });
+
+  it('P: never reads the device time zone, so Tokyo or Los Angeles get the same range', () => {
+    // Karma não troca o fuso do navegador; o teste garante que o fuso local nem é consultado.
+    const local = ['getFullYear', 'getMonth', 'getDate', 'getHours', 'getTimezoneOffset'] as const;
+    const spies = local.map((name) => spyOn(Date.prototype, name).and.callThrough());
+    // Mesmo instante: 09:30 de 14/11 em Tóquio, 16:30 de 13/11 em Los Angeles.
+    const range = availabilityRange(new Date('2026-11-14T00:30:00Z'));
+    expect(range).toEqual({ from: '2026-11-13', to: '2026-11-26' });
+    spies.forEach((spy) => expect(spy).not.toHaveBeenCalled());
+  });
+
+  it('Q: crosses the new year', () => {
+    expect(availabilityRange(new Date('2026-12-25T15:00:00Z'))).toEqual({
+      from: '2026-12-25',
+      to: '2027-01-07'
+    });
+  });
+
+  it('R: crosses month ends, including February of a leap year', () => {
+    const november = availabilityRange(new Date('2026-11-25T15:00:00Z'));
+    expect(november).toEqual({ from: '2026-11-25', to: '2026-12-08' });
+    const february = availabilityRange(new Date('2028-02-20T15:00:00Z'));
+    expect(february).toEqual({ from: '2028-02-20', to: '2028-03-04' });
+    expect(days(february.from, february.to)).toBe(14);
   });
 });
 

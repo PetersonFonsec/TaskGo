@@ -143,6 +143,35 @@
         }
 
         <div class="ion-padding">
+          @if (pending(); as p) {
+            <div role="alert" data-testid="pending">
+              <ion-text color="warning">
+                <p>
+                  <strong>Não sabemos se o seu último pedido chegou ao TaskGo.</strong>
+                  @if (p.intent.summary) {
+                    ({{ p.intent.summary }})
+                  }
+                  Para não pedir duas vezes, confira antes de fazer outro pedido.
+                </p>
+              </ion-text>
+              <ion-button expand="block" fill="outline" [disabled]="p.checking || submitting()" (click)="check()">
+                @if (p.checking) {
+                  <ion-spinner name="crescent" />
+                } @else {
+                  Verificar meus pedidos
+                }
+              </ion-button>
+              <ion-button expand="block" fill="clear" [disabled]="p.checking || submitting()" (click)="resend()">
+                Enviar de novo o mesmo pedido
+              </ion-button>
+            </div>
+          }
+          @if (found(); as f) {
+            <ion-text color="success" data-testid="found">
+              <p>Seu pedido #{{ f.orderId }} foi registrado.</p>
+            </ion-text>
+            <ion-button expand="block" fill="outline" (click)="openFound()">Ver pedido</ion-button>
+          }
           @if (error(); as message) {
             <ion-text color="danger"><p role="alert">{{ message }}</p></ion-text>
           }

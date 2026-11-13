@@ -38,12 +38,11 @@ export class OrdersService {
       );
   }
 
-  availability(providerId: string, serviceId: string, today = new Date()): Observable<Availability> {
-    const to = new Date(today);
-    to.setDate(today.getDate() + AVAILABILITY_DAYS - 1);
+  availability(providerId: string, serviceId: string, now = new Date()): Observable<Availability> {
+    const { from, to } = availabilityRange(now);
     return this.#http.get<Availability>(
       `${this.#apiUrl}/provider/${encodeURIComponent(providerId)}/availability`,
-      { params: { from: dateOnly(today), to: dateOnly(to), serviceId } }
+      { params: { from, to, serviceId } }
     );
   }
 
@@ -157,7 +156,28 @@ export function decimal(value: unknown): number {
   return NaN;
 }
 
-function dateOnly(date: Date): string {
-  const pad = (n: number) => String(n).padStart(2, '0');
-  return `${date.getFullYear()}-${pad(date.getMonth() + 1)}-${pad(date.getDate())}`;
+/** Fuso da agenda dos prestadores (o mesmo do backend). */
+export const BOOKING_TIMEZONE = 'America/Sao_Paulo';
+
+/**
+ * Os 14 dias corridos da agenda, a partir de hoje em São Paulo, sem depender
+ * do fuso configurado no aparelho.
+ */
+export function availabilityRange(now: Date): { from: string; to: string } {
+  const parts = Object.fromEntries(
+    new Intl.DateTimeFormat('en-CA', {
+      timeZone: BOOKING_TIMEZONE,
+      year: 'numeric',
+      month: '2-digit',
+      day: '2-digit'
+    })
+      .formatToParts(now)
+      .map(({ type, value }) => [type, Number(value)])
+  );
+  // Date.UTC normaliza dia 32, mês 13 etc.: a conta é de calendário, não de milissegundos.
+  const day = (offset: number) =>
+    new Date(Date.UTC(parts['year'], parts['month'] - 1, parts['day'] + offset))
+      .toISOString()
+      .slice(0, 10);
+  return { from: day(0), to: day(AVAILABILITY_DAYS - 1) };
 }

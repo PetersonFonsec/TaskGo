@@ -1,5 +1,4 @@
-import { Component, computed, inject, input, signal } from '@angular/core';
-import { toObservable, toSignal } from '@angular/core/rxjs-interop';
+import { Component, computed, inject, input } from '@angular/core';
 import {
   IonAvatar,
   IonBackButton,
@@ -23,16 +22,11 @@ import {
 } from '@ionic/angular';
 import { addIcons } from 'ionicons';
 import { checkmarkCircle, personCircle, shieldCheckmark } from 'ionicons/icons';
-import { catchError, combineLatest, identity, map, of, startWith, switchMap, tap } from 'rxjs';
 
 import { OrderDetails } from '@app/core/orders/orders.models';
 import { orderStatusColor, orderStatusLabel, OrdersService } from '@app/core/orders/orders.service';
+import { privateResource } from '@app/core/orders/private-resource';
 import { formatDateTime } from '../orders/orders.page';
-
-type OrderState =
-  | { status: 'loading' }
-  | { status: 'error' }
-  | { status: 'ready'; order: OrderDetails };
 
 /** O que o cliente precisa saber em cada etapa. */
 const NEXT_STEP: Partial<Record<string, string>> = {
@@ -71,28 +65,16 @@ const NEXT_STEP: Partial<Record<string, string>> = {
 })
 export class OrderPage {
   readonly #orders = inject(OrdersService);
-  readonly #reload = signal(0);
-  #refresher: RefresherCustomEvent | null = null;
 
   /** Vem da rota: /pedidos/:id */
   readonly id = input.required<string>();
 
-  readonly state = toSignal(
-    combineLatest([toObservable(this.id), toObservable(this.#reload)]).pipe(
-      switchMap(([id, attempt]) =>
-        this.#orders.details(id).pipe(
-          map((order): OrderState => ({ status: 'ready', order })),
-          catchError(() => of<OrderState>({ status: 'error' })),
-          tap(() => this.#finishRefresh()),
-          attempt === 0 ? startWith<OrderState>({ status: 'loading' }) : identity
-        )
-      )
-    ),
-    { initialValue: { status: 'loading' } as OrderState }
-  );
+  readonly #details = privateResource(this.id, (id) => this.#orders.details(id));
+  /** Pedido da sessão atual; some na hora em logout ou troca de conta. */
+  readonly state = this.#details.state;
   readonly order = computed(() => {
     const state = this.state();
-    return state.status === 'ready' ? state.order : null;
+    return state.status === 'ready' ? state.value : null;
   });
   readonly nextStep = computed(() => NEXT_STEP[this.order()?.status ?? ''] ?? null);
 
@@ -105,12 +87,16 @@ export class OrderPage {
   }
 
   refresh(event: RefresherCustomEvent): void {
-    this.#refresher = event;
-    this.#reload.update((n) => n + 1);
+    this.#details.refresh(event);
   }
 
   ionViewWillEnter(): void {
-    if (this.state().status !== 'loading') this.#reload.update((n) => n + 1);
+    const status = this.state().status;
+    if (status === 'ready' || status === 'error') this.#details.reload();
+  }
+
+  ionViewWillLeave(): void {
+    this.#details.cancelRefreshes();
   }
 
   amount(order: OrderDetails): string {
@@ -125,10 +111,5 @@ export class OrderPage {
     return [street, a.complement, a.neighborhood, [a.city, a.state].filter(Boolean).join('/')]
       .filter(Boolean)
       .join(' · ');
-  }
-
-  #finishRefresh(): void {
-    void this.#refresher?.target.complete();
-    this.#refresher = null;
   }
 }

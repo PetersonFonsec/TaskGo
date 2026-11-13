@@ -123,6 +123,28 @@ describe('AuthService', () => {
       expect(store.session()).toBeNull();
     });
 
+    it('M: the reactive session changes on login, on a refused refresh and never on rotation', async () => {
+      setup();
+      const seen: number[] = [auth.session()];
+      await login();
+      seen.push(auth.session());
+
+      const rotated = auth.refresh();
+      await settle();
+      expectRefresh('refresh-1').flush({ access_token: 'access-2', refresh_token: 'refresh-2' });
+      await rotated;
+      seen.push(auth.session()); // rotação não é sessão nova: telas mantêm os dados
+
+      const lost = auth.refresh();
+      await settle();
+      expectRefresh('refresh-2').flush(null, unauthorized);
+      await lost;
+      seen.push(auth.session());
+
+      expect(seen).toEqual([0, 1, 1, 2]);
+      expect(auth.session()).toBe(auth.generation());
+    });
+
     it('keeps the session when the refresh fails for lack of network', async () => {
       setup();
       await login();

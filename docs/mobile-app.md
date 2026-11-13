@@ -95,6 +95,21 @@ sessão o app vai para `/entrar?voltar=...` e volta depois.
   dia, horário (agenda de 14 dias de `GET /provider/:id/availability`) e um
   endereço salvo com localização. O pedido vai para `POST /orders` com
   `channel: 'APP'`; o preço e a reserva do horário são decididos pela API.
+- Pedido sem resposta (rede caiu, 5xx): `POST /orders` não tem chave de
+  idempotência, então o app não reenvia sozinho. A tentativa fica gravada no
+  armazenamento seguro, por conta, e bloqueia novos pedidos até se resolver. O
+  app procura em `GET /orders` um pedido do mesmo serviço e horário feito depois
+  do envio; se não achar, o cliente pode verificar de novo ou reenviar o mesmo
+  pedido. O reenvio é seguro porque o backend serializa as reservas do prestador
+  e recusa horário ocupado: se o primeiro existir, a API recusa e a busca o
+  encontra. Só uma recusa da API sem pedido na lista libera outro horário
+  (`OrderSubmission`).
+- Dados da conta (pedidos, detalhe, endereços) ficam presos à sessão em que foram
+  buscados (`privateResource` + `AuthService.session`): logout, troca de conta ou
+  perda da sessão escondem tudo na hora e cancelam buscas antigas, inclusive em
+  páginas que o Ionic mantém na pilha.
+- A agenda pede os 14 dias a partir de hoje em São Paulo, qualquer que seja o
+  fuso do aparelho.
 - Endereços sem latitude e longitude não aparecem, porque a API recusaria o
   pedido. O app ainda não cadastra endereços: o cliente cadastra no site.
 - Pagamento, confirmação de conclusão e avaliação ainda são feitos no site. A tela
