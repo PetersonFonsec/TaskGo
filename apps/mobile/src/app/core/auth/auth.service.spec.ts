@@ -1,152 +1,380 @@
 import { provideHttpClient } from '@angular/common/http';
 import { HttpTestingController, provideHttpClientTesting } from '@angular/common/http/testing';
-import { provideZonelessChangeDetection } from '@angular/core';
+import { Injector, provideZonelessChangeDetection } from '@angular/core';
 import { TestBed } from '@angular/core/testing';
 
 import { MOBILE_ENVIRONMENT } from '@app/core/config/mobile-environment.token';
-import { API, customer, loginResponse, MemorySessionStorage, settle } from '../../../testing/fakes';
+import { API, customer, loginResponse, MemorySecureStore, settle } from '../../../testing/fakes';
 import { AuthService, ProviderAccountError } from './auth.service';
-import { SessionStorage } from './session-storage';
+import { SECURE_STORE, SessionStorage, StoredSession } from './session-storage';
+
+const otherCustomer = { ...customer, id: '8', name: 'Bruno Dias', email: 'bruno@example.com' };
+const unauthorized = { status: 401, statusText: 'Unauthorized' };
+const noContent = { status: 204, statusText: 'No Content' };
 
 describe('AuthService', () => {
   let auth: AuthService;
   let http: HttpTestingController;
-  let storage: MemorySessionStorage;
+  let store: MemorySecureStore;
 
-  function setup(stored: MemorySessionStorage['stored'] = null): void {
-    storage = new MemorySessionStorage();
-    storage.stored = stored;
+  function setup(saved: StoredSession | null = null): void {
+    store = new MemorySecureStore();
+    if (saved) store.data.set('session', JSON.stringify(saved));
     TestBed.configureTestingModule({
       providers: [
         provideZonelessChangeDetection(),
         provideHttpClient(),
         provideHttpClientTesting(),
         { provide: MOBILE_ENVIRONMENT, useValue: { production: false, apiUrl: API } },
-        { provide: SessionStorage, useValue: storage }
+        { provide: SECURE_STORE, useValue: store }
       ]
     });
     auth = TestBed.inject(AuthService);
     http = TestBed.inject(HttpTestingController);
   }
 
+  /** Simula reabrir o app: serviços novos, mesmo armazenamento seguro. */
+  async function reopen(): Promise<AuthService> {
+    const injector = Injector.create({
+      providers: [
+        { provide: SessionStorage, useClass: SessionStorage },
+        { provide: AuthService, useClass: AuthService }
+      ],
+      parent: TestBed.inject(Injector)
+    });
+    const reopened = injector.get(AuthService);
+    await reopened.restore();
+    return reopened;
+  }
+
   afterEach(() => http.verify());
 
-  async function login(): Promise<void> {
-    const pending = auth.login('ana@example.com', 'secret');
-    http.expectOne(`${API}/auth/login`).flush(loginResponse());
+  async function login(refresh = 'refresh-1', user = customer): Promise<void> {
+    const pending = auth.login(user.email, 'secret');
+    await settle();
+    http
+      .expectOne(`${API}/auth/login`)
+      .flush(loginResponse({ refresh_token: refresh, access_token: `access-${refresh}`, user }));
     await pending;
   }
 
-  it('saves the refresh token securely and keeps the access token in memory', async () => {
-    setup();
-    await login();
+  function expectRefresh(body: string) {
+    const request = http.expectOne(`${API}/auth/refresh`);
+    expect(request.request.body).toEqual({ refresh_token: body });
+    return request;
+  }
 
-    expect(auth.isAuthenticated()).toBeTrue();
-    expect(storage.stored).toEqual({ refreshToken: 'refresh-1', user: customer });
-    expect(JSON.stringify(storage.stored)).not.toContain('access-1');
-    expect(await auth.accessToken()).toBe('access-1');
+  function expectLogout(body: string) {
+    const request = http.expectOne(`${API}/auth/logout`);
+    expect(request.request.body).toEqual({ refresh_token: body });
+    return request;
+  }
+
+  describe('login e sessão', () => {
+    it('saves the refresh token securely and keeps the access token in memory', async () => {
+      setup();
+      await login();
+
+      expect(auth.isAuthenticated()).toBeTrue();
+      expect(store.session()?.refreshToken).toBe('refresh-1');
+      expect(store.session()?.user).toEqual(customer);
+      expect(store.data.get('session')).not.toContain('access-refresh-1');
+      expect(await auth.accessToken()).toBe('access-refresh-1');
+    });
+
+    it('refuses provider accounts and revokes the session the API just opened', async () => {
+      setup();
+      const pending = auth.login('pro@example.com', 'secret');
+      await settle();
+      http
+        .expectOne(`${API}/auth/login`)
+        .flush(loginResponse({ user: { ...customer, type: 'PRESTADOR' }, refresh_token: 'pro-refresh' }));
+      await settle();
+      expectLogout('pro-refresh').flush(null, noContent);
+
+      await expectAsync(pending).toBeRejectedWithError(ProviderAccountError);
+      expect(auth.isAuthenticated()).toBeFalse();
+      expect(store.session()).toBeNull();
+      expect(store.pending()).toEqual([]);
+    });
+
+    it('restores a saved session and gets an access token on first use', async () => {
+      setup({ id: 's1', refreshToken: 'saved', user: customer });
+      await auth.restore();
+      expect(auth.user()).toEqual(customer);
+
+      const token = auth.accessToken();
+      await settle();
+      expectRefresh('saved').flush({ access_token: 'access-2', refresh_token: 'refresh-2' });
+
+      expect(await token).toBe('access-2');
+      expect(store.session()).toEqual({ id: 's1', refreshToken: 'refresh-2', user: customer });
+    });
+
+    it('ends the local session when the API refuses the refresh token', async () => {
+      setup();
+      await login();
+      const result = auth.refresh();
+      await settle();
+      expectRefresh('refresh-1').flush(null, unauthorized);
+
+      expect(await result).toBeNull();
+      expect(auth.isAuthenticated()).toBeFalse();
+      expect(store.session()).toBeNull();
+    });
+
+    it('keeps the session when the refresh fails for lack of network', async () => {
+      setup();
+      await login();
+      const result = auth.refresh();
+      await settle();
+      expectRefresh('refresh-1').error(new ProgressEvent('error'));
+
+      await expectAsync(result).toBeRejected();
+      expect(auth.isAuthenticated()).toBeTrue();
+      expect(store.session()?.refreshToken).toBe('refresh-1');
+    });
   });
 
-  it('refuses provider accounts and revokes the session the API just opened', async () => {
-    setup();
-    const pending = auth.login('pro@example.com', 'secret');
-    http
-      .expectOne(`${API}/auth/login`)
-      .flush(loginResponse({ user: { ...customer, type: 'PRESTADOR' }, refresh_token: 'pro-refresh' }));
+  describe('refresh concorrente (cenário E)', () => {
+    it('sends a single refresh for concurrent callers and stores the newest token', async () => {
+      setup();
+      await login();
+      const generation = auth.generation();
 
-    await expectAsync(pending).toBeRejectedWithError(ProviderAccountError);
-    const revoke = http.expectOne(`${API}/auth/logout`);
-    expect(revoke.request.body).toEqual({ refresh_token: 'pro-refresh' });
-    revoke.flush(null);
-    expect(auth.isAuthenticated()).toBeFalse();
-    expect(storage.stored).toBeNull();
+      const first = auth.refresh();
+      const second = auth.refresh();
+      const third = auth.accessTokenAfterRejection('access-refresh-1', generation);
+      await settle();
+      expectRefresh('refresh-1').flush({ access_token: 'a2', refresh_token: 'r2' });
+
+      expect(await Promise.all([first, second, third])).toEqual(['a2', 'a2', 'a2']);
+      expect(store.session()?.refreshToken).toBe('r2');
+
+      // A próxima renovação usa o token rotacionado, nunca o antigo.
+      const next = auth.refresh();
+      await settle();
+      expectRefresh('r2').flush({ access_token: 'a3', refresh_token: 'r3' });
+      expect(await next).toBe('a3');
+    });
+
+    it('does not refresh again when another request already renewed the token', async () => {
+      setup();
+      await login();
+      const generation = auth.generation();
+      const renewed = auth.refresh();
+      await settle();
+      expectRefresh('refresh-1').flush({ access_token: 'a2', refresh_token: 'r2' });
+      await renewed;
+
+      expect(await auth.accessTokenAfterRejection('access-refresh-1', generation)).toBe('a2');
+    });
+
+    it('never hands a token of the new session to a request of the old one', async () => {
+      setup();
+      await login();
+      const oldGeneration = auth.generation();
+      const loggingOut = auth.logout();
+      await settle();
+      expectLogout('refresh-1').flush(null, noContent);
+      await loggingOut;
+      await login('refresh-b', otherCustomer);
+
+      expect(await auth.accessTokenAfterRejection('access-refresh-1', oldGeneration)).toBeNull();
+    });
   });
 
-  it('restores a saved session and gets an access token on first use', async () => {
-    setup({ refreshToken: 'saved', user: customer });
-    await auth.restore();
-    expect(auth.user()).toEqual(customer);
+  describe('logout', () => {
+    it('waits for the API to confirm the revocation', async () => {
+      setup();
+      await login();
+      let done = false;
+      const loggingOut = auth.logout().then((result) => ((done = true), result));
+      await settle();
 
-    const token = auth.accessToken();
-    await settle();
-    const refresh = http.expectOne(`${API}/auth/refresh`);
-    expect(refresh.request.body).toEqual({ refresh_token: 'saved' });
-    refresh.flush({ access_token: 'access-2', refresh_token: 'refresh-2' });
+      expect(auth.isAuthenticated()).toBeFalse();
+      expect(await auth.accessToken()).toBeNull();
+      expect(done).toBeFalse();
+      expectLogout('refresh-1').flush(null, noContent);
 
-    expect(await token).toBe('access-2');
-    expect(storage.stored?.refreshToken).toBe('refresh-2');
+      expect(await loggingOut).toEqual({ remote: 'revoked', localCleared: true });
+      expect(store.session()).toBeNull();
+      expect(store.pending()).toEqual([]);
+    });
+
+    it('revokes the newest token when a refresh is in flight (cenário B)', async () => {
+      setup();
+      await login();
+      void auth.refresh();
+      const loggingOut = auth.logout();
+      expect(auth.isAuthenticated()).toBeFalse();
+      await settle();
+      expectRefresh('refresh-1').flush({ access_token: 'a2', refresh_token: 'r2' });
+      await settle();
+      expectLogout('r2').flush(null, noContent);
+
+      expect((await loggingOut).remote).toBe('revoked');
+      expect(auth.isAuthenticated()).toBeFalse();
+      expect(store.session()).toBeNull();
+      expect((await reopen()).isAuthenticated()).toBeFalse();
+    });
+
+    it('keeps an unusable pending revocation when offline and retries it later', async () => {
+      setup();
+      await login();
+      const sessionId = store.session()!.id;
+      const loggingOut = auth.logout();
+      await settle();
+      expectLogout('refresh-1').error(new ProgressEvent('error'));
+
+      expect(await loggingOut).toEqual({ remote: 'pending', localCleared: true });
+      expect(store.session()).toBeNull();
+      expect(store.pending()).toEqual([{ id: sessionId, refreshToken: 'refresh-1' }]);
+      expect((await reopen()).isAuthenticated()).toBeFalse();
+
+      // A conexão voltou.
+      const flushing = auth.flushPendingRevocations();
+      await settle();
+      expectLogout('refresh-1').flush(null, noContent);
+      await flushing;
+      expect(store.pending()).toEqual([]);
+    });
+
+    it('keeps the pending revocation after a server error and drops it on a definitive rejection', async () => {
+      setup();
+      await login();
+      const loggingOut = auth.logout();
+      await settle();
+      expectLogout('refresh-1').flush(null, { status: 503, statusText: 'Unavailable' });
+      expect((await loggingOut).remote).toBe('pending');
+      expect(store.pending().length).toBe(1);
+
+      const flushing = auth.flushPendingRevocations();
+      await settle();
+      expectLogout('refresh-1').flush(null, { status: 400, statusText: 'Bad Request' });
+      await flushing;
+      expect(store.pending()).toEqual([]);
+    });
+
+    it('treats a repeated revocation as harmless', async () => {
+      setup();
+      await login();
+      const loggingOut = auth.logout();
+      const flushing = auth.flushPendingRevocations();
+      await settle();
+      http.match(`${API}/auth/logout`).forEach((request) => request.flush(null, noContent));
+      await Promise.all([loggingOut, flushing]);
+
+      expect(store.pending()).toEqual([]);
+      expect(store.session()).toBeNull();
+      await auth.flushPendingRevocations();
+      http.expectNone(`${API}/auth/logout`);
+    });
+
+    it('reports a secure storage failure and still never restores the session', async () => {
+      setup();
+      await login();
+      store.failNext('remove');
+      const loggingOut = auth.logout();
+      await settle();
+      expectLogout('refresh-1').error(new ProgressEvent('error'));
+
+      expect(await loggingOut).toEqual({ remote: 'pending', localCleared: false });
+      // O registro ficou no Keychain, mas está marcado como encerrado.
+      expect(store.session()).not.toBeNull();
+      expect((await reopen()).isAuthenticated()).toBeFalse();
+    });
+
+    it('does not touch a new login when the old revocation finishes later (cenário C)', async () => {
+      setup();
+      await login('refresh-a');
+      const loggingOut = auth.logout();
+      await settle();
+      const revokeA = expectLogout('refresh-a');
+
+      await login('refresh-b', otherCustomer);
+      await settle();
+      // O login reenvia as pendências: a mesma revogação de A pode sair duas vezes.
+      http.match(`${API}/auth/logout`).forEach((request) => {
+        expect(request.request.body).toEqual({ refresh_token: 'refresh-a' });
+        request.flush(null, noContent);
+      });
+      revokeA.flush(null, noContent);
+      await loggingOut;
+      await settle();
+
+      expect(auth.user()).toEqual(otherCustomer);
+      expect(await auth.accessToken()).toBe('access-refresh-b');
+      expect(store.session()?.refreshToken).toBe('refresh-b');
+      expect(store.pending()).toEqual([]);
+      expect((await reopen()).user()).toEqual(otherCustomer);
+    });
   });
 
-  it('sends a single refresh for concurrent callers and stores the newest token', async () => {
-    setup();
-    await login();
+  describe('corridas com o armazenamento', () => {
+    it('ignores an old restore that finishes after a new login (cenário A)', async () => {
+      setup({ id: 'old', refreshToken: 'refresh-a', user: customer });
+      const release = store.hold('get');
+      const restoring = auth.restore();
 
-    const first = auth.refresh();
-    const second = auth.refresh();
-    const third = auth.accessTokenAfterRejection('access-1');
-    await settle();
-    http.expectOne(`${API}/auth/refresh`).flush({ access_token: 'a2', refresh_token: 'r2' });
+      const loggingIn = auth.login(otherCustomer.email, 'secret');
+      await settle();
+      http
+        .expectOne(`${API}/auth/login`)
+        .flush(loginResponse({ refresh_token: 'refresh-b', access_token: 'access-b', user: otherCustomer }));
+      release();
+      await Promise.all([restoring, loggingIn]);
 
-    expect(await Promise.all([first, second, third])).toEqual(['a2', 'a2', 'a2']);
-    expect(storage.stored?.refreshToken).toBe('r2');
+      expect(auth.user()).toEqual(otherCustomer);
+      expect(await auth.accessToken()).toBe('access-b');
+      expect(store.session()?.refreshToken).toBe('refresh-b');
+    });
 
-    // A próxima renovação usa o token rotacionado, nunca o antigo.
-    const next = auth.refresh();
-    await settle();
-    const again = http.expectOne(`${API}/auth/refresh`);
-    expect(again.request.body).toEqual({ refresh_token: 'r2' });
-    again.flush({ access_token: 'a3', refresh_token: 'r3' });
-    expect(await next).toBe('a3');
-  });
+    it('persists only the current session when an old write finishes late (cenário D)', async () => {
+      setup();
+      await login('refresh-a');
+      // A gravação do token renovado de A fica presa no Keychain.
+      const releaseSave = store.hold('set');
+      const refreshing = auth.refresh();
+      await settle();
+      expectRefresh('refresh-a').flush({ access_token: 'a2', refresh_token: 'refresh-a2' });
+      await settle();
 
-  it('does not refresh again when another request already renewed the token', async () => {
-    setup();
-    await login();
-    const renewed = auth.refresh();
-    await settle();
-    http.expectOne(`${API}/auth/refresh`).flush({ access_token: 'a2', refresh_token: 'r2' });
-    await renewed;
+      // Logout de A e login de B enquanto a gravação antiga ainda não terminou.
+      const loggingOut = auth.logout();
+      const loggingIn = auth.login(otherCustomer.email, 'secret');
+      await settle();
+      http
+        .expectOne(`${API}/auth/login`)
+        .flush(loginResponse({ refresh_token: 'refresh-b', access_token: 'access-b', user: otherCustomer }));
+      await settle();
 
-    expect(await auth.accessTokenAfterRejection('access-1')).toBe('a2');
-  });
+      releaseSave();
+      await settle();
+      // O logout e a reenvio das pendências (após o login de B) revogam A; a API é idempotente.
+      const revocations = http.match(`${API}/auth/logout`);
+      expect(revocations.length).toBeGreaterThan(0);
+      revocations.forEach((request) => {
+        expect(request.request.body).toEqual({ refresh_token: 'refresh-a2' });
+        request.flush(null, noContent);
+      });
+      await Promise.all([refreshing, loggingOut, loggingIn]);
+      await settle();
 
-  it('ends the local session when the API refuses the refresh token', async () => {
-    setup();
-    await login();
-    const result = auth.refresh();
-    await settle();
-    http.expectOne(`${API}/auth/refresh`).flush(null, { status: 401, statusText: 'Unauthorized' });
-
-    expect(await result).toBeNull();
-    expect(auth.isAuthenticated()).toBeFalse();
-    expect(storage.stored).toBeNull();
-  });
-
-  it('keeps the session when the refresh fails for lack of network', async () => {
-    setup();
-    await login();
-    const result = auth.refresh();
-    await settle();
-    http.expectOne(`${API}/auth/refresh`).error(new ProgressEvent('error'));
-
-    await expectAsync(result).toBeRejected();
-    expect(auth.isAuthenticated()).toBeTrue();
-    expect(storage.stored?.refreshToken).toBe('refresh-1');
-  });
-
-  it('logs out with the newest refresh token when a refresh is in flight', async () => {
-    setup();
-    await login();
-    void auth.refresh();
-    const loggingOut = auth.logout();
-    await settle();
-    http.expectOne(`${API}/auth/refresh`).flush({ access_token: 'a2', refresh_token: 'r2' });
-    await loggingOut;
-
-    const logout = http.expectOne(`${API}/auth/logout`);
-    expect(logout.request.body).toEqual({ refresh_token: 'r2' });
-    logout.flush(null);
-    expect(auth.isAuthenticated()).toBeFalse();
-    expect(storage.stored).toBeNull();
+      // Revogações repetidas só removem a pendência de novo, sem tocar na sessão de B.
+      expect(store.log.slice(6).every((entry) => entry === 'remove pending_revocations')).toBeTrue();
+      expect(store.log.slice(0, 6)).toEqual([
+        'set session', // login A
+        'set session', // renovação de A (atrasada)
+        'set pending_revocations', // logout de A
+        'remove session',
+        'set session', // login B
+        'remove pending_revocations' // revogação de A confirmada
+      ]);
+      expect(store.session()?.refreshToken).toBe('refresh-b');
+      expect(store.session()?.user).toEqual(otherCustomer);
+      expect(store.pending()).toEqual([]);
+      expect(auth.user()).toEqual(otherCustomer);
+    });
   });
 });

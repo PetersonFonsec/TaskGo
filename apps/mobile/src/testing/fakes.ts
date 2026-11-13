@@ -1,7 +1,10 @@
-import { Injectable } from '@angular/core';
 import type { CustomerAuthSession, PublicUserProfile } from '@taskgo/shared';
 
-import { SessionStorage, StoredSession } from '@app/core/auth/session-storage';
+import {
+  PendingRevocation,
+  SecureStore,
+  StoredSession
+} from '@app/core/auth/session-storage';
 
 export const API = 'http://api.test';
 
@@ -23,27 +26,66 @@ export function loginResponse(overrides: Partial<CustomerAuthSession> = {}): Cus
   };
 }
 
-/** Guarda a sessão em memória no lugar do Keychain/Keystore. */
-@Injectable()
-export class MemorySessionStorage extends SessionStorage {
-  stored: StoredSession | null = null;
-  saves: StoredSession[] = [];
+/**
+ * Armazenamento seguro em memória. `hold()` segura a próxima operação até o
+ * teste liberar, para simular Keychain/Keystore lentos; `failNext()` faz a
+ * próxima operação daquele tipo falhar.
+ */
+export class MemorySecureStore implements SecureStore {
+  readonly data = new Map<string, string>();
+  readonly log: string[] = [];
+  #held: { op: string; release: Promise<void> }[] = [];
+  #failing = new Set<string>();
 
-  override async load(): Promise<StoredSession | null> {
-    return this.stored;
+  hold(op: 'get' | 'set' | 'remove'): () => void {
+    let release!: () => void;
+    this.#held.push({ op, release: new Promise<void>((resolve) => (release = resolve)) });
+    return release;
   }
 
-  override async save(session: StoredSession): Promise<void> {
-    this.stored = session;
-    this.saves.push(session);
+  failNext(op: 'get' | 'set' | 'remove'): void {
+    this.#failing.add(op);
   }
 
-  override async clear(): Promise<void> {
-    this.stored = null;
+  session(): StoredSession | null {
+    const raw = this.data.get('session');
+    return raw ? (JSON.parse(raw) as StoredSession) : null;
+  }
+
+  pending(): PendingRevocation[] {
+    const raw = this.data.get('pending_revocations');
+    return raw ? (JSON.parse(raw) as PendingRevocation[]) : [];
+  }
+
+  async getItem(key: string): Promise<string | null> {
+    await this.#gate('get');
+    return this.data.get(key) ?? null;
+  }
+
+  async setItem(key: string, value: string): Promise<void> {
+    await this.#gate('set');
+    this.data.set(key, value);
+    this.log.push(`set ${key}`);
+  }
+
+  async removeItem(key: string): Promise<void> {
+    await this.#gate('remove');
+    this.data.delete(key);
+    this.log.push(`remove ${key}`);
+  }
+
+  async #gate(op: string): Promise<void> {
+    const index = this.#held.findIndex((entry) => entry.op === op);
+    if (index >= 0) {
+      const [entry] = this.#held.splice(index, 1);
+      await entry.release;
+    }
+    if (this.#failing.delete(op)) throw new Error(`${op} failed`);
   }
 }
 
-/** Deixa as promessas pendentes andarem (o HttpClient de teste responde sincronamente). */
+/** Deixa todas as promessas pendentes andarem antes do próximo passo do teste. */
 export async function settle(): Promise<void> {
-  for (let i = 0; i < 10; i++) await Promise.resolve();
+  await new Promise((resolve) => setTimeout(resolve));
+  await new Promise((resolve) => setTimeout(resolve));
 }

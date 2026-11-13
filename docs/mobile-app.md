@@ -50,13 +50,42 @@ não ligam essa opção.
   usa o refresh token mais novo, porque a API rotaciona e recusa reuso.
 - Se a API recusar o refresh token, a sessão local é apagada. Falta de rede não
   apaga a sessão.
-- Sair chama `POST /auth/logout`, que encerra a sessão e solta os aparelhos dela.
+- Cada login, logout ou restauração cria uma nova geração de sessão. Operações que
+  terminam atrasadas (leitura do armazenamento, renovação, revogação) só alteram o
+  estado se a geração em que começaram ainda for a atual, e uma requisição nunca
+  é repetida com as credenciais de outra conta.
+- O armazenamento seguro passa por uma fila: o que fica gravado segue a ordem em
+  que o app pediu, mesmo que o Keychain/Keystore responda fora de ordem.
+
+### Sair
+
+- A sessão fica inutilizável no app na hora. O app marca a sessão como encerrada
+  no armazenamento seguro (revogação pendente), apaga a sessão salva e espera a
+  resposta de `POST /auth/logout`, usando o token mais novo se havia renovação em
+  curso.
+- 204: revogada; a pendência sai. 400: a API recusa o token em definitivo; a
+  pendência também sai. Sem rede, 429 ou 5xx: a pendência fica (só o id local e o
+  refresh token, no Keychain/Keystore) e é reenviada na abertura do app, quando a
+  rede volta, quando o app volta para a frente e depois de um novo login.
+- Uma sessão marcada como encerrada nunca é restaurada, mesmo que apagar o
+  registro dela tenha falhado. Cada pendência é removida só pela própria sessão.
+- `logout()` devolve `{ remote, localCleared }` para quem precisar distinguir
+  revogação confirmada, pendente ou recusada e falha do armazenamento.
 
 ## Push
 
 - Depois do login o app pede a permissão de notificação e envia o token para
   `POST /devices`. Ao abrir o app, o token é reenviado só se a permissão já foi
   dada (sem perguntar de novo).
+- O registro vale para uma sessão: o mesmo token não é reenviado na mesma sessão,
+  e um novo login registra de novo. Token que chega sem sessão (antes do login ou
+  depois do logout) não é enviado. Se a conta muda durante o envio, o token é
+  registrado para a sessão nova.
+- Falha de rede, 429 ou 5xx deixa o registro pendente, reenviado quando a rede ou o
+  app voltam (sem timers). 401 passa pela renovação única do interceptor. Outras
+  recusas marcam falha definitiva até um novo login ou token.
+- No iOS, um token APNs cru (64 hex) não é enviado: a API espera token FCM (ver
+  "Push no iOS").
 - Por enquanto, tocar num aviso abre a tela inicial. A tela do pedido usará o
   `data.orderId` que o backend já manda (ver `docs/mobile-push.md`).
 

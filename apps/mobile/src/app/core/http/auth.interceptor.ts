@@ -14,14 +14,15 @@ export const authInterceptor: HttpInterceptorFn = (request, next) => {
   }
   const auth = inject(AuthService);
 
-  return from(auth.accessToken()).pipe(
-    switchMap((token) =>
+  return from(auth.credentials()).pipe(
+    switchMap(({ token, generation }) =>
       next(withToken(request, token)).pipe(
         catchError((error: unknown) => {
           if (!token || !(error instanceof HttpErrorResponse) || error.status !== 401) {
             return throwError(() => error);
           }
-          return from(auth.accessTokenAfterRejection(token)).pipe(
+          // Só repete se a sessão que fez a requisição ainda for a atual.
+          return from(auth.accessTokenAfterRejection(token, generation)).pipe(
             switchMap((fresh) =>
               fresh ? next(withToken(request, fresh)) : throwError(() => error)
             )

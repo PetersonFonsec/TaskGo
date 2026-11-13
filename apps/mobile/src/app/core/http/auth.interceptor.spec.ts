@@ -5,9 +5,9 @@ import { TestBed } from '@angular/core/testing';
 import { firstValueFrom } from 'rxjs';
 
 import { AuthService } from '@app/core/auth/auth.service';
-import { SessionStorage } from '@app/core/auth/session-storage';
+import { SECURE_STORE } from '@app/core/auth/session-storage';
 import { MOBILE_ENVIRONMENT } from '@app/core/config/mobile-environment.token';
-import { API, loginResponse, MemorySessionStorage, settle } from '../../../testing/fakes';
+import { API, customer, loginResponse, MemorySecureStore, settle } from '../../../testing/fakes';
 import { authInterceptor, isApiRequest } from './auth.interceptor';
 
 describe('authInterceptor', () => {
@@ -22,7 +22,7 @@ describe('authInterceptor', () => {
         provideHttpClient(withInterceptors([authInterceptor])),
         provideHttpClientTesting(),
         { provide: MOBILE_ENVIRONMENT, useValue: { production: false, apiUrl: API } },
-        { provide: SessionStorage, useClass: MemorySessionStorage }
+        { provide: SECURE_STORE, useValue: new MemorySecureStore() }
       ]
     });
     client = TestBed.inject(HttpClient);
@@ -34,6 +34,7 @@ describe('authInterceptor', () => {
 
   async function login(): Promise<void> {
     const pending = auth.login('ana@example.com', 'secret');
+    await settle();
     http.expectOne(`${API}/auth/login`).flush(loginResponse());
     await pending;
   }
@@ -105,6 +106,30 @@ describe('authInterceptor', () => {
     http.expectOne(`${API}/order`).flush(null, { status: 401, statusText: 'Unauthorized' });
 
     await expectAsync(result).toBeRejectedWith(jasmine.objectContaining({ status: 401 }));
+  });
+
+  it('never replays a request of one account with the credentials of another', async () => {
+    await login();
+    const result = firstValueFrom(client.get(`${API}/order`));
+    await settle();
+    const original = http.expectOne(`${API}/order`);
+
+    // Logout e login de outra conta antes da resposta 401 chegar.
+    const loggingOut = auth.logout();
+    await settle();
+    http.expectOne(`${API}/auth/logout`).flush(null, { status: 204, statusText: 'No Content' });
+    await loggingOut;
+    const loggingIn = auth.login('bruno@example.com', 'secret');
+    await settle();
+    http
+      .expectOne(`${API}/auth/login`)
+      .flush(loginResponse({ access_token: 'access-b', refresh_token: 'refresh-b', user: { ...customer, id: '8' } }));
+    await loggingIn;
+
+    original.flush(null, { status: 401, statusText: 'Unauthorized' });
+    await expectAsync(result).toBeRejectedWith(jasmine.objectContaining({ status: 401 }));
+    http.expectNone(`${API}/auth/refresh`);
+    http.expectNone((r) => r.headers.get('Authorization') === 'Bearer access-b');
   });
 
   it('matches only URLs under the configured API', () => {
