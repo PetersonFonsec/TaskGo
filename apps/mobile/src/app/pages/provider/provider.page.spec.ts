@@ -1,0 +1,242 @@
+import { HttpErrorResponse } from '@angular/common/http';
+import { provideZonelessChangeDetection, signal } from '@angular/core';
+import { ComponentFixture, TestBed } from '@angular/core/testing';
+import { provideRouter, Router } from '@angular/router';
+import { provideIonicAngular } from '@ionic/angular';
+import { of, Subject, throwError } from 'rxjs';
+
+import { AuthService } from '@app/core/auth/auth.service';
+import { Availability, ProviderProfile, SavedAddress } from '@app/core/orders/orders.models';
+import { OrdersService } from '@app/core/orders/orders.service';
+import { ProviderPage } from './provider.page';
+
+const profile: ProviderProfile = {
+  id: '10',
+  bio: 'Eletricista há 10 anos.',
+  ratingAvg: 4.8,
+  ratingCount: 12,
+  verified: true,
+  user: { name: 'Carlos Lima', photoUrl: null },
+  services: [
+    { id: '1', title: 'Troca de chuveiro', basePrice: 150 },
+    { id: '2', title: 'Instalação de tomada', basePrice: 90 }
+  ],
+  reviews: [{ id: '5', rating: 5, comment: 'Muito pontual', reviewedAt: '2026-10-01T12:00:00.000Z' }]
+};
+
+function agenda(serviceId: string): Availability {
+  return {
+    providerId: '10',
+    timezone: 'America/Sao_Paulo',
+    days: [
+      { date: '2026-11-14', available: false, slots: [] },
+      {
+        date: '2026-11-15',
+        available: true,
+        slots: [
+          { startsAt: '2026-11-15T12:00:00.000Z', endsAt: '2026-11-15T13:00:00.000Z', serviceId, label: '09:00', available: false },
+          { startsAt: '2026-11-15T13:00:00.000Z', endsAt: '2026-11-15T14:00:00.000Z', serviceId, label: '10:00', available: true }
+        ]
+      }
+    ]
+  };
+}
+
+const home: SavedAddress = { id: '7', label: 'Casa', street: 'Rua A', number: '10', lat: -23.7, lng: -46.5 };
+const work: SavedAddress = { id: '8', label: 'Trabalho', street: 'Rua B', number: '20', lat: -23.6, lng: -46.6, isDefault: true };
+
+describe('ProviderPage', () => {
+  let orders: jasmine.SpyObj<OrdersService>;
+  let signedIn: ReturnType<typeof signal<boolean>>;
+  let navigate: jasmine.Spy;
+
+  async function render(options: { signedIn?: boolean; addresses?: readonly SavedAddress[] } = {}) {
+    signedIn = signal(options.signedIn ?? true);
+    orders = jasmine.createSpyObj<OrdersService>('OrdersService', [
+      'provider',
+      'availability',
+      'addresses',
+      'create'
+    ]);
+    orders.provider.and.returnValue(of(profile));
+    orders.availability.and.callFake((_p, serviceId) => of(agenda(serviceId)));
+    orders.addresses.and.returnValue(of(options.addresses ?? [home, work]));
+    TestBed.configureTestingModule({
+      imports: [ProviderPage],
+      providers: [
+        provideZonelessChangeDetection(),
+        provideIonicAngular(),
+        provideRouter([]),
+        { provide: OrdersService, useValue: orders },
+        { provide: AuthService, useValue: { isAuthenticated: signedIn.asReadonly() } }
+      ]
+    });
+    navigate = spyOn(TestBed.inject(Router), 'navigate').and.resolveTo(true);
+    const fixture = TestBed.createComponent(ProviderPage);
+    fixture.componentRef.setInput('id', '10');
+    await stable(fixture);
+    return fixture;
+  }
+
+  async function stable(fixture: ComponentFixture<ProviderPage>) {
+    fixture.detectChanges();
+    await fixture.whenStable();
+    fixture.detectChanges();
+  }
+
+  const text = (fixture: ComponentFixture<ProviderPage>) =>
+    (fixture.nativeElement.textContent as string).replace(/\s+/g, ' ');
+
+  it('shows the profile, services, free slots and reviews', async () => {
+    const fixture = await render();
+    const page = fixture.componentInstance;
+
+    expect(orders.provider).toHaveBeenCalledWith('10');
+    expect(orders.availability).toHaveBeenCalledWith('10', '1');
+    expect(text(fixture)).toContain('Carlos Lima');
+    expect(text(fixture)).toContain('4,8 (12 avaliações)');
+    expect(text(fixture)).toContain('R$ 90,00');
+    expect(text(fixture)).toContain('Muito pontual');
+    // Dia sem vaga e horário ocupado não aparecem; o primeiro dia livre já vem escolhido.
+    expect(page.days().map((d) => d.date)).toEqual(['2026-11-15']);
+    expect(page.date()).toBe('2026-11-15');
+    expect(page.slots().map((s) => s.label)).toEqual(['10:00']);
+    expect(page.timeLabel('2026-11-15T13:00:00.000Z')).toBe('10:00');
+    // Endereço padrão vem pré-selecionado.
+    expect(page.addressId()).toBe('8');
+    expect(page.canSubmit()).toBeFalse();
+  });
+
+  it('reloads the agenda and clears the slot when the service changes', async () => {
+    const fixture = await render();
+    const page = fixture.componentInstance;
+    page.selectSlot('2026-11-15T13:00:00.000Z');
+    expect(page.slot()).not.toBeNull();
+
+    page.selectService('2');
+    await stable(fixture);
+
+    expect(orders.availability).toHaveBeenCalledWith('10', '2');
+    expect(page.slot()).toBeNull();
+    expect(page.service()?.title).toBe('Instalação de tomada');
+  });
+
+  it('sends the order with the chosen slot and address and opens it', async () => {
+    const fixture = await render();
+    const page = fixture.componentInstance;
+    orders.create.and.returnValue(of({ id: '99' }));
+    page.selectAddress('7');
+    page.selectSlot('2026-11-15T13:00:00.000Z');
+    expect(page.canSubmit()).toBeTrue();
+
+    await page.submit();
+
+    expect(orders.create).toHaveBeenCalledOnceWith({
+      serviceId: '1',
+      scheduledFor: '2026-11-15T13:00:00.000Z',
+      addressId: '7'
+    });
+    expect(navigate).toHaveBeenCalledWith(['/pedidos', '99'], { replaceUrl: true });
+  });
+
+  it('never sends the same order twice while the first is on its way', async () => {
+    const fixture = await render();
+    const page = fixture.componentInstance;
+    const response = new Subject<{ id: string }>();
+    orders.create.and.returnValue(response);
+    page.selectSlot('2026-11-15T13:00:00.000Z');
+
+    const first = page.submit();
+    expect(page.canSubmit()).toBeFalse();
+    await page.submit();
+    response.next({ id: '99' });
+    response.complete();
+    await first;
+
+    expect(orders.create).toHaveBeenCalledTimes(1);
+  });
+
+  it('explains a refused order and asks for another slot', async () => {
+    const fixture = await render();
+    const page = fixture.componentInstance;
+    orders.create.and.returnValue(
+      throwError(
+        () =>
+          new HttpErrorResponse({
+            status: 400,
+            error: { message: 'Selected scheduled slot is no longer available' }
+          })
+      )
+    );
+    page.selectSlot('2026-11-15T13:00:00.000Z');
+
+    await page.submit();
+    await stable(fixture);
+
+    expect(text(fixture)).toContain('Esse horário não está mais disponível');
+    expect(page.slot()).toBeNull();
+    expect(page.submitting()).toBeFalse();
+    expect(navigate).not.toHaveBeenCalled();
+  });
+
+  it('asks anonymous visitors to log in and come back', async () => {
+    const fixture = await render({ signedIn: false });
+    const page = fixture.componentInstance;
+
+    expect(orders.addresses).not.toHaveBeenCalled();
+    expect(text(fixture)).toContain('Entrar para solicitar');
+    expect(page.canSubmit()).toBeTrue();
+
+    await page.submit();
+
+    expect(orders.create).not.toHaveBeenCalled();
+    expect(navigate).toHaveBeenCalledWith(['/entrar'], { queryParams: { voltar: '/prestadores/10' } });
+  });
+
+  it('says how to proceed when the customer has no usable address', async () => {
+    const fixture = await render({ addresses: [] });
+    fixture.componentInstance.selectSlot('2026-11-15T13:00:00.000Z');
+    await stable(fixture);
+
+    expect(text(fixture)).toContain('Cadastre um no site do TaskGo');
+    expect(fixture.componentInstance.canSubmit()).toBeFalse();
+  });
+
+  it('shows when the provider is no longer available', async () => {
+    orders = jasmine.createSpyObj<OrdersService>('OrdersService', ['provider']);
+    TestBed.configureTestingModule({
+      imports: [ProviderPage],
+      providers: [
+        provideZonelessChangeDetection(),
+        provideIonicAngular(),
+        provideRouter([]),
+        { provide: OrdersService, useValue: orders },
+        { provide: AuthService, useValue: { isAuthenticated: signal(false).asReadonly() } }
+      ]
+    });
+    orders.provider.and.returnValue(of(null));
+    const fixture = TestBed.createComponent(ProviderPage);
+    fixture.componentRef.setInput('id', '10');
+    await stable(fixture);
+    expect(text(fixture)).toContain('não está disponível no momento');
+  });
+
+  it('shows an error when the profile fails to load', async () => {
+    orders = jasmine.createSpyObj<OrdersService>('OrdersService', ['provider']);
+    TestBed.configureTestingModule({
+      imports: [ProviderPage],
+      providers: [
+        provideZonelessChangeDetection(),
+        provideIonicAngular(),
+        provideRouter([]),
+        { provide: OrdersService, useValue: orders },
+        { provide: AuthService, useValue: { isAuthenticated: signal(false).asReadonly() } }
+      ]
+    });
+    orders.provider.and.returnValue(throwError(() => new Error('x')));
+    const fixture = TestBed.createComponent(ProviderPage);
+    fixture.componentRef.setInput('id', '10');
+    await stable(fixture);
+    expect(text(fixture)).toContain('Não foi possível carregar este profissional');
+  });
+});

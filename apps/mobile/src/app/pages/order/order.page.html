@@ -1,0 +1,93 @@
+<ion-header>
+  <ion-toolbar color="primary">
+    <ion-buttons slot="start"><ion-back-button defaultHref="/pedidos" text="" /></ion-buttons>
+    <ion-title>Pedido #{{ id() }}</ion-title>
+  </ion-toolbar>
+</ion-header>
+
+<ion-content>
+  <ion-refresher slot="fixed" (ionRefresh)="refresh($any($event))">
+    <ion-refresher-content />
+  </ion-refresher>
+
+  @switch (state().status) {
+    @case ('loading') {
+      <div class="ion-padding">
+        <ion-skeleton-text [animated]="true" style="width: 50%; height: 24px" />
+        <ion-skeleton-text [animated]="true" style="width: 70%" />
+      </div>
+    }
+    @case ('error') {
+      <div class="ion-padding">
+        <ion-text color="danger"><p>Não foi possível carregar este pedido. Puxe para tentar de novo.</p></ion-text>
+      </div>
+    }
+    @default {
+      @if (order(); as o) {
+        <div class="ion-padding">
+          <ion-badge [color]="statusColor(o.status)">{{ statusLabel(o.status) }}</ion-badge>
+          <h2>{{ o.service.title }}</h2>
+          @if (nextStep(); as step) {
+            <ion-text color="medium"><p data-testid="next-step">{{ step }}</p></ion-text>
+          }
+          @if (o.cancellation; as c) {
+            <ion-text color="medium">
+              <p>Motivo: {{ c.label }}@if (c.note) { · {{ c.note }} }</p>
+            </ion-text>
+          }
+        </div>
+
+        <ion-list>
+          <ion-item>
+            @if (o.provider.photoUrl) {
+              <ion-avatar slot="start">
+                <img [src]="o.provider.photoUrl" alt="" (error)="$any($event.target).hidden = true" />
+              </ion-avatar>
+            } @else {
+              <ion-icon slot="start" name="person-circle" color="medium" size="large" />
+            }
+            <ion-label>
+              <h3>
+                {{ o.provider.name }}
+                @if (o.provider.verified) {
+                  <ion-icon name="shield-checkmark" color="primary" aria-label="Verificado" />
+                }
+              </h3>
+              <p>Profissional</p>
+            </ion-label>
+          </ion-item>
+          @if (o.schedule.scheduledFor) {
+            <ion-item>
+              <ion-label><p>Quando</p><h3>{{ formatDateTime(o.schedule.scheduledFor) }}</h3></ion-label>
+            </ion-item>
+          }
+          @if (address(o); as where) {
+            <ion-item>
+              <ion-label class="ion-text-wrap"><p>Onde</p><h3>{{ where }}</h3></ion-label>
+            </ion-item>
+          }
+          <ion-item>
+            <ion-label><p>Valor</p><h3>{{ amount(o) }}</h3></ion-label>
+            <ion-note slot="end">PIX</ion-note>
+          </ion-item>
+        </ion-list>
+
+        <ion-list>
+          <ion-list-header><ion-label>Acompanhamento</ion-label></ion-list-header>
+          @for (event of o.timeline; track $index) {
+            <ion-item lines="none">
+              <ion-icon slot="start" name="checkmark-circle" color="success" />
+              <ion-label class="ion-text-wrap">
+                <h3>{{ event.title }}</h3>
+                @if (event.description) {
+                  <p>{{ event.description }}</p>
+                }
+                <p><small>{{ formatDateTime(event.date) }}</small></p>
+              </ion-label>
+            </ion-item>
+          }
+        </ion-list>
+      }
+    }
+  }
+</ion-content>

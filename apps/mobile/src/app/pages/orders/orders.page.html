@@ -1,0 +1,54 @@
+<ion-header>
+  <ion-toolbar color="primary">
+    <ion-buttons slot="start"><ion-back-button defaultHref="/" text="" /></ion-buttons>
+    <ion-title>Meus pedidos</ion-title>
+  </ion-toolbar>
+</ion-header>
+
+<ion-content>
+  <ion-refresher slot="fixed" (ionRefresh)="refresh($any($event))">
+    <ion-refresher-content />
+  </ion-refresher>
+
+  @switch (state().status) {
+    @case ('loading') {
+      <ion-list>
+        @for (i of [1, 2, 3]; track i) {
+          <ion-item>
+            <ion-label>
+              <ion-skeleton-text [animated]="true" style="width: 60%" />
+              <ion-skeleton-text [animated]="true" style="width: 40%" />
+            </ion-label>
+          </ion-item>
+        }
+      </ion-list>
+    }
+    @case ('error') {
+      <div class="ion-padding">
+        <ion-text color="danger"><p>Não foi possível carregar seus pedidos. Puxe para tentar de novo.</p></ion-text>
+      </div>
+    }
+    @default {
+      @if (state(); as current) {
+        @if (current.status === 'ready') {
+          <ion-list>
+            @for (order of current.orders; track order.id) {
+              <ion-item [routerLink]="['/pedidos', order.id]" [detail]="true">
+                <ion-label>
+                  <h2>{{ order.service.title }}</h2>
+                  <p>{{ providerName(order) }}</p>
+                  <p>{{ when(order) }}</p>
+                </ion-label>
+                <ion-badge slot="end" [color]="statusColor(order.status)">{{ statusLabel(order.status) }}</ion-badge>
+              </ion-item>
+            } @empty {
+              <div class="ion-padding">
+                <ion-text color="medium"><p>Você ainda não fez nenhum pedido.</p></ion-text>
+              </div>
+            }
+          </ion-list>
+        }
+      }
+    }
+  }
+</ion-content>

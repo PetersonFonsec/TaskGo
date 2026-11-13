@@ -85,6 +85,25 @@ não ligam essa opção.
 - Os listeners de reconexão (`online` e `resume`) são removidos quando o
   componente raiz é destruído, inclusive se o registro nativo terminar depois.
 
+## Pedido
+
+Telas: perfil do prestador (`/prestadores/:id`), meus pedidos (`/pedidos`) e
+detalhe com acompanhamento (`/pedidos/:id`). As duas últimas exigem login; sem
+sessão o app vai para `/entrar?voltar=...` e volta depois.
+
+- O perfil e os horários são públicos. Para pedir, o cliente escolhe serviço,
+  dia, horário (agenda de 14 dias de `GET /provider/:id/availability`) e um
+  endereço salvo com localização. O pedido vai para `POST /orders` com
+  `channel: 'APP'`; o preço e a reserva do horário são decididos pela API.
+- Endereços sem latitude e longitude não aparecem, porque a API recusaria o
+  pedido. O app ainda não cadastra endereços: o cliente cadastra no site.
+- Pagamento, confirmação de conclusão e avaliação ainda são feitos no site. A tela
+  do pedido diz isso no passo em que o cliente precisa agir.
+- Tocar numa notificação de pedido (`data.orderId`) abre `/pedidos/:orderId`; as
+  demais abrem o início.
+- `GET /provider/:id` devolve campos Decimal no formato interno do decimal.js
+  (`{ s, e, d }`); `decimal()` em `orders.service.ts` converte para número.
+
 ## Push
 
 - Depois do login o app pede a permissão de notificação e envia o token para
@@ -99,8 +118,8 @@ não ligam essa opção.
   recusas marcam falha definitiva até um novo login ou token.
 - No iOS, um token APNs cru (64 hex) não é enviado: a API espera token FCM (ver
   "Push no iOS").
-- Por enquanto, tocar num aviso abre a tela inicial. A tela do pedido usará o
-  `data.orderId` que o backend já manda (ver `docs/mobile-push.md`).
+- Tocar num aviso com `data.orderId` abre a tela do pedido; os demais abrem o
+  início (ver `docs/mobile-push.md`).
 
 ### Push no Android
 

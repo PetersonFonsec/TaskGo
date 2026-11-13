@@ -18,7 +18,7 @@ import {
   IonToolbar
 } from '@ionic/angular';
 import { addIcons } from 'ionicons';
-import { logOutOutline, personCircleOutline } from 'ionicons/icons';
+import { logOutOutline, personCircleOutline, receiptOutline } from 'ionicons/icons';
 import { catchError, map, of, startWith } from 'rxjs';
 
 import { AuthService } from '@app/core/auth/auth.service';
@@ -77,7 +77,7 @@ export class HomePage {
   readonly firstName = computed(() => this.auth.user()?.name.split(' ')[0] ?? null);
 
   constructor() {
-    addIcons({ logOutOutline, personCircleOutline });
+    addIcons({ logOutOutline, personCircleOutline, receiptOutline });
   }
 
   onSearch(event: CustomEvent<{ value?: string | null }>): void {

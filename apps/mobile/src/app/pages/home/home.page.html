@@ -3,6 +3,10 @@
     <ion-title>TaskGo</ion-title>
     <ion-buttons slot="end">
       @if (auth.isAuthenticated()) {
+        <ion-button routerLink="/pedidos">
+          <ion-icon slot="start" name="receipt-outline" />
+          Pedidos
+        </ion-button>
         <ion-button (click)="logout()" aria-label="Sair">
           <ion-icon slot="icon-only" name="log-out-outline" />
         </ion-button>

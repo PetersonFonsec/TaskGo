@@ -266,13 +266,28 @@ describe('PushRegistrationService', () => {
     expect(push.tokenListeners.length).toBe(1);
   });
 
-  it('opens the app home when a notification is tapped', async () => {
+  it('opens the order when an order notification is tapped', async () => {
     const navigate = spyOn(TestBed.inject(Router), 'navigateByUrl').and.resolveTo(true);
     push.permission = 'granted';
     await service.sync();
     push.tapListeners.forEach((listener) =>
-      listener({ actionId: 'tap', notification: { id: '1', data: { type: 'ORDER_ACCEPTED' } } })
+      listener({
+        actionId: 'tap',
+        notification: { id: '1', data: { type: 'ORDER_ACCEPTED', orderId: '42' } }
+      })
     );
-    expect(navigate).toHaveBeenCalledWith('/');
+    expect(navigate).toHaveBeenCalledWith('/pedidos/42');
+  });
+
+  it('opens the app home when the notification has no valid order', async () => {
+    const navigate = spyOn(TestBed.inject(Router), 'navigateByUrl').and.resolveTo(true);
+    push.permission = 'granted';
+    await service.sync();
+    for (const data of [{ type: 'X' }, { orderId: '../entrar' }, { orderId: 42 }, undefined]) {
+      push.tapListeners.forEach((listener) =>
+        listener({ actionId: 'tap', notification: { id: '1', data } })
+      );
+    }
+    expect(navigate.calls.allArgs()).toEqual([['/'], ['/'], ['/'], ['/']]);
   });
 });
