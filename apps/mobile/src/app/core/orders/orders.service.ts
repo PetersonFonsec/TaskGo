@@ -61,11 +61,13 @@ export class OrdersService {
       );
   }
 
-  create(order: NewOrder): Observable<{ id: string }> {
-    return this.#http.post<{ id: string }>(`${this.#apiUrl}/orders`, {
-      ...order,
-      channel: 'APP'
-    });
+  /** A mesma `idempotencyKey` devolve o pedido já criado em vez de criar outro. */
+  create(order: NewOrder, idempotencyKey: string): Observable<{ id: string }> {
+    return this.#http.post<{ id: string }>(
+      `${this.#apiUrl}/orders`,
+      { ...order, channel: 'APP' },
+      { headers: { 'Idempotency-Key': idempotencyKey } }
+    );
   }
 
   list(): Observable<readonly OrderListItem[]> {

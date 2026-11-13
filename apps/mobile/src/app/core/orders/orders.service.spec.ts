@@ -81,10 +81,14 @@ describe('OrdersService', () => {
 
   it('creates the order marked as coming from the app', async () => {
     const result = firstValueFrom(
-      orders.create({ serviceId: '3', scheduledFor: '2026-11-20T12:00:00.000Z', addressId: '1' })
+      orders.create(
+        { serviceId: '3', scheduledFor: '2026-11-20T12:00:00.000Z', addressId: '1' },
+        'b7e0c1f2-3a4d-4e5f-8a9b-0c1d2e3f4a5b'
+      )
     );
     const request = http.expectOne(`${API}/orders`);
     expect(request.request.method).toBe('POST');
+    expect(request.request.headers.get('Idempotency-Key')).toBe('b7e0c1f2-3a4d-4e5f-8a9b-0c1d2e3f4a5b');
     expect(request.request.body).toEqual({
       serviceId: '3',
       scheduledFor: '2026-11-20T12:00:00.000Z',

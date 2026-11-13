@@ -138,11 +138,11 @@ describe('ProviderPage', () => {
 
     await page.submit();
 
-    expect(orders.create).toHaveBeenCalledOnceWith({
-      serviceId: '1',
-      scheduledFor: '2026-11-15T13:00:00.000Z',
-      addressId: '7'
-    });
+    expect(orders.create).toHaveBeenCalledOnceWith(
+      { serviceId: '1', scheduledFor: '2026-11-15T13:00:00.000Z', addressId: '7' },
+      jasmine.stringMatching(/^[0-9a-f-]{36}$/)
+    );
+    expect(store.log[0]).toBe('set order_intent_7'); // gravada antes do envio
     expect(navigate).toHaveBeenCalledWith(['/pedidos', '99'], { replaceUrl: true });
   });
 
@@ -193,11 +193,10 @@ describe('ProviderPage', () => {
     expect(navigate).toHaveBeenCalledWith(['/pedidos', '100'], { replaceUrl: true });
   });
 
-  it('C/D: a lost answer blocks new orders, survives a slot change and resolves by checking', async () => {
+  it('C/D: a lost answer blocks new orders, survives a slot change and resolves with the same key', async () => {
     const fixture = await render();
     const page = fixture.componentInstance;
     orders.create.and.returnValue(throwError(() => new HttpErrorResponse({ status: 0 })));
-    orders.list.and.returnValue(throwError(() => new HttpErrorResponse({ status: 0 })));
     page.selectSlot('2026-11-15T13:00:00.000Z');
 
     await page.submit();
@@ -205,6 +204,7 @@ describe('ProviderPage', () => {
 
     expect(text(fixture)).toContain('Não sabemos se o seu último pedido chegou ao TaskGo');
     expect(text(fixture)).toContain('Troca de chuveiro');
+    expect(text(fixture)).toContain('Ver meus pedidos');
     expect(page.canSubmit()).toBeFalse();
 
     // Outro horário não libera um novo pedido nem descarta o pendente.
@@ -213,22 +213,25 @@ describe('ProviderPage', () => {
     expect(page.pending()).not.toBeNull();
     expect(orders.create).toHaveBeenCalledTimes(1);
 
-    // A lista volta e mostra o pedido: o app abre o pedido em vez de criar outro.
-    orders.list.and.returnValue(
-      of([
-        {
-          id: '99',
-          status: 'AGUARDANDO_APROVACAO' as const,
-          serviceId: '1',
-          scheduledFor: '2026-11-15T13:00:00.000Z',
-          requestedAt: new Date().toISOString(),
-          service: { title: 'Troca de chuveiro' }
-        }
-      ])
-    );
-    await page.check();
+    // "Tentar de novo" repete a mesma chave; a API devolve o pedido já criado.
+    orders.create.and.returnValue(of({ id: '99' }));
+    await page.retry();
+    const [first, second] = orders.create.calls.allArgs();
+    expect(second).toEqual(first);
     expect(navigate).toHaveBeenCalledWith(['/pedidos', '99'], { replaceUrl: true });
-    expect(orders.create).toHaveBeenCalledTimes(1);
+    expect(orders.list).not.toHaveBeenCalled();
+  });
+
+  it('B: when the device cannot save the attempt nothing is sent and the slot stays chosen', async () => {
+    const fixture = await render();
+    const page = fixture.componentInstance;
+    store.failNext('set');
+    page.selectSlot('2026-11-15T13:00:00.000Z');
+    await page.submit();
+    await stable(fixture);
+    expect(orders.create).not.toHaveBeenCalled();
+    expect(text(fixture)).toContain('Não foi possível guardar o pedido neste aparelho');
+    expect(page.slot()).not.toBeNull();
   });
 
   it('F: reopening the page after a restart shows the pending attempt again', async () => {
@@ -237,6 +240,7 @@ describe('ProviderPage', () => {
     store.data.set(
       'order_intent_7',
       JSON.stringify({
+        id: '5d7f2c4a-1b3e-4f6a-9c8d-0e1f2a3b4c5d',
         userId: '7',
         serviceId: '1',
         scheduledFor: '2026-11-15T13:00:00.000Z',
@@ -245,6 +249,7 @@ describe('ProviderPage', () => {
         summary: 'Troca de chuveiro'
       })
     );
+    orders.create.and.returnValue(throwError(() => new HttpErrorResponse({ status: 0 })));
     auth.signOut();
     auth.signIn(); // como abrir o app de novo com a sessão salva
     await stable(fixture);

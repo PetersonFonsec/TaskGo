@@ -4,13 +4,15 @@ import { firstValueFrom } from 'rxjs';
 
 import { AuthService } from '@app/core/auth/auth.service';
 import { SECURE_STORE } from '@app/core/auth/session-storage';
-import { NewOrder, OrderListItem } from './orders.models';
+import { NewOrder } from './orders.models';
 import { createOrderErrorMessage, OrdersService } from './orders.service';
 
 /** Uma tentativa de criar um pedido, do jeito que foi enviada à API. */
 export interface OrderIntent extends NewOrder {
+  /** Identidade da tentativa; vai para a API como `Idempotency-Key`. */
+  readonly id: string;
   readonly userId: string;
-  /** Quando o app enviou pela primeira vez (ISO). */
+  /** Quando o app criou a tentativa (ISO). */
   readonly startedAt: string;
   /** Só para mostrar ao cliente o que está pendente. */
   readonly summary: string;
@@ -21,27 +23,33 @@ export type SubmissionState =
   | { readonly kind: 'submitting'; readonly intent: OrderIntent }
   | { readonly kind: 'created'; readonly intent: OrderIntent; readonly orderId: string }
   /** A API pode ter criado o pedido; nada novo é enviado até isso se resolver. */
-  | { readonly kind: 'unknown'; readonly intent: OrderIntent; readonly checking: boolean }
-  /** A API recusou antes de criar: o cliente pode escolher outro horário. */
-  | { readonly kind: 'failed'; readonly intent: OrderIntent; readonly message: string };
+  | { readonly kind: 'unknown'; readonly intent: OrderIntent }
+  /**
+   * Nada foi criado. `rejected`: a API recusou (o cliente escolhe outro horário).
+   * `storage`: o aparelho não gravou a tentativa, então nada foi enviado.
+   */
+  | {
+      readonly kind: 'failed';
+      readonly intent: OrderIntent;
+      readonly reason: 'rejected' | 'storage';
+      readonly message: string;
+    };
 
 const IDLE: SubmissionState = { kind: 'idle' };
-/** Folga para diferença de relógio entre aparelho e servidor. */
-const CLOCK_SKEW_MS = 10 * 60 * 1000;
+const STORAGE_FAILED = 'Não foi possível guardar o pedido neste aparelho. Nada foi enviado; tente de novo.';
 
 /**
  * Cria pedidos sem duplicar quando a resposta se perde.
  *
- * `POST /orders` não tem chave de idempotência. A garantia vem do próprio
- * backend: ele serializa as reservas de cada prestador e recusa um horário já
- * ocupado por pedido ativo. Então, quando o resultado é desconhecido:
- * 1. a tentativa fica gravada (sobrevive a reinícios) e bloqueia novas criações;
- * 2. o app procura em `GET /orders` um pedido do mesmo serviço e horário criado
- *    depois do envio. Achou: está criado. Não achou: continua desconhecido
- *    (o envio ainda pode estar chegando ao servidor);
- * 3. o cliente pode reenviar exatamente o mesmo pedido. Se o primeiro existir, o
- *    horário já está ocupado e a API recusa; o app então o encontra na lista.
- * Só uma recusa da API seguida de uma busca sem resultado libera outro horário.
+ * Cada tentativa tem um id próprio, enviado como `Idempotency-Key`: a API
+ * devolve o pedido já criado quando recebe a mesma chave de novo, inclusive em
+ * requisições simultâneas. Regras:
+ * 1. Nada é enviado antes de a tentativa estar gravada no armazenamento seguro
+ *    e de a sessão que a iniciou ainda ser a atual.
+ * 2. Sem resposta (rede, 5xx), a tentativa fica `unknown`, bloqueia novos
+ *    pedidos e só se resolve repetindo a mesma chave (agora ou após reiniciar).
+ * 3. Cada operação só apaga do armazenamento a própria tentativa (compara o id
+ *    dentro de uma fila), e só enquanto a sessão que a iniciou for a atual.
  */
 @Injectable({ providedIn: 'root' })
 export class OrderSubmission {
@@ -54,6 +62,8 @@ export class OrderSubmission {
     value: IDLE
   });
   #loading: { readonly session: number; readonly promise: Promise<void> } | null = null;
+  /** Fila das operações no armazenamento: ler, comparar e apagar não se intercalam. */
+  #queue: Promise<unknown> = Promise.resolve();
 
   /** Estado da sessão atual; o de outra conta nunca aparece aqui. */
   readonly state = computed(() => {
@@ -61,7 +71,7 @@ export class OrderSubmission {
     return current.session === this.#auth.session() ? current.value : IDLE;
   });
 
-  /** Carrega a tentativa pendente da conta logada (após login ou reinício). */
+  /** Carrega a tentativa pendente da conta logada (após login ou reinício) e a repete. */
   load(): Promise<void> {
     const session = this.#auth.generation();
     if (this.#loading?.session !== session) {
@@ -77,6 +87,7 @@ export class OrderSubmission {
     const state = this.state();
     if (!user || state.kind === 'submitting' || state.kind === 'unknown') return state;
     const intent: OrderIntent = {
+      id: crypto.randomUUID(),
       serviceId: order.serviceId,
       scheduledFor: order.scheduledFor,
       addressId: order.addressId,
@@ -84,30 +95,32 @@ export class OrderSubmission {
       startedAt: new Date().toISOString(),
       summary
     };
+    // Bloqueia um segundo toque já agora, antes de qualquer espera.
     this.#set(session, { kind: 'submitting', intent });
-    // Gravada antes do envio: se o app fechar no meio, o reinício sabe que há algo pendente.
-    await this.#store.setItem(storageKey(intent.userId), JSON.stringify(intent)).catch(() => undefined);
-    return this.#send(session, intent);
+    const persisted = await this.#persist(intent, session).catch(() => false);
+    if (!persisted) {
+      return this.#set(session, {
+        kind: 'failed',
+        intent,
+        reason: 'storage',
+        message: STORAGE_FAILED
+      });
+    }
+    if (session !== this.#auth.generation()) {
+      // A sessão mudou depois da gravação: a tentativa é abandonada sem envio.
+      await this.#forget(intent);
+      return this.state();
+    }
+    return this.#send(session, intent, false);
   }
 
-  /** Procura o pedido pendente na lista de pedidos da conta. */
-  async check(): Promise<SubmissionState> {
+  /** Repete a tentativa pendente com a mesma chave: a API cria no máximo um pedido. */
+  async retry(): Promise<SubmissionState> {
     const session = this.#auth.generation();
     const state = this.state();
     if (state.kind !== 'unknown') return state;
-    this.#set(session, { ...state, checking: true });
-    return this.#reconcile(session, state.intent);
-  }
-
-  /** Reenvia exatamente o mesmo pedido; seguro porque o horário só cabe um. */
-  async resend(): Promise<SubmissionState> {
-    const session = this.#auth.generation();
-    const state = this.state();
-    if (state.kind !== 'unknown') return state;
-    const checked = await this.check();
-    if (checked.kind !== 'unknown' || session !== this.#auth.generation()) return checked;
     this.#set(session, { kind: 'submitting', intent: state.intent });
-    return this.#send(session, state.intent);
+    return this.#send(session, state.intent, true);
   }
 
   /** O cliente já viu o resultado (pedido aberto ou outro horário escolhido). */
@@ -118,63 +131,60 @@ export class OrderSubmission {
     }
   }
 
-  async #send(session: number, intent: OrderIntent): Promise<SubmissionState> {
+  async #send(session: number, intent: OrderIntent, repeat: boolean): Promise<SubmissionState> {
     const { serviceId, scheduledFor, addressId } = intent;
     try {
-      const order = await firstValueFrom(this.#orders.create({ serviceId, scheduledFor, addressId }));
-      return this.#settle(session, intent, { kind: 'created', intent, orderId: String(order.id) });
-    } catch (error) {
-      if (!isRejectedBeforeCreation(error)) {
-        this.#set(session, { kind: 'unknown', intent, checking: true });
-        return this.#reconcile(session, intent);
-      }
-      // Recusa clara. Ainda assim confere: a recusa pode ser o horário ocupado
-      // pelo próprio pedido de um envio anterior.
-      const found = await this.#find(intent).catch(() => undefined);
-      if (found === undefined) {
-        return this.#set(session, { kind: 'unknown', intent, checking: false });
-      }
-      return this.#settle(
-        session,
-        intent,
-        found
-          ? { kind: 'created', intent, orderId: found.id }
-          : { kind: 'failed', intent, message: createOrderErrorMessage(error) }
+      const order = await firstValueFrom(
+        this.#orders.create({ serviceId, scheduledFor, addressId }, intent.id)
       );
+      await this.#forgetIfCurrent(session, intent);
+      return this.#set(session, { kind: 'created', intent, orderId: String(order.id) });
+    } catch (error) {
+      if (!isRejectedBeforeCreation(error, repeat)) {
+        return this.#set(session, { kind: 'unknown', intent });
+      }
+      await this.#forgetIfCurrent(session, intent);
+      return this.#set(session, {
+        kind: 'failed',
+        intent,
+        reason: 'rejected',
+        message: createOrderErrorMessage(error)
+      });
     }
   }
 
-  async #reconcile(session: number, intent: OrderIntent): Promise<SubmissionState> {
-    const found = await this.#find(intent).catch(() => undefined);
-    if (found) return this.#settle(session, intent, { kind: 'created', intent, orderId: found.id });
-    // Lista sem o pedido não prova que ele não existe: o envio pode estar chegando.
-    return this.#set(session, { kind: 'unknown', intent, checking: false });
+  /** Grava a tentativa; se a sessão mudou durante a gravação, apaga-a na mesma operação. */
+  #persist(intent: OrderIntent, session: number): Promise<boolean> {
+    return this.#run(async () => {
+      try {
+        await this.#store.setItem(storageKey(intent.userId), JSON.stringify(intent));
+      } catch (error) {
+        // Gravação incerta: não pode sobrar um registro que seria repetido depois.
+        await this.#removeIfOwned(intent).catch(() => undefined);
+        throw error;
+      }
+      if (session === this.#auth.generation()) return true;
+      await this.#removeIfOwned(intent).catch(() => undefined);
+      return true;
+    });
   }
 
-  /** `null` = não está na lista; rejeita se a lista não pôde ser lida. */
-  async #find(intent: OrderIntent): Promise<OrderListItem | null> {
-    const orders = await firstValueFrom(this.#orders.list());
-    const after = Date.parse(intent.startedAt) - CLOCK_SKEW_MS;
-    const at = Date.parse(intent.scheduledFor);
-    return (
-      orders.find(
-        (order) =>
-          String(order.serviceId) === intent.serviceId &&
-          !!order.scheduledFor &&
-          Date.parse(order.scheduledFor) === at &&
-          (!order.requestedAt || Date.parse(order.requestedAt) >= after)
-      ) ?? null
-    );
+  /** Resultado conhecido: só a sessão que iniciou a operação mexe no armazenamento. */
+  async #forgetIfCurrent(session: number, intent: OrderIntent): Promise<void> {
+    if (session === this.#auth.generation()) await this.#forget(intent);
   }
 
-  /** Resultado conhecido: a tentativa deixa de estar pendente para aquela conta. */
-  async #settle(
-    session: number,
-    intent: OrderIntent,
-    result: SubmissionState
-  ): Promise<SubmissionState> {
-    await this.#store.removeItem(storageKey(intent.userId)).catch(() => undefined);
-    return this.#set(session, result);
+  /**
+   * Apaga a tentativa só se a gravada ainda for ela. Se falhar, o registro
+   * fica; repeti-lo depois é seguro porque a chave é a mesma.
+   */
+  #forget(intent: OrderIntent): Promise<void> {
+    return this.#run(() => this.#removeIfOwned(intent)).catch(() => undefined);
+  }
+
+  async #removeIfOwned(intent: OrderIntent): Promise<void> {
+    const stored = parseIntent(await this.#store.getItem(storageKey(intent.userId)), intent.userId);
+    if (stored?.id === intent.id) await this.#store.removeItem(storageKey(intent.userId));
   }
 
   /** Só altera a tela se a sessão ainda for a mesma em que a operação começou. */
@@ -183,26 +193,36 @@ export class OrderSubmission {
     return value;
   }
 
+  #run<T>(operation: () => Promise<T>): Promise<T> {
+    const result = this.#queue.then(operation);
+    this.#queue = result.catch(() => undefined);
+    return result;
+  }
+
   async #load(session: number): Promise<void> {
     if (this.#current().session !== session) this.#set(session, IDLE);
     const user = this.#auth.user();
     if (!user) return;
-    const raw = await this.#store.getItem(storageKey(String(user.id))).catch(() => null);
-    const intent = parseIntent(raw, String(user.id));
+    const userId = String(user.id);
+    const raw = await this.#run(() => this.#store.getItem(storageKey(userId))).catch(() => null);
+    const intent = parseIntent(raw, userId);
     if (!intent || session !== this.#auth.generation() || this.state().kind !== 'idle') return;
-    this.#set(session, { kind: 'unknown', intent, checking: true });
-    await this.#reconcile(session, intent);
+    this.#set(session, { kind: 'unknown', intent });
+    // Repetir a mesma chave é seguro: resolve a tentativa sem risco de duplicar.
+    await this.retry();
   }
 }
 
-/** Erros em que a API responde que não criou: validação, conflito, permissão, limite. */
-function isRejectedBeforeCreation(error: unknown): boolean {
-  return (
-    error instanceof HttpErrorResponse &&
-    error.status >= 400 &&
-    error.status < 500 &&
-    error.status !== 408
-  );
+/**
+ * Recusas que provam que esta chave não tem pedido. No primeiro envio, qualquer
+ * 4xx (menos 408): a requisição foi recusada e nenhuma anterior existiu. Na
+ * repetição, só 400 e 404, que a API devolve depois de procurar a chave; 401,
+ * 403 ou 429 podem vir antes disso e não dizem nada sobre o envio anterior.
+ */
+function isRejectedBeforeCreation(error: unknown, repeat: boolean): boolean {
+  if (!(error instanceof HttpErrorResponse)) return false;
+  if (repeat) return error.status === 400 || error.status === 404;
+  return error.status >= 400 && error.status < 500 && error.status !== 408;
 }
 
 function storageKey(userId: string): string {
@@ -214,6 +234,8 @@ function parseIntent(raw: string | null, userId: string): OrderIntent | null {
   try {
     const value = JSON.parse(raw) as Partial<OrderIntent>;
     return value.userId === userId &&
+      typeof value.id === 'string' &&
+      value.id.length > 0 &&
       typeof value.serviceId === 'string' &&
       typeof value.scheduledFor === 'string' &&
       typeof value.addressId === 'string' &&

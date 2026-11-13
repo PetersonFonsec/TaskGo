@@ -1,10 +1,15 @@
-import { BadRequestException, NotFoundException } from '@nestjs/common';
+import {
+  BadRequestException,
+  ConflictException,
+  NotFoundException,
+} from '@nestjs/common';
 import { CommandHandler, ICommandHandler } from '@nestjs/cqrs';
 import {
   OrderChannel,
   OrderStatus,
   PaymentMethod,
   PaymentStatus,
+  Prisma,
 } from '@prisma/client';
 
 import { PrismaService } from '../../../../prisma/prisma.service';
@@ -13,6 +18,8 @@ import { NotificationService } from '../../../notification/notification.service'
 import { CreateOrderCommand } from './create-order.command';
 
 const BOOKING_TIMEZONE = 'America/Sao_Paulo';
+const IDEMPOTENCY_KEY = /^[A-Za-z0-9-]{16,100}$/;
+type Db = PrismaService | Prisma.TransactionClient;
 
 @CommandHandler(CreateOrderCommand)
 export class CreateOrderHandler implements ICommandHandler<CreateOrderCommand> {
@@ -22,7 +29,7 @@ export class CreateOrderHandler implements ICommandHandler<CreateOrderCommand> {
     private readonly notifications: NotificationService,
   ) {}
 
-  async execute({ payload }: CreateOrderCommand) {
+  async execute({ payload, idempotencyKey }: CreateOrderCommand) {
     const {
       clientId,
       serviceId,
@@ -40,6 +47,17 @@ export class CreateOrderHandler implements ICommandHandler<CreateOrderCommand> {
       throw new BadRequestException(
         'serviceId, addressId and scheduledFor are required',
       );
+    if (idempotencyKey !== undefined && !IDEMPOTENCY_KEY.test(idempotencyKey))
+      throw new BadRequestException('Invalid Idempotency-Key');
+    // Repetição de uma criação já concluída: devolve o pedido original antes de
+    // qualquer validação de horário (o horário já está ocupado por ele mesmo).
+    const replay = await this.findReplay(
+      this.prisma,
+      clientId,
+      idempotencyKey,
+      payload,
+    );
+    if (replay) return replay;
     if (paymentMethod && paymentMethod !== PaymentMethod.PIX)
       throw new BadRequestException('Only PIX is supported');
     const scheduledAt = new Date(scheduledFor);
@@ -49,7 +67,7 @@ export class CreateOrderHandler implements ICommandHandler<CreateOrderCommand> {
       scheduledAt.getTime() > Date.now() + 90 * 86400000
     )
       throw new BadRequestException('Choose a future scheduled slot');
-    const { order, service } = await this.prisma.$transaction(async (tx) => {
+    const result = await this.prisma.$transaction(async (tx) => {
       const service = await tx.service.findUnique({
         where: { id: BigInt(serviceId) },
         include: {
@@ -64,6 +82,14 @@ export class CreateOrderHandler implements ICommandHandler<CreateOrderCommand> {
       if (!service) throw new NotFoundException('Service not found');
       // All booking writers serialize on the provider, including bookings for different services.
       await tx.$queryRaw`SELECT pg_advisory_xact_lock(${service.providerId})::text`;
+      // Com o lock: uma requisição concorrente com a mesma chave já terminou.
+      const concurrent = await this.findReplay(
+        tx,
+        clientId,
+        idempotencyKey,
+        payload,
+      );
+      if (concurrent) return { order: concurrent, service, replayed: true };
       if (service.status !== 'ATIVO' || service.provider.status !== 'APPROVED')
         throw new BadRequestException('Service is not available');
       const address = await tx.address.findFirst({
@@ -139,6 +165,7 @@ export class CreateOrderHandler implements ICommandHandler<CreateOrderCommand> {
           scheduledEnd: new Date(slot.endsAt),
           priceAdjusted: false,
           channel: channel ?? OrderChannel.WEB,
+          idempotencyKey: idempotencyKey ?? null,
           payment: {
             create: {
               method: paymentMethod || PaymentMethod.PIX,
@@ -169,8 +196,10 @@ export class CreateOrderHandler implements ICommandHandler<CreateOrderCommand> {
         },
         include: { payment: true, addressSnap: true },
       });
-      return { order, service };
+      return { order, service, replayed: false };
     });
+    const { order, service } = result;
+    if (result.replayed) return order;
 
     // Após o commit: a entrega do e-mail não bloqueia nem desfaz a reserva.
     void this.notifications.notifyProviderNewOrder(service.provider.user, {
@@ -178,6 +207,33 @@ export class CreateOrderHandler implements ICommandHandler<CreateOrderCommand> {
       serviceTitle: service.title,
       scheduledFor: order.scheduledFor,
     });
+    return order;
+  }
+
+  /**
+   * Pedido já criado por este cliente com esta chave. A mesma chave com outro
+   * serviço ou horário é um erro do cliente, não uma repetição.
+   */
+  private async findReplay(
+    db: Db,
+    clientId: string,
+    idempotencyKey: string | undefined,
+    payload: { serviceId: string; scheduledFor?: string },
+  ) {
+    if (!idempotencyKey) return null;
+    const order = await db.order.findFirst({
+      where: { clientId: BigInt(clientId), idempotencyKey },
+      include: { payment: true, addressSnap: true },
+    });
+    if (!order) return null;
+    if (
+      order.serviceId.toString() !== payload.serviceId ||
+      order.scheduledFor?.getTime() !==
+        new Date(payload.scheduledFor ?? '').getTime()
+    )
+      throw new ConflictException(
+        'Idempotency-Key already used for a different order',
+      );
     return order;
   }
 

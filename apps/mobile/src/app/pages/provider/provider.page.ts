@@ -1,6 +1,6 @@
 import { Component, computed, effect, inject, input, signal, untracked } from '@angular/core';
 import { toObservable, toSignal } from '@angular/core/rxjs-interop';
-import { Router } from '@angular/router';
+import { Router, RouterLink } from '@angular/router';
 import {
   IonAvatar,
   IonBackButton,
@@ -39,6 +39,7 @@ type Load<T> = { status: 'loading' } | { status: 'error' } | { status: 'ready'; 
 @Component({
   selector: 'app-provider',
   imports: [
+    RouterLink,
     IonAvatar,
     IonBackButton,
     IonBadge,
@@ -227,14 +228,9 @@ export class ProviderPage {
     );
   }
 
-  /** Procura de novo o pedido pendente na lista de pedidos. */
-  async check(): Promise<void> {
-    await this.#run(() => this.#submission.check());
-  }
-
-  /** Reenvia o mesmo pedido pendente (mesmo serviço, horário e endereço). */
-  async resend(): Promise<void> {
-    await this.#run(() => this.#submission.resend());
+  /** Repete o pedido pendente com a mesma chave: a API cria no máximo um. */
+  async retry(): Promise<void> {
+    await this.#run(() => this.#submission.retry());
   }
 
   async #run(action: () => Promise<SubmissionState>): Promise<void> {
@@ -252,7 +248,7 @@ export class ProviderPage {
   }
 
   async #open(result: SubmissionState): Promise<void> {
-    if (result.kind === 'failed') this.#chosenSlot.set(null);
+    if (result.kind === 'failed' && result.reason === 'rejected') this.#chosenSlot.set(null);
     // Só abre o pedido se a sessão ainda for a mesma que o enviou.
     if (result.kind !== 'created' || this.found()?.orderId !== result.orderId) return;
     this.#submission.acknowledge();

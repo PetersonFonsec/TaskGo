@@ -1,4 +1,4 @@
-import { BadRequestException } from '@nestjs/common';
+import { BadRequestException, ConflictException } from '@nestjs/common';
 import { OrderStatus, PaymentStatus } from '@prisma/client';
 
 import { CreateOrderCommand } from './create-order.command';
@@ -166,5 +166,81 @@ describe('CreateOrderHandler', () => {
     ).rejects.toBeInstanceOf(BadRequestException);
     expect(prisma.order.create).not.toHaveBeenCalled();
     expect(notifications.notifyProviderNewOrder).not.toHaveBeenCalled();
+  });
+
+  describe('Idempotency-Key', () => {
+    const KEY = '0b8a3c1e-6f0d-4d3e-9a51-2f8a1c7b9e10';
+    const command = (
+      key: string | null = KEY,
+      scheduledFor = '2026-06-22T12:00:00.000Z',
+    ) =>
+      new CreateOrderCommand(
+        { addressId: '1', clientId: '7', serviceId: '101', scheduledFor },
+        key ?? undefined,
+      );
+    const existing = {
+      id: 1n,
+      serviceId: 101n,
+      scheduledFor: new Date('2026-06-22T12:00:00.000Z'),
+    };
+
+    it('stores the key with the new order', async () => {
+      prisma.order.findFirst = jest.fn().mockResolvedValue(null);
+      await handler.execute(command());
+      expect(prisma.order.create).toHaveBeenCalledWith(
+        expect.objectContaining({
+          data: expect.objectContaining({ idempotencyKey: KEY }),
+        }),
+      );
+      expect(prisma.order.findFirst).toHaveBeenCalledWith(
+        expect.objectContaining({
+          where: { clientId: 7n, idempotencyKey: KEY },
+        }),
+      );
+    });
+
+    it('returns the original order on a repeat, before validating the (now taken) slot', async () => {
+      prisma.order.findFirst = jest.fn().mockResolvedValue(existing);
+      providerService.getAvailability.mockResolvedValue({ days: [] });
+      jest.spyOn(Date, 'now').mockReturnValue(new Date('2026-06-23').getTime()); // horário já passou
+
+      await expect(handler.execute(command())).resolves.toBe(existing);
+      expect(prisma.$transaction).not.toHaveBeenCalled();
+      expect(prisma.order.create).not.toHaveBeenCalled();
+      expect(notifications.notifyProviderNewOrder).not.toHaveBeenCalled();
+    });
+
+    it('returns the order a concurrent request with the same key created while waiting for the lock', async () => {
+      prisma.order.findFirst = jest
+        .fn()
+        .mockResolvedValueOnce(null) // antes do lock
+        .mockResolvedValueOnce(existing); // depois do lock
+      await expect(handler.execute(command())).resolves.toBe(existing);
+      expect(prisma.$queryRaw).toHaveBeenCalled();
+      expect(prisma.order.create).not.toHaveBeenCalled();
+      expect(notifications.notifyProviderNewOrder).not.toHaveBeenCalled();
+    });
+
+    it('refuses the same key for a different order', async () => {
+      prisma.order.findFirst = jest.fn().mockResolvedValue(existing);
+      await expect(
+        handler.execute(command(KEY, '2026-06-22T13:00:00.000Z')),
+      ).rejects.toBeInstanceOf(ConflictException);
+      expect(prisma.order.create).not.toHaveBeenCalled();
+    });
+
+    it('rejects malformed keys and keeps requests without a key unchanged', async () => {
+      prisma.order.findFirst = jest.fn();
+      await expect(handler.execute(command('short'))).rejects.toThrow(
+        'Invalid Idempotency-Key',
+      );
+      await handler.execute(command(null));
+      expect(prisma.order.findFirst).not.toHaveBeenCalled();
+      expect(prisma.order.create).toHaveBeenCalledWith(
+        expect.objectContaining({
+          data: expect.objectContaining({ idempotencyKey: null }),
+        }),
+      );
+    });
   });
 });

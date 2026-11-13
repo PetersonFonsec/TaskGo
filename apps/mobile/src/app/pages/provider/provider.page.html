@@ -151,19 +151,17 @@
                   @if (p.intent.summary) {
                     ({{ p.intent.summary }})
                   }
-                  Para não pedir duas vezes, confira antes de fazer outro pedido.
+                  Tente de novo: se ele já foi criado, o TaskGo devolve o mesmo pedido, sem duplicar.
                 </p>
               </ion-text>
-              <ion-button expand="block" fill="outline" [disabled]="p.checking || submitting()" (click)="check()">
-                @if (p.checking) {
+              <ion-button expand="block" fill="outline" [disabled]="submitting()" (click)="retry()">
+                @if (submitting()) {
                   <ion-spinner name="crescent" />
                 } @else {
-                  Verificar meus pedidos
+                  Tentar de novo
                 }
               </ion-button>
-              <ion-button expand="block" fill="clear" [disabled]="p.checking || submitting()" (click)="resend()">
-                Enviar de novo o mesmo pedido
-              </ion-button>
+              <ion-button expand="block" fill="clear" routerLink="/pedidos">Ver meus pedidos</ion-button>
             </div>
           }
           @if (found(); as f) {

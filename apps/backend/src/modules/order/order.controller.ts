@@ -7,6 +7,7 @@ import {
   Param,
   Delete,
   Query,
+  Headers,
   ForbiddenException,
   UnauthorizedException,
   ConflictException,
@@ -56,10 +57,13 @@ export class OrderController {
   create(
     @Body() createOrderDto: CreateOrderDto,
     @User() user: AuthenticatedIdentity,
+    @Headers('idempotency-key') idempotencyKey?: string,
   ) {
     this.identity(user, 'CLIENTE');
     createOrderDto.clientId = user.id;
-    return this.commandBus.execute(new CreateOrderCommand(createOrderDto));
+    return this.commandBus.execute(
+      new CreateOrderCommand(createOrderDto, idempotencyKey),
+    );
   }
 
   @Get()

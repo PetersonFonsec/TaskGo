@@ -157,6 +157,43 @@ integration('Isolated PostgreSQL booking and geographic integrity', () => {
     expect(orders[0].orderTimeline).toHaveLength(1);
   });
 
+  it('creates a single order for concurrent and repeated requests with the same Idempotency-Key', async () => {
+    const handler = new CreateOrderHandler(
+      db as any,
+      new ProviderService(db as any),
+      { notifyProviderNewOrder: jest.fn() } as any,
+    );
+    const key = randomUUID();
+    const date = new Date(Date.now() + 3 * 86400000).toISOString().slice(0, 10);
+    const payload = () => ({
+      clientId: String(clientId),
+      addressId: String(addressId),
+      serviceId: String(serviceIds[0]),
+      scheduledFor: `${date}T12:00:00.000Z`,
+    });
+    // Duas requisições simultâneas com a mesma chave (envio e repetição).
+    const concurrent = await Promise.all([
+      handler.execute(new CreateOrderCommand(payload(), key)),
+      handler.execute(new CreateOrderCommand(payload(), key)),
+    ]);
+    // Repetição depois do commit: o horário já está ocupado pelo próprio pedido.
+    const repeated = await handler.execute(
+      new CreateOrderCommand(payload(), key),
+    );
+
+    expect(new Set([...concurrent, repeated].map((o) => o.id))).toEqual(
+      new Set([concurrent[0].id]),
+    );
+    const stored = await db.order.findMany({
+      where: { clientId, idempotencyKey: key },
+    });
+    expect(stored).toHaveLength(1);
+    // Sem chave, o mesmo horário continua protegido pela regra de reserva.
+    await expect(
+      handler.execute(new CreateOrderCommand(payload())),
+    ).rejects.toThrow('no longer available');
+  });
+
   it('executes the parameterized coverage query across the actual radius boundary', async () => {
     const degreesPerKm = 180 / (Math.PI * 6371);
     const inside = await providerCoverageWhere(db as any, {

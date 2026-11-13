@@ -344,6 +344,8 @@ model Order {
   cancellationReason    OrderCancellationReason? @map("cancellation_reason")
   cancellationNote      String?     @map("cancellation_note")
   channel               OrderChannel @default(WEB) @map("canal")
+  /// Chave enviada pelo cliente em POST /orders (header Idempotency-Key) para repetir a criação sem duplicar.
+  idempotencyKey        String?     @map("idempotency_key")
 
   // Relations
   client        User             @relation("UserOrders", fields: [clientId], references: [id])
@@ -355,6 +357,7 @@ model Order {
   orderPhoto    OrderPhoto[]
   completion    OrderCompletion?
 
+  @@unique([clientId, idempotencyKey])
   @@index([clientId])
   @@index([serviceId])
   @@map("pedidos")
