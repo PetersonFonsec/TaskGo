@@ -1,3 +1,4 @@
+import type { PluginListenerHandle } from '@capacitor/core';
 import type { CustomerAuthSession, PublicUserProfile } from '@taskgo/shared';
 
 import {
@@ -88,4 +89,41 @@ export class MemorySecureStore implements SecureStore {
 export async function settle(): Promise<void> {
   await new Promise((resolve) => setTimeout(resolve));
   await new Promise((resolve) => setTimeout(resolve));
+}
+
+/** Evento nativo `resume` controlável: o registro só termina quando o teste quiser. */
+export class FakeResumeEvents {
+  native = true;
+  listeners: (() => void)[] = [];
+  removed = 0;
+  #pending: (() => void)[] = [];
+  holdRegistration = false;
+
+  isNative() {
+    return this.native;
+  }
+
+  addResumeListener(listener: () => void): Promise<PluginListenerHandle> {
+    return new Promise((resolve) => {
+      const finish = () => {
+        this.listeners.push(listener);
+        resolve({
+          remove: async () => {
+            this.removed++;
+            this.listeners = this.listeners.filter((l) => l !== listener);
+          }
+        });
+      };
+      if (this.holdRegistration) this.#pending.push(finish);
+      else finish();
+    });
+  }
+
+  finishRegistrations(): void {
+    this.#pending.splice(0).forEach((finish) => finish());
+  }
+
+  resume(): void {
+    [...this.listeners].forEach((listener) => listener());
+  }
 }

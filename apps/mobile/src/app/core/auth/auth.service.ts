@@ -25,16 +25,37 @@ export interface Credentials {
 }
 
 /**
- * `revoked`: a API confirmou. `pending`: sem confirmação (rede ou erro
- * temporário); a pendência fica no armazenamento seguro e é reenviada depois.
- * `rejected`: a API recusou o token em definitivo, então não há o que revogar.
+ * `revoked`: a API confirmou. `unconfirmed`: sem resposta definitiva (rede,
+ * 429 ou 5xx); a sessão pode continuar ativa no servidor. `rejected`: a API
+ * recusou o token em definitivo, então não há o que revogar.
  */
-export type RevocationOutcome = 'revoked' | 'pending' | 'rejected';
+export type RevocationOutcome = 'revoked' | 'unconfirmed' | 'rejected';
 
+/**
+ * Como uma revogação não confirmada será tentada de novo.
+ * `durable`: a pendência está no armazenamento seguro e sobrevive a reinícios.
+ * `memory`: o armazenamento falhou; só este processo tenta de novo, e a
+ * tentativa se perde se o app for encerrado antes.
+ * `none`: nada a repetir (confirmada, recusada ou sem sessão).
+ */
+export type RevocationRetry = 'durable' | 'memory' | 'none';
+
+/**
+ * Os três estados do logout, que podem divergir: memória (sempre limpa na hora),
+ * armazenamento seguro (`localCleared`, `pendingPersisted`) e servidor (`remote`).
+ */
 export interface LogoutResult {
   readonly remote: RevocationOutcome | 'none';
+  readonly retry: RevocationRetry;
+  /** A revogação pendente foi gravada no armazenamento seguro. */
+  readonly pendingPersisted: boolean;
   /** false se o armazenamento seguro falhou ao apagar a sessão salva. */
   readonly localCleared: boolean;
+}
+
+interface PendingEntry {
+  readonly id: string;
+  readonly refreshToken: string;
 }
 
 /** O app é do cliente; prestadores continuam no site. */
@@ -64,6 +85,8 @@ export class AuthService {
   #refreshing: { readonly generation: number; readonly promise: Promise<Rotation> } | null = null;
   #restoring: Promise<void> | null = null;
   #flushing: Promise<void> | null = null;
+  /** Revogações não confirmadas que o armazenamento não conseguiu gravar. */
+  readonly #unsaved = new Map<string, string>();
 
   readonly user = this.#user.asReadonly();
   readonly isAuthenticated = computed(() => this.#user() !== null);
@@ -162,14 +185,24 @@ export class AuthService {
     const id = this.#sessionId;
     const token = this.#refreshToken;
     this.#discard();
-    if (!id || !token) return { remote: 'none', localCleared: true };
+    if (!id || !token) {
+      return { remote: 'none', retry: 'none', pendingPersisted: false, localCleared: true };
+    }
 
     // Na fila do armazenamento, antes de qualquer login posterior.
-    const localCleared = this.#storage.endSession({ id, refreshToken: token });
+    const local = this.#storage
+      .endSession({ id, refreshToken: token })
+      .catch(() => ({ pendingPersisted: false, sessionRemoved: false }));
     const rotation = await inflight?.catch(() => null);
     const newest = rotation?.pair?.refresh_token ?? token;
-    const remote = await this.#revokeAndSettle({ id, refreshToken: newest });
-    return { remote, localCleared: await localCleared };
+    const { pendingPersisted, sessionRemoved } = await local;
+    const remote = await this.#settle({ id, refreshToken: newest }, pendingPersisted);
+    return {
+      remote,
+      retry: remote !== 'unconfirmed' ? 'none' : pendingPersisted ? 'durable' : 'memory',
+      pendingPersisted,
+      localCleared: sessionRemoved
+    };
   }
 
   /** Reenvia as revogações pendentes uma vez (abertura do app, volta da rede). */
@@ -179,9 +212,23 @@ export class AuthService {
   }
 
   async #flush(): Promise<void> {
-    const pending = await this.#storage.pendingRevocations().catch(() => []);
-    for (const entry of pending) {
-      await this.#revokeAndSettle(entry);
+    const stored = await this.#storage
+      .pendingRevocations()
+      .catch((): readonly PendingEntry[] => []);
+    for (const entry of stored) {
+      await this.#settle(entry, true);
+    }
+    for (const [id, refreshToken] of [...this.#unsaved]) {
+      if (stored.some((entry) => entry.id === id)) continue;
+      const outcome = await this.#settle({ id, refreshToken }, false);
+      // Se o armazenamento voltou, a pendência passa a sobreviver a reinícios.
+      if (outcome === 'unconfirmed') {
+        const persisted = await this.#storage.addPending({ id, refreshToken }).then(
+          () => true,
+          () => false
+        );
+        if (persisted) this.#unsaved.delete(id);
+      }
     }
   }
 
@@ -231,16 +278,26 @@ export class AuthService {
   }
 
   /** Registra a pendência, tenta revogar e, se a API respondeu, tira a pendência. */
-  async #endRemoteSession(pending: { id: string; refreshToken: string }): Promise<RevocationOutcome> {
-    await this.#storage.endSession(pending).catch(() => false);
-    return this.#revokeAndSettle(pending);
+  async #endRemoteSession(pending: PendingEntry): Promise<RevocationOutcome> {
+    const { pendingPersisted } = await this.#storage
+      .endSession(pending)
+      .catch(() => ({ pendingPersisted: false }));
+    return this.#settle(pending, pendingPersisted);
   }
 
-  async #revokeAndSettle(pending: { id: string; refreshToken: string }): Promise<RevocationOutcome> {
+  /**
+   * Tenta revogar. Com resposta definitiva, tira a pendência (gravada ou em
+   * memória). Sem resposta, uma pendência que o armazenamento não gravou fica
+   * em memória para este processo tentar de novo.
+   */
+  async #settle(pending: PendingEntry, persisted: boolean): Promise<RevocationOutcome> {
     const outcome = await this.#revoke(pending.refreshToken);
-    if (outcome !== 'pending') {
-      await this.#storage.removePending(pending.id).catch(() => undefined);
+    if (outcome === 'unconfirmed') {
+      if (!persisted) this.#unsaved.set(pending.id, pending.refreshToken);
+      return outcome;
     }
+    this.#unsaved.delete(pending.id);
+    if (persisted) await this.#storage.removePending(pending.id).catch(() => undefined);
     return outcome;
   }
 
@@ -252,7 +309,7 @@ export class AuthService {
       return 'revoked';
     } catch (error) {
       // 400: o token nem tem formato válido; a API nunca vai aceitá-lo.
-      return error instanceof HttpErrorResponse && error.status === 400 ? 'rejected' : 'pending';
+      return error instanceof HttpErrorResponse && error.status === 400 ? 'rejected' : 'unconfirmed';
     }
   }
 

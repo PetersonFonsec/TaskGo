@@ -1,4 +1,4 @@
-import { Component, inject, OnInit } from '@angular/core';
+import { Component, DestroyRef, inject, OnInit } from '@angular/core';
 import { IonApp, IonRouterOutlet } from '@ionic/angular';
 
 import { AuthService } from './core/auth/auth.service';
@@ -14,13 +14,15 @@ export class App implements OnInit {
   readonly #auth = inject(AuthService);
   readonly #push = inject(PushRegistrationService);
   readonly #events = inject(AppEvents);
+  readonly #destroyRef = inject(DestroyRef);
 
   async ngOnInit(): Promise<void> {
     // Rede de volta ou app de volta à frente: reenvia o que ficou pendente.
-    this.#events.onReconnect(() => {
+    const stop = this.#events.onReconnect(() => {
       void this.#auth.flushPendingRevocations();
       void this.#push.retry();
     });
+    this.#destroyRef.onDestroy(stop);
     await this.#auth.restore();
     void this.#auth.flushPendingRevocations();
     if (this.#auth.isAuthenticated()) {

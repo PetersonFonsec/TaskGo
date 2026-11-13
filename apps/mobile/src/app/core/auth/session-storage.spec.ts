@@ -22,7 +22,10 @@ describe('SessionStorage', () => {
       await storage.save(sessionA);
       expect(await storage.load()).toEqual(sessionA);
 
-      expect(await storage.endSession({ id: 'a', refreshToken: 'ra' })).toBeTrue();
+      expect(await storage.endSession({ id: 'a', refreshToken: 'ra' })).toEqual({
+        pendingPersisted: true,
+        sessionRemoved: true
+      });
       expect(await storage.load()).toBeNull();
       expect(await storage.pendingRevocations()).toEqual([{ id: 'a', refreshToken: 'ra' }]);
       await storage.removePending('a');
@@ -65,7 +68,10 @@ describe('SessionStorage', () => {
     it('never removes the session of another login', async () => {
       await storage.save(sessionB);
       await storage.removeSession('a');
-      expect(await storage.endSession({ id: 'a', refreshToken: 'ra' })).toBeTrue();
+      expect(await storage.endSession({ id: 'a', refreshToken: 'ra' })).toEqual({
+        pendingPersisted: true,
+        sessionRemoved: true
+      });
       expect(store.session()).toEqual(sessionB);
     });
 
@@ -80,9 +86,26 @@ describe('SessionStorage', () => {
     it('does not restore a session marked as ended even if removing it failed', async () => {
       await storage.save(sessionA);
       store.failNext('remove');
-      expect(await storage.endSession({ id: 'a', refreshToken: 'ra' })).toBeFalse();
+      expect(await storage.endSession({ id: 'a', refreshToken: 'ra' })).toEqual({
+        pendingPersisted: true,
+        sessionRemoved: false
+      });
       expect(store.session()).toEqual(sessionA);
       expect(await storage.load()).toBeNull();
+    });
+
+    it('reports when the pending revocation could not be written', async () => {
+      await storage.save(sessionA);
+      store.failNext('set');
+      expect(await storage.endSession({ id: 'a', refreshToken: 'ra' })).toEqual({
+        pendingPersisted: false,
+        sessionRemoved: true
+      });
+      expect(store.pending()).toEqual([]);
+      expect(await storage.load()).toBeNull();
+
+      await storage.addPending({ id: 'a', refreshToken: 'ra' });
+      expect(store.pending()).toEqual([{ id: 'a', refreshToken: 'ra' }]);
     });
 
     it('keeps working after a failed operation', async () => {

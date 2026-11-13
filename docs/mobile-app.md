@@ -69,8 +69,21 @@ não ligam essa opção.
   rede volta, quando o app volta para a frente e depois de um novo login.
 - Uma sessão marcada como encerrada nunca é restaurada, mesmo que apagar o
   registro dela tenha falhado. Cada pendência é removida só pela própria sessão.
-- `logout()` devolve `{ remote, localCleared }` para quem precisar distinguir
-  revogação confirmada, pendente ou recusada e falha do armazenamento.
+- `logout()` devolve os três estados, que podem divergir:
+  `{ remote, retry, pendingPersisted, localCleared }`. `remote` é `revoked`,
+  `unconfirmed`, `rejected` ou `none`; `retry` é `durable` (pendência gravada),
+  `memory` (só neste processo) ou `none`.
+- Limitação: se o armazenamento seguro e a API falharem juntos, a revogação fica
+  só em memória (`retry: 'memory'`). Ela é reenviada enquanto o app estiver aberto
+  e passa para o armazenamento se ele voltar a funcionar, mas se perde se o app
+  for encerrado antes. Nesse caso a sessão pode continuar ativa no servidor até
+  expirar (`REFRESH_TOKEN_TTL_DAYS`) ou até a senha mudar. A sessão local continua
+  inutilizável, e se a sessão salva também não puder ser apagada o app não tem
+  como impedir a restauração depois de um reinício; `localCleared: false` sinaliza
+  esse caso. Não há outro armazenamento seguro como reserva: o `localStorage` não
+  é usado para refresh tokens em produção.
+- Os listeners de reconexão (`online` e `resume`) são removidos quando o
+  componente raiz é destruído, inclusive se o registro nativo terminar depois.
 
 ## Push
 

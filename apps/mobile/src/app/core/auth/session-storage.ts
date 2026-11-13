@@ -15,6 +15,13 @@ export interface PendingRevocation {
   readonly refreshToken: string;
 }
 
+export interface EndSessionResult {
+  /** A revogação pendente ficou gravada e sobrevive a reinícios do app. */
+  readonly pendingPersisted: boolean;
+  /** A sessão salva foi apagada (ou já pertencia a outro login). */
+  readonly sessionRemoved: boolean;
+}
+
 /** Operações mínimas do armazenamento seguro, trocáveis nos testes. */
 export interface SecureStore {
   getItem(key: string): Promise<string | null>;
@@ -74,25 +81,29 @@ export class SessionStorage {
 
   /**
    * Encerra a sessão no aparelho: registra a revogação pendente e apaga a
-   * sessão salva. Devolve se a sessão salva foi de fato apagada.
+   * sessão salva. Cada passo informa se de fato aconteceu; nenhuma falha do
+   * armazenamento é tratada como sucesso.
    */
-  endSession(pending: PendingRevocation): Promise<boolean> {
+  endSession(pending: PendingRevocation): Promise<EndSessionResult> {
     return this.#run(async () => {
+      let pendingPersisted = true;
       try {
-        const list = await this.#readPending();
-        if (!list.some((entry) => entry.id === pending.id)) {
-          await this.#writePending([...list, pending]);
-        }
+        await this.#addPending(pending);
       } catch {
-        // Sem a pendência gravada, a revogação ainda é tentada agora pela rede.
+        pendingPersisted = false;
       }
       try {
         await this.#removeSessionIfOwned(pending.id);
-        return true;
+        return { pendingPersisted, sessionRemoved: true };
       } catch {
-        return false;
+        return { pendingPersisted, sessionRemoved: false };
       }
     });
+  }
+
+  /** Grava uma revogação pendente (rejeita se o armazenamento falhar). */
+  addPending(pending: PendingRevocation): Promise<void> {
+    return this.#run(() => this.#addPending(pending));
   }
 
   pendingRevocations(): Promise<readonly PendingRevocation[]> {
@@ -129,6 +140,13 @@ export class SessionStorage {
     const current = await this.#readSession();
     // Registro ilegível também sai: não pode ser restaurado com segurança.
     if (!current || current.id === id) await this.#store.removeItem(SESSION_KEY);
+  }
+
+  async #addPending(pending: PendingRevocation): Promise<void> {
+    const list = await this.#readPending();
+    if (!list.some((entry) => entry.id === pending.id)) {
+      await this.#writePending([...list, pending]);
+    }
   }
 
   async #readPending(): Promise<PendingRevocation[]> {

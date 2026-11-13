@@ -197,12 +197,17 @@ describe('AuthService', () => {
       expect(done).toBeFalse();
       expectLogout('refresh-1').flush(null, noContent);
 
-      expect(await loggingOut).toEqual({ remote: 'revoked', localCleared: true });
+      expect(await loggingOut).toEqual({
+        remote: 'revoked',
+        retry: 'none',
+        pendingPersisted: true,
+        localCleared: true
+      });
       expect(store.session()).toBeNull();
       expect(store.pending()).toEqual([]);
     });
 
-    it('revokes the newest token when a refresh is in flight (cenário B)', async () => {
+    it('revokes the newest token when a refresh is in flight (cenário B / teste G)', async () => {
       setup();
       await login();
       void auth.refresh();
@@ -215,6 +220,7 @@ describe('AuthService', () => {
 
       expect((await loggingOut).remote).toBe('revoked');
       expect(auth.isAuthenticated()).toBeFalse();
+      expect(await auth.accessToken()).toBeNull();
       expect(store.session()).toBeNull();
       expect((await reopen()).isAuthenticated()).toBeFalse();
     });
@@ -227,13 +233,20 @@ describe('AuthService', () => {
       await settle();
       expectLogout('refresh-1').error(new ProgressEvent('error'));
 
-      expect(await loggingOut).toEqual({ remote: 'pending', localCleared: true });
+      expect(await loggingOut).toEqual({
+        remote: 'unconfirmed',
+        retry: 'durable',
+        pendingPersisted: true,
+        localCleared: true
+      });
       expect(store.session()).toBeNull();
       expect(store.pending()).toEqual([{ id: sessionId, refreshToken: 'refresh-1' }]);
-      expect((await reopen()).isAuthenticated()).toBeFalse();
 
-      // A conexão voltou.
-      const flushing = auth.flushPendingRevocations();
+      // Reinício com a pendência gravada: o app novo não restaura a sessão e
+      // reenvia a revogação quando a conexão voltar.
+      const reopened = await reopen();
+      expect(reopened.isAuthenticated()).toBeFalse();
+      const flushing = reopened.flushPendingRevocations();
       await settle();
       expectLogout('refresh-1').flush(null, noContent);
       await flushing;
@@ -246,7 +259,7 @@ describe('AuthService', () => {
       const loggingOut = auth.logout();
       await settle();
       expectLogout('refresh-1').flush(null, { status: 503, statusText: 'Unavailable' });
-      expect((await loggingOut).remote).toBe('pending');
+      expect((await loggingOut).remote).toBe('unconfirmed');
       expect(store.pending().length).toBe(1);
 
       const flushing = auth.flushPendingRevocations();
@@ -279,10 +292,141 @@ describe('AuthService', () => {
       await settle();
       expectLogout('refresh-1').error(new ProgressEvent('error'));
 
-      expect(await loggingOut).toEqual({ remote: 'pending', localCleared: false });
+      expect(await loggingOut).toEqual({
+        remote: 'unconfirmed',
+        retry: 'durable',
+        pendingPersisted: true,
+        localCleared: false
+      });
       // O registro ficou no Keychain, mas está marcado como encerrado.
       expect(store.session()).not.toBeNull();
       expect((await reopen()).isAuthenticated()).toBeFalse();
+    });
+
+    it('reports a pending write failure even when the API confirms (teste C)', async () => {
+      setup();
+      await login();
+      store.failNext('set');
+      const loggingOut = auth.logout();
+      await settle();
+      expectLogout('refresh-1').flush(null, noContent);
+
+      expect(await loggingOut).toEqual({
+        remote: 'revoked',
+        retry: 'none',
+        pendingPersisted: false,
+        localCleared: true
+      });
+      expect(store.pending()).toEqual([]);
+      expect((await reopen()).isAuthenticated()).toBeFalse();
+    });
+
+    it('never claims a durable retry when storage and network fail together (teste D)', async () => {
+      setup();
+      await login();
+      store.failNext('set');
+      const loggingOut = auth.logout();
+      await settle();
+      expectLogout('refresh-1').error(new ProgressEvent('error'));
+
+      expect(await loggingOut).toEqual({
+        remote: 'unconfirmed',
+        retry: 'memory',
+        pendingPersisted: false,
+        localCleared: true
+      });
+      expect(auth.isAuthenticated()).toBeFalse();
+      expect(await auth.accessToken()).toBeNull();
+      expect(store.pending()).toEqual([]);
+
+      // Mesmo processo, conexão de volta: a tentativa em memória é reenviada.
+      const flushing = auth.flushPendingRevocations();
+      await settle();
+      expectLogout('refresh-1').flush(null, noContent);
+      await flushing;
+      await auth.flushPendingRevocations();
+      http.expectNone(`${API}/auth/logout`);
+    });
+
+    it('moves a memory-only revocation to secure storage once storage works again', async () => {
+      setup();
+      await login();
+      const sessionId = store.session()!.id;
+      store.failNext('set');
+      const loggingOut = auth.logout();
+      await settle();
+      expectLogout('refresh-1').error(new ProgressEvent('error'));
+      expect((await loggingOut).retry).toBe('memory');
+
+      const flushing = auth.flushPendingRevocations();
+      await settle();
+      expectLogout('refresh-1').error(new ProgressEvent('error'));
+      await flushing;
+      expect(store.pending()).toEqual([{ id: sessionId, refreshToken: 'refresh-1' }]);
+
+      // Agora durável: o próximo reenvio vem do armazenamento, uma vez só.
+      const again = auth.flushPendingRevocations();
+      await settle();
+      expectLogout('refresh-1').flush(null, noContent);
+      await again;
+      expect(store.pending()).toEqual([]);
+    });
+
+    describe('reinício do app (teste E)', () => {
+      it('has nothing to resend after a confirmed revocation', async () => {
+        setup();
+        await login();
+        const loggingOut = auth.logout();
+        await settle();
+        expectLogout('refresh-1').flush(null, noContent);
+        await loggingOut;
+
+        const reopened = await reopen();
+        expect(reopened.isAuthenticated()).toBeFalse();
+        await reopened.flushPendingRevocations();
+        http.expectNone(`${API}/auth/logout`);
+      });
+
+      it('loses the memory-only retry after a restart and still does not restore the session', async () => {
+        setup();
+        await login();
+        store.failNext('set');
+        const loggingOut = auth.logout();
+        await settle();
+        expectLogout('refresh-1').error(new ProgressEvent('error'));
+        expect((await loggingOut).retry).toBe('memory');
+
+        // Limitação real: sem armazenamento, nada sobra para o app novo reenviar.
+        const reopened = await reopen();
+        expect(reopened.isAuthenticated()).toBeFalse();
+        await reopened.flushPendingRevocations();
+        http.expectNone(`${API}/auth/logout`);
+      });
+    });
+
+    it('resends an old revocation without touching the next account (teste F)', async () => {
+      setup();
+      await login('refresh-a');
+      const loggingOut = auth.logout();
+      await settle();
+      expectLogout('refresh-a').error(new ProgressEvent('error'));
+      expect((await loggingOut).retry).toBe('durable');
+
+      const loggingIn = auth.login(otherCustomer.email, 'secret');
+      await settle();
+      http
+        .expectOne(`${API}/auth/login`)
+        .flush(loginResponse({ refresh_token: 'refresh-b', access_token: 'access-b', user: otherCustomer }));
+      await loggingIn;
+      await settle();
+      // O login dispara o reenvio da pendência de A.
+      expectLogout('refresh-a').flush(null, noContent);
+      await auth.flushPendingRevocations();
+
+      expect(auth.user()).toEqual(otherCustomer);
+      expect(await auth.accessToken()).toBe('access-b');
+      expect(store.session()?.refreshToken).toBe('refresh-b');
+      expect(store.pending()).toEqual([]);
     });
 
     it('does not touch a new login when the old revocation finishes later (cenário C)', async () => {
