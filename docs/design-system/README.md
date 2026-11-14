@@ -18,7 +18,7 @@ migração tela a tela, que vem nas próximas etapas.
 | 3 | Tipografia: Manrope e Instrument Serif | Aprovada |
 | 4 | Espaço e forma | Aprovada |
 | 5 | Ilustração I1 (3D das categorias recolorido) | Aprovada |
-| 5 | Ícones: Phosphor | Proposta, aguardando confirmação |
+| 5 | Ícones: Phosphor nas duas plataformas | Aprovada |
 | 6 | Tokens no código e Storybook | Este PR |
 | 7 a 10 | Componentes base, componentes de domínio, piloto, migração | A fazer |
 
@@ -139,8 +139,9 @@ build).
 - Ilustração: o estilo 3D das categorias, recolorido para violeta, lima e
   neutros quentes. A foto do prestador sempre vence a ilustração; sem foto, o
   avatar mostra iniciais.
-- Ícones: proposta de Phosphor nas duas plataformas, aguardando confirmação.
-  20 px em texto, 24 px em navegação; ícone sozinho sempre com `aria-label`.
+- Ícones: Phosphor nas duas plataformas, substituindo FontAwesome (web) e
+  Ionicons (app) na migração. Contorno no estado normal, preenchido no item
+  ativo da navegação. 20 px em texto, 24 px em navegação; ícone sozinho sempre com `aria-label`.
 
 ## Storybook
 
