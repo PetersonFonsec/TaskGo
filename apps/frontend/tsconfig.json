@@ -30,6 +30,9 @@
       ],
       "@taskgo/shared/*": [
         "../../../libs/shared/src/*"
+      ],
+      "@taskgo/icons": [
+        "../../../libs/icons/src/index.ts"
       ]
     }
   },

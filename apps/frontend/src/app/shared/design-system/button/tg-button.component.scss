@@ -1,0 +1,164 @@
+// Botão do Design System. Só tokens --tg-*; o tema troca os valores.
+:host {
+  --_bg: var(--tg-action-primary);
+  --_bg-hover: var(--tg-action-primary-hover);
+  --_fg: var(--tg-text-on-action);
+  --_border: transparent;
+  --_height: var(--tg-control-md);
+  --_pad: var(--tg-space-5);
+
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  box-sizing: border-box;
+  min-height: var(--_height);
+  padding: 0 var(--_pad);
+  border: 1.5px solid var(--_border);
+  border-radius: var(--tg-radius-full);
+  background: var(--_bg);
+  color: var(--_fg);
+  font-family: var(--tg-font-sans);
+  font-size: var(--tg-type-label-size);
+  line-height: var(--tg-type-label-line);
+  font-weight: var(--tg-font-weight-bold);
+  text-decoration: none;
+  text-transform: none;
+  white-space: nowrap;
+  cursor: pointer;
+  user-select: none;
+  -webkit-tap-highlight-color: transparent;
+  transition:
+    background-color var(--tg-duration-fast) var(--tg-ease-standard),
+    border-color var(--tg-duration-fast) var(--tg-ease-standard),
+    color var(--tg-duration-fast) var(--tg-ease-standard);
+}
+
+:host(:hover:not(:disabled):not([aria-disabled='true'])) {
+  background: var(--_bg-hover);
+}
+
+:host(:focus-visible) {
+  outline: 2px solid var(--tg-focus-ring);
+  outline-offset: 2px;
+}
+
+// Aparências
+:host(.tg-button--subtle) {
+  --_bg: var(--tg-action-subtle);
+  --_bg-hover: var(--tg-action-subtle-hover);
+  --_fg: var(--tg-action-subtle-text);
+}
+
+:host(.tg-button--outline) {
+  --_bg: transparent;
+  --_bg-hover: var(--tg-bg-subtle);
+  --_fg: var(--tg-text-primary);
+  --_border: var(--tg-border-strong);
+}
+
+:host(.tg-button--ghost) {
+  --_bg: transparent;
+  --_bg-hover: var(--tg-action-subtle);
+  --_fg: var(--tg-action-subtle-text);
+}
+
+// Tom de perigo: só a aparência sólida muda de cor de fundo
+:host(.tg-button--danger.tg-button--solid) {
+  --_bg: var(--tg-action-danger);
+  --_bg-hover: var(--tg-action-danger-hover);
+  --_fg: var(--tg-text-on-danger);
+}
+
+:host(.tg-button--danger:not(.tg-button--solid)) {
+  --_fg: var(--tg-feedback-danger-text);
+}
+
+// Tamanhos
+:host(.tg-button--sm) {
+  --_height: var(--tg-control-sm);
+  --_pad: var(--tg-space-3);
+}
+
+:host(.tg-button--lg) {
+  --_height: var(--tg-control-lg);
+  --_pad: var(--tg-space-6);
+  font-size: 0.9375rem;
+}
+
+:host(.tg-button--full) {
+  display: flex;
+  width: 100%;
+}
+
+:host(.tg-button--icon-only) {
+  width: var(--_height);
+  padding: 0;
+}
+
+// Desabilitado (estado inativo: isento de contraste pela WCAG).
+// A classe base sobe a especificidade para vencer o tom de perigo.
+:host(.tg-button:disabled),
+:host(.tg-button[aria-disabled='true']:not(.tg-button--loading)) {
+  --_bg: var(--tg-bg-subtle);
+  --_fg: var(--tg-text-disabled);
+  --_border: transparent;
+  cursor: not-allowed;
+}
+
+:host(.tg-button.tg-button--outline:disabled),
+:host(.tg-button.tg-button--ghost:disabled) {
+  --_bg: transparent;
+}
+
+:host(.tg-button--outline:disabled) {
+  --_border: var(--tg-border-default);
+}
+
+:host(.tg-button--loading) {
+  cursor: progress;
+}
+
+.tg-button__content {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--tg-space-2);
+}
+
+.tg-button__content--hidden {
+  visibility: hidden;
+}
+
+.tg-button__spinner {
+  position: absolute;
+  inset: 50% auto auto 50%;
+  width: 16px;
+  height: 16px;
+  margin: -8px 0 0 -8px;
+  box-sizing: border-box;
+  border: 2px solid currentColor;
+  border-right-color: transparent;
+  border-radius: 50%;
+  animation: tg-button-spin 700ms linear infinite;
+}
+
+.tg-button__sr {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  clip-path: inset(50%);
+  white-space: nowrap;
+}
+
+@keyframes tg-button-spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .tg-button__spinner {
+    animation-duration: 2s;
+  }
+}

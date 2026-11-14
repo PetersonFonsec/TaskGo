@@ -19,8 +19,9 @@ migração tela a tela, que vem nas próximas etapas.
 | 4 | Espaço e forma | Aprovada |
 | 5 | Ilustração I1 (3D das categorias recolorido) | Aprovada |
 | 5 | Ícones: Phosphor nas duas plataformas | Aprovada |
-| 6 | Tokens no código e Storybook | Este PR |
-| 7 a 10 | Componentes base, componentes de domínio, piloto, migração | A fazer |
+| 6 | Tokens no código e Storybook | Concluída |
+| 7 | Componentes base: botão e ícones (web) | Este PR |
+| 7 a 10 | Demais componentes base, componentes de domínio, piloto, migração | A fazer |
 
 Atributos de marca: próximo, confiável, direto e caloroso sem ser infantil.
 
@@ -99,6 +100,9 @@ pela norma pediria só 3:1, para não depender do tamanho de quem usa o token.
 | `text-secondary` | `bg-canvas`, `bg-surface`, `bg-subtle` | 4,9 a 5,7 | 6,2 a 7,4 |
 | `text-on-action` | `action-primary` / `action-primary-hover` | 6,6 / 9,3 | 14,2 / 15,4 |
 | `action-subtle-text` | `action-subtle` | 7,9 | 11,7 |
+| `action-subtle-text` | `action-subtle-hover`, `bg-canvas`, `bg-surface` | 6,6 a 9,3 | 9,3 a 15,5 |
+| `text-on-danger` | `action-danger` / `action-danger-hover` | 5,9 / 8,0 | 7,8 / 10,2 |
+| `feedback-danger-text` | `bg-canvas`, `bg-surface` | 5,4 a 5,9 | 7,8 a 8,5 |
 | `text-on-accent` | `accent` | 14,2 | 5,8 |
 | `feedback-*-text` | `feedback-*-bg` | 4,7 a 5,4 | 7,4 a 9,1 |
 | `status-*-text` | `status-*-bg` | 4,7 a 7,9 | 7,4 a 14,2 |
@@ -195,6 +199,53 @@ token RGB bate com a cor correspondente.
 A ponte **não está aplicada** no app: ela troca o azul atual pelo violeta e
 entra só na migração das telas. As cores de sucesso, aviso e perigo do Ionic
 ficam de fora até lá.
+
+## Componentes
+
+Especificação compartilhada, implementação por plataforma: o web tem
+componentes Angular próprios em `apps/frontend/src/app/shared/design-system`;
+o app estiliza os componentes do Ionic com os mesmos tokens.
+
+### Ícone (web)
+
+`<tg-icon name="arrow-right" />`, com `weight` (`regular` ou `fill`), `size`
+(20 por padrão) e `label`. Sem `label` é decorativo (`aria-hidden`); com
+`label` vira `role="img"`. Os ícones vêm de `libs/icons`, gerados a partir do
+Phosphor: só os listados entram no bundle.
+
+### Botão
+
+No web é uma diretiva de atributo sobre o elemento nativo, para manter teclado,
+formulário e link funcionando sem reimplementar nada:
+
+```html
+<button tgButton type="button">Solicitar</button>
+<button tgButton appearance="outline" iconStart="calendar-blank">Agendar</button>
+<button tgButton tone="danger" [loading]="salvando()">Cancelar pedido</button>
+<a tgButton appearance="ghost" routerLink="/pedidos">Ver pedidos</a>
+<button tgButton appearance="ghost" iconStart="x" iconOnly aria-label="Fechar"></button>
+```
+
+| Entrada | Valores | Padrão |
+| --- | --- | --- |
+| `appearance` | `solid`, `subtle`, `outline`, `ghost` | `solid` |
+| `tone` | `brand`, `danger` | `brand` |
+| `size` | `sm` (36 px), `md` (44 px), `lg` (52 px) | `md` |
+| `iconStart`, `iconEnd` | nome de ícone | — |
+| `iconOnly` | exige `aria-label` nativo (aviso em desenvolvimento) | `false` |
+| `loading` | mostra o indicador e bloqueia o clique | `false` |
+| `fullWidth` | ocupa a largura toda | `false` |
+
+Regras:
+
+- Uma ação sólida por área. As demais usam `subtle`, `outline` ou `ghost`.
+- `loading` não usa `disabled`: o foco continua no botão, ele fica com
+  `aria-busy` e `aria-disabled`, e o clique é bloqueado antes dos handlers da
+  tela. Um `aria-disabled` que a tela já tenha posto é preservado.
+- Perigo sólido no prestador é coral com texto escuro, porque o vermelho do
+  cliente não tem contraste suficiente no fundo escuro.
+- No app, o botão continua sendo `ion-button`, estilizado pelos tokens na
+  migração das telas.
 
 ## Testes
 
