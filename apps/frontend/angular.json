@@ -104,7 +104,8 @@
             ],
             "stylePreprocessorOptions": {
               "includePaths": [
-                "src/app/scss"
+                "src/app/scss",
+                "../../libs/design-tokens/src"
               ]
             }
           }
