@@ -239,9 +239,18 @@ formulário e link funcionando sem reimplementar nada:
 Regras:
 
 - Uma ação sólida por área. As demais usam `subtle`, `outline` ou `ghost`.
-- `loading` não usa `disabled`: o foco continua no botão, ele fica com
-  `aria-busy` e `aria-disabled`, e o clique é bloqueado antes dos handlers da
-  tela. Um `aria-disabled` que a tela já tenha posto é preservado.
+- Indisponível tem três formas:
+  - `disabled` nativo (só em `button`): fica com o navegador, que tira o
+    botão do Tab e não dispara clique.
+  - `aria-disabled="true"` posto pela tela (em `button` ou `a`): continua
+    focável e no Tab, mas a ativação é bloqueada. Clique, Enter e Espaço não
+    executam handlers, o link não navega e o formulário não envia. O
+    atributo é da tela; o componente não o altera.
+  - `loading`: não usa `disabled`, para o foco continuar no botão. Ele fica
+    com `aria-busy` e `aria-disabled`, e a ativação é bloqueada do mesmo
+    jeito. Ao terminar, o `aria-disabled` volta ao valor que a tela tinha.
+- O bloqueio atua só no `click` (a ativação), na fase de captura, antes dos
+  handlers e do `routerLink`. Teclas como Tab e as setas não são canceladas.
 - Perigo sólido no prestador é coral com texto escuro, porque o vermelho do
   cliente não tem contraste suficiente no fundo escuro.
 - No app, o botão continua sendo `ion-button`, estilizado pelos tokens na

@@ -88,9 +88,16 @@ export class TgButtonComponent {
       }
     });
 
-    // Captura: roda antes dos (click) que a tela registra no mesmo elemento.
+    // Bloqueia só a ativação. Mouse, Enter e Espaço chegam como `click` (é o
+    // que o navegador dispara ao ativar button e link), então teclado, foco e
+    // Tab seguem livres. A fase de captura roda antes dos (click) e do
+    // routerLink registrados no mesmo elemento.
     const el = this.#host.nativeElement;
-    const block = (event: Event) => this.blockWhileLoading(event);
+    const block = (event: Event) => {
+      if (!this.#isInteractionBlocked()) return;
+      event.preventDefault(); // impede navegação do link e envio de formulário
+      event.stopImmediatePropagation(); // impede os handlers da tela
+    };
     el.addEventListener('click', block, true);
     inject(DestroyRef).onDestroy(() => el.removeEventListener('click', block, true));
 
@@ -103,10 +110,12 @@ export class TgButtonComponent {
     }
   }
 
-  /** Carregando não desabilita (o foco fica no botão), mas bloqueia a ação. */
-  blockWhileLoading(event: Event) {
-    if (!this.loading()) return;
-    event.preventDefault();
-    event.stopImmediatePropagation();
+  /**
+   * Indisponível sem `disabled` nativo: carregando ou `aria-disabled="true"`
+   * posto pela tela. O `disabled` nativo já não dispara `click`, então fica
+   * com o navegador.
+   */
+  #isInteractionBlocked(): boolean {
+    return this.loading() || this.#host.nativeElement.getAttribute('aria-disabled') === 'true';
   }
 }
