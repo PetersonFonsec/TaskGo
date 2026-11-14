@@ -183,7 +183,7 @@ build).
   avatar mostra iniciais.
 - Ícones: Phosphor nas duas plataformas, substituindo FontAwesome (web) e
   Ionicons (app) na migração. Contorno no estado normal, preenchido no item
-  ativo da navegação. 20 px em texto, 24 px em navegação; ícone sozinho sempre com `aria-label`.
+  ativo da navegação. 20 px em texto, 24 px em navegação; ícone sozinho sempre com nome acessível (`aria-label` ou `aria-labelledby`).
 
 ### Ponte do Ionic
 
@@ -232,8 +232,8 @@ formulário e link funcionando sem reimplementar nada:
 | `tone` | `brand`, `danger` | `brand` |
 | `size` | `sm` (36 px), `md` (44 px), `lg` (52 px) | `md` |
 | `iconStart`, `iconEnd` | nome de ícone | — |
-| `iconOnly` | exige `aria-label` nativo (aviso em desenvolvimento) | `false` |
-| `loading` | mostra o indicador e bloqueia o clique | `false` |
+| `iconOnly` | exige `aria-label` ou `aria-labelledby` com texto (aviso em desenvolvimento) | `false` |
+| `loading` | mostra o indicador, mantém o nome e bloqueia o clique | `false` |
 | `fullWidth` | ocupa a largura toda | `false` |
 
 Regras:
@@ -249,6 +249,28 @@ Regras:
   - `loading`: não usa `disabled`, para o foco continuar no botão. Ele fica
     com `aria-busy` e `aria-disabled`, e a ativação é bloqueada do mesmo
     jeito. Ao terminar, o `aria-disabled` volta ao valor que a tela tinha.
+- Carregando não troca o nome do botão. O conteúdo fica transparente
+  (`opacity: 0`, que mantém o texto na árvore de acessibilidade), então
+  "Solicitar serviço" continua "Solicitar serviço". O estado vai à parte:
+  `aria-busy="true"`, `aria-disabled="true"` (lido como "indisponível") e
+  a descrição "Carregando", somada por `aria-describedby` à descrição que a
+  tela já tenha. Ao focar, o leitor diz algo como "Solicitar serviço, botão,
+  indisponível, Carregando". Limites: o suporte a `aria-busy` varia entre
+  leitores, e a mudança de descrição de um botão que já está em foco nem
+  sempre é anunciada. Se o resultado da ação precisa ser anunciado, a tela
+  usa a sua própria região de status (um toast, por exemplo).
+- Movimento reduzido: com `prefers-reduced-motion: reduce`, o indicador para
+  de girar e fica como um anel aberto parado, junto com o cursor de
+  progresso.
+- Botão só de ícone (`iconOnly`) precisa de nome: `aria-label="Fechar"` ou
+  `aria-labelledby` apontando para um texto visível. Em desenvolvimento, o
+  componente avisa no console quando o nome falta, está vazio ou só tem
+  espaços, ou quando o `aria-labelledby` aponta para um id inexistente ou
+  sem texto. Ele reavalia quando `iconOnly` muda e quando esses dois
+  atributos mudam no próprio botão, e avisa uma vez a cada vez que o botão
+  entra no estado inválido. Mudanças só no texto do elemento referenciado
+  não disparam nova verificação. O componente nunca cria um nome sozinho, e
+  a verificação não existe no build de produção.
 - O bloqueio atua só no `click` (a ativação), na fase de captura, antes dos
   handlers e do `routerLink`. Teclas como Tab e as setas não são canceladas.
 - Perigo sólido no prestador é coral com texto escuro, porque o vermelho do

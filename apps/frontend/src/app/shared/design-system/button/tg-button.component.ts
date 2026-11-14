@@ -1,10 +1,23 @@
-import { ChangeDetectionStrategy, Component, DestroyRef, ElementRef, computed, effect, inject, input } from '@angular/core';
+import {
+  ChangeDetectionStrategy,
+  Component,
+  DestroyRef,
+  ElementRef,
+  afterNextRender,
+  afterRenderEffect,
+  computed,
+  effect,
+  inject,
+  input,
+} from '@angular/core';
 import type { TgIconName } from '@taskgo/icons';
 import { TgIconComponent } from '../icon/tg-icon.component';
 
 export type TgButtonAppearance = 'solid' | 'subtle' | 'outline' | 'ghost';
 export type TgButtonTone = 'brand' | 'danger';
 export type TgButtonSize = 'sm' | 'md' | 'lg';
+
+let nextId = 0;
 
 /**
  * Botão do Design System TaskGo (Etapa 7).
@@ -25,7 +38,8 @@ export type TgButtonSize = 'sm' | 'md' | 'lg';
   template: `
     @if (loading()) {
       <span class="tg-button__spinner" aria-hidden="true"></span>
-      <span class="tg-button__sr">Carregando</span>
+      <!-- Fora do nome (hidden), mas lido como descrição via aria-describedby. -->
+      <span [id]="statusId" hidden>Carregando</span>
     }
     <span class="tg-button__content" [class.tg-button__content--hidden]="loading()">
       @if (iconStart(); as icon) {
@@ -53,6 +67,10 @@ export class TgButtonComponent {
   readonly iconOnly = input(false);
 
   readonly #host = inject<ElementRef<HTMLElement>>(ElementRef);
+  readonly #destroyRef = inject(DestroyRef);
+
+  /** Id do texto "Carregando", ligado ao host por aria-describedby. */
+  protected readonly statusId = `tg-button-status-${nextId++}`;
 
   readonly iconSize = computed(() => (this.size() === 'sm' ? 16 : 18));
 
@@ -71,19 +89,25 @@ export class TgButtonComponent {
   );
 
   constructor() {
-    // Carregando: anuncia como indisponível sem tirar o foco. Não usamos host
-    // binding para não apagar um aria-disabled que a tela tenha colocado.
+    // Carregando: o nome da ação não muda (o conteúdo só fica transparente).
+    // O estado vai à parte: aria-busy, aria-disabled e a descrição
+    // "Carregando" somada ao aria-describedby da tela. Não usamos host
+    // binding para não apagar atributos que a tela tenha colocado; ao
+    // terminar, os dois voltam ao valor anterior.
     let applied = false;
-    let previous: string | null = null;
+    let previousDisabled: string | null = null;
+    let previousDescribedBy: string | null = null;
     effect(() => {
       const el = this.#host.nativeElement;
       if (this.loading() && !applied) {
-        previous = el.getAttribute('aria-disabled');
+        previousDisabled = el.getAttribute('aria-disabled');
+        previousDescribedBy = el.getAttribute('aria-describedby');
         el.setAttribute('aria-disabled', 'true');
+        el.setAttribute('aria-describedby', [previousDescribedBy, this.statusId].filter(Boolean).join(' '));
         applied = true;
       } else if (!this.loading() && applied) {
-        if (previous === null) el.removeAttribute('aria-disabled');
-        else el.setAttribute('aria-disabled', previous);
+        restoreAttribute(el, 'aria-disabled', previousDisabled);
+        restoreAttribute(el, 'aria-describedby', previousDescribedBy);
         applied = false;
       }
     });
@@ -99,15 +123,37 @@ export class TgButtonComponent {
       event.stopImmediatePropagation(); // impede os handlers da tela
     };
     el.addEventListener('click', block, true);
-    inject(DestroyRef).onDestroy(() => el.removeEventListener('click', block, true));
+    this.#destroyRef.onDestroy(() => el.removeEventListener('click', block, true));
 
+    // Só em desenvolvimento: o build de produção remove este bloco.
     if (typeof ngDevMode !== 'undefined' && ngDevMode) {
-      queueMicrotask(() => {
-        if (this.iconOnly() && !this.#host.nativeElement.getAttribute('aria-label')) {
-          console.warn('tgButton: botão só de ícone precisa de aria-label.', this.#host.nativeElement);
-        }
-      });
+      this.#warnWhenIconOnlyHasNoName();
     }
+  }
+
+  /**
+   * Avisa quando `iconOnly` fica sem nome acessível. Reavalia quando
+   * `iconOnly` muda (signal) e quando `aria-label` ou `aria-labelledby` do
+   * próprio host mudam (MutationObserver só nesses dois atributos). Avisa uma
+   * vez por entrada no estado inválido.
+   */
+  #warnWhenIconOnlyHasNoName() {
+    const el = this.#host.nativeElement;
+    let warned = false;
+    const check = () => {
+      const invalid = this.iconOnly() && !hasAccessibleName(el);
+      if (invalid && !warned) {
+        console.warn('tgButton: botão só de ícone precisa de aria-label ou aria-labelledby com texto.', el);
+      }
+      warned = invalid;
+    };
+
+    afterRenderEffect(check);
+    afterNextRender(() => {
+      const observer = new MutationObserver(check);
+      observer.observe(el, { attributes: true, attributeFilter: ['aria-label', 'aria-labelledby'] });
+      this.#destroyRef.onDestroy(() => observer.disconnect());
+    });
   }
 
   /**
@@ -118,4 +164,24 @@ export class TgButtonComponent {
   #isInteractionBlocked(): boolean {
     return this.loading() || this.#host.nativeElement.getAttribute('aria-disabled') === 'true';
   }
+}
+
+function restoreAttribute(el: HTMLElement, name: string, value: string | null) {
+  if (value === null) el.removeAttribute(name);
+  else el.setAttribute(name, value);
+}
+
+/**
+ * Nome vindo de `aria-labelledby` (precede) ou `aria-label`, ignorando texto
+ * vazio ou só com espaços. Subconjunto do cálculo de nome acessível que cobre
+ * botão só de ícone, cujo conteúdo é sempre decorativo.
+ */
+function hasAccessibleName(el: HTMLElement): boolean {
+  const ids = el.getAttribute('aria-labelledby')?.trim().split(/\s+/).filter(Boolean) ?? [];
+  const root = el.getRootNode() as Document | ShadowRoot;
+  const labelledBy = ids
+    .map((id) => root.getElementById?.(id))
+    .map((ref) => ref?.getAttribute('aria-label')?.trim() || ref?.textContent?.trim() || '')
+    .join('');
+  return labelledBy !== '' || !!el.getAttribute('aria-label')?.trim();
 }

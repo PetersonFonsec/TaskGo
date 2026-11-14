@@ -125,8 +125,10 @@
   gap: var(--tg-space-2);
 }
 
+// Some da vista, mas continua na árvore de acessibilidade: o nome da ação
+// não muda durante o carregamento (visibility: hidden o tiraria do nome).
 .tg-button__content--hidden {
-  visibility: hidden;
+  opacity: 0;
 }
 
 .tg-button__spinner {
@@ -142,23 +144,16 @@
   animation: tg-button-spin 700ms linear infinite;
 }
 
-.tg-button__sr {
-  position: absolute;
-  width: 1px;
-  height: 1px;
-  overflow: hidden;
-  clip-path: inset(50%);
-  white-space: nowrap;
-}
-
 @keyframes tg-button-spin {
   to {
     transform: rotate(360deg);
   }
 }
 
+// Movimento reduzido: sem rotação. O anel aberto parado continua indicando
+// carregamento, junto com o cursor de progresso.
 @media (prefers-reduced-motion: reduce) {
   .tg-button__spinner {
-    animation-duration: 2s;
+    animation: none;
   }
 }
