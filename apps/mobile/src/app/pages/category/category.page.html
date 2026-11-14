@@ -30,7 +30,7 @@
         @if (current.status === 'ready') {
           <ion-list>
             @for (provider of current.providers; track provider.id) {
-              <ion-item lines="full">
+              <ion-item lines="full" [routerLink]="['/prestadores', provider.id]" [detail]="true">
                 @if (provider.user.photoUrl) {
                   <ion-avatar slot="start">
                     <img [src]="provider.user.photoUrl" alt="" (error)="$any($event.target).hidden = true" />

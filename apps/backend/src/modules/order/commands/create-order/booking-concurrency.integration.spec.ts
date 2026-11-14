@@ -157,6 +157,127 @@ integration('Isolated PostgreSQL booking and geographic integrity', () => {
     expect(orders[0].orderTimeline).toHaveLength(1);
   });
 
+  it('creates a single order for concurrent and repeated requests with the same Idempotency-Key', async () => {
+    const handler = new CreateOrderHandler(
+      db as any,
+      new ProviderService(db as any),
+      { notifyProviderNewOrder: jest.fn() } as any,
+    );
+    const key = randomUUID();
+    const date = new Date(Date.now() + 3 * 86400000).toISOString().slice(0, 10);
+    const payload = () => ({
+      clientId: String(clientId),
+      addressId: String(addressId),
+      serviceId: String(serviceIds[0]),
+      scheduledFor: `${date}T12:00:00.000Z`,
+    });
+    // Duas requisições simultâneas com a mesma chave (envio e repetição).
+    const concurrent = await Promise.all([
+      handler.execute(new CreateOrderCommand(payload(), key)),
+      handler.execute(new CreateOrderCommand(payload(), key)),
+    ]);
+    // Repetição depois do commit: o horário já está ocupado pelo próprio pedido.
+    const repeated = await handler.execute(
+      new CreateOrderCommand(payload(), key),
+    );
+
+    expect(new Set([...concurrent, repeated].map((o) => o.id))).toEqual(
+      new Set([concurrent[0].id]),
+    );
+    const stored = await db.order.findMany({
+      where: { clientId, idempotencyKey: key },
+    });
+    expect(stored).toHaveLength(1);
+    // Sem chave, o mesmo horário continua protegido pela regra de reserva.
+    await expect(
+      handler.execute(new CreateOrderCommand(payload())),
+    ).rejects.toThrow('no longer available');
+  });
+
+  it('replays only the same intent for a key: another address is a structured 409 and leaves one order', async () => {
+    const handler = new CreateOrderHandler(
+      db as any,
+      new ProviderService(db as any),
+      { notifyProviderNewOrder: jest.fn() } as any,
+    );
+    const addressB = await db.address.create({
+      data: {
+        userId: clientId,
+        street: 'Other',
+        number: '2',
+        city: 'Test',
+        state: 'SP',
+        cep: '01001001',
+        lat: 0,
+        lng: 0,
+      },
+    });
+    const date = new Date(Date.now() + 4 * 86400000).toISOString().slice(0, 10);
+    const intent = (address: bigint, at = `${date}T12:00:00.000Z`) => ({
+      clientId: String(clientId),
+      addressId: String(address),
+      serviceId: String(serviceIds[0]),
+      scheduledFor: at,
+      channel: 'APP' as const,
+    });
+    const mismatch = expect.objectContaining({
+      status: 409,
+      response: expect.objectContaining({
+        errorCode: 'IDEMPOTENCY_KEY_PAYLOAD_MISMATCH',
+      }),
+    });
+
+    // A: criação com o endereço A e repetição idêntica (mesmo instante em outro ISO).
+    const key = randomUUID();
+    const original = await handler.execute(
+      new CreateOrderCommand(intent(addressId), key),
+    );
+    const repeated = await handler.execute(
+      new CreateOrderCommand(intent(addressId, `${date}T09:00:00-03:00`), key),
+    );
+    expect(repeated.id).toBe(original.id);
+    // B: mesma chave com o endereço B.
+    await expect(
+      handler.execute(new CreateOrderCommand(intent(addressB.id), key)),
+    ).rejects.toEqual(mismatch);
+    // G: duas requisições simultâneas, mesma chave nova, endereços diferentes.
+    const raceKey = randomUUID();
+    const race = await Promise.allSettled([
+      handler.execute(
+        new CreateOrderCommand(
+          intent(addressId, `${date}T13:00:00.000Z`),
+          raceKey,
+        ),
+      ),
+      handler.execute(
+        new CreateOrderCommand(
+          intent(addressB.id, `${date}T13:00:00.000Z`),
+          raceKey,
+        ),
+      ),
+    ]);
+    expect(race.filter((r) => r.status === 'fulfilled')).toHaveLength(1);
+    expect(
+      (race.find((r) => r.status === 'rejected') as PromiseRejectedResult)
+        .reason,
+    ).toEqual(mismatch);
+
+    const stored = await db.order.findMany({
+      where: { clientId, idempotencyKey: { in: [key, raceKey] } },
+      include: { addressSnap: true, payment: true },
+    });
+    expect(stored).toHaveLength(2);
+    const first = stored.find((order) => order.idempotencyKey === key)!;
+    expect(first.id).toBe(original.id);
+    expect(first.addressSnap!.street).toBe('Test'); // continua o endereço A
+    expect(first.payment).not.toBeNull();
+    expect(
+      await db.order.count({
+        where: { clientId, scheduledFor: new Date(`${date}T12:00:00.000Z`) },
+      }),
+    ).toBe(1); // nenhuma segunda reserva no horário
+  });
+
   it('executes the parameterized coverage query across the actual radius boundary', async () => {
     const degreesPerKm = 180 / (Math.PI * 6371);
     const inside = await providerCoverageWhere(db as any, {

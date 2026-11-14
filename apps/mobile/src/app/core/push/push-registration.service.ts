@@ -84,9 +84,12 @@ export class PushRegistrationService {
       this.#deviceToken = value;
       void this.#register();
     });
-    await this.#push.onTap(() => {
-      // Os avisos levam data.type e data.orderId; a tela do pedido chega numa próxima etapa.
-      void this.#router.navigateByUrl('/');
+    await this.#push.onTap(({ notification }) => {
+      // Os avisos de pedido levam data.orderId; os demais abrem o início.
+      const orderId = notification.data?.orderId;
+      void this.#router.navigateByUrl(
+        typeof orderId === 'string' && /^[1-9]\d*$/.test(orderId) ? `/pedidos/${orderId}` : '/'
+      );
     });
   }
 

@@ -59,6 +59,8 @@ describe('CategoryPage', () => {
     expect(text).toContain('R$ 90,00');
     expect(text).toContain('Bia Rocha');
     expect(text).toContain('Novo no TaskGo');
+    const item = fixture.nativeElement.querySelector('ion-item') as HTMLElement;
+    expect(item.getAttribute('href')).toBe('/prestadores/10');
   });
 
   it('says when nobody serves the category yet', async () => {

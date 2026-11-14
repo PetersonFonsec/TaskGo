@@ -1,5 +1,6 @@
 import { Component, computed, inject, input } from '@angular/core';
 import { toObservable, toSignal } from '@angular/core/rxjs-interop';
+import { RouterLink } from '@angular/router';
 import {
   IonAvatar,
   IonBackButton,
@@ -32,6 +33,7 @@ type ProvidersState =
 @Component({
   selector: 'app-category',
   imports: [
+    RouterLink,
     IonAvatar,
     IonBackButton,
     IonBadge,

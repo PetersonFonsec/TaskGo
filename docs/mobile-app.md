@@ -85,6 +85,51 @@ não ligam essa opção.
 - Os listeners de reconexão (`online` e `resume`) são removidos quando o
   componente raiz é destruído, inclusive se o registro nativo terminar depois.
 
+## Pedido
+
+Telas: perfil do prestador (`/prestadores/:id`), meus pedidos (`/pedidos`) e
+detalhe com acompanhamento (`/pedidos/:id`). As duas últimas exigem login; sem
+sessão o app vai para `/entrar?voltar=...` e volta depois.
+
+- O perfil e os horários são públicos. Para pedir, o cliente escolhe serviço,
+  dia, horário (agenda de 14 dias de `GET /provider/:id/availability`) e um
+  endereço salvo com localização. O pedido vai para `POST /orders` com
+  `channel: 'APP'`; o preço e a reserva do horário são decididos pela API.
+- Pedido sem duplicar (`OrderSubmission`): cada tentativa tem um id próprio,
+  enviado como header `Idempotency-Key` em `POST /orders`. A API devolve o pedido
+  já criado quando recebe a mesma chave do mesmo cliente, inclusive em requisições
+  simultâneas (a checagem acontece dentro do lock de reserva do prestador; há
+  índice único em `pedidos(cliente_id, idempotency_key)`). Sem chave, nada muda.
+  A chave só devolve o pedido original se a intenção for a mesma: serviço,
+  instante do horário, endereço, pagamento e canal (com os defaults da API) viram
+  uma impressão digital gravada com o pedido. Qualquer diferença é `409` com
+  `errorCode: IDEMPOTENCY_KEY_PAYLOAD_MISMATCH`; o app então encerra a tentativa,
+  nunca repete a chave e pede ao cliente que confira os pedidos antes de pedir de
+  novo (o aviso volta após reiniciar até ele tocar em "Ver meus pedidos").
+  - Nada é enviado antes de a tentativa estar gravada no armazenamento seguro e de
+    a sessão que a iniciou ainda ser a atual. Se a gravação falhar, o cliente vê o
+    aviso e tenta de novo; nada foi enviado.
+  - Sem resposta (rede, 5xx, 408), a tentativa fica pendente e bloqueia novos
+    pedidos. "Tentar de novo" e a reabertura do app repetem a mesma chave. Numa
+    repetição, só 400 e 404 (que a API devolve depois de procurar a chave) provam
+    que não há pedido; 401, 403 e 429 mantêm a tentativa pendente.
+  - Cada operação só apaga do armazenamento a própria tentativa (compara o id numa
+    fila) e só enquanto a sessão que a iniciou for a atual.
+- Dados da conta (pedidos, detalhe, endereços) ficam presos à sessão em que foram
+  buscados (`privateResource` + `AuthService.session`): logout, troca de conta ou
+  perda da sessão escondem tudo na hora e cancelam buscas antigas, inclusive em
+  páginas que o Ionic mantém na pilha.
+- A agenda pede os 14 dias a partir de hoje em São Paulo, qualquer que seja o
+  fuso do aparelho.
+- Endereços sem latitude e longitude não aparecem, porque a API recusaria o
+  pedido. O app ainda não cadastra endereços: o cliente cadastra no site.
+- Pagamento, confirmação de conclusão e avaliação ainda são feitos no site. A tela
+  do pedido diz isso no passo em que o cliente precisa agir.
+- Tocar numa notificação de pedido (`data.orderId`) abre `/pedidos/:orderId`; as
+  demais abrem o início.
+- `GET /provider/:id` devolve campos Decimal no formato interno do decimal.js
+  (`{ s, e, d }`); `decimal()` em `orders.service.ts` converte para número.
+
 ## Push
 
 - Depois do login o app pede a permissão de notificação e envia o token para
@@ -99,8 +144,8 @@ não ligam essa opção.
   recusas marcam falha definitiva até um novo login ou token.
 - No iOS, um token APNs cru (64 hex) não é enviado: a API espera token FCM (ver
   "Push no iOS").
-- Por enquanto, tocar num aviso abre a tela inicial. A tela do pedido usará o
-  `data.orderId` que o backend já manda (ver `docs/mobile-push.md`).
+- Tocar num aviso com `data.orderId` abre a tela do pedido; os demais abrem o
+  início (ver `docs/mobile-push.md`).
 
 ### Push no Android
 

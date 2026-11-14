@@ -1,0 +1,225 @@
+<ion-header>
+  <ion-toolbar color="primary">
+    <ion-buttons slot="start"><ion-back-button defaultHref="/" text="" /></ion-buttons>
+    <ion-title>{{ provider()?.user?.name ?? 'Profissional' }}</ion-title>
+  </ion-toolbar>
+</ion-header>
+
+<ion-content>
+  @switch (profile().status) {
+    @case ('loading') {
+      <div class="ion-padding">
+        <ion-skeleton-text [animated]="true" style="width: 60%; height: 24px" />
+        <ion-skeleton-text [animated]="true" style="width: 40%" />
+      </div>
+    }
+    @case ('error') {
+      <div class="ion-padding">
+        <ion-text color="danger"><p>Não foi possível carregar este profissional. Tente de novo.</p></ion-text>
+      </div>
+    }
+    @default {
+      @if (provider(); as p) {
+        <ion-item lines="none" class="ion-padding-top">
+          @if (p.user.photoUrl) {
+            <ion-avatar slot="start">
+              <img [src]="p.user.photoUrl" alt="" (error)="$any($event.target).hidden = true" />
+            </ion-avatar>
+          } @else {
+            <ion-icon slot="start" name="person-circle" color="medium" size="large" />
+          }
+          <ion-label>
+            <h1>
+              {{ p.user.name }}
+              @if (p.verified) {
+                <ion-icon name="shield-checkmark" color="primary" aria-label="Verificado" />
+              }
+            </h1>
+            @if (rating(); as r) {
+              <p><ion-icon name="star" color="warning" /> {{ r }} ({{ p.ratingCount }} avaliações)</p>
+            } @else {
+              <p><ion-badge color="light">Novo no TaskGo</ion-badge></p>
+            }
+          </ion-label>
+        </ion-item>
+        @if (p.bio) {
+          <div class="ion-padding-horizontal"><ion-text color="medium"><p>{{ p.bio }}</p></ion-text></div>
+        }
+
+        <ion-list>
+          <ion-list-header><ion-label>Serviço</ion-label></ion-list-header>
+          <ion-radio-group [value]="serviceId()" (ionChange)="selectService($event.detail.value)">
+            @for (s of p.services; track s.id) {
+              <ion-item>
+                <ion-radio [value]="'' + s.id" justify="space-between">
+                  <ion-label class="ion-text-wrap">
+                    <h3>{{ s.title }}</h3>
+                    @if (s.description) {
+                      <p>{{ s.description }}</p>
+                    }
+                  </ion-label>
+                </ion-radio>
+                <ion-note slot="end">{{ formatPrice(s.basePrice) }}</ion-note>
+              </ion-item>
+            }
+          </ion-radio-group>
+        </ion-list>
+
+        <ion-list>
+          <ion-list-header><ion-label>Data e horário</ion-label></ion-list-header>
+          @switch (agenda().status) {
+            @case ('loading') {
+              <div class="ion-padding-horizontal"><ion-skeleton-text [animated]="true" style="width: 80%" /></div>
+            }
+            @case ('error') {
+              <div class="ion-padding-horizontal">
+                <ion-text color="danger"><p>Não foi possível carregar os horários.</p></ion-text>
+              </div>
+            }
+            @default {
+              @if (days().length) {
+                <div class="ion-padding-horizontal days" data-testid="days">
+                  @for (day of days(); track day.date) {
+                    <ion-chip [outline]="day.date !== date()" color="primary" (click)="selectDate(day.date)">
+                      {{ dayLabel(day.date) }}
+                    </ion-chip>
+                  }
+                </div>
+                <div class="ion-padding-horizontal" data-testid="slots">
+                  @for (s of slots(); track s.startsAt) {
+                    <ion-chip
+                      [outline]="s.startsAt !== slot()?.startsAt"
+                      color="secondary"
+                      (click)="selectSlot(s.startsAt)"
+                    >
+                      {{ timeLabel(s.startsAt) }}
+                    </ion-chip>
+                  }
+                </div>
+              } @else {
+                <div class="ion-padding-horizontal">
+                  <ion-text color="medium"><p>Sem horários livres nos próximos 14 dias.</p></ion-text>
+                </div>
+              }
+            }
+          }
+        </ion-list>
+
+        @if (auth.isAuthenticated()) {
+          <ion-list>
+            <ion-list-header><ion-label>Endereço do atendimento</ion-label></ion-list-header>
+            @if (addresses(); as state) {
+              @switch (state.status) {
+                @case ('loading') {
+                  <div class="ion-padding-horizontal"><ion-skeleton-text [animated]="true" style="width: 70%" /></div>
+                }
+                @case ('error') {
+                  <div class="ion-padding-horizontal">
+                    <ion-text color="danger"><p>Não foi possível carregar seus endereços.</p></ion-text>
+                  </div>
+                }
+                @default {
+                  @if (state.status === 'ready' && state.value.length) {
+                    <ion-radio-group [value]="addressId()" (ionChange)="selectAddress($event.detail.value)">
+                      @for (a of state.value; track a.id) {
+                        <ion-item>
+                          <ion-radio [value]="a.id" justify="space-between">
+                            <ion-label class="ion-text-wrap">{{ addressLabel(a) }}</ion-label>
+                          </ion-radio>
+                        </ion-item>
+                      }
+                    </ion-radio-group>
+                  } @else {
+                    <div class="ion-padding-horizontal">
+                      <ion-text color="medium">
+                        <p>Você ainda não tem um endereço com localização. Cadastre um no site do TaskGo para pedir pelo app.</p>
+                      </ion-text>
+                    </div>
+                  }
+                }
+              }
+            }
+          </ion-list>
+        }
+
+        <div class="ion-padding">
+          @if (pending(); as p) {
+            <div role="alert" data-testid="pending">
+              <ion-text color="warning">
+                <p>
+                  <strong>Não sabemos se o seu último pedido chegou ao TaskGo.</strong>
+                  @if (p.intent.summary) {
+                    ({{ p.intent.summary }})
+                  }
+                  Tente de novo: se ele já foi criado, o TaskGo devolve o mesmo pedido, sem duplicar.
+                </p>
+              </ion-text>
+              <ion-button expand="block" fill="outline" [disabled]="submitting()" (click)="retry()">
+                @if (submitting()) {
+                  <ion-spinner name="crescent" />
+                } @else {
+                  Tentar de novo
+                }
+              </ion-button>
+              <ion-button expand="block" fill="clear" routerLink="/pedidos">Ver meus pedidos</ion-button>
+            </div>
+          }
+          @if (conflict(); as c) {
+            <div role="alert" data-testid="conflict">
+              <ion-text color="danger">
+                <p>
+                  <strong>{{ c.message }}</strong>
+                  @if (c.intent.summary) {
+                    ({{ c.intent.summary }})
+                  }
+                </p>
+              </ion-text>
+              <ion-button expand="block" fill="outline" (click)="reviewOrders()">Ver meus pedidos</ion-button>
+            </div>
+          }
+          @if (found(); as f) {
+            <ion-text color="success" data-testid="found">
+              <p>Seu pedido #{{ f.orderId }} foi registrado.</p>
+            </ion-text>
+            <ion-button expand="block" fill="outline" (click)="openFound()">Ver pedido</ion-button>
+          }
+          @if (error(); as message) {
+            <ion-text color="danger"><p role="alert">{{ message }}</p></ion-text>
+          }
+          <ion-button expand="block" [disabled]="!canSubmit()" (click)="submit()">
+            @if (submitting()) {
+              <ion-spinner name="crescent" />
+            } @else if (auth.isAuthenticated()) {
+              Solicitar{{ service() ? ' por ' + formatPrice(service()!.basePrice) : '' }}
+            } @else {
+              Entrar para solicitar
+            }
+          </ion-button>
+          <ion-text color="medium">
+            <p><small>O profissional confirma o pedido antes do pagamento.</small></p>
+          </ion-text>
+        </div>
+
+        @if (p.reviews?.length) {
+          <ion-list>
+            <ion-list-header><ion-label>Avaliações</ion-label></ion-list-header>
+            @for (r of p.reviews; track r.id) {
+              <ion-item>
+                <ion-label class="ion-text-wrap">
+                  <h3><ion-icon name="star" color="warning" /> {{ r.rating }} · {{ reviewDate(r.reviewedAt) }}</h3>
+                  @if (r.comment) {
+                    <p>{{ r.comment }}</p>
+                  }
+                </ion-label>
+              </ion-item>
+            }
+          </ion-list>
+        }
+      } @else {
+        <div class="ion-padding">
+          <ion-text color="medium"><p>Este profissional não está disponível no momento.</p></ion-text>
+        </div>
+      }
+    }
+  }
+</ion-content>

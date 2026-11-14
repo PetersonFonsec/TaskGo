@@ -79,9 +79,21 @@ describe('App', () => {
     expect(push.sync).not.toHaveBeenCalled();
   });
 
-  it('lazy-loads the three screens', async () => {
+  it('lazy-loads every screen and protects the order screens', async () => {
     const paths = routes.map((route) => route.path);
-    expect(paths).toEqual(['', 'categorias/:slug', 'entrar', '**']);
+    expect(paths).toEqual([
+      '',
+      'categorias/:slug',
+      'entrar',
+      'prestadores/:id',
+      'pedidos',
+      'pedidos/:id',
+      '**'
+    ]);
+    expect(routes.filter((r) => r.canActivate?.length).map((r) => r.path)).toEqual([
+      'pedidos',
+      'pedidos/:id'
+    ]);
     for (const route of routes.filter((r) => r.loadComponent)) {
       expect(await route.loadComponent!()).toBeDefined();
     }
