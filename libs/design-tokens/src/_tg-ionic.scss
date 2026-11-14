@@ -1,19 +1,21 @@
-// Ponte opcional para o Ionic. Ainda não aplicada no app:
-// será ligada na migração das telas, porque troca o azul atual pelo violeta.
+// Ponte opcional para o Ionic. Ainda não aplicada no app: será ligada na
+// migração das telas, porque troca o azul atual pelo violeta.
+//
+// Tudo aponta para tokens semânticos, então a ponte acompanha CUSTOMER e
+// PROVIDER sozinha. O Ionic usa os canais RGB como rgba(var(--ion-...-rgb), a);
+// como var() é substituído antes da leitura, apontar para --tg-*-rgb funciona.
 @mixin tg-ionic-theme {
   --ion-font-family: var(--tg-font-sans);
   --ion-background-color: var(--tg-bg-canvas);
+  --ion-background-color-rgb: var(--tg-bg-canvas-rgb);
   --ion-text-color: var(--tg-text-primary);
+  --ion-text-color-rgb: var(--tg-text-primary-rgb);
   --ion-border-color: var(--tg-border-default);
 
-  --ion-color-primary: #5b34f1;
-  --ion-color-primary-rgb: 91, 52, 241;
-  --ion-color-primary-contrast: #ffffff;
-  --ion-color-primary-contrast-rgb: 255, 255, 255;
-  --ion-color-primary-shade: #4020c7;
-  --ion-color-primary-tint: #7a58f4;
-
-  --ion-color-success: #1f7a4d;
-  --ion-color-warning: #8a5a00;
-  --ion-color-danger: #c2261d;
+  --ion-color-primary: var(--tg-action-primary);
+  --ion-color-primary-rgb: var(--tg-action-primary-rgb);
+  --ion-color-primary-contrast: var(--tg-text-on-action);
+  --ion-color-primary-contrast-rgb: var(--tg-text-on-action-rgb);
+  --ion-color-primary-shade: var(--tg-action-primary-shade);
+  --ion-color-primary-tint: var(--tg-action-primary-tint);
 }

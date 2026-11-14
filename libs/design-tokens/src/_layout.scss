@@ -1,4 +1,6 @@
 // Espaço, forma, elevação, layout e movimento.
+@use 'sass:map';
+
 :root {
   --tg-space-0: 0;
   --tg-space-1: 4px;
@@ -60,7 +62,13 @@ $tg-breakpoints: (
 );
 
 @mixin tg-from($name) {
-  @media (min-width: map-get($tg-breakpoints, $name)) {
+  $breakpoint: map.get($tg-breakpoints, $name);
+
+  @if $breakpoint == null {
+    @error 'Breakpoint inválido: #{$name}. Use um destes: #{map.keys($tg-breakpoints)}.';
+  }
+
+  @media (min-width: $breakpoint) {
     @content;
   }
 }

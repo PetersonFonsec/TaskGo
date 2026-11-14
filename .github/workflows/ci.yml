@@ -62,6 +62,10 @@ jobs:
         run: npx nx run shared:typecheck --skip-nx-cache
       - name: Test shared contracts
         run: npx nx run shared:test --skip-nx-cache
+      - name: Check design token test types
+        run: npx nx run design-tokens:typecheck --skip-nx-cache
+      - name: Test design tokens (contracts, contrast, Sass)
+        run: npx nx run design-tokens:test --skip-nx-cache
       - name: Test backend including database integrations
         run: npm run test:ci --workspace apps/backend
       - name: Test frontend in ChromeHeadless
@@ -72,6 +76,8 @@ jobs:
         run: npm run mobile:test -- --skip-nx-cache
       - name: Build all applications
         run: npm run build -- --skip-nx-cache --parallel=1
+      - name: Build Storybook
+        run: npm run build-storybook --workspace apps/frontend
 
   auth-e2e:
     name: Auth E2E (API real)

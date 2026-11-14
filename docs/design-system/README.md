@@ -40,7 +40,8 @@ custom properties direto:
 }
 ```
 
-Para os mixins (breakpoints, escala do app, ponte do Ionic):
+Para os mixins (breakpoints, escala do app, ponte do Ionic), todos expostos
+pelo ponto de entrada:
 
 ```scss
 @use 'taskgo-tokens' as tg;
@@ -80,11 +81,48 @@ semânticos.
 | `action-primary` | #5B34F1 (texto branco) | #C9F56D (texto tinta) |
 | `action-primary-hover` | #4020C7 | #DDF99E |
 | `action-subtle` | #EEEAFD (texto #4020C7) | #2A2638 (texto lima) |
-| `accent` | #C9F56D, só preenchimento | #9A80F6 |
+| `accent` | #C9F56D (texto tinta) | #9A80F6 (texto tinta) |
 | `focus-ring` | #5B34F1 | #C9F56D |
 
-Todas as combinações de texto passam WCAG 2.2 AA (4,5:1 em texto, 3:1 em
-bordas de controle e foco).
+#### Contraste (WCAG 2.2)
+
+Só os pares abaixo são garantidos, e cada um é verificado nos dois temas por
+`libs/design-tokens/test/tokens.spec.ts`. Combinações fora da lista não têm
+garantia e precisam ser validadas antes do uso.
+
+**Texto (1.4.3, mínimo 4,5:1).** Exigimos 4,5:1 também em texto grande, que
+pela norma pediria só 3:1, para não depender do tamanho de quem usa o token.
+
+| Texto | Fundo | Cliente | Prestador |
+| --- | --- | --- | --- |
+| `text-primary` | `bg-canvas`, `bg-surface`, `bg-subtle` | 15,3 a 17,8 | 14,6 a 17,5 |
+| `text-secondary` | `bg-canvas`, `bg-surface`, `bg-subtle` | 4,9 a 5,7 | 6,2 a 7,4 |
+| `text-on-action` | `action-primary` / `action-primary-hover` | 6,6 / 9,3 | 14,2 / 15,4 |
+| `action-subtle-text` | `action-subtle` | 7,9 | 11,7 |
+| `text-on-accent` | `accent` | 14,2 | 5,8 |
+| `feedback-*-text` | `feedback-*-bg` | 4,7 a 5,4 | 7,4 a 9,1 |
+| `status-*-text` | `status-*-bg` | 4,7 a 7,9 | 7,4 a 14,2 |
+
+**Elementos não textuais (1.4.11, nível AA, mínimo 3:1)** contra `bg-canvas`
+e `bg-surface`. Para o anel de foco, seguimos também a 2.4.13 (nível AAA): 3:1
+entre o estado focado e o não focado, com espessura de pelo menos 2 px.
+
+| Token | Uso | Cliente | Prestador |
+| --- | --- | --- | --- |
+| `border-strong` | Borda que identifica um controle (campo, checkbox) | 3,3 a 3,6 | 4,0 a 4,3 |
+| `focus-ring` | Anel de foco | 6,1 a 6,6 | 14,3 a 15,5 |
+
+**Sem exigência de contraste**, conforme as exceções da norma:
+
+- `border-default`: divisória decorativa. Não pode ser a única borda de um
+  controle; nesse caso use `border-strong`.
+- `text-disabled`: só para controles inativos.
+- `accent` como preenchimento decorativo. Se carregar informação (um
+  indicador, por exemplo), precisa de 3:1 contra o fundo e deve ser validado.
+
+Correção feita na revisão: no prestador, `text-on-accent` era branco sobre
+violeta 400 (3,09:1). Agora é tinta nos dois temas; a cor do `accent` não
+mudou.
 
 Status do pedido:
 
@@ -142,6 +180,41 @@ build).
 - Ícones: Phosphor nas duas plataformas, substituindo FontAwesome (web) e
   Ionicons (app) na migração. Contorno no estado normal, preenchido no item
   ativo da navegação. 20 px em texto, 24 px em navegação; ícone sozinho sempre com `aria-label`.
+
+### Ponte do Ionic
+
+`@include tg.tg-ionic-theme` liga as variáveis do Ionic (`--ion-color-primary`
+e suas variantes `-rgb`, `-contrast`, `-contrast-rgb`, `-shade` e `-tint`,
+além de fundo, texto e borda) aos tokens semânticos. Por isso, ela acompanha
+o modo cliente e o prestador sem regra extra. Os canais RGB vêm de tokens
+próprios (`--tg-action-primary-rgb`, `--tg-text-on-action-rgb`,
+`--tg-bg-canvas-rgb`, `--tg-text-primary-rgb`), porque o Ionic usa
+`rgba(var(--ion-color-primary-rgb), alfa)`. Os testes conferem se cada
+token RGB bate com a cor correspondente.
+
+A ponte **não está aplicada** no app: ela troca o azul atual pelo violeta e
+entra só na migração das telas. As cores de sucesso, aviso e perigo do Ionic
+ficam de fora até lá.
+
+## Testes
+
+```bash
+npx nx run design-tokens:test       # contratos, contraste, API Sass e integração
+npx nx run design-tokens:typecheck
+```
+
+Os testes cobrem:
+
+- os tokens obrigatórios nos dois temas, sem referência a variável
+  inexistente;
+- os pares de contraste acima;
+- `tg-from()` (inclusive com breakpoint inválido), `tg-type-scale-app` e
+  `tg-ionic-theme`;
+- a ligação com o web e o app: `includePaths`, escala do celular, ponte
+  desligada e tokens antigos preservados;
+- os tokens citados nas histórias de fundamentos.
+
+Todos rodam no CI, junto com o build do Storybook.
 
 ## Storybook
 

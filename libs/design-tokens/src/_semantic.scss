@@ -17,6 +17,8 @@
 
   --tg-action-primary: var(--tg-violet-600);
   --tg-action-primary-hover: var(--tg-violet-700);
+  --tg-action-primary-shade: var(--tg-violet-700);
+  --tg-action-primary-tint: var(--tg-violet-500);
   --tg-action-subtle: var(--tg-violet-100);
   --tg-action-subtle-text: var(--tg-violet-700);
 
@@ -45,6 +47,13 @@
   --tg-status-cancelled-bg: var(--tg-feedback-danger-bg);
 
   --tg-scrim: rgba(24, 22, 37, 0.56);
+
+  // Canais RGB ("r, g, b") para quem precisa de rgba(var(...), alfa), como o
+  // Ionic. Devem bater com a cor correspondente; os testes conferem.
+  --tg-action-primary-rgb: 91, 52, 241;
+  --tg-text-on-action-rgb: 255, 255, 255;
+  --tg-bg-canvas-rgb: 247, 246, 251;
+  --tg-text-primary-rgb: 24, 22, 37;
 }
 
 :root[data-theme='PROVIDER'] {
@@ -56,13 +65,15 @@
   --tg-text-secondary: var(--tg-ink-400);
   --tg-text-disabled: var(--tg-ink-600);
   --tg-text-on-action: var(--tg-ink-900);
-  --tg-text-on-accent: var(--tg-ink-0);
+  // text-on-accent continua tinta: branco sobre violeta-400 dá 3,09:1 (reprovado).
 
   --tg-border-default: var(--tg-ink-800);
   --tg-border-strong: var(--tg-night-border-strong);
 
   --tg-action-primary: var(--tg-lime-300);
   --tg-action-primary-hover: var(--tg-lime-200);
+  --tg-action-primary-shade: var(--tg-lime-400);
+  --tg-action-primary-tint: var(--tg-lime-200);
   --tg-action-subtle: var(--tg-ink-800);
   --tg-action-subtle-text: var(--tg-lime-300);
 
@@ -81,4 +92,9 @@
   // No escuro, "em andamento" é lima com texto tinta
   --tg-status-progress-text: var(--tg-ink-900);
   --tg-status-progress-bg: var(--tg-lime-300);
+
+  --tg-action-primary-rgb: 201, 245, 109;
+  --tg-text-on-action-rgb: 24, 22, 37;
+  --tg-bg-canvas-rgb: 14, 12, 22;
+  --tg-text-primary-rgb: 244, 242, 251;
 }

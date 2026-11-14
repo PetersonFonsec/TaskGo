@@ -10,7 +10,8 @@ Documentação completa em [`docs/design-system`](../../docs/design-system/READM
 | `_semantic.scss` | Tokens de uso, modo cliente e `[data-theme='PROVIDER']` |
 | `_typography.scss` | Famílias, pesos, escala e o mixin `tg-type-scale-app` |
 | `_layout.scss` | Espaço, raios, controles, elevação, movimento e `tg-from()` |
-| `_tg-ionic.scss` | Mixin `tg-ionic-theme`, ainda não aplicado |
+| `_tg-ionic.scss` | Mixin `tg-ionic-theme` (ponte para os dois temas), ainda não aplicado |
+| `test/` | Testes Vitest: contratos, contraste WCAG, API Sass e integração com os apps |
 
 Uma fase posterior pode gerar estes arquivos a partir de JSON no formato DTCG,
 para sincronizar com o Figma.
