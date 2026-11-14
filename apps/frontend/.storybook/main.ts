@@ -1,20 +1,13 @@
-import type { StorybookConfig } from "@storybook/angular";
+import type { StorybookConfig } from '@storybook/angular';
 
+// Storybook 10 já traz controles, ações, viewport e fundos no núcleo.
+// Os addons antigos listados aqui não estavam instalados e quebravam o build.
 const config: StorybookConfig = {
-  stories: ["../src/**/*.mdx", "../src/**/*.stories.@(js|jsx|mjs|ts|tsx)"],
-  addons: [
-    "@storybook/addon-links",
-    "@storybook/addon-essentials",
-    "@chromatic-com/storybook",
-    "@storybook/addon-interactions",
-    "@storybook/addon-styling-webpack"
-  ],
+  stories: ['../src/**/*.stories.@(ts|mdx)'],
+  addons: [],
   framework: {
-    name: "@storybook/angular",
+    name: '@storybook/angular',
     options: {},
-  },
-  docs: {
-    // autodocs: "tag",
   },
 };
 export default config;
