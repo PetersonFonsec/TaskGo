@@ -124,6 +124,9 @@ function loginThroughUi(user: { email: string; password: string }) {
   cy.intercept('POST', `${apiUrl}/auth/login`).as('login');
   cy.visit('/authenticate/login');
   const login = new LoginElements(user);
+  // O autofocus do e-mail só acontece depois da hidratação. Texto digitado
+  // antes disso se perde, então espera a página ficar interativa.
+  login.emailInput.should('have.focus');
   login.fillFormValid();
   login.submitButton.should('be.enabled').click();
   return cy.wait('@login');
