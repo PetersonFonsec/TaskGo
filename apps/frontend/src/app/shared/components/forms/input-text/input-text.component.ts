@@ -60,7 +60,16 @@ export class InputTextComponent implements OnInit, ControlValueAccessor, AfterVi
   ngAfterViewInit() {
     if (!this.autofocus()) return;
 
-    this.inputHTML().nativeElement.focus();
+    const input: HTMLInputElement = this.inputHTML().nativeElement;
+    const active = input.ownerDocument?.activeElement;
+
+    // Com SSR, este hook roda na hidratação, depois que a página já está
+    // interativa. Se a pessoa já focou outro campo e está digitando, mover o
+    // foco agora joga o resto do texto no campo errado. Só foca se nada
+    // estiver focado ainda.
+    if (active && active !== input.ownerDocument.body && active !== input) return;
+
+    input.focus();
   }
 
 

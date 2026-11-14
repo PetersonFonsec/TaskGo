@@ -20,4 +20,49 @@ describe('InputTextComponent', () => {
   it('should create', () => {
     expect(component).toBeTruthy();
   });
+
+  describe('autofocus', () => {
+    let other: HTMLInputElement;
+
+    function createWithAutofocus() {
+      const autofocusFixture = TestBed.createComponent(InputTextComponent);
+      autofocusFixture.componentRef.setInput('autofocus', true);
+      document.body.appendChild(autofocusFixture.nativeElement);
+      autofocusFixture.detectChanges();
+      return autofocusFixture;
+    }
+
+    function input(target: ComponentFixture<InputTextComponent>): HTMLInputElement {
+      return target.nativeElement.querySelector('input');
+    }
+
+    beforeEach(() => {
+      other = document.createElement('input');
+      document.body.appendChild(other);
+    });
+
+    afterEach(() => {
+      other.remove();
+      (document.activeElement as HTMLElement | null)?.blur();
+    });
+
+    it('foca o campo quando nada está focado', () => {
+      (document.activeElement as HTMLElement | null)?.blur();
+
+      const target = createWithAutofocus();
+
+      expect(document.activeElement).toBe(input(target));
+      target.nativeElement.remove();
+    });
+
+    it('não rouba o foco de um campo que a pessoa já está usando', () => {
+      other.focus();
+
+      const target = createWithAutofocus();
+
+      expect(document.activeElement).toBe(other);
+      expect(document.activeElement).not.toBe(input(target));
+      target.nativeElement.remove();
+    });
+  });
 });
