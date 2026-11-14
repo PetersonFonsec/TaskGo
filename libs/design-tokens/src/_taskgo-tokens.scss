@@ -1,0 +1,6 @@
+// Ponto de entrada: @use 'taskgo-tokens' as tg;
+// Emite os custom properties --tg-* e expõe os mixins.
+@forward 'primitives';
+@forward 'semantic';
+@forward 'typography';
+@forward 'layout';

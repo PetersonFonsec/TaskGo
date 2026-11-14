@@ -29,7 +29,12 @@
             "styles": [
               "src/styles.scss"
             ],
-            "outputPath": "dist"
+            "outputPath": "dist",
+            "stylePreprocessorOptions": {
+              "includePaths": [
+                "../../libs/design-tokens/src"
+              ]
+            }
           },
           "configurations": {
             "production": {

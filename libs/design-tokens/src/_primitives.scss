@@ -1,0 +1,50 @@
+// Nível 1 · Primitivos. Valores crus, sem significado de uso.
+// Componentes não devem ler estes tokens direto: use os semânticos.
+:root {
+  // Violeta (marca)
+  --tg-violet-50: #f4f1fe;
+  --tg-violet-100: #eeeafd;
+  --tg-violet-200: #dcd3fc;
+  --tg-violet-300: #bfaef9;
+  --tg-violet-400: #9a80f6;
+  --tg-violet-500: #7a58f4;
+  --tg-violet-600: #5b34f1;
+  --tg-violet-700: #4020c7;
+  --tg-violet-800: #321a9c;
+  --tg-violet-900: #251570;
+
+  // Tinta (neutros quentes)
+  --tg-ink-0: #ffffff;
+  --tg-ink-25: #f7f6fb;
+  --tg-ink-100: #efedf4;
+  --tg-ink-200: #e2deeb;
+  --tg-ink-300: #c7c2d6;
+  --tg-ink-400: #a29db3;
+  --tg-ink-500: #8a8597;
+  --tg-ink-600: #686574;
+  --tg-ink-700: #4a4657;
+  --tg-ink-800: #2a2638;
+  --tg-ink-900: #181625;
+
+  // Escuros do modo prestador
+  --tg-night-900: #0e0c16;
+  --tg-night-800: #181525;
+  --tg-night-700: #221e31;
+  --tg-night-50: #f4f2fb;
+  --tg-night-border-strong: #7a748c;
+
+  // Lima (acento)
+  --tg-lime-100: #f1fcd9;
+  --tg-lime-200: #ddf99e;
+  --tg-lime-300: #c9f56d;
+
+  // Feedback
+  --tg-green-700: #1f7a4d;
+  --tg-green-100: #e3f4ea;
+  --tg-amber-700: #8a5a00;
+  --tg-amber-100: #fff4d6;
+  --tg-red-700: #c2261d;
+  --tg-red-100: #fde8e6;
+  --tg-blue-700: #2456d6;
+  --tg-blue-100: #e8eefc;
+}

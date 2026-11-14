@@ -1,0 +1,84 @@
+// Nível 2 · Semânticos. É o que a interface usa.
+// O tema troca só esta camada: cliente (claro) é o padrão,
+// prestador (escuro) entra com data-theme="PROVIDER" no <html>.
+:root {
+  --tg-bg-canvas: var(--tg-ink-25);
+  --tg-bg-surface: var(--tg-ink-0);
+  --tg-bg-subtle: var(--tg-ink-100);
+
+  --tg-text-primary: var(--tg-ink-900);
+  --tg-text-secondary: var(--tg-ink-600);
+  --tg-text-disabled: var(--tg-ink-400);
+  --tg-text-on-action: var(--tg-ink-0);
+  --tg-text-on-accent: var(--tg-ink-900);
+
+  --tg-border-default: var(--tg-ink-200);
+  --tg-border-strong: var(--tg-ink-500);
+
+  --tg-action-primary: var(--tg-violet-600);
+  --tg-action-primary-hover: var(--tg-violet-700);
+  --tg-action-subtle: var(--tg-violet-100);
+  --tg-action-subtle-text: var(--tg-violet-700);
+
+  --tg-accent: var(--tg-lime-300);
+  --tg-focus-ring: var(--tg-violet-600);
+
+  --tg-feedback-success-text: var(--tg-green-700);
+  --tg-feedback-success-bg: var(--tg-green-100);
+  --tg-feedback-warning-text: var(--tg-amber-700);
+  --tg-feedback-warning-bg: var(--tg-amber-100);
+  --tg-feedback-danger-text: var(--tg-red-700);
+  --tg-feedback-danger-bg: var(--tg-red-100);
+  --tg-feedback-info-text: var(--tg-blue-700);
+  --tg-feedback-info-bg: var(--tg-blue-100);
+
+  // Status do pedido, ligados ao feedback
+  --tg-status-waiting-text: var(--tg-feedback-warning-text);
+  --tg-status-waiting-bg: var(--tg-feedback-warning-bg);
+  --tg-status-confirmed-text: var(--tg-feedback-info-text);
+  --tg-status-confirmed-bg: var(--tg-feedback-info-bg);
+  --tg-status-progress-text: var(--tg-action-subtle-text);
+  --tg-status-progress-bg: var(--tg-action-subtle);
+  --tg-status-done-text: var(--tg-feedback-success-text);
+  --tg-status-done-bg: var(--tg-feedback-success-bg);
+  --tg-status-cancelled-text: var(--tg-feedback-danger-text);
+  --tg-status-cancelled-bg: var(--tg-feedback-danger-bg);
+
+  --tg-scrim: rgba(24, 22, 37, 0.56);
+}
+
+:root[data-theme='PROVIDER'] {
+  --tg-bg-canvas: var(--tg-night-900);
+  --tg-bg-surface: var(--tg-night-800);
+  --tg-bg-subtle: var(--tg-night-700);
+
+  --tg-text-primary: var(--tg-night-50);
+  --tg-text-secondary: var(--tg-ink-400);
+  --tg-text-disabled: var(--tg-ink-600);
+  --tg-text-on-action: var(--tg-ink-900);
+  --tg-text-on-accent: var(--tg-ink-0);
+
+  --tg-border-default: var(--tg-ink-800);
+  --tg-border-strong: var(--tg-night-border-strong);
+
+  --tg-action-primary: var(--tg-lime-300);
+  --tg-action-primary-hover: var(--tg-lime-200);
+  --tg-action-subtle: var(--tg-ink-800);
+  --tg-action-subtle-text: var(--tg-lime-300);
+
+  --tg-accent: var(--tg-violet-400);
+  --tg-focus-ring: var(--tg-lime-300);
+
+  --tg-feedback-success-text: #5fd39a;
+  --tg-feedback-success-bg: #10291d;
+  --tg-feedback-warning-text: #f2c14e;
+  --tg-feedback-warning-bg: #2e2410;
+  --tg-feedback-danger-text: #ff8a80;
+  --tg-feedback-danger-bg: #331414;
+  --tg-feedback-info-text: #8fb0ff;
+  --tg-feedback-info-bg: #141e3a;
+
+  // No escuro, "em andamento" é lima com texto tinta
+  --tg-status-progress-text: var(--tg-ink-900);
+  --tg-status-progress-bg: var(--tg-lime-300);
+}

@@ -5,6 +5,12 @@
 @use '@ionic/angular/css/padding.css';
 @use '@ionic/angular/css/flex-utils.css';
 @use '@ionic/angular/css/palettes/dark.system.css';
+@use 'taskgo-tokens' as tg;
+
+// Tokens do design system (--tg-*). Ainda não alteram nenhuma tela.
+:root {
+  @include tg.tg-type-scale-app;
+}
 
 // Mesmo azul do cliente no site.
 :root {

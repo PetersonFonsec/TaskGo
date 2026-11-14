@@ -37,7 +37,8 @@
             },
             "stylePreprocessorOptions": {
               "includePaths": [
-                "src/app/scss"
+                "src/app/scss",
+                "../../libs/design-tokens/src"
               ]
             }
           },
@@ -113,13 +114,18 @@
           "options": {
             "configDir": ".storybook",
             "browserTarget": "frontend:build",
-            "compodoc": true,
+            "compodoc": false,
             "styles": [
               "leaflet/dist/leaflet.css",
               "src/styles.scss"
             ],
-            "compodocArgs": ["-e", "json", "-d", "."],
-            "port": 6006
+            "port": 6006,
+            "stylePreprocessorOptions": {
+              "includePaths": [
+                "src/app/scss",
+                "../../libs/design-tokens/src"
+              ]
+            }
           }
         },
         "build-storybook": {
@@ -127,13 +133,18 @@
           "options": {
             "configDir": ".storybook",
             "browserTarget": "frontend:build",
-            "compodoc": true,
-            "compodocArgs": ["-e", "json", "-d", "."],
+            "compodoc": false,
             "outputDir": "storybook-static",
             "styles": [
               "leaflet/dist/leaflet.css",
               "src/styles.scss"
-            ]
+            ],
+            "stylePreprocessorOptions": {
+              "includePaths": [
+                "src/app/scss",
+                "../../libs/design-tokens/src"
+              ]
+            }
           }
         }
       }
