@@ -1265,7 +1265,7 @@ agenda, categorias e histórico.
 | Destaque | `tg-appointment-card` | O ativo que pede ação do cliente (Pagar, Ver QR Code, Confirmar conclusão); senão, o de data mais próxima (decisão 1). |
 | Também na agenda | `ul[tgOrderList]` com `tg-order-row` | Os demais ativos, data mais próxima primeiro, até 3. Sem data vai para o fim. |
 | Histórico | `ul[tgOrderList]` com `tg-order-row` | Concluídos, cancelados e recusados, mais recentes primeiro, até 3, com "Avaliar" quando falta. Sem nenhum, a seção some. |
-| Categorias | `a[tgCard]` com imagem em cima e nome embaixo | O card inteiro é o link para a busca filtrada. Imagem decorativa (o nome é o texto do link); sem imagem, fundo neutro. Duas colunas abaixo de 600 px. |
+| Categorias | `a[tgCard]` com imagem em cima e nome embaixo | O card inteiro é o link para a busca filtrada. Imagem decorativa (o nome é o texto do link), inteira, sem corte (`object-fit: contain` sobre `bg-canvas`, o fundo das artes); sem imagem, só o fundo. Duas colunas abaixo de 600 px. |
 | Carregando | `tg-loading` com skeleton do card e da lista | |
 | Erro | `tg-alert` de perigo com "Tentar de novo" | Nunca vira "agenda livre". |
 | Vazio | `tg-empty-state` compacto + "Buscar serviço" | |

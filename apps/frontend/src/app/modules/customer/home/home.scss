@@ -150,13 +150,16 @@
 .customer-home__category-art {
   display: block;
   height: 160px;
-  background: var(--tg-bg-subtle);
+  // O fundo das artes 3D das categorias é quase o canvas do cliente: as
+  // laterais que o contain deixa se fundem com a imagem.
+  background: var(--tg-bg-canvas);
 
   img {
     display: block;
     width: 100%;
     height: 100%;
-    object-fit: cover;
+    // A arte inteira à vista, sem corte; sobra o fundo neutro nas laterais.
+    object-fit: contain;
     object-position: center;
   }
 }
