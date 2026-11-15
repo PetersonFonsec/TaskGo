@@ -25,7 +25,8 @@ migração tela a tela, que vem nas próximas etapas.
 | 7 | Componentes base: card (web) | Concluído (PR #14) |
 | 7 | Componentes base: badge de status (web) | Concluído (PR #15) |
 | 7 | Componentes base: navegação (web) | Concluído (PR #16) |
-| 7 | Componentes base: abas (web) | Este PR |
+| 7 | Componentes base: abas (web) | Concluído (PR #17) |
+| 7 | Componentes base: diálogo e painel (web) | Este PR |
 | 7 a 10 | Demais componentes base, componentes de domínio, piloto, migração | A fazer |
 
 Atributos de marca: próximo, confiável, direto e caloroso sem ser infantil.
@@ -690,6 +691,71 @@ Acessibilidade (padrão de abas da WAI-ARIA, ativação automática):
 No app, as abas são `ion-segment`, com a aparência de sublinhado dos tokens,
 na migração da tela de pedidos. O `app-tabs` antigo do web, que não tinha
 uso, teclado nem testes ativos, foi removido.
+
+### Diálogo e painel
+
+O diálogo pede uma decisão curta. O painel abriga uma tarefa, como filtros
+ou um endereço. Aviso que não pede decisão não é diálogo: é toast ou alerta.
+
+```html
+<tg-dialog #recusar title="Recusar este pedido?" icon="warning-circle" tone="danger" [busy]="enviando()">
+  <p>Ana Souza recebe o aviso e pode pedir a outro profissional.</p>
+  <button tgButton tgDialogAction appearance="outline" (click)="recusar.close()">Voltar</button>
+  <button tgButton tgDialogAction tone="danger" [loading]="enviando()" (click)="confirmar()">Recusar pedido</button>
+</tg-dialog>
+
+<tg-sheet #filtros title="Filtros">
+  … campos …
+  <button tgButton tgSheetAction appearance="outline" (click)="limpar()">Limpar</button>
+  <button tgButton tgSheetAction (click)="aplicar(); filtros.close()">Aplicar filtros</button>
+</tg-sheet>
+
+<button tgButton appearance="outline" (click)="filtros.open()">Filtros</button>
+```
+
+| Componente | Entradas e saídas |
+| --- | --- |
+| `tg-dialog` | `title` (obrigatório), `icon`, `tone` (`brand` ou `danger`), `busy`; `open()`, `close()`, `isOpen`; saídas `opened` e `closed` |
+| `tg-sheet` | `title` (obrigatório), `busy`; `open()`, `close()`, `isOpen`; saídas `opened` e `closed` |
+
+Regras:
+
+- Diálogo: centralizado em todos os tamanhos, até 440 px, raio de 28 px.
+  Título que diz a decisão, texto curto e no máximo duas ações. A ação
+  principal diz o que faz ("Recusar pedido"), nunca só "OK" ou "Sim".
+- Ações do diálogo: a segura primeiro e a principal por último, no código.
+  Abaixo de 600 px empilham com a largura toda, e a principal fica em cima;
+  acima, ficam lado a lado, com a principal à direita.
+- Painel: abaixo de 600 px sobe de baixo (bottom sheet), com a largura toda,
+  até 88% da altura e cantos de cima arredondados, sem alça de arrastar. A
+  partir de 600 px fica à direita, com 440 px e a altura toda. Título e
+  fechar fixos no topo, ações fixas embaixo (dividindo a largura no
+  celular), e só o meio rola.
+- Fundo com `scrim` e `elevation-3`; animação de 200 ms, sem animação com
+  movimento reduzido.
+- Durante um envio: `[busy]` no componente e `[loading]` na ação principal.
+  Esc, o fundo e o X deixam de fechar; a tela fecha por `close()` quando o
+  envio termina. Um diálogo por vez.
+
+Acessibilidade:
+
+- Os dois usam o `dialog` nativo com `showModal()`: o foco fica preso
+  dentro, o fundo fica inerte, e o leitor de tela anuncia um diálogo modal.
+- Nome pelo título (`aria-labelledby`); no diálogo, a descrição é o texto
+  (`aria-describedby`). Durante o envio, `aria-busy`.
+- Ao abrir, o foco vai para o primeiro controle: a ação segura no diálogo e
+  o "Fechar" no painel. Ao fechar, volta para quem abriu.
+- Fecham por Esc (tratado no `keydown`, para o Chrome não fechar no segundo
+  Esc durante o envio), pelo toque no fundo e, no painel, pelo botão
+  "Fechar" de 44 px. Durante o envio, o "Fechar" fica com `aria-disabled` e
+  não perde o foco.
+- A rolagem da página trava enquanto está aberto e volta ao valor anterior
+  ao fechar (inclusive se o componente sair da tela aberto).
+
+O `app-drawer`, a confirmação montada em `div` da tela "Confirmar conclusão"
+e o `app-full-modal` convivem com estes componentes até as migrações dessas
+telas. No app, os equivalentes são `ion-alert` e `ion-modal` com os tokens,
+quando o app ganhar confirmações e filtros.
 
 ## Testes
 
