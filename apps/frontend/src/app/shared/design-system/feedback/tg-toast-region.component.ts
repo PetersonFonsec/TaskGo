@@ -65,6 +65,7 @@ import { TgToast, TgToastItem } from './tg-toast.service';
 export class TgToastRegionComponent {
   protected readonly toast = inject(TgToast);
   readonly #document = inject(DOCUMENT);
+  readonly #destroyRef = inject(DestroyRef);
   readonly #browser = isPlatformBrowser(inject(PLATFORM_ID));
   private readonly box = viewChild<ElementRef<HTMLElement>>('box');
 
@@ -84,7 +85,7 @@ export class TgToastRegionComponent {
   #returnTo: HTMLElement | null = null;
 
   constructor() {
-    inject(DestroyRef).onDestroy(() => this.#clear());
+    this.#destroyRef.onDestroy(() => this.#clear());
     effect(() => {
       const item = this.toast.current();
       this.#clear();
@@ -171,10 +172,54 @@ export class TgToastRegionComponent {
     const target = modals.at(-1) ?? Array.from(scope.querySelectorAll<HTMLElement>('main, [role="main"]'))
       .find(availableFeedbackFocus) ?? scope;
     if (!availableFeedbackFocus(target)) return;
-    // Remover tabindex logo após focus() pode devolver o foco ao body no Chrome.
-    // -1 mantém o marco focável programaticamente, sem entrar na ordem de Tab.
-    if (!target.hasAttribute('tabindex')) target.setAttribute('tabindex', '-1');
+    this.#focusFallback(target);
+  }
+
+  #focusFallback(target: HTMLElement) {
+    const doc = target.ownerDocument;
+    // Diálogos e marcos já focáveis não precisam de alteração no DOM.
     target.focus();
+    if (doc.activeElement === target || target.hasAttribute('tabindex')) return;
+
+    target.setAttribute('tabindex', '-1');
+    let unregisterDestroy: (() => void) | null = null;
+    let cleaned = false;
+    const cleanup = (restore = true) => {
+      if (cleaned) return;
+      cleaned = true;
+      // Inclui alterações externas ainda pendentes de entrega pelo observer,
+      // mesmo uma nova atribuição de -1: nesse caso o atributo já não é nosso.
+      const changed = observer.takeRecords().some((record) => record.type === 'attributes');
+      observer.disconnect();
+      target.removeEventListener('blur', onBlur);
+      unregisterDestroy?.();
+      unregisterDestroy = null;
+      if (restore && !changed && target.getAttribute('tabindex') === '-1') target.removeAttribute('tabindex');
+    };
+    const onBlur = () => cleanup();
+    const observe = () => {
+      observer.observe(target, { attributes: true, attributeFilter: ['tabindex'] });
+      // A remoção pode não emitir blur. Só acompanha os filhos diretos da
+      // cadeia do alvo, sem observar subárvores nem gerenciar foco globalmente.
+      for (let parent = target.parentNode; parent; parent = parent.parentNode) {
+        observer.observe(parent, { childList: true });
+      }
+    };
+    const observer = new MutationObserver((records) => {
+      if ([...records, ...observer.takeRecords()].some((record) => record.type === 'attributes')) cleanup(false);
+      else if (!target.isConnected || doc.activeElement !== target) cleanup();
+      else { observer.disconnect(); observe(); }
+    });
+    observe();
+    target.addEventListener('blur', onBlur, { once: true });
+    unregisterDestroy = this.#destroyRef.onDestroy(() => {
+      unregisterDestroy = null;
+      // Remover tabindex enquanto o marco continua focado faz o Chrome
+      // devolver o foco ao body. Nesse caso, o blur local conclui a limpeza.
+      if (doc.activeElement !== target) cleanup();
+    });
+    target.focus();
+    if (doc.activeElement !== target) cleanup();
   }
 
   #start() {
