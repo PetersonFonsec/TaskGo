@@ -1,264 +1,259 @@
 <main class="provider-home">
-  <header class="welcome">
-    <div>
-      <p class="welcome__eyebrow">Visão geral</p>
-      <h1>Olá, {{ providerName }} <span aria-hidden="true">👋</span></h1>
-      <p class="welcome__subtitle">Veja como está seu desempenho hoje</p>
+  <section class="provider-home__hero" aria-labelledby="provider-home-title">
+    <div class="provider-home__hero-text">
+      <h1 id="provider-home-title" class="provider-home__greeting">
+        {{ firstName() ? 'Olá, ' + firstName() : 'Olá' }}
+      </h1>
+      @if (summary(); as text) {
+        <p class="provider-home__lead">{{ text }}</p>
+      }
     </div>
-    <div class="welcome__actions">
-      <app-button color="light" (click)="refresh()" [disabled]="loading()">
-        {{ loading() ? 'Atualizando...' : 'Atualizar painel' }}
-      </app-button>
-      <a routerLink="/provider/recebimentos" class="button button--secondary">Recebimentos</a>
-      <a routerLink="/provider/services" class="button button--primary">Gerenciar meus serviços</a>
+    <div class="provider-home__hero-actions">
+      <a tgButton appearance="outline" [routerLink]="receiptsLink">Recebimentos</a>
+      <a tgButton appearance="outline" [routerLink]="servicesLink">Meus serviços</a>
     </div>
-  </header>
-
-  @if (loading()) {
-    <p class="notice" role="status">Atualizando painel...</p>
-  }
-  @if (dashboardError()) {
-    <p class="request-error" role="alert">{{ dashboardError() }}</p>
-  }
-  @if (loaded() && !requests().length && !activeOrders().length && !services.length) {
-    <p class="empty-state">Você ainda não possui solicitações ou serviços para exibir.</p>
-  }
-  <p class="notice">
-    Os valores representam sua parcela em serviços pagos; não confirmam repasse bancário.
-  </p>
-
-  <section class="summary-grid" aria-label="Resumo do desempenho">
-    @for (item of summary; track item.id) {
-      <article class="summary-card">
-        <div class="summary-card__icon"><fa-icon [icon]="item.icon" /></div>
-        <div class="summary-card__content">
-          <p>{{ item.title }}</p>
-          <strong>{{ item.value }}</strong>
-          <span [class.summary-card__description--positive]="item.trend === 'positive'">
-            {{ item.description }}
-          </span>
-        </div>
-      </article>
-    }
   </section>
 
-  <div class="dashboard-grid">
-    <section class="panel revenue-panel">
-      <div class="section-heading">
-        <div>
-          <h2>Ganhos nos últimos meses</h2>
-          <p>Acompanhe a evolução do seu faturamento</p>
-        </div>
-        <span class="section-heading__period">Últimos 6 meses</span>
+  <section class="provider-home__section" aria-labelledby="agenda-title">
+    <header class="provider-home__heading">
+      <div>
+        <p class="provider-home__eyebrow">Sua agenda</p>
+        <h2 id="agenda-title" class="provider-home__title">Hoje e próximos dias</h2>
       </div>
-      <app-provider-revenue-chart [data]="revenue" />
-    </section>
+    </header>
 
-    <section class="panel requests-panel">
-      <div class="section-heading section-heading--requests">
-        <div>
-          <h2>Solicitações aguardando aprovação</h2>
-          <p>
-            {{ pendingCount() }}
-            {{ pendingCount() === 1 ? 'solicitação pendente' : 'solicitações pendentes' }}
-          </p>
-        </div>
-        @if (pendingCount()) {
-          <span class="pending-badge">{{ pendingCount() }}</span>
-        }
-      </div>
+    @if (actionError(); as message) {
+      <tg-alert tone="danger" title="Não foi possível atualizar o atendimento">{{ message }}</tg-alert>
+    }
 
-      @if (requestError()) {
-        <p class="request-error" role="alert">{{ requestError() }}</p>
-      }
-
-      <div class="request-list">
-        @for (request of requests(); track request.id) {
-          <article
-            class="request-card"
-            [class.request-card--resolved]="request.status !== 'pending'"
-          >
-            <div class="request-card__top">
-              <div class="client-avatar">{{ request.clientName.charAt(0) }}</div>
-              <div class="request-card__client">
-                <strong>{{ request.clientName }}</strong>
-                <span>{{ request.service }}</span>
-              </div>
-              <strong class="request-card__amount">
-                {{ request.amount | currency: 'BRL' : 'symbol' : '1.0-0' }}
-              </strong>
+    @if (ordersError()) {
+      <tg-alert tone="danger" title="Não foi possível carregar sua agenda">
+        Verifique sua conexão e tente de novo.
+        <button
+          tgButton
+          tgAlertAction
+          type="button"
+          appearance="outline"
+          size="sm"
+          (click)="loadOrders()"
+        >
+          Tentar de novo
+        </button>
+      </tg-alert>
+    } @else {
+      <tg-loading label="Carregando sua agenda" [loading]="ordersLoading()">
+        <ng-template tgLoadingSkeleton>
+          <div class="provider-home__agenda-grid">
+            <div class="provider-home__skeleton-card">
+              <tg-skeleton width="30%" />
+              <tg-skeleton width="40%" height="32" />
+              <tg-skeleton width="70%" />
+              <tg-skeleton [lines]="2" />
             </div>
-
-            <div class="request-card__details">
-              <span><fa-icon [icon]="icons.calendar" />{{ request.date }}</span>
-              <span><fa-icon [icon]="icons.clock" />{{ request.time }}</span>
-              <span class="request-card__address">
-                <fa-icon [icon]="icons.location" />{{ request.address }}
-              </span>
+            <div class="provider-home__skeleton-list">
+              @for (i of [1, 2, 3]; track i) {
+                <div class="provider-home__skeleton-row">
+                  <tg-skeleton width="45%" />
+                  <tg-skeleton width="70%" />
+                </div>
+              }
             </div>
+          </div>
+        </ng-template>
 
-            <a
-              class="request-card__details-link"
-              [routerLink]="
-                request.status === 'pending'
-                  ? ['/provider', request.id, 'aprovacao']
-                  : ['/orders', request.id]
-              "
-              >Ver detalhes do pedido →</a
-            >
-
-            @if (request.status === 'pending') {
-              <div class="request-card__actions">
-                <app-button
-                  color="light"
-                  type="button"
-                  [disabled]="updatingRequestIds().has(request.id)"
-                  (click)="declineRequest(request.id)"
-                >
-                  Recusar
-                </app-button>
-                <app-button
-                  type="button"
-                  [disabled]="updatingRequestIds().has(request.id)"
-                  (click)="updateRequestStatus(request.id, 'accepted')"
-                >
-                  {{ updatingRequestIds().has(request.id) ? 'Respondendo…' : 'Aceitar' }}
-                </app-button>
-              </div>
-            } @else {
-              <div
-                class="request-card__status"
-                [class.request-card__status--declined]="request.status === 'declined'"
-              >
-                @if (request.status === 'accepted') {
-                  <fa-icon [icon]="icons.check" />
-                }
-                {{ request.status === 'accepted' ? 'Solicitação aceita' : 'Solicitação recusada' }}
+        @if (agenda().highlight || agenda().requests.length || agenda().upcoming.length) {
+          <div class="provider-home__agenda-grid">
+            @if (agenda().highlight; as highlight) {
+              <div class="provider-home__group">
+                <h3 class="provider-home__subtitle">Próximo atendimento</h3>
+                <tg-appointment-card
+                  perspective="provider"
+                  [order]="highlight"
+                  [headingLevel]="4"
+                  [busy]="updating().has(highlight.id)"
+                  (statusAction)="advance(highlight.id, $event)"
+                />
               </div>
             }
-          </article>
-        } @empty {
-          @if (loaded() && !loading() && !dashboardError()) {
-            <p class="empty-state">Nenhuma solicitação aguardando aprovação.</p>
-          }
-        }
-      </div>
-    </section>
-  </div>
-
-  <section class="panel active-orders-panel" aria-labelledby="active-orders-title">
-    <div class="section-heading">
-      <div>
-        <h2 id="active-orders-title">Pedidos agendados e em andamento</h2>
-        <p>Acompanhe os próximos passos e finalize serviços rapidamente.</p>
-      </div>
-    </div>
-    @if (activeOrderError()) {
-      <p class="request-error" role="alert">{{ activeOrderError() }}</p>
-    }
-    @if (activeOrders().length) {
-      <div class="request-list">
-        @for (order of activeOrders(); track order.id) {
-          <article class="request-card active-order-card">
-            <div>
-              <span class="pending-badge">{{ statusLabel(order.status) }}</span
-              ><small>Pedido #{{ order.id }}</small>
-            </div>
-            <h3>{{ order.service }}</h3>
-            <p>
-              {{ order.clientName }} · {{ order.date }}
-              @if (order.time) {
-                às {{ order.time }}
-              }
-            </p>
-            <strong>{{ order.amount | currency: 'BRL' : 'symbol' : '1.0-0' }}</strong>
-            <footer class="request-card__actions">
-              <a class="button button--secondary" [routerLink]="['/orders', order.id]"
-                >Ver detalhes</a
-              >
-              @if (order.status === 'AGENDADO') {
-                <app-button
-                  type="button"
-                  [disabled]="updatingActiveOrderIds().has(order.id)"
-                  (click)="updateActiveOrderStatus(order.id, 'EM_DESLOCAMENTO')"
-                >
-                  {{ updatingActiveOrderIds().has(order.id) ? 'Atualizando…' : 'Estou a caminho' }}
-                </app-button>
-              } @else if (order.status === 'EM_DESLOCAMENTO') {
-                <app-button
-                  type="button"
-                  [disabled]="updatingActiveOrderIds().has(order.id)"
-                  (click)="updateActiveOrderStatus(order.id, 'EM_ANDAMENTO')"
-                >
-                  {{ updatingActiveOrderIds().has(order.id) ? 'Iniciando…' : 'Iniciar serviço' }}
-                </app-button>
-              } @else if (order.status === 'EM_ANDAMENTO') {
-                <a class="button button--primary" [routerLink]="['/orders', order.id, 'finish']"
-                  >Finalizar serviço</a
-                >
-              }
-            </footer>
-          </article>
-        }
-      </div>
-    } @else if (loaded() && !loading() && !dashboardError()) {
-      <p class="empty-state">Você ainda não possui pedidos agendados ou em andamento.</p>
-    }
-  </section>
-
-  <div class="details-grid">
-    <section class="panel services-panel">
-      <div class="section-heading">
-        <div>
-          <h2>Últimos serviços realizados</h2>
-          <p>Seu histórico mais recente</p>
-        </div>
-      </div>
-
-      <div class="service-list">
-        @for (service of services; track service.id) {
-          <article class="service-row">
-            <div class="client-avatar client-avatar--soft">{{ service.clientName.charAt(0) }}</div>
-            <div class="service-row__identity">
-              <strong>{{ service.clientName }}</strong>
-              <span>{{ service.service }}</span>
-            </div>
-            <span class="service-row__date">{{ service.date }}</span>
-            <strong class="service-row__amount">
-              {{ service.amount | currency: 'BRL' : 'symbol' : '1.0-0' }}
-            </strong>
-            <span class="service-row__rating" [attr.aria-label]="ratingLabel(service.rating)">
-              <fa-icon [icon]="icons.star" /> {{ service.rating }}.0
-            </span>
-          </article>
-        } @empty {
-          @if (loaded() && !loading() && !dashboardError()) {
-            <p class="empty-state">Seus serviços concluídos aparecerão aqui.</p>
-          }
-        }
-      </div>
-    </section>
-  </div>
-
-  <section class="insights-section">
-    <div class="section-heading">
-      <div>
-        <h2>Insights do seu negócio</h2>
-        <p>Dados que ajudam você a crescer</p>
-      </div>
-    </div>
-    <div class="insights-grid">
-      @for (insight of insights; track insight.id) {
-        <article class="insight-card">
-          <div class="insight-card__icon"><fa-icon [icon]="insight.icon" /></div>
-          <div>
-            <span>{{ insight.label }}</span>
-            <strong [class.insight-card__value--positive]="insight.id === 'growth'">
-              {{ insight.value }}
-            </strong>
+            @if (agenda().requests.length || agenda().upcoming.length) {
+              <div class="provider-home__lists">
+                @if (agenda().requests.length) {
+                  <div class="provider-home__group">
+                    <h3 class="provider-home__subtitle">
+                      Solicitações aguardando você ({{ agenda().requestCount }})
+                    </h3>
+                    <ul tgOrderList>
+                      @for (order of agenda().requests; track order.id) {
+                        <li><tg-order-row perspective="provider" [order]="order" /></li>
+                      }
+                    </ul>
+                  </div>
+                }
+                @if (agenda().upcoming.length) {
+                  <div class="provider-home__group">
+                    <h3 class="provider-home__subtitle">
+                      {{ agenda().highlight ? 'Também na agenda' : 'Na agenda' }}
+                    </h3>
+                    <ul tgOrderList>
+                      @for (order of agenda().upcoming; track order.id) {
+                        <li>
+                          <tg-order-row
+                            perspective="provider"
+                            [order]="order"
+                            [busy]="updating().has(order.id)"
+                            (statusAction)="advance(order.id, $event)"
+                          />
+                        </li>
+                      }
+                    </ul>
+                  </div>
+                }
+              </div>
+            }
           </div>
-        </article>
-      }
-    </div>
+        } @else {
+          <tg-empty-state compact icon="calendar-blank" title="Sua agenda está livre" [level]="3">
+            Quando um cliente pedir um serviço, a solicitação aparece aqui.
+            <a tgButton tgEmptyAction appearance="outline" size="sm" [routerLink]="servicesLink">
+              Ver meus serviços
+            </a>
+          </tg-empty-state>
+        }
+      </tg-loading>
+    }
   </section>
+
+  <section class="provider-home__section" aria-labelledby="earnings-title">
+    <header class="provider-home__heading">
+      <div>
+        <p class="provider-home__eyebrow">Desempenho</p>
+        <h2 id="earnings-title" class="provider-home__title">Seus ganhos</h2>
+      </div>
+    </header>
+
+    @if (homeError()) {
+      <tg-alert tone="danger" title="Não foi possível carregar seus ganhos">
+        Verifique sua conexão e tente de novo.
+        <button
+          tgButton
+          tgAlertAction
+          type="button"
+          appearance="outline"
+          size="sm"
+          (click)="loadEarnings()"
+        >
+          Tentar de novo
+        </button>
+      </tg-alert>
+    } @else {
+      <tg-loading label="Carregando seus ganhos" [loading]="homeLoading()">
+        <ng-template tgLoadingSkeleton>
+          <div class="provider-home__kpis">
+            @for (i of [1, 2, 3, 4]; track i) {
+              <div class="provider-home__skeleton-card">
+                <tg-skeleton width="50%" />
+                <tg-skeleton width="60%" height="32" />
+                <tg-skeleton width="80%" />
+              </div>
+            }
+          </div>
+        </ng-template>
+
+        @if (earnings(); as data) {
+          <div class="provider-home__earnings">
+            <p class="provider-home__note">
+              Os valores são a sua parte em serviços pagos; não confirmam o repasse no banco.
+            </p>
+            <ul class="provider-home__kpis">
+              @for (kpi of data.kpis; track kpi.id) {
+                <li>
+                  <tg-card class="provider-home__kpi">
+                    <span class="provider-home__kpi-label">
+                      <tg-icon [name]="kpi.icon" [size]="20" />
+                      {{ kpi.label }}
+                    </span>
+                    <span class="provider-home__kpi-value">{{ kpi.value }}</span>
+                    <span class="provider-home__kpi-desc" [class.provider-home__positive]="kpi.positive">
+                      {{ kpi.description }}
+                    </span>
+                  </tg-card>
+                </li>
+              }
+            </ul>
+            <tg-card class="provider-home__chart">
+              <h3 class="provider-home__card-title">Ganhos nos últimos 6 meses</h3>
+              <app-provider-revenue-chart [data]="data.revenue" />
+            </tg-card>
+          </div>
+        }
+      </tg-loading>
+    }
+  </section>
+
+  @if (earnings(); as data) {
+    <div class="provider-home__columns">
+      <section class="provider-home__section" aria-labelledby="recent-title">
+        <header class="provider-home__heading">
+          <div>
+            <p class="provider-home__eyebrow">Recentes</p>
+            <h2 id="recent-title" class="provider-home__title">Últimos serviços</h2>
+          </div>
+        </header>
+        @if (data.recent.length) {
+          <ul tgOrderList>
+            @for (service of data.recent; track service.id) {
+              <li class="provider-home__recent">
+                <div class="provider-home__recent-head">
+                  <a class="provider-home__recent-link" [routerLink]="['/orders', service.id]">{{
+                    service.service
+                  }}</a>
+                  <tg-badge tone="done">Concluído</tg-badge>
+                </div>
+                <p class="provider-home__recent-meta">
+                  @if (service.person) {
+                    <span>{{ service.person }}</span>
+                  }
+                  @if (service.date) {
+                    <span>{{ service.date }}</span>
+                  }
+                  @if (service.rating !== null) {
+                    <span>
+                      <tg-icon name="star" weight="fill" [size]="16" [label]="'Nota ' + service.rating" />
+                      <span aria-hidden="true">{{ service.rating }}</span>
+                    </span>
+                  } @else {
+                    <span>sem avaliação</span>
+                  }
+                </p>
+                @if (service.received) {
+                  <p class="provider-home__recent-amount">{{ service.received }}</p>
+                }
+              </li>
+            }
+          </ul>
+        } @else {
+          <tg-empty-state compact icon="check" title="Nenhum serviço concluído ainda" [level]="3">
+            Seus serviços concluídos aparecem aqui.
+          </tg-empty-state>
+        }
+      </section>
+
+      <section class="provider-home__section" aria-labelledby="insights-title">
+        <header class="provider-home__heading">
+          <div>
+            <p class="provider-home__eyebrow">Insights</p>
+            <h2 id="insights-title" class="provider-home__title">Seu negócio</h2>
+          </div>
+        </header>
+        <dl class="provider-home__insights">
+          @for (insight of data.insights; track insight.label) {
+            <div class="provider-home__insight">
+              <dt>{{ insight.label }}</dt>
+              <dd [class.provider-home__positive]="insight.positive">{{ insight.value }}</dd>
+            </div>
+          }
+        </dl>
+      </section>
+    </div>
+  }
 </main>

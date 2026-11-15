@@ -30,6 +30,13 @@ describe('ProviderRevenueChartComponent', () => {
     expect(component.barHeight(0)).toBe(0);
   });
 
+  it('mostra os valores no formato brasileiro', () => {
+    fixture.componentRef.setInput('data', [{ month: 'Nov', revenue: 3240 }]);
+    fixture.detectChanges();
+    const value = fixture.nativeElement.querySelector('.revenue-chart__value').textContent.trim();
+    expect(value.replace(/\u00a0/g, ' ')).toBe('R$ 3.240');
+  });
+
   it('should create', () => {
     expect(component).toBeTruthy();
   });

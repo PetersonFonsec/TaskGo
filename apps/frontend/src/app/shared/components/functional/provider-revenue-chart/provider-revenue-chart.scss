@@ -1,18 +1,18 @@
+// Gráfico de ganhos do início do prestador. Só tokens --tg-* (Etapa 9).
 :host {
   display: block;
   width: 100%;
 }
 
 .revenue-chart {
-  overflow-x: auto;
   padding-top: 24px;
 
   &__plot {
     align-items: end;
     display: grid;
     gap: clamp(10px, 2.2vw, 24px);
-    grid-template-columns: repeat(6, minmax(48px, 1fr));
-    min-width: 430px;
+    // Cabe em qualquer largura: sem rolagem lateral, o mês atual sempre à vista.
+    grid-template-columns: repeat(6, minmax(0, 1fr));
   }
 
   &__column {
@@ -20,20 +20,26 @@
     display: flex;
     flex-direction: column;
     gap: 10px;
+    min-width: 0;
   }
 
   &__value {
-    color: #64748b;
-    font-size: 11px;
-    font-weight: 600;
+    color: var(--tg-text-secondary);
+    font-size: var(--tg-type-overline-size);
+    font-weight: var(--tg-font-weight-bold);
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: center;
+    column-gap: 0.25em;
+    text-align: center;
     white-space: nowrap;
   }
 
   &__track {
     align-items: end;
-    background: linear-gradient(to top, #f1f5f9 1px, transparent 1px);
+    background: linear-gradient(to top, var(--tg-border-default) 1px, transparent 1px);
     background-size: 100% 25%;
-    border-bottom: 1px solid #e2e8f0;
+    border-bottom: 1px solid var(--tg-border-strong);
     display: flex;
     height: 190px;
     justify-content: center;
@@ -41,23 +47,25 @@
   }
 
   &__bar {
-    background: #bfdbfe;
-    border-radius: 9px 9px 3px 3px;
+    background: var(--tg-action-subtle);
+    border-radius: var(--tg-radius-sm) var(--tg-radius-sm) 0 0;
     max-width: 48px;
     min-height: 4px;
-    transition: height 400ms ease, background-color 200ms ease;
+    transition:
+      height var(--tg-duration-slow) var(--tg-ease-standard),
+      background-color var(--tg-duration-fast) var(--tg-ease-standard);
     width: min(68%, 48px);
 
     &:hover,
     &--current {
-      background: var(--proxi-primary);
+      background: var(--tg-action-primary);
     }
   }
 
   &__month {
-    color: #64748b;
-    font-size: 13px;
-    font-weight: 600;
+    color: var(--tg-text-secondary);
+    font-size: var(--tg-type-body-sm-size);
+    font-weight: var(--tg-font-weight-bold);
   }
 }
 

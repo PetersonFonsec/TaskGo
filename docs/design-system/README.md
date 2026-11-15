@@ -6,8 +6,9 @@ Storybook do web, em **Fundamentos**.
 
 ## Estado atual
 
-Os tokens existem e são carregados pelos dois apps. A primeira tela migrada
-é o início do cliente no web (Etapa 9, tela piloto). Nas demais, os tokens
+Os tokens existem e são carregados pelos dois apps. As primeiras telas
+migradas são os inícios do cliente e do prestador no web (Etapa 9, telas
+piloto). Nas demais, os tokens
 antigos (`--color-*`, `--proxi-*`, `--space-*`, `--font-size-*` e o azul do
 Ionic) continuam valendo até a migração tela a tela.
 
@@ -31,8 +32,8 @@ Ionic) continuam valendo até a migração tela a tela.
 | 7 | Componentes base: skeleton (web) | Concluído (PR #20) |
 | 7 | Componentes base: estado vazio (web) | Concluído (PR #21) |
 | 8 | Domínio: card de prestador, linha de pedido, card de agendamento (web) | Concluído (PRs #22, #23 e #24) |
-| 9 | Piloto: início do cliente (web) | Este PR |
-| 9 | Piloto: início do prestador (web) | A fazer |
+| 9 | Piloto: início do cliente (web) | Concluído (PR #25) |
+| 9 | Piloto: início do prestador (web) | Este PR |
 | 10 | Migração tela a tela (web e app) | A fazer |
 
 Atributos de marca: próximo, confiável, direto e caloroso sem ser infantil.
@@ -1081,7 +1082,7 @@ próximo passo.
 
 | Status | Próximo passo do cliente | Próximo passo do prestador |
 | --- | --- | --- |
-| `AGUARDANDO_APROVACAO` | — | Responder (`/orders/:id`) |
+| `AGUARDANDO_APROVACAO` | — | Responder (`/provider/:id/aprovacao`, a tela de aceite) |
 | `AGUARDANDO_PAGAMENTO` | Pagar, com o pagamento em `CREATED` ou sem valor; Ver QR Code, com `PENDENTE` (os dois em `/orders/:id/payment`); nenhum nos demais | — |
 | `AGENDADO` | — | Estou a caminho (pede `EM_DESLOCAMENTO`) |
 | `EM_DESLOCAMENTO` | — | Iniciar serviço (pede `EM_ANDAMENTO`) |
@@ -1282,6 +1283,37 @@ com "Tentar de novo".
 
 "Agendar serviço" e "Buscar serviço" levam à busca; não há "Ver todos"
 porque a página de histórico ainda não existe.
+
+### Início do prestador (web)
+
+`modules/providers/home`, no tema escuro do prestador. Story:
+**Telas/Início do prestador** (com agenda, vazio, erro e carregando).
+
+Ordem (decisão 1): saudação, agenda, ganhos, e últimos serviços ao lado
+dos insights. Duas fontes, carregadas em separado (a falha de uma não
+esconde a outra): a agenda vem da lista de pedidos do prestador,
+`GET /order/provider/:id` (decisão 3); ganhos, últimos serviços e insights
+vêm do painel `/auth/provider-home`, como antes.
+
+| Parte | Componente | Regra |
+| --- | --- | --- |
+| Saudação | `h1` com o primeiro nome, "Hoje você tem X atendimentos e Y solicitações.", `a[tgButton]` outline "Recebimentos" e "Meus serviços" | X: atendimentos em curso marcados para hoje; Y: solicitações aguardando. A frase só aparece com a agenda carregada. "Atualizar painel" saiu: a tela carrega ao abrir e a agenda recarrega depois de cada troca de status. |
+| Próximo atendimento | `tg-appointment-card` (título h4) | Só um atendimento aceito e em curso: o que pede ação do prestador (Estou a caminho, Iniciar serviço, Finalizar serviço); senão, o de data mais próxima. |
+| Solicitações aguardando você (n) | `ul[tgOrderList]` com `tg-order-row` | Data mais próxima primeiro, com "Responder", que abre a tela de aceite (`/provider/:id/aprovacao`, decisão 2): lá ficam os detalhes, Aceitar e Recusar com motivo. O título conta todas. |
+| Também na agenda | `ul[tgOrderList]` com `tg-order-row` | Em análise (`DISPUTA`) e status desconhecido primeiro (nunca no destaque); depois os demais em curso, por data. Sem destaque, o título é "Na agenda". |
+| Listas | | Até 10 linhas cada, o limite do painel antigo: o prestador não tem outra lista de pedidos no web, então não dá para cortar em 3 como no cliente. |
+| Troca de status | `statusAction` do card e da linha | Um pedido por vez; o botão fica em carregando até a agenda recarregar (em silêncio, sem skeleton), para não repetir a troca no status antigo. Erro: `tg-alert` de perigo com a mensagem da API. |
+| Ganhos | 4 `tg-card` (Ganhos hoje, Ganhos do mês, Serviços concluídos, Avaliação) + a nota sobre o repasse | Os mesmos números do painel. Crescimento positivo na cor de sucesso. Sem avaliações: "Sem notas", nunca 0,0. "Ganhos do mês" usa o ícone `receipt`: não há ícone de tendência no conjunto aprovado. |
+| Gráfico | `app-provider-revenue-chart` em um `tg-card` | Só tokens; valores em "R$ 1.540"; cabe em qualquer largura, sem rolagem lateral. |
+| Últimos serviços | `ul[tgOrderList]` com linha própria | O desenho da `tg-order-row` com "Você recebeu R$ X" (a parte do prestador, que a linha do DS não mostra: ela mostra o valor bruto) e a nota ("Nota 5" para leitor de tela) ou "sem avaliação". |
+| Insights | `dl` com 4 blocos | "Sem dados" quando o painel não tem. |
+| Carregando | `tg-loading` com skeleton do card, da lista e dos indicadores | |
+| Erro | `tg-alert` de perigo com "Tentar de novo", um por fonte | Nunca vira "agenda livre" nem ganhos zerados. |
+| Vazio | `tg-empty-state` compacto + "Ver meus serviços" | |
+
+A seleção fica em `provider-home.agenda.ts` (`providerHomeAgenda`) e a
+formatação do painel em `provider-home.earnings.ts`
+(`providerHomeEarnings`), funções puras com testes próprios.
 
 ## Testes
 
