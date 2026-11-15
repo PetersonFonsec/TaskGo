@@ -106,6 +106,39 @@ describe('TgAlertComponent', () => {
     expect(document.activeElement).toBe($('#depois'));
   });
 
+  for (const unavailable of ['display', 'visibility', 'disabled', 'inert', 'hidden', 'fieldset']) {
+    it(`ignora próximo controle indisponível: ${unavailable}`, () => {
+      const next = $('#depois');
+      const wrapper = document.createElement(unavailable === 'fieldset' ? 'fieldset' : 'div');
+      next.before(wrapper);
+      wrapper.append(next);
+      switch (unavailable) {
+        case 'display': wrapper.style.display = 'none'; break;
+        case 'visibility': wrapper.style.visibility = 'hidden'; break;
+        case 'disabled': (next as HTMLButtonElement).disabled = true; break;
+        case 'inert': wrapper.inert = true; break;
+        case 'hidden': wrapper.hidden = true; break;
+        case 'fieldset': (wrapper as HTMLFieldSetElement).disabled = true; break;
+      }
+      $('#info .tg-alert__close').focus();
+      $('#info .tg-alert__close').click();
+      fixture.detectChanges();
+      expect(document.activeElement).toBe($('#tentar'));
+      expect(fixture.componentInstance.closed).toBe(1);
+    });
+  }
+
+  it('sem próximo controle volta ao anterior e closed é emitido uma única vez', () => {
+    $('#depois').remove();
+    $('#info .tg-alert__close').focus();
+    const cmp = fixture.debugElement.query((d) => d.nativeElement.id === 'info').componentInstance as TgAlertComponent;
+    cmp.dismiss();
+    cmp.dismiss();
+    fixture.detectChanges();
+    expect(document.activeElement).toBe($('#tentar'));
+    expect(fixture.componentInstance.closed).toBe(1);
+  });
+
   it('fechar sem foco nele não mexe no foco', () => {
     $<HTMLButtonElement>('#tentar').focus();
     const cmp = fixture.debugElement.query((d) => d.nativeElement.id === 'info').componentInstance as TgAlertComponent;

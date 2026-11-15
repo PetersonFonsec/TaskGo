@@ -6,11 +6,13 @@ import {
   ElementRef,
   PLATFORM_ID,
   ViewEncapsulation,
+  afterRenderEffect,
   effect,
   inject,
   viewChild,
 } from '@angular/core';
 import { TgIconComponent } from '../icon/tg-icon.component';
+import { availableFeedbackFocus, FEEDBACK_FOCUSABLE } from './feedback-focus';
 import { TgToast, TgToastItem } from './tg-toast.service';
 
 /**
@@ -73,6 +75,7 @@ export class TgToastRegionComponent {
   };
 
   #timer: ReturnType<typeof setTimeout> | null = null;
+  #itemId: number | undefined;
   #endsAt = 0;
   #remaining = 0;
   #hovered = false;
@@ -85,15 +88,24 @@ export class TgToastRegionComponent {
     effect(() => {
       const item = this.toast.current();
       this.#clear();
-      // Sem toast, o elemento sai sem mouseleave/focusout. Com um novo toast
-      // no lugar do anterior, o elemento é o mesmo: mouse e foco continuam.
+      this.#itemId = item?.id;
+      this.#remaining = item?.duration ?? 0;
       if (!item) {
         this.#hovered = this.#focused = false;
-        return;
+        this.#returnTo = null;
       }
-      if (!this.#browser) return;
-      this.#remaining = item.duration;
-      this.#start();
+    });
+    // Depois do patch do DOM: @if pode remover a ação, mas reutilizar a caixa
+    // e o botão de fechar, sem emitir focusout/mouseleave.
+    afterRenderEffect(() => {
+      const item = this.toast.current();
+      const box = this.box()?.nativeElement;
+      if (!this.#browser || !item || !box) return;
+      this.#focused = box.contains(this.#document.activeElement);
+      this.#hovered = box.matches(':hover');
+      if (!this.#focused) this.#returnTo = null;
+      if (this.#focused || this.#hovered) this.#stop();
+      else this.#start();
     });
   }
 
@@ -109,7 +121,7 @@ export class TgToastRegionComponent {
 
   protected onFocusIn(event: FocusEvent) {
     const from = event.relatedTarget as HTMLElement | null;
-    if (!this.#focused && from && !this.box()?.nativeElement.contains(from)) this.#returnTo = from;
+    if (!from || !this.box()?.nativeElement.contains(from)) this.#returnTo = from;
     this.#focused = true;
     this.#stop();
   }
@@ -124,7 +136,7 @@ export class TgToastRegionComponent {
 
   protected act(item: TgToastItem) {
     item.onAction?.();
-    this.close();
+    if (this.toast.current()?.id === item.id) this.close();
   }
 
   /** Fecha o toast; se o foco estava nele, volta para onde estava antes. */
@@ -134,17 +146,47 @@ export class TgToastRegionComponent {
     const back = this.#returnTo;
     this.#returnTo = null;
     this.toast.dismiss();
-    if (hadFocus && back?.isConnected) back.focus();
+    if (!hadFocus || !box) return;
+    // Respeita o modal ativo; um controle conectado fora dele pode estar inerte
+    // por causa do top layer do navegador, mesmo sem atributo inert.
+    const modals = Array.from(this.#document.querySelectorAll<HTMLElement>(
+      'dialog:modal, [role="dialog"][aria-modal="true"], [role="alertdialog"][aria-modal="true"]',
+    )).filter(availableFeedbackFocus);
+    const scope = modals.at(-1) ?? this.#document.body;
+    const usable = (el: HTMLElement) => scope.contains(el) && !box.contains(el) &&
+      availableFeedbackFocus(el);
+    if (back && back.matches(FEEDBACK_FOCUSABLE) && usable(back)) {
+      back.focus();
+      if (this.#document.activeElement === back) return;
+    }
+    const controls = Array.from(scope.querySelectorAll<HTMLElement>(FEEDBACK_FOCUSABLE))
+      .filter((el) => el.tabIndex >= 0 && usable(el));
+    const following = controls.filter((el) => box.compareDocumentPosition(el) & Node.DOCUMENT_POSITION_FOLLOWING);
+    const preceding = controls.filter((el) => box.compareDocumentPosition(el) & Node.DOCUMENT_POSITION_PRECEDING).reverse();
+    for (const target of [...following, ...preceding]) {
+      target.focus();
+      if (this.#document.activeElement === target) return;
+    }
+    // Página/modal sem controles: foco programático no marco, sem novo tab stop.
+    const target = modals.at(-1) ?? Array.from(scope.querySelectorAll<HTMLElement>('main, [role="main"]'))
+      .find(availableFeedbackFocus) ?? scope;
+    if (!availableFeedbackFocus(target)) return;
+    // Remover tabindex logo após focus() pode devolver o foco ao body no Chrome.
+    // -1 mantém o marco focável programaticamente, sem entrar na ordem de Tab.
+    if (!target.hasAttribute('tabindex')) target.setAttribute('tabindex', '-1');
+    target.focus();
   }
 
   #start() {
-    if (!this.#browser || this.#timer || this.#hovered || this.#focused || !this.toast.current()) return;
+    if (!this.#browser || this.#timer || this.#hovered || this.#focused || this.toast.current()?.id !== this.#itemId || this.#itemId === undefined) return;
     this.#endsAt = Date.now() + this.#remaining;
-    const id = this.toast.current()?.id;
-    this.#timer = setTimeout(() => {
+    const id = this.#itemId;
+    const timer = setTimeout(() => {
+      if (this.#timer !== timer || this.toast.current()?.id !== id) return;
       this.#timer = null;
       this.toast.dismiss(id);
     }, this.#remaining);
+    this.#timer = timer;
   }
 
   #stop() {

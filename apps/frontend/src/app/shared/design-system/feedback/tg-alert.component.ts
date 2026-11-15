@@ -11,6 +11,7 @@ import {
 } from '@angular/core';
 import type { TgIconName } from '@taskgo/icons';
 import { TgIconComponent } from '../icon/tg-icon.component';
+import { availableFeedbackFocus, FEEDBACK_FOCUSABLE } from './feedback-focus';
 
 export type TgFeedbackTone = 'info' | 'success' | 'warning' | 'danger';
 
@@ -20,8 +21,6 @@ const ICONS: Record<TgFeedbackTone, [TgIconName, 'regular' | 'fill']> = {
   warning: ['warning-circle', 'fill'],
   danger: ['warning-circle', 'fill'],
 };
-
-const FOCUSABLE = 'a[href], button:not([disabled]), input:not([disabled]), select:not([disabled]), textarea:not([disabled]), [tabindex]:not([tabindex="-1"])';
 
 /**
  * Alerta do Design System TaskGo (Etapa 7): explica um problema ou um estado
@@ -80,6 +79,7 @@ export class TgAlertComponent {
 
   /** Esconde o alerta. Se o foco estava nele, vai para o próximo controle da página. */
   dismiss() {
+    if (this.dismissed()) return;
     const doc = this.#host.ownerDocument;
     const hadFocus = this.#host.contains(doc.activeElement);
     const next = hadFocus ? this.#neighbour() : null;
@@ -89,8 +89,8 @@ export class TgAlertComponent {
   }
 
   #neighbour(): HTMLElement | null {
-    const all = Array.from(this.#host.ownerDocument.querySelectorAll<HTMLElement>(FOCUSABLE)).filter(
-      (el) => !this.#host.contains(el) && !el.closest('[inert],[hidden]'),
+    const all = Array.from(this.#host.ownerDocument.querySelectorAll<HTMLElement>(FEEDBACK_FOCUSABLE)).filter(
+      (el) => !this.#host.contains(el) && el.tabIndex >= 0 && availableFeedbackFocus(el),
     );
     const after = all.find((el) => this.#host.compareDocumentPosition(el) & Node.DOCUMENT_POSITION_FOLLOWING);
     return after ?? all.filter((el) => this.#host.compareDocumentPosition(el) & Node.DOCUMENT_POSITION_PRECEDING).pop() ?? null;

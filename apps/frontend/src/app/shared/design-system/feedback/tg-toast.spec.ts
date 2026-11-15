@@ -32,8 +32,10 @@ describe('TgToast e tg-toast-region', () => {
   });
   afterEach(() => {
     toast.dismiss();
-    fixture.detectChanges();
-    fixture.destroy();
+    if (!fixture.componentRef.hostView.destroyed) {
+      fixture.detectChanges();
+      fixture.destroy();
+    }
     fixture.nativeElement.remove();
     jasmine.clock().uninstall();
   });
@@ -166,6 +168,237 @@ describe('TgToast e tg-toast-region', () => {
     fixture.detectChanges();
     tick(6000);
     expect(box()).toBeNull();
+  });
+
+  it('substituir uma ação focada e removida retoma a duração integral', () => {
+    toast.show('Primeiro', { action: 'Desfazer' });
+    fixture.detectChanges();
+    $('.tg-toast__action')!.focus();
+    toast.show('Segundo');
+    fixture.detectChanges();
+    tick(5999);
+    expect(box()).not.toBeNull();
+    tick(1);
+    expect(box()).toBeNull();
+  });
+
+  it('reconcilia foco obsoleto quando focusout não chega à região', () => {
+    toast.show('Primeiro', { action: 'Desfazer' });
+    fixture.detectChanges();
+    $('.tg-toast__action')!.focus();
+    box()!.addEventListener('focusout', (event) => event.stopImmediatePropagation(), true);
+    $('#salvar')!.focus();
+    toast.show('Segundo');
+    fixture.detectChanges();
+    tick(6000);
+    expect(box()).toBeNull();
+  });
+
+  for (const unavailable of ['removed', 'disabled', 'hidden', 'inert', 'display', 'visibility', 'fieldset', 'closed-dialog', 'aria-hidden']) {
+    it(`fechar ignora origem indisponível: ${unavailable}`, () => {
+      const origin = document.createElement('button');
+      const parent = document.createElement(unavailable === 'closed-dialog' ? 'dialog' : unavailable === 'fieldset' ? 'fieldset' : 'div');
+      if (unavailable === 'closed-dialog') parent.setAttribute('open', '');
+      parent.append(origin);
+      fixture.nativeElement.prepend(parent);
+      origin.focus();
+      toast.show('Mensagem');
+      fixture.detectChanges();
+      const close = $('.tg-toast__close')!;
+      close.focus();
+      switch (unavailable) {
+        case 'closed-dialog': parent.removeAttribute('open'); break;
+        case 'aria-hidden': parent.setAttribute('aria-hidden', 'true'); break;
+        case 'removed': origin.remove(); break;
+        case 'disabled': origin.disabled = true; break;
+        case 'hidden': parent.hidden = true; break;
+        case 'inert': parent.inert = true; break;
+        case 'display': parent.style.display = 'none'; break;
+        case 'visibility': parent.style.visibility = 'hidden'; break;
+        case 'fieldset': (parent as HTMLFieldSetElement).disabled = true; break;
+      }
+      const focusOrigin = spyOn(origin, 'focus').and.callThrough();
+      close.dispatchEvent(new KeyboardEvent('keydown', { key: 'Escape', bubbles: true }));
+      fixture.detectChanges();
+      expect(box()).toBeNull();
+      expect(document.activeElement).toBe($('#salvar'));
+      expect(focusOrigin).not.toHaveBeenCalled();
+    });
+  }
+
+  it('relatedTarget null usa o controle da página e botão fecha sem roubar foco externo', () => {
+    toast.show('Mensagem');
+    fixture.detectChanges();
+    $('.tg-toast__close')!.focus();
+    $('.tg-toast__close')!.click();
+    fixture.detectChanges();
+    expect(document.activeElement).toBe($('#salvar'));
+    toast.show('Outra');
+    fixture.detectChanges();
+    $('#salvar')!.focus();
+    $('.tg-toast__close')!.click();
+    fixture.detectChanges();
+    expect(document.activeElement).toBe($('#salvar'));
+  });
+
+  it('fallback permanece no diálogo modal ativo', () => {
+    const modal = document.createElement('dialog');
+    const button = document.createElement('button');
+    modal.append(button);
+    document.body.append(modal);
+    modal.showModal();
+    ($('#salvar') as HTMLButtonElement).disabled = true;
+    try {
+      toast.show('Mensagem');
+      fixture.detectChanges();
+      // O toast fica no top layer deste diálogo neste cenário de integração.
+      modal.append(fixture.nativeElement);
+      $('.tg-toast__close')!.focus();
+      box()!.dispatchEvent(new FocusEvent('focusout', { bubbles: true, relatedTarget: null }));
+      $('.tg-toast__close')!.dispatchEvent(new FocusEvent('focusin', { bubbles: true, relatedTarget: null }));
+      $('.tg-toast__close')!.click();
+      fixture.detectChanges();
+      expect(document.activeElement).toBe(button);
+    } finally {
+      document.body.append(fixture.nativeElement);
+      modal.close();
+      modal.remove();
+    }
+  });
+
+  for (const control of ['action', 'close']) {
+    it(`mantém pausa se o foco permanece no botão ${control} reutilizado`, () => {
+      $('#salvar')!.focus();
+      toast.show('Primeiro', { action: 'Desfazer' });
+      fixture.detectChanges();
+      const focused = $(`.tg-toast__${control}`)!;
+      focused.focus();
+      tick(2000);
+      toast.show('Segundo', { action: 'Continuar' });
+      fixture.detectChanges();
+      expect(document.activeElement).toBe(focused);
+      tick(30000);
+      expect(box()).not.toBeNull();
+      $('#salvar')!.focus();
+      tick(9999);
+      expect(box()).not.toBeNull();
+      tick(1);
+      expect(box()).toBeNull();
+    });
+  }
+
+  it('hover real preservado pausa a substituição, sair retoma sua duração integral', () => {
+    toast.show('Primeiro');
+    fixture.detectChanges();
+    tick(5000);
+    // Eventos sintéticos não alteram :hover do navegador.
+    const matches = spyOn(box()!, 'matches').and.returnValue(true);
+    box()!.dispatchEvent(new MouseEvent('mouseenter'));
+    toast.show('Segundo');
+    fixture.detectChanges();
+    tick(30000);
+    expect(box()).not.toBeNull();
+    matches.and.returnValue(false);
+    box()!.dispatchEvent(new MouseEvent('mouseleave'));
+    tick(2000);
+    $('.tg-toast__close')!.focus();
+    tick(30000);
+    $('#salvar')!.focus();
+    tick(3999);
+    expect(box()).not.toBeNull();
+    tick(1);
+    expect(box()).toBeNull();
+  });
+
+  it('descarta hover obsoleto quando a caixa não está mais sob o ponteiro', () => {
+    toast.show('Primeiro');
+    fixture.detectChanges();
+    box()!.dispatchEvent(new MouseEvent('mouseenter'));
+    spyOn(box()!, 'matches').and.returnValue(false);
+    toast.show('Segundo');
+    fixture.detectChanges();
+    tick(6000);
+    expect(box()).toBeNull();
+  });
+
+  it('substituições repetidas cancelam timers, referência e callback antigos não fecham o novo', () => {
+    const schedule = jasmine.createSpy('setTimeout').and.callFake(window.setTimeout);
+    window.setTimeout = Object.assign(schedule, window.setTimeout);
+    const cancel = jasmine.createSpy('clearTimeout').and.callFake(window.clearTimeout);
+    window.clearTimeout = cancel;
+    const old = toast.show('Primeiro');
+    fixture.detectChanges();
+    const timers = () => schedule.calls.all().filter((call) => call.args[1] === 6000);
+    const callback = timers()[0].args[0] as () => void;
+    const firstTimer = timers()[0].returnValue;
+    for (let i = 0; i < 5; i++) {
+      tick(1000);
+      toast.show(`Novo ${i}`);
+      fixture.detectChanges();
+    }
+    expect(timers().length).toBe(6);
+    expect(cancel).toHaveBeenCalledWith(firstTimer);
+    old.dismiss();
+    callback();
+    fixture.detectChanges();
+    expect(box()?.textContent).toContain('Novo 4');
+    tick(5999);
+    expect(box()).not.toBeNull();
+    tick(1);
+    expect(box()).toBeNull();
+  });
+
+  it('não duplica timer em eventos repetidos nem deixa timer após destruir a região', () => {
+    const schedule = jasmine.createSpy('setTimeout').and.callFake(window.setTimeout);
+    window.setTimeout = Object.assign(schedule, window.setTimeout);
+    const cancel = jasmine.createSpy('clearTimeout').and.callFake(window.clearTimeout);
+    window.clearTimeout = cancel;
+    toast.show('Mensagem');
+    fixture.detectChanges();
+    box()!.dispatchEvent(new MouseEvent('mouseleave'));
+    box()!.dispatchEvent(new MouseEvent('mouseleave'));
+    const timers = schedule.calls.all().filter((call) => call.args[1] === 6000);
+    expect(timers.length).toBe(1);
+    fixture.destroy();
+    expect(cancel).toHaveBeenCalledWith(timers[0].returnValue);
+    jasmine.clock().tick(6000);
+    expect(toast.current()?.message).toBe('Mensagem');
+  });
+
+  it('uma ação que mostra novo toast não o fecha com a referência antiga', () => {
+    toast.show('Primeiro', { action: 'Desfazer', onAction: () => toast.show('Segundo') });
+    fixture.detectChanges();
+    $('.tg-toast__action')!.click();
+    fixture.detectChanges();
+    expect(box()?.textContent).toContain('Segundo');
+    tick(6000);
+    expect(box()).toBeNull();
+  });
+
+  it('fallback sem controles usa main sem adicionar parada na navegação', () => {
+    $('#salvar')!.remove();
+    const outside = Array.from(document.body.children)
+      .filter((el): el is HTMLElement => el instanceof HTMLElement && el !== fixture.nativeElement)
+      .map((el) => ({ el, inert: el.inert }));
+    outside.forEach(({ el }) => el.inert = true);
+    try {
+      const main = document.createElement('main');
+      main.textContent = 'Conteúdo';
+      fixture.nativeElement.prepend(main);
+      toast.show('Mensagem');
+      fixture.detectChanges();
+      $('.tg-toast__close')!.focus();
+      expect(document.activeElement).toBe($('.tg-toast__close'));
+      expect(main.getClientRects().length).toBeGreaterThan(0);
+      const focusMain = spyOn(main, 'focus').and.callThrough();
+      $('.tg-toast__close')!.click();
+      expect(focusMain).toHaveBeenCalled();
+      fixture.detectChanges();
+      expect(document.activeElement).toBe(main);
+      expect(main.getAttribute('tabindex')).toBe('-1');
+    } finally {
+      outside.forEach(({ el, inert }) => el.inert = inert);
+    }
   });
 
   it('cores e posição: superfície, borda e embaixo; acima da barra de abas quando ela existe', () => {
