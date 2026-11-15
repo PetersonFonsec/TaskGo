@@ -428,10 +428,14 @@ Regras:
 - Desabilitado (input `disabled`): fundo suave e texto apagado, sem
   opacidade.
 - Um card, um destino. Com ações dentro (favoritar, remarcar), o link vai no
-  título (`tgCardLink`) e o seu `::after` cobre o card; botões, links e
-  campos do card ficam por cima e continuam funcionando. O link precisa ter
-  o `tg-card` como ancestral posicionado mais próximo (não envolva o título
-  em elemento com `position`).
+  título (`tgCardLink`) e o seu `::after` cobre o card. Botões, links e
+  campos do card ficam por cima e continuam funcionando, inclusive dentro
+  de componentes da tela com o encapsulamento padrão do Angular. Uma ação
+  que o CSS do card não alcança (componente com shadow DOM, web component,
+  elemento clicável com `role`) leva o atributo `tgCardAction` no host:
+  `<app-compartilhar tgCardAction />`. O link precisa ter o `tg-card` como
+  ancestral posicionado mais próximo (não envolva o título em elemento com
+  `position`).
 - Imagem do card é decorativa (`alt=""`) quando o título já diz o que ela
   mostra.
 
@@ -441,16 +445,26 @@ Acessibilidade:
   pode conter botões, links ou campos.
 - Com ações dentro, só o título é o link: o leitor de tela ouve um nome
   curto ("Marina Souza") em vez do card inteiro.
-- Escolha é um rádio ou checkbox nativo dentro do `label`: o nome vem do
-  conteúdo do label, e teclado (Tab, setas, Espaço) e o estado
-  "selecionado" vêm do navegador. Agrupe com `role="radiogroup"` e
+- Escolha é um rádio ou checkbox nativo dentro do `label`, em qualquer
+  nível: o nome vem do conteúdo do label, e teclado (Tab, setas, Espaço) e
+  o estado "selecionado" vêm do navegador. Agrupe com `role="radiogroup"` e
   `aria-label`, ou com `fieldset` e `legend`.
+- Foco da escolha: um anel só, no card (`focus-ring`, 2 px), nas variantes
+  `check` e `control`; o anel do input sai para não duplicar. Segue
+  `:focus-visible`, então aparece no teclado e não no clique.
 - Listas de cards ficam em `ul`/`li`.
 - Em desenvolvimento, o componente avisa no console quando um `a tgCard`
   contém elementos interativos, quando um `label tgCard` não tem input
-  radio ou checkbox e quando `tgCardLink` está fora de um `tg-card`. O
-  aviso é dado uma vez, depois da primeira renderização; ele não corrige a
-  marcação e não existe no build de produção.
+  radio ou checkbox e quando `tgCardLink` está fora de um `tg-card`.
+  - Os dois primeiros são conferidos depois da primeira renderização e a
+    cada mudança no conteúdo do card (um `@if` que insere um botão, um
+    input que muda de tipo), por um MutationObserver só no próprio card,
+    desligado quando ele é destruído. O aviso sai uma vez a cada vez que a
+    marcação entra no estado inválido.
+  - O lugar do `tgCardLink` vem da injeção de dependência e não muda, então
+    é conferido uma vez.
+  - Nada disso existe no build de produção, e o componente não corrige a
+    marcação.
 
 No app, o card é `ion-card`, estilizado pelos tokens na migração das telas
 (raio, borda, sem a margem e a sombra padrão do Ionic). Os cards atuais do

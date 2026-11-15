@@ -70,7 +70,15 @@ export const Escolha: Story = {
         <input type="radio" name="endereco" value="trabalho" />
         <span><strong style="display:block">Trabalho</strong><span style="color:var(--tg-text-secondary);font-size:14px">Av. Paulista, 1000 · Bela Vista</span></span>
       </label>
-    </div>`,
+    </div>
+    <fieldset style="border:0;margin:32px 0 0;padding:0;display:grid;grid-template-columns:repeat(2,minmax(0,220px));gap:16px">
+      <legend style="margin-bottom:12px;font-weight:700">Extras</legend>
+      <label tgCard><input type="checkbox" name="extras" value="material" />${text('Material incluso')}</label>
+      <label tgCard indicator="control" style="display:flex;gap:12px;align-items:flex-start">
+        <input type="checkbox" name="extras" value="urgente" />
+        <span><strong style="display:block">Urgente</strong><span style="color:var(--tg-text-secondary);font-size:14px">Atendimento no mesmo dia</span></span>
+      </label>
+    </fieldset>`,
   }),
 };
 
@@ -86,7 +94,9 @@ export const Link: Story = {
 
 /**
  * Com ações dentro: o título é o link e se estica sobre o card. Clique em
- * qualquer ponto para abrir; o favoritar continua funcionando.
+ * qualquer ponto para abrir; o favoritar e o link de avaliações continuam
+ * funcionando. Uma ação que o CSS não alcança (shadow DOM, web component)
+ * leva tgCardAction no host.
  */
 export const LinkEsticado: Story = {
   name: 'Link esticado',
@@ -97,7 +107,7 @@ export const LinkEsticado: Story = {
         <span style="width:56px;height:56px;border-radius:999px;background:var(--tg-action-subtle);color:var(--tg-action-subtle-text);display:flex;align-items:center;justify-content:center;font-weight:800">MS</span>
         <div style="flex:1">
           <h3 style="margin:0;font-size:16px"><a tgCardLink href="#marina">Marina Souza</a></h3>
-          <span style="color:var(--tg-text-secondary);font-size:14px">Limpeza · 2,3 km</span>
+          <span style="color:var(--tg-text-secondary);font-size:14px">Limpeza · 2,3 km · <a href="#avaliacoes" style="color:var(--tg-action-subtle-text)">128 avaliações</a></span>
         </div>
         <button tgButton type="button" appearance="ghost" size="sm" [iconStart]="'star'" iconOnly
                 aria-label="Favoritar Marina Souza" [attr.aria-pressed]="favorito" (click)="favorito = !favorito"></button>

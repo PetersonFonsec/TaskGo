@@ -1,6 +1,7 @@
 import {
   ChangeDetectionStrategy,
   Component,
+  DestroyRef,
   Directive,
   ElementRef,
   ViewEncapsulation,
@@ -19,6 +20,7 @@ export type TgCardIndicator = 'check' | 'control';
 type Kind = 'surface' | 'link' | 'choice';
 
 const INTERACTIVE = 'a[href], button, input, select, textarea, [tabindex]:not([tabindex="-1"])';
+const CHOICE_CONTROL = 'input[type="radio"], input[type="checkbox"]';
 
 const devMode = () => typeof ngDevMode !== 'undefined' && !!ngDevMode;
 
@@ -78,8 +80,10 @@ export class TgCardComponent {
 
   protected readonly showsCheck = computed(() => this.kind === 'choice' && this.indicator() === 'check');
 
+  readonly #destroyRef = inject(DestroyRef);
+
   constructor() {
-    if (devMode()) afterNextRender(() => this.#checkContent());
+    if (devMode() && this.kind !== 'surface') afterNextRender(() => this.#watchContent());
   }
 
   #kindOf(el: HTMLElement): Kind {
@@ -89,24 +93,53 @@ export class TgCardComponent {
     return 'surface';
   }
 
-  // Avisos só em desenvolvimento; o componente não corrige a marcação.
-  #checkContent() {
+  /**
+   * Avisos só em desenvolvimento; o componente não corrige a marcação.
+   * Confere depois da primeira renderização e a cada mudança no conteúdo
+   * (um @if que insere um botão, um input que muda de tipo). O observer
+   * existe só no build de desenvolvimento, só em a tgCard e label tgCard, e
+   * é desligado quando o card é destruído. Cada aviso sai uma vez a cada
+   * vez que a marcação entra no estado inválido.
+   */
+  #watchContent() {
+    let warned: string | null = null;
+    const check = () => {
+      const problem = this.#problem();
+      if (problem && problem !== warned) console.warn(problem, this.element);
+      warned = problem;
+    };
+    check();
+    if (typeof MutationObserver === 'undefined') return;
+    const observer = new MutationObserver(check);
+    observer.observe(this.element, {
+      childList: true,
+      subtree: true,
+      attributes: true,
+      attributeFilter: ['href', 'tabindex', 'type'],
+    });
+    this.#destroyRef.onDestroy(() => observer.disconnect());
+  }
+
+  #problem(): string | null {
     if (this.kind === 'link' && this.element.querySelector(INTERACTIVE)) {
-      console.warn(
-        'tgCard: um link não pode conter botões, links ou campos. Use tg-card com tgCardLink no título.',
-        this.element,
-      );
+      return 'tgCard: um link não pode conter botões, links ou campos. Use tg-card com tgCardLink no título.';
     }
-    if (this.kind === 'choice' && !this.element.querySelector('input[type="radio"], input[type="checkbox"]')) {
-      console.warn('tgCard: label tgCard precisa de um input radio ou checkbox dentro.', this.element);
+    if (this.kind === 'choice' && !this.element.querySelector(CHOICE_CONTROL)) {
+      return 'tgCard: label tgCard precisa de um input radio ou checkbox dentro.';
     }
+    return null;
   }
 }
 
 /**
  * Link do título de um `tg-card` com ações dentro. Estica-se sobre o card
- * (clicar em qualquer ponto abre o destino); botões e links do card ficam
- * por cima e continuam funcionando.
+ * (clicar em qualquer ponto abre o destino); botões, links e campos do card
+ * ficam por cima e continuam funcionando. Uma ação que o CSS não enxerga
+ * (shadow DOM, web component, elemento com role) leva o atributo
+ * `tgCardAction` no host para ficar por cima também.
+ *
+ * O lugar do link vem da injeção de dependência e não muda depois de
+ * criado, então a conferência é feita uma vez.
  */
 @Directive({
   selector: 'a[tgCardLink]',

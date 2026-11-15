@@ -6,6 +6,15 @@ import { accessibleName } from '../button/accessible-name';
 import { TgButtonComponent } from '../button/tg-button.component';
 import { TgCardComponent, TgCardLinkDirective } from './tg-card.component';
 
+// Outras specs (ThemeService) deixam data-theme no <html>: cada teste do card
+// fixa o modo e devolve o valor anterior ao terminar.
+function pinTheme(theme: 'CUSTOMER' | 'PROVIDER' = 'CUSTOMER') {
+  const root = document.documentElement;
+  const previous = root.getAttribute('data-theme');
+  root.setAttribute('data-theme', theme);
+  return () => (previous === null ? root.removeAttribute('data-theme') : root.setAttribute('data-theme', previous));
+}
+
 @Component({
   imports: [TgCardComponent, TgCardLinkDirective, TgButtonComponent, RouterLink, FormsModule],
   template: `
@@ -60,6 +69,10 @@ describe('TgCardComponent', () => {
     fixture.detectChanges();
   };
 
+  let restoreTheme: () => void;
+  beforeEach(() => (restoreTheme = pinTheme()));
+  afterEach(() => restoreTheme());
+
   beforeEach(async () => {
     TestBed.configureTestingModule({ providers: [provideRouter([])] });
     fixture = TestBed.createComponent(HostComponent);
@@ -83,12 +96,12 @@ describe('TgCardComponent', () => {
     });
 
     it('elevado no prestador: sem sombra, com borda', () => {
-      document.documentElement.setAttribute('data-theme', 'PROVIDER');
+      const restore = pinTheme('PROVIDER');
       try {
         expect(style('elevado').boxShadow).toBe('none');
         expect(style('elevado').borderTopColor).not.toBe('rgba(0, 0, 0, 0)');
       } finally {
-        document.documentElement.removeAttribute('data-theme');
+        restore();
       }
     });
 
@@ -196,26 +209,142 @@ describe('TgCardComponent', () => {
 @Component({
   imports: [TgCardComponent, TgCardLinkDirective],
   template: `
-    <a tgCard href="/x"><button type="button">Favoritar</button></a>
-    <label tgCard>Sem input</label>
+    <a tgCard id="com-botao" href="/x"><button type="button">Favoritar</button></a>
+    <a tgCard id="com-link" href="/x"><span><a href="/y">Avaliações</a></span></a>
+    <label tgCard id="sem-input">Sem input</label>
     <a tgCardLink href="/y">Fora do card</a>
     <tg-card><a tgCardLink href="/z">Certo</a></tg-card>
     <a tgCard href="/w">Só texto</a>
-    <label tgCard><input type="checkbox" /> Certo</label>
+    <label tgCard><span><input type="checkbox" /> Certo, aninhado</span></label>
   `,
 })
 class MarkupHostComponent {}
 
+@Component({
+  imports: [TgCardComponent],
+  template: `
+    @if (show()) {
+      <a tgCard id="dinamico" href="/x">
+        <strong>Limpeza</strong>
+        @if (button()) {
+          <button type="button">Favoritar</button>
+        }
+        <span>{{ count() }} profissionais</span>
+      </a>
+      <label tgCard id="escolha">
+        @if (radio()) {
+          <input type="radio" name="c" />
+        }
+        Reparos
+      </label>
+    }
+  `,
+})
+class DynamicMarkupHostComponent {
+  readonly show = signal(true);
+  readonly button = signal(false);
+  readonly radio = signal(true);
+  readonly count = signal(1);
+}
+
 describe('TgCardComponent: avisos em desenvolvimento', () => {
-  it('avisa sobre marcação que quebra teclado ou leitor de tela', async () => {
-    const warn = spyOn(console, 'warn');
-    const fixture = TestBed.createComponent(MarkupHostComponent);
+  let warn: jasmine.Spy;
+  const messages = () => warn.calls.allArgs().map((args) => String(args[0]));
+  const settle = async (fixture: ComponentFixture<unknown>) => {
     fixture.detectChanges();
     await fixture.whenStable();
-    const messages = warn.calls.allArgs().map((args) => String(args[0]));
-    expect(messages.length).toBe(3);
-    expect(messages.some((m) => m.includes('link não pode conter'))).toBeTrue();
-    expect(messages.some((m) => m.includes('precisa de um input'))).toBeTrue();
-    expect(messages.some((m) => m.startsWith('tgCardLink'))).toBeTrue();
+    // O MutationObserver entrega numa microtarefa.
+    await new Promise((resolve) => setTimeout(resolve));
+  };
+
+  beforeEach(() => (warn = spyOn(console, 'warn')));
+
+  it('avisa uma vez por marcação inválida na primeira renderização', async () => {
+    const fixture = TestBed.createComponent(MarkupHostComponent);
+    await settle(fixture);
+    const byElement = warn.calls.allArgs().map((args) => (args[1] as HTMLElement).id || args[1].textContent.trim());
+    expect(byElement).toEqual(['com-botao', 'com-link', 'sem-input', 'Fora do card']);
+    expect(messages()[0]).toContain('link não pode conter');
+    expect(messages()[1]).toContain('link não pode conter');
+    expect(messages()[2]).toContain('precisa de um input');
+    expect(messages()[3]).toMatch(/^tgCardLink/);
+  });
+
+  describe('conteúdo dinâmico', () => {
+    let fixture: ComponentFixture<DynamicMarkupHostComponent>;
+    let host: DynamicMarkupHostComponent;
+
+    beforeEach(async () => {
+      fixture = TestBed.createComponent(DynamicMarkupHostComponent);
+      host = fixture.componentInstance;
+      await settle(fixture);
+    });
+
+    it('começa válido e sem aviso', () => {
+      expect(warn).not.toHaveBeenCalled();
+    });
+
+    it('inserir um botão no link avisa; remover não; inserir de novo avisa de novo', async () => {
+      host.button.set(true);
+      await settle(fixture);
+      expect(messages()).toEqual([jasmine.stringContaining('link não pode conter')]);
+
+      host.button.set(false);
+      await settle(fixture);
+      expect(warn).toHaveBeenCalledTimes(1);
+
+      host.button.set(true);
+      await settle(fixture);
+      expect(warn).toHaveBeenCalledTimes(2);
+    });
+
+    it('mudanças que mantêm o estado inválido não repetem o aviso', async () => {
+      host.button.set(true);
+      await settle(fixture);
+      host.count.set(2);
+      await settle(fixture);
+      host.count.set(3);
+      await settle(fixture);
+      expect(warn).toHaveBeenCalledTimes(1);
+    });
+
+    it('remover o rádio do label avisa; trocar o tipo do input também', async () => {
+      host.radio.set(false);
+      await settle(fixture);
+      expect(messages()).toEqual([jasmine.stringContaining('precisa de um input')]);
+
+      host.radio.set(true);
+      await settle(fixture);
+      const input = fixture.nativeElement.querySelector('#escolha input') as HTMLInputElement;
+      input.type = 'text';
+      await settle(fixture);
+      expect(warn).toHaveBeenCalledTimes(2);
+    });
+
+    it('destruído: o observer é desligado', async () => {
+      const disconnect = spyOn(MutationObserver.prototype, 'disconnect').and.callThrough();
+      const link = fixture.nativeElement.querySelector('#dinamico') as HTMLElement;
+      host.show.set(false);
+      await settle(fixture);
+      expect(disconnect).toHaveBeenCalledTimes(2);
+      link.appendChild(document.createElement('button'));
+      await settle(fixture);
+      expect(warn).not.toHaveBeenCalled();
+    });
+  });
+
+  it('em produção não confere nem observa', async () => {
+    const observe = spyOn(MutationObserver.prototype, 'observe').and.callThrough();
+    const global = globalThis as { ngDevMode?: unknown };
+    const previous = global.ngDevMode;
+    global.ngDevMode = false;
+    try {
+      const fixture = TestBed.createComponent(MarkupHostComponent);
+      await settle(fixture);
+    } finally {
+      global.ngDevMode = previous;
+    }
+    expect(warn).not.toHaveBeenCalled();
+    expect(observe).not.toHaveBeenCalled();
   });
 });

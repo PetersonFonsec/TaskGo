@@ -1,5 +1,8 @@
 // Card do Design System. Só tokens --tg-*; o tema troca os valores.
 // Sem encapsulamento (o conteúdo é projetado): tudo fica sob .tg-card.
+
+// O controle da escolha: o rádio ou checkbox em qualquer nível do label.
+$choice: 'input:is([type="radio"], [type="checkbox"])';
 .tg-card {
   --_pad: var(--tg-space-5);
 
@@ -64,12 +67,16 @@ label.tg-card:hover,
 // Mesmo anel do botão: 2 px, afastado 2 px.
 a.tg-card:focus-visible,
 .tg-card:has(.tg-card__link:focus-visible),
-label.tg-card:has(input:focus-visible) {
+label.tg-card:has(#{$choice}:focus-visible) {
   outline: 2px solid var(--tg-focus-ring);
   outline-offset: 2px;
 }
 
 // Link esticado: o ::after cobre o card; as outras ações ficam por cima.
+// Botões, links e campos são achados pelo seletor abaixo, inclusive dentro
+// de componentes com encapsulamento emulado (o padrão do Angular). O que o
+// seletor não alcança (shadow DOM, web components, elemento clicável com
+// role) a tela marca com o atributo tgCardAction no host.
 .tg-card__link {
   color: inherit;
   font: inherit;
@@ -94,20 +101,30 @@ label.tg-card:has(input:focus-visible) {
 }
 
 .tg-card:has(.tg-card__link)
-  :is(a:not(.tg-card__link), button, input, select, textarea, label, [tabindex]:not([tabindex='-1'])) {
+  :is(
+    a:not(.tg-card__link),
+    button,
+    input,
+    select,
+    textarea,
+    label,
+    [tabindex]:not([tabindex='-1']),
+    [tgCardAction]
+  ) {
   position: relative;
   z-index: 1;
 }
 
 // Escolha: o input nativo dá teclado, setas e o estado "selecionado".
-label.tg-card--choice > input {
+// O anel fica só no card (o do input sai), nas duas variantes.
+label.tg-card--choice #{$choice} {
   margin: 0;
   outline: none;
   accent-color: var(--tg-action-primary);
 }
 
 // Com o ✓, o input fica só para teclado e leitor de tela.
-label.tg-card--check > input {
+label.tg-card--check #{$choice} {
   position: absolute;
   width: 1px;
   height: 1px;
@@ -119,7 +136,7 @@ label.tg-card--check > input {
 
 // Selecionado: borda de 2 px na cor de ação (o padding compensa) e o ✓.
 // Nunca só a cor: o ✓ ou o rádio visível mostram o estado.
-label.tg-card:has(> input:checked) {
+label.tg-card:has(#{$choice}:checked) {
   padding: calc(var(--_pad) - 1px);
   border-width: 2px;
   border-color: var(--tg-action-primary);
@@ -139,12 +156,12 @@ label.tg-card:has(> input:checked) {
   color: var(--tg-text-on-action);
 }
 
-label.tg-card:has(> input:checked) > .tg-card__check {
+label.tg-card:has(#{$choice}:checked) > .tg-card__check {
   display: flex;
 }
 
 // Desabilitado: fundo suave e texto apagado, sem opacidade.
-label.tg-card:has(> input:disabled) {
+label.tg-card:has(#{$choice}:disabled) {
   border-color: var(--tg-border-default);
   background: var(--tg-bg-subtle);
   box-shadow: none;
