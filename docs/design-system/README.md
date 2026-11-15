@@ -6,10 +6,10 @@ Storybook do web, em **Fundamentos**.
 
 ## Estado atual
 
-Esta é a Etapa 6: os tokens existem e são carregados pelos dois apps, mas
-nenhuma tela foi migrada. Os tokens antigos (`--color-*`, `--proxi-*`,
-`--space-*`, `--font-size-*` e o azul do Ionic) continuam valendo até a
-migração tela a tela, que vem nas próximas etapas.
+Os tokens existem e são carregados pelos dois apps. A primeira tela migrada
+é o início do cliente no web (Etapa 9, tela piloto). Nas demais, os tokens
+antigos (`--color-*`, `--proxi-*`, `--space-*`, `--font-size-*` e o azul do
+Ionic) continuam valendo até a migração tela a tela.
 
 | Etapa | Tema | Situação |
 | --- | --- | --- |
@@ -29,8 +29,11 @@ migração tela a tela, que vem nas próximas etapas.
 | 7 | Componentes base: diálogo e painel (web) | Concluído (PR #18) |
 | 7 | Componentes base: toast e alerta (web) | Concluído (PR #19) |
 | 7 | Componentes base: skeleton (web) | Concluído (PR #20) |
-| 7 | Componentes base: estado vazio (web) | Este PR |
-| 7 a 10 | Demais componentes base, componentes de domínio, piloto, migração | A fazer |
+| 7 | Componentes base: estado vazio (web) | Concluído (PR #21) |
+| 8 | Domínio: card de prestador, linha de pedido, card de agendamento (web) | Concluído (PRs #22, #23 e #24) |
+| 9 | Piloto: início do cliente (web) | Este PR |
+| 9 | Piloto: início do prestador (web) | A fazer |
+| 10 | Migração tela a tela (web e app) | A fazer |
 
 Atributos de marca: próximo, confiável, direto e caloroso sem ser infantil.
 
@@ -1237,11 +1240,44 @@ Acessibilidade:
 - Tab: o serviço e o próximo passo. Hover e foco são os do `tg-card` com
   link esticado.
 
-O `app-card-appointment` (carrossel do início do cliente) continua até a
-migração do início, quando vira um `tg-appointment-card` com o próximo
-agendamento e a lista de pedidos abaixo. Carregando, use o skeleton; sem
-agendamento, o estado vazio ("Sua agenda está livre"). No app, o mesmo
+O `app-card-appointment` saiu do início do cliente na Etapa 9 (veja
+"Telas migradas") e continua só para quem ainda o usa. No app, o mesmo
 conteúdo vai num `ion-card` com os tokens, nas migrações do app.
+
+## Telas migradas (Etapa 9)
+
+A tela piloto prova o caminho que a Etapa 10 repete: só componentes e
+tokens do DS, dados reais pelos mappers, e carregamento, erro e vazio
+tratados pela tela.
+
+### Início do cliente (web)
+
+`modules/customer/home`. Story: **Telas/Início do cliente** (com agenda,
+sem endereço, agenda vazia, erro e carregando).
+
+Ordem (decisão 2): alerta de endereço (se faltar), saudação com a busca,
+agenda, categorias e histórico.
+
+| Parte | Componente | Regra |
+| --- | --- | --- |
+| Endereço | `tg-alert` informativo + "Cadastrar endereço" | Só quando a consulta diz que não há endereço; falha na consulta não mostra. |
+| Saudação | `h1` com o primeiro nome, `a[tgButton]` "Buscar serviço" | Sem nome, só "Olá". A ilustração é decorativa e some abaixo de 600 px de container (decisão 3). |
+| Destaque | `tg-appointment-card` | O ativo que pede ação do cliente (Pagar, Ver QR Code, Confirmar conclusão); senão, o de data mais próxima (decisão 1). |
+| Também na agenda | `ul[tgOrderList]` com `tg-order-row` | Os demais ativos, data mais próxima primeiro, até 3. Sem data vai para o fim. |
+| Histórico | `ul[tgOrderList]` com `tg-order-row` | Concluídos, cancelados e recusados, mais recentes primeiro, até 3, com "Avaliar" quando falta. Sem nenhum, a seção some. |
+| Carregando | `tg-loading` com skeleton do card e da lista | |
+| Erro | `tg-alert` de perigo com "Tentar de novo" | Nunca vira "agenda livre". |
+| Vazio | `tg-empty-state` compacto + "Buscar serviço" | |
+
+A seleção fica em `customer-home.agenda.ts` (`customerHomeAgenda`), função
+pura com testes próprios. Ativo é todo status que não está encerrado,
+inclusive um desconhecido ("Em atualização"). Categorias e pedidos carregam
+em separado: a falha de um não esconde o outro.
+
+Ainda fora do DS: o card de categoria (`app-card-thumb`), que não tem
+equivalente e entra na Etapa 10. "Agendar serviço" e "Buscar serviço"
+levam à busca; não há "Ver todos" porque a página de histórico ainda não
+existe.
 
 ## Testes
 
