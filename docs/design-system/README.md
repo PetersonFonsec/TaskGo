@@ -1044,6 +1044,83 @@ O `app-card-provider` (com o `card-detail` e o pipe
 lista da categoria (`ion-item`) segue a mesma ordem e os mesmos textos,
 estilizada com os tokens nas migrações do app.
 
+### Linha de pedido
+
+Uma linha por pedido: o serviço, o status, a outra pessoa, a data e o
+bairro e, quando é a vez de quem vê, o próximo passo. As linhas ficam numa
+lista única com divisória (`ul tgOrderList`).
+
+```html
+<ul tgOrderList>
+  @for (o of pedidos(); track o.id) {
+    <li>
+      <tg-order-row
+        perspective="provider"
+        [order]="o"
+        [busy]="atualizando().has(o.id)"
+        (statusAction)="avancar(o.id, $event)" />
+    </li>
+  }
+</ul>
+```
+
+| Entrada | Valores | Padrão |
+| --- | --- | --- |
+| `order` | `TgOrderRowData`: `id`, `status`, `service`, `person`, `scheduledFor`, `neighborhood`, `distanceKm`, `amount`, `reviewed` | obrigatório |
+| `perspective` | `customer` ou `provider`: muda o texto do status, a linha de apoio e o próximo passo | obrigatório |
+| `busy` | a tela está trocando o status deste pedido; o botão fica em carregando | `false` |
+| `(statusAction)` | pede a troca (`EM_DESLOCAMENTO` ou `EM_ANDAMENTO`); a tela chama a API | — |
+
+O mapa de status aprovado na Etapa 7 agora está em código:
+`tgOrderStatus(status, perspective)` devolve o texto e o tom (desconhecido:
+"Em atualização", neutro), e `tgOrderNextStep(order, perspective)` devolve o
+próximo passo.
+
+| Status | Próximo passo do cliente | Próximo passo do prestador |
+| --- | --- | --- |
+| `AGUARDANDO_APROVACAO` | — | Responder (`/orders/:id`) |
+| `AGUARDANDO_PAGAMENTO` | Pagar (`/orders/:id/payment`) | — |
+| `AGENDADO` | — | Estou a caminho (pede `EM_DESLOCAMENTO`) |
+| `EM_DESLOCAMENTO` | — | Iniciar serviço (pede `EM_ANDAMENTO`) |
+| `EM_ANDAMENTO` | — | Finalizar serviço (`/orders/:id/finish`) |
+| `AGUARDANDO_CONFIRMACAO_CLIENTE` | Confirmar conclusão (`/orders/:id/confirm`) | — |
+| `CONCLUIDO` | Avaliar, se ainda não avaliou (`/orders/:id/review`) | — |
+| `DISPUTA`, `REJEITADO`, `CANCELADO` | — | — |
+
+Regras:
+
+- O serviço é o link para o pedido (`/orders/:id`) e cobre a linha inteira;
+  o botão do próximo passo fica por cima.
+- Badge só com texto na linha, sem ícone de status. O ícone fica no card de
+  agendamento em destaque.
+- Linha de apoio: pessoa · data · bairro. A data é "Hoje, 14:00", "Amanhã",
+  "Ontem" ou "Ter, 18 nov, 09:00" (com o ano quando não é o atual); sem
+  data, "Data a combinar". Só o bairro: o endereço completo fica na tela do
+  pedido.
+- Para o prestador, a distância entra junto do bairro e o valor estimado
+  aparece embaixo. O cliente não vê esses dois.
+- No máximo um próximo passo, só quando é a vez de quem vê. Botão pequeno
+  (36 px) com área de toque de 44 px.
+- O layout segue a largura do container: abaixo de 480 px, o botão desce.
+
+Acessibilidade:
+
+- `ul`/`li`, um item por pedido. O link tem o nome do serviço e o status
+  como descrição ("Instalação de chuveiro", "Profissional a caminho").
+- O botão tem o serviço como descrição ("Pagar", "Limpeza residencial").
+- Tab: o serviço e o próximo passo, nada mais. O foco não vai sozinho para
+  a lista.
+- Troca de status: o botão fica em carregando (`busy`) e não repete o
+  pedido. A linha não muda sozinha, e o resultado é anunciado pela tela
+  (toast).
+- Hover: fundo `bg-subtle` e serviço sublinhado. Foco: o anel padrão na
+  linha.
+
+Os mapas de status de cada tela (`card-appointment`, início do prestador)
+continuam até a migração delas, quando passam a usar `tgOrderStatus`. No
+app, "Meus pedidos" (`ion-item`) segue a mesma ordem e o mesmo mapa, nas
+migrações do app.
+
 ## Testes
 
 ```bash
