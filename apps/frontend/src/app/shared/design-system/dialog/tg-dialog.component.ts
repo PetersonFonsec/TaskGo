@@ -1,4 +1,4 @@
-import { ChangeDetectionStrategy, Component, ViewEncapsulation, input } from '@angular/core';
+import { ChangeDetectionStrategy, Component, ElementRef, ViewEncapsulation, input, viewChild } from '@angular/core';
 import type { TgIconName } from '@taskgo/icons';
 import { TgIconComponent } from '../icon/tg-icon.component';
 import { TgOverlay } from './tg-overlay';
@@ -19,7 +19,8 @@ export type TgDialogTone = 'brand' | 'danger';
  * (o botão continua focável e informa "Carregando").
  *
  * Ações: no máximo duas, a segura primeiro (ela recebe o foco ao abrir) e a
- * principal por último. Abaixo de 600 px, empilham com a largura toda e a
+ * principal por último. Sem ações, ou com a segura indisponível, o foco
+ * começa no próprio diálogo. Abaixo de 600 px, empilham com a largura toda e a
  * principal em cima; acima, lado a lado, com a principal à direita.
  */
 @Component({
@@ -32,6 +33,7 @@ export type TgDialogTone = 'brand' | 'danger';
     <dialog
       #dialog
       class="tg-dialog"
+      tabindex="-1"
       [class.tg-dialog--danger]="tone() === 'danger'"
       [attr.aria-labelledby]="titleId"
       [attr.aria-describedby]="bodyId"
@@ -46,7 +48,7 @@ export type TgDialogTone = 'brand' | 'danger';
       }
       <h2 class="tg-dialog__title" [id]="titleId">{{ title() }}</h2>
       <div class="tg-dialog__body" [id]="bodyId"><ng-content /></div>
-      <div class="tg-dialog__actions"><ng-content select="[tgDialogAction]" /></div>
+      <div #actions class="tg-dialog__actions"><ng-content select="[tgDialogAction]" /></div>
     </dialog>
   `,
   styleUrl: './tg-overlay.scss',
@@ -56,4 +58,14 @@ export class TgDialogComponent extends TgOverlay {
   readonly icon = input<TgIconName | undefined>(undefined);
   /** `danger` para decisões que não se desfazem: muda a cor do ícone. */
   readonly tone = input<TgDialogTone>('brand');
+
+  private readonly actions = viewChild.required<ElementRef<HTMLElement>>('actions');
+
+  /**
+   * A ação segura: a primeira declarada. Se ela estiver indisponível, o foco
+   * vai para o diálogo, nunca para a seguinte (que pode ser a de perigo).
+   */
+  protected initialFocus() {
+    return this.actions().nativeElement.querySelector<HTMLElement>('[tgDialogAction]');
+  }
 }

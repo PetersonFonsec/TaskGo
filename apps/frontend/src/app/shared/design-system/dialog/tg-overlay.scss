@@ -24,9 +24,10 @@
     animation: tg-overlay-fade var(--tg-duration-base, 200ms) var(--tg-ease-standard);
   }
 
-  &:focus-visible {
-    outline: 2px solid var(--tg-focus-ring);
-    outline-offset: 2px;
+  // O foco só cai no próprio dialog quando não há ação disponível: ele não é
+  // um controle, então sem anel (o leitor anuncia título e descrição).
+  &:focus {
+    outline: none;
   }
 }
 

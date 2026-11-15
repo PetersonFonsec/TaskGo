@@ -733,6 +733,8 @@ Regras:
   celular), e só o meio rola.
 - Fundo com `scrim` e `elevation-3`; animação de 200 ms, sem animação com
   movimento reduzido.
+- Ações condicionais: um `@if` para cada ação. Um bloco com dois elementos
+  não casa com o slot `[tgDialogAction]` e vai para o texto.
 - Durante um envio: `[busy]` no componente e `[loading]` na ação principal.
   Esc, o fundo e o X deixam de fechar; a tela fecha por `close()` quando o
   envio termina. Um diálogo por vez.
@@ -743,8 +745,16 @@ Acessibilidade:
   dentro, o fundo fica inerte, e o leitor de tela anuncia um diálogo modal.
 - Nome pelo título (`aria-labelledby`); no diálogo, a descrição é o texto
   (`aria-describedby`). Durante o envio, `aria-busy`.
-- Ao abrir, o foco vai para o primeiro controle: a ação segura no diálogo e
-  o "Fechar" no painel. Ao fechar, volta para quem abriu.
+- Ao abrir, o foco vai para a ação segura (a primeira declarada) no
+  diálogo e para o "Fechar" no painel, mesmo que o texto tenha links ou
+  campos antes. Sem ações, ou com a ação segura indisponível, o foco vai
+  para o próprio diálogo, que é anunciado com título e descrição; nunca para
+  a ação de perigo.
+- Ao fechar, o foco volta para quem abriu, se ele ainda puder receber foco.
+  Com um diálogo aberto sobre um painel, fechar o diálogo devolve o foco
+  para dentro do painel. Se o painel de baixo fechar (ou sair da tela)
+  antes, o diálogo de cima continua modal e, ao fechar, devolve o foco para
+  quem abriu o painel.
 - Fecham por Esc (tratado no `keydown`, para o Chrome não fechar no segundo
   Esc durante o envio), pelo toque no fundo e, no painel, pelo botão
   "Fechar" de 44 px. Durante o envio, o "Fechar" fica com `aria-disabled` e

@@ -1,4 +1,4 @@
-import { ChangeDetectionStrategy, Component, ViewEncapsulation } from '@angular/core';
+import { ChangeDetectionStrategy, Component, ElementRef, ViewEncapsulation, viewChild } from '@angular/core';
 import { TgIconComponent } from '../icon/tg-icon.component';
 import { TgOverlay } from './tg-overlay';
 
@@ -27,6 +27,7 @@ import { TgOverlay } from './tg-overlay';
     <dialog
       #dialog
       class="tg-sheet"
+      tabindex="-1"
       [attr.aria-labelledby]="titleId"
       [attr.aria-busy]="busy() || null"
       (keydown)="onKeydown($event)"
@@ -36,7 +37,7 @@ import { TgOverlay } from './tg-overlay';
     >
       <header class="tg-sheet__header">
         <h2 class="tg-sheet__title" [id]="titleId">{{ title() }}</h2>
-        <button type="button" class="tg-sheet__close" aria-label="Fechar"
+        <button #close type="button" class="tg-sheet__close" aria-label="Fechar"
           [attr.aria-disabled]="busy() || null"
           (click)="requestClose()">
           <tg-icon name="x" [size]="22" />
@@ -48,4 +49,11 @@ import { TgOverlay } from './tg-overlay';
   `,
   styleUrl: './tg-overlay.scss',
 })
-export class TgSheetComponent extends TgOverlay {}
+export class TgSheetComponent extends TgOverlay {
+  private readonly closeButton = viewChild.required<ElementRef<HTMLButtonElement>>('close');
+
+  /** O foco começa no Fechar. */
+  protected initialFocus() {
+    return this.closeButton().nativeElement;
+  }
+}

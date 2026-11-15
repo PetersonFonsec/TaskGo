@@ -4,6 +4,23 @@ import { Directive, ElementRef, OnDestroy, booleanAttribute, inject, input, outp
 let nextId = 0;
 let scrollLocks = 0;
 let savedOverflow = '';
+/**
+ * Overlays abertos, do de baixo para o de cima. Interno e só para o foco:
+ * saber se quem fecha está no topo e para onde o foco pode voltar.
+ */
+const openOverlays: TgOverlay[] = [];
+
+/** Pode receber o foco agora: conectado, visível, habilitado e fora de inert. */
+function canFocus(el: HTMLElement | null): el is HTMLElement {
+  return (
+    !!el &&
+    el.isConnected &&
+    el.tabIndex >= 0 &&
+    !el.matches(':disabled') &&
+    !el.closest('[inert]') &&
+    (typeof el.checkVisibility !== 'function' || el.checkVisibility())
+  );
+}
 
 /**
  * Comportamento comum de `tg-dialog` e `tg-sheet`, sobre o `dialog` nativo
@@ -12,6 +29,16 @@ let savedOverflow = '';
  *
  * Com `busy`, nada que a pessoa faça fecha (Esc, fundo, X); a tela ainda
  * pode fechar por código, quando o envio termina.
+ *
+ * Foco inicial: o alvo de `initialFocus()` (a ação segura no diálogo, o
+ * Fechar no painel); se ele não puder receber foco, o próprio dialog
+ * (tabindex -1), que o leitor anuncia com título e descrição. Não depende
+ * da escolha do navegador, que pegaria o primeiro link do texto.
+ *
+ * Foco ao fechar: só quem está no topo devolve o foco, para quem o abriu,
+ * se ainda puder recebê-lo e estiver no modal que sobra; senão, para o foco
+ * inicial do modal que sobra. Se um overlay de baixo fecha (ou sai da tela)
+ * antes, quem foi aberto de dentro dele herda o destino dele.
  */
 @Directive()
 export abstract class TgOverlay implements OnDestroy {
@@ -32,13 +59,18 @@ export abstract class TgOverlay implements OnDestroy {
   readonly #document = inject(DOCUMENT);
   #trigger: HTMLElement | null = null;
 
+  /** Onde o foco começa; null usa o próprio dialog. */
+  protected abstract initialFocus(): HTMLElement | null;
+
   open() {
     const dialog = this.dialog().nativeElement;
     if (this.isOpen() || typeof dialog.showModal !== 'function') return;
     this.#trigger = this.#document.activeElement as HTMLElement | null;
     dialog.showModal();
     this.#lockScroll();
+    openOverlays.push(this);
     this.isOpen.set(true);
+    this.#focusInitial();
     this.opened.emit();
   }
 
@@ -55,7 +87,9 @@ export abstract class TgOverlay implements OnDestroy {
   }
 
   ngOnDestroy() {
-    if (this.isOpen()) this.#unlockScroll();
+    if (!this.isOpen()) return;
+    this.isOpen.set(false);
+    this.#release();
   }
 
   // O Esc é tratado no keydown: impedir só o `cancel` não basta, porque o
@@ -84,12 +118,44 @@ export abstract class TgOverlay implements OnDestroy {
   protected onClose() {
     // O evento close nativo chega depois; se já reabriu, é de outro ciclo.
     if (!this.isOpen() || this.dialog().nativeElement.open) return;
-    this.#unlockScroll();
     this.isOpen.set(false);
+    this.#release();
+    this.closed.emit();
+  }
+
+  #focusInitial() {
+    const target = this.initialFocus();
+    if (canFocus(target)) {
+      target.focus();
+      if (this.#document.activeElement === target) return;
+    }
+    this.dialog().nativeElement.focus();
+  }
+
+  /** Sai da pilha, destrava a rolagem e cuida do foco. Uma vez por abertura. */
+  #release() {
+    this.#unlockScroll();
+    const index = openOverlays.indexOf(this);
+    if (index < 0) return;
+    const wasTop = index === openOverlays.length - 1;
+    openOverlays.splice(index, 1);
     const trigger = this.#trigger;
     this.#trigger = null;
-    if (trigger?.isConnected) trigger.focus();
-    this.closed.emit();
+
+    // Quem foi aberto de dentro deste herda o destino dele.
+    const dialog = this.dialog().nativeElement;
+    for (const other of openOverlays) {
+      if (other.#trigger && dialog.contains(other.#trigger)) other.#trigger = trigger;
+    }
+    if (!wasTop) return;
+
+    const top = openOverlays[openOverlays.length - 1];
+    const allowed = !top || top.dialog().nativeElement.contains(trigger);
+    if (allowed && canFocus(trigger)) {
+      trigger.focus();
+      if (this.#document.activeElement === trigger) return;
+    }
+    if (top) top.#focusInitial();
   }
 
   #lockScroll() {
