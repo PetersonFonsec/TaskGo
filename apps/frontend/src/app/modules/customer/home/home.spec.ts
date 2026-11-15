@@ -214,23 +214,25 @@ describe('Home', () => {
   describe('categorias', () => {
     beforeEach(() => setup());
 
-    it('renderiza a miniatura e mantém o link da busca', () => {
+    it('card do DS com a imagem decorativa, o nome e o link da busca', () => {
       const thumb = 'https://imagedelivery.net/Bpbv9d8J9NqFhm--zUdxEA/limpeza/public';
       component.categories.set([{ id: 1, name: 'Limpeza', slug: 'limpeza', thumb } as ICategory]);
       fixture.detectChanges();
-      const image = el.querySelector('.category-grid img')!;
+      const card = el.querySelector<HTMLAnchorElement>('.customer-home__categories a.tg-card')!;
+      expect(card.classList).toContain('tg-card--link');
+      expect(card.getAttribute('href')).toBe('/customer/search?categoria=limpeza');
+      const image = card.querySelector('img')!;
       expect(image.getAttribute('src')).toBe(thumb);
-      expect(image.getAttribute('alt')).toBe('Limpeza');
-      expect(el.querySelector('.category-grid a')!.getAttribute('href')).toBe(
-        '/customer/search?categoria=limpeza',
-      );
+      expect(image.getAttribute('alt')).toBe('');
+      expect(card.querySelector('.customer-home__category-name')!.textContent!.trim()).toBe('Limpeza');
+      expect(card.textContent!.trim()).toBe('Limpeza');
     });
 
-    it('mostra o nome sem imagem quebrada quando não há miniatura', () => {
+    it('sem miniatura, mostra só o nome, sem imagem quebrada', () => {
       component.categories.set([{ id: 1, name: 'Limpeza', slug: 'limpeza', thumb: null } as ICategory]);
       fixture.detectChanges();
-      expect(el.querySelector('.category-grid img')).toBeNull();
-      expect(el.querySelector('.category-grid')!.textContent).toContain('Limpeza');
+      expect(el.querySelector('.customer-home__categories img')).toBeNull();
+      expect(el.querySelector('.customer-home__categories')!.textContent).toContain('Limpeza');
     });
 
     it('uma falha nas categorias não impede a agenda', async () => {
@@ -242,8 +244,9 @@ describe('Home', () => {
   });
 
   it('não usa mais os componentes antigos da tela', async () => {
+    categoryService.getCategories.and.returnValue(of({ data: [{ id: 1, name: 'Limpeza', slug: 'limpeza' }] }));
     await setup(of([order('1', 'AGENDADO'), order('2', 'CONCLUIDO')]));
-    for (const legacy of ['app-banner', 'app-card-appointment', 'app-card-service-history', 'app-slider', 'app-button', 'fa-icon']) {
+    for (const legacy of ['app-banner', 'app-card-thumb', 'app-card-appointment', 'app-card-service-history', 'app-slider', 'app-button', 'fa-icon']) {
       expect(el.querySelector(legacy)).withContext(legacy).toBeNull();
     }
   });

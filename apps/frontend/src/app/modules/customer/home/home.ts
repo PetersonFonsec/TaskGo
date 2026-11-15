@@ -13,7 +13,6 @@ import { finalize } from 'rxjs';
 
 import { Address } from '@shared/service/address/address';
 import { UserLoggedService } from '@shared/service/user-logged/user-logged.service';
-import { CardThumb } from '@shared/components/ui/card-thumb/card-thumb/card-thumb';
 import { CategoryService } from '@shared/service/category/category';
 import { ICategory } from '@shared/service/category/category.model';
 import { Order } from '@shared/service/order/order';
@@ -21,6 +20,7 @@ import { OrdersResponse } from '@shared/service/order/order.model';
 import { TgAlertComponent } from '@shared/design-system/feedback/tg-alert.component';
 import { TgAppointmentCardComponent } from '@shared/design-system/appointment-card/tg-appointment-card.component';
 import { TgButtonComponent } from '@shared/design-system/button/tg-button.component';
+import { TgCardComponent } from '@shared/design-system/card/tg-card.component';
 import { TgEmptyStateComponent } from '@shared/design-system/empty-state/tg-empty-state.component';
 import {
   TgOrderListComponent,
@@ -36,17 +36,17 @@ import { customerHomeAgenda } from './customer-home.agenda';
 /**
  * Início do cliente (Etapa 9, tela piloto do Design System): saudação com a
  * busca, a agenda (um pedido em destaque e os demais ativos em lista), as
- * categorias e o histórico com pedidos reais. Só tokens e componentes do DS,
- * exceto o card de categoria, que ainda não tem equivalente.
+ * categorias (card do DS com imagem e nome) e o histórico com pedidos
+ * reais. Só tokens e componentes do DS.
  */
 @Component({
   selector: 'app-home',
   imports: [
     RouterLink,
-    CardThumb,
     TgAlertComponent,
     TgAppointmentCardComponent,
     TgButtonComponent,
+    TgCardComponent,
     TgEmptyStateComponent,
     TgLoadingComponent,
     TgLoadingSkeletonDirective,

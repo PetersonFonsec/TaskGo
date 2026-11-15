@@ -135,24 +135,46 @@
   }
 }
 
-.category-grid {
+.customer-home__categories {
   display: grid;
   gap: var(--tg-space-4);
-  grid-template-columns: repeat(auto-fit, minmax(230px, 1fr));
+  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
   margin: 0;
   padding: 0;
   list-style: none;
+}
 
-  a {
+// Card de categoria (proposta da Etapa 9): imagem em cima, nome embaixo.
+// O a[tgCard] dá superfície, borda, hover e foco; aqui só o recheio.
+.customer-home__category {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  padding: 0;
+  overflow: hidden;
+  text-decoration: none;
+}
+
+.customer-home__category-art {
+  display: block;
+  height: 160px;
+  background: var(--tg-bg-subtle);
+
+  img {
     display: block;
+    width: 100%;
     height: 100%;
-    border-radius: var(--tg-radius-lg);
-
-    &:focus-visible {
-      outline: 2px solid var(--tg-focus-ring);
-      outline-offset: 2px;
-    }
+    object-fit: cover;
+    object-position: center;
   }
+}
+
+.customer-home__category-name {
+  padding: var(--tg-space-3) var(--tg-space-4);
+  color: var(--tg-text-primary);
+  font-size: var(--tg-type-body-size);
+  line-height: var(--tg-type-body-line);
+  font-weight: var(--tg-font-weight-bold);
 }
 
 // Duas colunas na agenda quando cabe o card (540) e a lista.
@@ -185,7 +207,12 @@
     align-self: stretch;
   }
 
-  .category-grid {
+  .customer-home__categories {
     grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: var(--tg-space-3);
+  }
+
+  .customer-home__category-art {
+    height: 120px;
   }
 }

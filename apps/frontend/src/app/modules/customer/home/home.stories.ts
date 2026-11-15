@@ -45,9 +45,14 @@ const ORDERS: OrdersResponse = [
   order('1032', 'CANCELADO', 'Troca de fechadura', 'Bruno Alves', -28, 15),
 ];
 
-const CATEGORIES = ['Limpeza', 'Reparos', 'Pets', 'Jardinagem'].map(
-  (name, id) => ({ id, name, slug: name.toLowerCase(), thumb: null }) as unknown as ICategory,
-);
+// Imagens reais das categorias; a última fica sem imagem para mostrar o fundo neutro.
+const thumb = (slug: string) => `https://imagedelivery.net/Bpbv9d8J9NqFhm--zUdxEA/${slug}/public`;
+const CATEGORIES = [
+  ['Limpeza', 'limpeza', thumb('limpeza')],
+  ['Reparos', 'reparos', thumb('reparo')],
+  ['Pets', 'pets', thumb('pets')],
+  ['Jardinagem', 'jardinagem', null],
+].map(([name, slug, image], id) => ({ id, name, slug, thumb: image }) as unknown as ICategory);
 
 function providers(orders: Observable<OrdersResponse>, hasAddress = true) {
   return [

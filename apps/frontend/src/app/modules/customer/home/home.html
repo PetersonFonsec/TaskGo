@@ -106,11 +106,21 @@
       </div>
     </header>
 
-    <ul class="category-grid">
+    <ul class="customer-home__categories">
       @for (category of categories(); track category.slug) {
         <li>
-          <a routerLink="/customer/search" [queryParams]="{ categoria: category.slug }">
-            <app-card-thumb [title]="category.name" [image]="category.thumb" />
+          <a
+            tgCard
+            class="customer-home__category"
+            [routerLink]="searchLink"
+            [queryParams]="{ categoria: category.slug }"
+          >
+            <span class="customer-home__category-art">
+              @if (category.thumb) {
+                <img [src]="category.thumb" alt="" loading="lazy" decoding="async" />
+              }
+            </span>
+            <span class="customer-home__category-name">{{ category.name }}</span>
           </a>
         </li>
       }
