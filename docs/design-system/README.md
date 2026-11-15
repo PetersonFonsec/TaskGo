@@ -248,7 +248,15 @@ Regras:
     atributo é da tela; o componente não o altera.
   - `loading`: não usa `disabled`, para o foco continuar no botão. Ele fica
     com `aria-busy` e `aria-disabled`, e a ativação é bloqueada do mesmo
-    jeito. Ao terminar, o `aria-disabled` volta ao valor que a tela tinha.
+    jeito.
+- Contrato dos atributos durante o carregamento: `aria-disabled` e
+  `aria-describedby` são da tela. O botão sobrepõe `aria-disabled="true"` e
+  soma o id da descrição "Carregando" ao fim do `aria-describedby`. Se a tela
+  mudar um deles no meio do carregamento (por binding ou direto no DOM), o
+  botão guarda o novo valor e mantém a sobreposição. Ao terminar, cada
+  atributo fica com o último valor da tela, nunca com um valor antigo, e
+  sem ids repetidos. Para isso, enquanto carrega, o botão observa só esses
+  dois atributos do próprio elemento e para de observar ao terminar.
 - Carregando não troca o nome do botão. O conteúdo fica transparente
   (`opacity: 0`, que mantém o texto na árvore de acessibilidade), então
   "Solicitar serviço" continua "Solicitar serviço". O estado vai à parte:
@@ -262,15 +270,25 @@ Regras:
 - Movimento reduzido: com `prefers-reduced-motion: reduce`, o indicador para
   de girar e fica como um anel aberto parado, junto com o cursor de
   progresso.
-- Botão só de ícone (`iconOnly`) precisa de nome: `aria-label="Fechar"` ou
-  `aria-labelledby` apontando para um texto visível. Em desenvolvimento, o
-  componente avisa no console quando o nome falta, está vazio ou só tem
-  espaços, ou quando o `aria-labelledby` aponta para um id inexistente ou
-  sem texto. Ele reavalia quando `iconOnly` muda e quando esses dois
-  atributos mudam no próprio botão, e avisa uma vez a cada vez que o botão
-  entra no estado inválido. Mudanças só no texto do elemento referenciado
-  não disparam nova verificação. O componente nunca cria um nome sozinho, e
-  a verificação não existe no build de produção.
+- Botão só de ícone (`iconOnly`) precisa de nome acessível. Use
+  `aria-label="Fechar"` ou `aria-labelledby` apontando para um texto. Em
+  desenvolvimento, o componente calcula o nome como o navegador
+  (`accessible-name.ts`, recorte do algoritmo accname 1.2 conferido contra a
+  árvore de acessibilidade do Chrome) e avisa no console quando ele sai
+  vazio. Isso cobre:
+  - `aria-labelledby` com vários ids e precedência sobre `aria-label`;
+  - ids inexistentes e textos vazios ou só com espaços;
+  - alvo escondido citado direto (conta) e texto escondido dentro de um
+    alvo visível (não conta);
+  - `aria-label` e `alt` dentro do alvo;
+  - `<label for>` e `title`, que também dão nome.
+
+  O aviso sai uma vez a cada vez que o botão entra no estado inválido. Ele
+  reavalia quando `iconOnly` muda e quando `aria-label`, `aria-labelledby`
+  ou `title` mudam no próprio botão. Mudanças só no texto do elemento
+  referenciado ou num `<label>` não disparam nova verificação. Texto vindo
+  de CSS (`::before`) fica fora do cálculo. O componente nunca cria um nome
+  sozinho, e a verificação não existe no build de produção.
 - O bloqueio atua só no `click` (a ativação), na fase de captura, antes dos
   handlers e do `routerLink`. Teclas como Tab e as setas não são canceladas.
 - Perigo sólido no prestador é coral com texto escuro, porque o vermelho do

@@ -1,5 +1,6 @@
 import { Component, signal } from '@angular/core';
 import { ComponentFixture, TestBed } from '@angular/core/testing';
+import { accessibleName, idRefs } from './accessible-name';
 import { TgButtonComponent, type TgButtonAppearance } from './tg-button.component';
 
 @Component({
@@ -34,34 +35,9 @@ class HostComponent {
   clicks = 0;
 }
 
-/**
- * Nome acessível como o navegador calcula para um botão (accname 1.2), no
- * subconjunto que o tgButton usa: aria-labelledby, depois aria-label, depois
- * o conteúdo, sem nós escondidos (aria-hidden, hidden, display:none,
- * visibility:hidden). Basta para pegar o bug original: o conteúdo com
- * visibility:hidden saía do nome e sobrava só "Carregando".
- */
-function accessibleName(el: HTMLElement): string {
-  const ids = el.getAttribute('aria-labelledby')?.trim().split(/\s+/).filter(Boolean) ?? [];
-  const fromRefs = ids.map((id) => document.getElementById(id)?.textContent ?? '').join(' ');
-  return normalize(fromRefs) || normalize(el.getAttribute('aria-label') ?? '') || normalize(contentOf(el));
-}
-
-const contentOf = (el: Element) => Array.from(el.childNodes).map(nameFromContent).join(' ');
-
-function nameFromContent(node: Node): string {
-  if (node.nodeType === Node.TEXT_NODE) return node.textContent ?? '';
-  if (!(node instanceof HTMLElement || node instanceof SVGElement)) return '';
-  if (node.getAttribute('aria-hidden') === 'true' || node.hasAttribute('hidden')) return '';
-  const style = getComputedStyle(node);
-  if (style.display === 'none' || style.visibility === 'hidden') return '';
-  return node.getAttribute('aria-label') ?? contentOf(node);
-}
-
 /** Descrição: texto de aria-describedby, que inclui alvos escondidos. */
 function accessibleDescription(el: HTMLElement): string {
-  const ids = el.getAttribute('aria-describedby')?.trim().split(/\s+/).filter(Boolean) ?? [];
-  return normalize(ids.map((id) => document.getElementById(id)?.textContent ?? '').join(' '));
+  return normalize(idRefs(el.getAttribute('aria-describedby')).map((id) => document.getElementById(id)?.textContent ?? '').join(' '));
 }
 
 const normalize = (text: string) => text.replace(/\s+/g, ' ').trim();
@@ -93,6 +69,40 @@ class IconOnlyHostComponent {
   readonly labelledBy = signal<string | null>(null);
   readonly refText = signal('Fechar janela');
 }
+
+/** A tela controla aria-disabled e aria-describedby por binding. */
+@Component({
+  imports: [TgButtonComponent],
+  template: `
+    <span id="d1">Taxa de R$ 5</span>
+    <span id="d2">Leva 2 minutos</span>
+    <span id="d3">Novo horário</span>
+    <button
+      tgButton
+      type="button"
+      [loading]="loading()"
+      [attr.aria-disabled]="ariaDisabled()"
+      [attr.aria-describedby]="describedBy()"
+      (click)="clicks = clicks + 1"
+    >
+      Solicitar serviço
+    </button>
+    <a tgButton href="#tg-pedido" [loading]="loading()" [attr.aria-disabled]="linkDisabled()" (click)="clicks = clicks + 1">
+      Ver pedido
+    </a>
+  `,
+})
+class ScreenStateHostComponent {
+  readonly loading = signal(false);
+  readonly ariaDisabled = signal<'true' | 'false' | null>(null);
+  readonly linkDisabled = signal<'true' | null>('true');
+  readonly describedBy = signal<string | null>(null);
+  clicks = 0;
+}
+
+/** Botão só de ícone cujo template cada caso de nome define. */
+@Component({ imports: [TgButtonComponent], template: '' })
+class NameCaseHostComponent {}
 
 describe('TgButtonComponent', () => {
   let fixture: ComponentFixture<HostComponent>;
@@ -427,6 +437,213 @@ describe('TgButtonComponent', () => {
     });
   });
 
+  describe('estado da tela durante o carregamento', () => {
+    let screenFixture: ComponentFixture<ScreenStateHostComponent>;
+    let screen: ScreenStateHostComponent;
+    let btn: HTMLButtonElement;
+    let link: HTMLAnchorElement;
+
+    // A tela muda atributos por binding; o componente acompanha por
+    // MutationObserver, que entrega os registros numa microtarefa.
+    const render = async () => {
+      screenFixture.detectChanges();
+      await new Promise((resolve) => setTimeout(resolve));
+    };
+    const loading = async (value: boolean) => {
+      screen.loading.set(value);
+      await render();
+    };
+    const describedIds = () => idRefs(btn.getAttribute('aria-describedby'));
+    const ownIds = () => describedIds().filter((id) => id.startsWith('tg-button-status-'));
+
+    beforeEach(async () => {
+      screenFixture = TestBed.createComponent(ScreenStateHostComponent);
+      screen = screenFixture.componentInstance;
+      await render();
+      btn = screenFixture.nativeElement.querySelector('button');
+      link = screenFixture.nativeElement.querySelector('a');
+    });
+
+    describe('aria-disabled', () => {
+      for (const [inicial, esperado] of [
+        [null, null],
+        ['false', 'false'],
+        ['true', 'true'],
+      ] as const) {
+        it(`${inicial ?? 'ausente'} antes: "true" no carregamento e ${esperado ?? 'ausente'} depois`, async () => {
+          screen.ariaDisabled.set(inicial);
+          await render();
+
+          await loading(true);
+          expect(btn.getAttribute('aria-disabled')).toBe('true');
+
+          await loading(false);
+          expect(btn.getAttribute('aria-disabled')).toBe(esperado);
+        });
+      }
+
+      it('a tela torna indisponível durante o carregamento: continua indisponível depois', async () => {
+        screen.ariaDisabled.set('false');
+        await render();
+        await loading(true);
+
+        screen.ariaDisabled.set('true');
+        await render();
+        await loading(false);
+
+        expect(btn.getAttribute('aria-disabled')).toBe('true');
+        btn.click();
+        expect(screen.clicks).toBe(0);
+      });
+
+      it('a tela libera durante o carregamento: volta a funcionar depois', async () => {
+        screen.ariaDisabled.set('true');
+        await render();
+        await loading(true);
+
+        screen.ariaDisabled.set(null);
+        await render();
+        expect(btn.getAttribute('aria-disabled')).toBe('true'); // ainda carregando
+        btn.click();
+        expect(screen.clicks).toBe(0);
+
+        await loading(false);
+        expect(btn.hasAttribute('aria-disabled')).toBeFalse();
+        btn.click();
+        expect(screen.clicks).toBe(1);
+      });
+
+      it('mudança da tela e fim do carregamento no mesmo ciclo', async () => {
+        await loading(true);
+        screen.ariaDisabled.set('true');
+        screen.loading.set(false);
+        await render();
+        expect(btn.getAttribute('aria-disabled')).toBe('true');
+      });
+
+      it('mudança direta no DOM pela tela também vale', async () => {
+        await loading(true);
+        btn.setAttribute('aria-disabled', 'true');
+        await loading(false);
+        expect(btn.getAttribute('aria-disabled')).toBe('true');
+      });
+
+      it('carregamento ligado e desligado várias vezes, com mudanças no meio', async () => {
+        const sequence: Array<'true' | 'false' | null> = ['true', null, 'false', 'true', null];
+        for (const value of sequence) {
+          await loading(true);
+          screen.ariaDisabled.set(value);
+          await render();
+          expect(btn.getAttribute('aria-disabled')).toBe('true');
+          await loading(false);
+          expect(btn.getAttribute('aria-disabled')).toBe(value);
+        }
+        expect(describedIds()).toEqual([]);
+      });
+
+      it('link indisponível não navega nem chama o handler em nenhuma fase', async () => {
+        const activate = () => {
+          const event = new MouseEvent('click', { bubbles: true, cancelable: true });
+          link.dispatchEvent(event);
+          return event.defaultPrevented;
+        };
+        expect(activate()).toBeTrue();
+        await loading(true);
+        expect(activate()).toBeTrue();
+        await loading(false);
+        expect(activate()).toBeTrue();
+        expect(link.getAttribute('aria-disabled')).toBe('true');
+        expect(screen.clicks).toBe(0);
+      });
+
+      it('mantém foco e nome em todas as fases', async () => {
+        btn.focus();
+        await loading(true);
+        screen.ariaDisabled.set('true');
+        await render();
+        expect(document.activeElement).toBe(btn);
+        expect(accessibleName(btn)).toBe('Solicitar serviço');
+        await loading(false);
+        expect(document.activeElement).toBe(btn);
+        expect(accessibleName(btn)).toBe('Solicitar serviço');
+      });
+    });
+
+    describe('aria-describedby', () => {
+      it('sem descrição: só "Carregando" durante, nada depois', async () => {
+        await loading(true);
+        expect(ownIds().length).toBe(1);
+        expect(accessibleDescription(btn)).toBe('Carregando');
+
+        await loading(false);
+        expect(btn.hasAttribute('aria-describedby')).toBeFalse();
+      });
+
+      for (const inicial of ['d1', 'd1 d2']) {
+        it(`com "${inicial}": soma "Carregando" e volta ao valor da tela`, async () => {
+          screen.describedBy.set(inicial);
+          await render();
+          const description = accessibleDescription(btn);
+
+          await loading(true);
+          expect(describedIds().slice(0, -1).join(' ')).toBe(inicial);
+          expect(accessibleDescription(btn)).toBe(`${description} Carregando`);
+
+          await loading(false);
+          expect(btn.getAttribute('aria-describedby')).toBe(inicial);
+          expect(accessibleDescription(btn)).toBe(description);
+        });
+      }
+
+      for (const [caso, antes, durante] of [
+        ['alterada', 'd1', 'd2'],
+        ['removida', 'd1', null],
+        ['adicionada', null, 'd3'],
+        ['ampliada', 'd1', 'd1 d3'],
+      ] as const) {
+        it(`descrição ${caso} pela tela durante o carregamento`, async () => {
+          screen.describedBy.set(antes);
+          await render();
+          await loading(true);
+
+          screen.describedBy.set(durante);
+          await render();
+          const daTela = idRefs(durante);
+          expect(describedIds()).toEqual([...daTela, ownIds()[0]]);
+          expect(ownIds().length).toBe(1);
+
+          await loading(false);
+          expect(btn.getAttribute('aria-describedby')).toBe(durante);
+          expect(ownIds()).toEqual([]);
+          expect(accessibleName(btn)).toBe('Solicitar serviço');
+        });
+      }
+
+      it('mudança da tela e fim do carregamento no mesmo ciclo', async () => {
+        screen.describedBy.set('d1');
+        await render();
+        await loading(true);
+        screen.describedBy.set('d2');
+        screen.loading.set(false);
+        await render();
+        expect(btn.getAttribute('aria-describedby')).toBe('d2');
+      });
+
+      it('nunca repete ids, mesmo com vários ciclos', async () => {
+        screen.describedBy.set('d1 d2');
+        await render();
+        for (let i = 0; i < 3; i++) {
+          await loading(true);
+          const ids = describedIds();
+          expect(new Set(ids).size).toBe(ids.length);
+          expect(ownIds().length).toBe(1);
+          await loading(false);
+          expect(btn.getAttribute('aria-describedby')).toBe('d1 d2');
+        }
+      });
+    });
+  });
+
   it('renderiza o ícone como decorativo', () => {
     host.iconStart.set('arrow-right');
     fixture.detectChanges();
@@ -434,4 +651,45 @@ describe('TgButtonComponent', () => {
     expect(svg).not.toBeNull();
     expect(svg?.getAttribute('aria-hidden')).toBe('true');
   });
+});
+
+describe('TgButtonComponent: nome de iconOnly conforme a especificação', () => {
+  // Cada caso foi conferido contra a árvore de acessibilidade do Chrome.
+  const cases: Array<[string, string, string]> = [
+    ['aria-label', `<button tgButton iconStart="x" [iconOnly]="true" aria-label="Fechar"></button>`, 'Fechar'],
+    ['aria-labelledby', `<span id="r">Fechar janela</span><button tgButton iconStart="x" [iconOnly]="true" aria-labelledby="r"></button>`, 'Fechar janela'],
+    ['aria-label vazio', `<button tgButton iconStart="x" [iconOnly]="true" aria-label=""></button>`, ''],
+    ['aria-label só com espaços', `<button tgButton iconStart="x" [iconOnly]="true" aria-label="   "></button>`, ''],
+    ['aria-labelledby inexistente', `<button tgButton iconStart="x" [iconOnly]="true" aria-labelledby="nada"></button>`, ''],
+    ['aria-labelledby vazio', `<span id="r">   </span><button tgButton iconStart="x" [iconOnly]="true" aria-labelledby="r"></button>`, ''],
+    ['vários ids', `<span id="a">Fechar</span><span id="b">janela</span><button tgButton iconStart="x" [iconOnly]="true" aria-labelledby="a b"></button>`, 'Fechar janela'],
+    ['vários ids, um inexistente', `<span id="a">Fechar</span><button tgButton iconStart="x" [iconOnly]="true" aria-labelledby="nada a"></button>`, 'Fechar'],
+    ['aria-labelledby vence aria-label', `<span id="a">Fechar janela</span><button tgButton iconStart="x" [iconOnly]="true" aria-labelledby="a" aria-label="X"></button>`, 'Fechar janela'],
+    ['aria-labelledby vazio cai no aria-label', `<span id="a"></span><button tgButton iconStart="x" [iconOnly]="true" aria-labelledby="a" aria-label="Fechar"></button>`, 'Fechar'],
+    ['alvo com hidden', `<span id="a" hidden>Fechar</span><button tgButton iconStart="x" [iconOnly]="true" aria-labelledby="a"></button>`, 'Fechar'],
+    ['alvo com display:none e filhos', `<span id="a" style="display:none">Fechar <b>janela</b></span><button tgButton iconStart="x" [iconOnly]="true" aria-labelledby="a"></button>`, 'Fechar janela'],
+    ['alvo com aria-hidden', `<span id="a" aria-hidden="true">Fechar</span><button tgButton iconStart="x" [iconOnly]="true" aria-labelledby="a"></button>`, 'Fechar'],
+    ['alvo visível com texto só escondido', `<span id="a"><span hidden>Fechar</span></span><button tgButton iconStart="x" [iconOnly]="true" aria-labelledby="a"></button>`, ''],
+    ['alvo com aria-label', `<span id="a" aria-label="Fechar"></span><button tgButton iconStart="x" [iconOnly]="true" aria-labelledby="a"></button>`, 'Fechar'],
+    ['alvo com imagem de alt', `<span id="a"><img alt="Fechar" src="data:," /></span><button tgButton iconStart="x" [iconOnly]="true" aria-labelledby="a"></button>`, 'Fechar'],
+    ['aria-labelledby não encadeia', `<span id="b">Fechar</span><span id="a" aria-labelledby="b"></span><button tgButton iconStart="x" [iconOnly]="true" aria-labelledby="a"></button>`, ''],
+    ['title', `<button tgButton iconStart="x" [iconOnly]="true" title="Fechar"></button>`, 'Fechar'],
+    ['label associado', `<label for="btn">Fechar</label><button id="btn" tgButton iconStart="x" [iconOnly]="true"></button>`, 'Fechar'],
+    ['sem nome', `<button tgButton iconStart="x" [iconOnly]="true"></button>`, ''],
+  ];
+
+  for (const [caso, template, nome] of cases) {
+    it(`${caso}: ${nome ? `nome "${nome}", sem aviso` : 'sem nome, avisa'}`, async () => {
+      const warn = spyOn(console, 'warn');
+      TestBed.overrideComponent(NameCaseHostComponent, { set: { template } });
+      const caseFixture = TestBed.createComponent(NameCaseHostComponent);
+      caseFixture.detectChanges();
+      await new Promise((resolve) => setTimeout(resolve));
+      const el = caseFixture.nativeElement.querySelector('button') as HTMLButtonElement;
+
+      expect(accessibleName(el)).toBe(nome);
+      const warnings = warn.calls.allArgs().filter(([message]) => String(message).startsWith('tgButton')).length;
+      expect(warnings).toBe(nome ? 0 : 1);
+    });
+  }
 });

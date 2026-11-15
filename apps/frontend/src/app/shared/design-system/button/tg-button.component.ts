@@ -11,6 +11,7 @@ import {
   input,
 } from '@angular/core';
 import type { TgIconName } from '@taskgo/icons';
+import { accessibleName, idRefs } from './accessible-name';
 import { TgIconComponent } from '../icon/tg-icon.component';
 
 export type TgButtonAppearance = 'solid' | 'subtle' | 'outline' | 'ghost';
@@ -91,26 +92,17 @@ export class TgButtonComponent {
   constructor() {
     // Carregando: o nome da ação não muda (o conteúdo só fica transparente).
     // O estado vai à parte: aria-busy, aria-disabled e a descrição
-    // "Carregando" somada ao aria-describedby da tela. Não usamos host
-    // binding para não apagar atributos que a tela tenha colocado; ao
-    // terminar, os dois voltam ao valor anterior.
-    let applied = false;
-    let previousDisabled: string | null = null;
-    let previousDescribedBy: string | null = null;
+    // "Carregando" somada ao aria-describedby da tela (ver LoadingAttributes).
+    let overlay: LoadingAttributes | null = null;
     effect(() => {
-      const el = this.#host.nativeElement;
-      if (this.loading() && !applied) {
-        previousDisabled = el.getAttribute('aria-disabled');
-        previousDescribedBy = el.getAttribute('aria-describedby');
-        el.setAttribute('aria-disabled', 'true');
-        el.setAttribute('aria-describedby', [previousDescribedBy, this.statusId].filter(Boolean).join(' '));
-        applied = true;
-      } else if (!this.loading() && applied) {
-        restoreAttribute(el, 'aria-disabled', previousDisabled);
-        restoreAttribute(el, 'aria-describedby', previousDescribedBy);
-        applied = false;
+      if (this.loading() && !overlay) {
+        overlay = new LoadingAttributes(this.#host.nativeElement, this.statusId);
+      } else if (!this.loading() && overlay) {
+        overlay.stop();
+        overlay = null;
       }
     });
+    this.#destroyRef.onDestroy(() => overlay?.stop());
 
     // Bloqueia só a ativação. Mouse, Enter e Espaço chegam como `click` (é o
     // que o navegador dispara ao ativar button e link), então teclado, foco e
@@ -132,18 +124,18 @@ export class TgButtonComponent {
   }
 
   /**
-   * Avisa quando `iconOnly` fica sem nome acessível. Reavalia quando
-   * `iconOnly` muda (signal) e quando `aria-label` ou `aria-labelledby` do
-   * próprio host mudam (MutationObserver só nesses dois atributos). Avisa uma
-   * vez por entrada no estado inválido.
+   * Avisa quando `iconOnly` fica sem nome acessível (ver accessibleName).
+   * Reavalia quando `iconOnly` muda (signal) e quando `aria-label`,
+   * `aria-labelledby` ou `title` do próprio host mudam (MutationObserver só
+   * nesses atributos). Avisa uma vez por entrada no estado inválido.
    */
   #warnWhenIconOnlyHasNoName() {
     const el = this.#host.nativeElement;
     let warned = false;
     const check = () => {
-      const invalid = this.iconOnly() && !hasAccessibleName(el);
+      const invalid = this.iconOnly() && accessibleName(el) === '';
       if (invalid && !warned) {
-        console.warn('tgButton: botão só de ícone precisa de aria-label ou aria-labelledby com texto.', el);
+        console.warn('tgButton: botão só de ícone precisa de nome acessível (aria-label ou aria-labelledby com texto).', el);
       }
       warned = invalid;
     };
@@ -151,7 +143,7 @@ export class TgButtonComponent {
     afterRenderEffect(check);
     afterNextRender(() => {
       const observer = new MutationObserver(check);
-      observer.observe(el, { attributes: true, attributeFilter: ['aria-label', 'aria-labelledby'] });
+      observer.observe(el, { attributes: true, attributeFilter: ['aria-label', 'aria-labelledby', 'title'] });
       this.#destroyRef.onDestroy(() => observer.disconnect());
     });
   }
@@ -166,22 +158,85 @@ export class TgButtonComponent {
   }
 }
 
-function restoreAttribute(el: HTMLElement, name: string, value: string | null) {
-  if (value === null) el.removeAttribute(name);
-  else el.setAttribute(name, value);
-}
+type SharedAttribute = 'aria-disabled' | 'aria-describedby';
+const SHARED_ATTRIBUTES: SharedAttribute[] = ['aria-disabled', 'aria-describedby'];
 
 /**
- * Nome vindo de `aria-labelledby` (precede) ou `aria-label`, ignorando texto
- * vazio ou só com espaços. Subconjunto do cálculo de nome acessível que cobre
- * botão só de ícone, cujo conteúdo é sempre decorativo.
+ * Atributos que a tela e o botão dividem enquanto ele carrega.
+ *
+ * Contrato: `aria-disabled` e `aria-describedby` são da tela. Durante o
+ * carregamento, o botão sobrepõe `aria-disabled="true"` e soma o id da sua
+ * descrição ao fim do `aria-describedby`. O que a tela escrever nesse meio
+ * tempo (binding ou DOM) vira o novo valor dela, e a sobreposição é
+ * reaplicada. Ao terminar, cada atributo fica com o último valor da tela.
+ *
+ * Como separar as escritas: um MutationObserver só no host, só nesses dois
+ * atributos e só enquanto carrega. Cada escrita do botão é contada; registro
+ * além da conta é da tela. O botão só escreve quando o valor muda, então não
+ * há laço. No fim, `takeRecords()` lê o que a tela escreveu no mesmo ciclo.
  */
-function hasAccessibleName(el: HTMLElement): boolean {
-  const ids = el.getAttribute('aria-labelledby')?.trim().split(/\s+/).filter(Boolean) ?? [];
-  const root = el.getRootNode() as Document | ShadowRoot;
-  const labelledBy = ids
-    .map((id) => root.getElementById?.(id))
-    .map((ref) => ref?.getAttribute('aria-label')?.trim() || ref?.textContent?.trim() || '')
-    .join('');
-  return labelledBy !== '' || !!el.getAttribute('aria-label')?.trim();
+class LoadingAttributes {
+  readonly #screen = new Map<SharedAttribute, string | null>();
+  readonly #pending = new Map<SharedAttribute, number>();
+  readonly #observer =
+    typeof MutationObserver === 'undefined' ? null : new MutationObserver((records) => this.#absorb(records));
+
+  constructor(
+    private readonly el: HTMLElement,
+    private readonly statusId: string,
+  ) {
+    for (const name of SHARED_ATTRIBUTES) this.#screen.set(name, this.#withoutOwn(name, el.getAttribute(name)));
+    this.#observer?.observe(el, { attributes: true, attributeFilter: SHARED_ATTRIBUTES, attributeOldValue: true });
+    for (const name of SHARED_ATTRIBUTES) this.#write(name, this.#overlaid(name));
+  }
+
+  stop() {
+    if (this.#observer) {
+      this.#absorb(this.#observer.takeRecords());
+      this.#observer.disconnect();
+    }
+    for (const name of SHARED_ATTRIBUTES) setAttribute(this.el, name, this.#screen.get(name) ?? null);
+  }
+
+  #overlaid(name: SharedAttribute): string {
+    if (name === 'aria-disabled') return 'true';
+    return [...idRefs(this.#screen.get(name) ?? null), this.statusId].join(' ');
+  }
+
+  #write(name: SharedAttribute, value: string) {
+    if (this.el.getAttribute(name) === value) return;
+    if (this.#observer) this.#pending.set(name, (this.#pending.get(name) ?? 0) + 1);
+    setAttribute(this.el, name, value);
+  }
+
+  #absorb(records: MutationRecord[]) {
+    const changed = new Set<SharedAttribute>();
+    records.forEach((record, index) => {
+      const name = record.attributeName as SharedAttribute;
+      const pending = this.#pending.get(name) ?? 0;
+      if (pending > 0) {
+        this.#pending.set(name, pending - 1);
+        return;
+      }
+      // Valor logo depois desta escrita: o oldValue da próxima do mesmo
+      // atributo ou, se não houver, o valor atual.
+      const next = records.slice(index + 1).find((r) => r.attributeName === name);
+      const value = next ? next.oldValue : this.el.getAttribute(name);
+      this.#screen.set(name, this.#withoutOwn(name, value));
+      changed.add(name);
+    });
+    for (const name of changed) this.#write(name, this.#overlaid(name));
+  }
+
+  /** Tira o id do botão, caso a tela tenha copiado o valor sobreposto. */
+  #withoutOwn(name: SharedAttribute, value: string | null): string | null {
+    if (name !== 'aria-describedby' || value === null) return value;
+    const ids = [...new Set(idRefs(value).filter((id) => id !== this.statusId))];
+    return ids.length ? ids.join(' ') : null;
+  }
+}
+
+function setAttribute(el: HTMLElement, name: string, value: string | null) {
+  if (value === null) el.removeAttribute(name);
+  else el.setAttribute(name, value);
 }
