@@ -1,7 +1,11 @@
+import { DOCUMENT, isPlatformBrowser } from '@angular/common';
 import {
   ChangeDetectionStrategy,
   Component,
+  DestroyRef,
   ElementRef,
+  PLATFORM_ID,
+  afterNextRender,
   computed,
   inject,
   input,
@@ -15,6 +19,9 @@ import { TgNavItem } from './tg-nav-item';
 
 let nextId = 0;
 
+/** Mesmo breakpoint do CSS (`tg-from(expanded)`): abaixo dele o menu não existe. */
+export const TG_ACCOUNT_MENU_MEDIA = '(min-width: 1024px)';
+
 /**
  * Menu da conta na barra do topo (a partir de 1024 px; abaixo, a conta é
  * uma aba do `tg-nav`). Botão com avatar e primeiro nome que abre uma lista
@@ -25,7 +32,9 @@ let nextId = 0;
  * É um disclosure, não um role=menu: o botão tem aria-expanded e
  * aria-controls, e o painel é uma lista comum de links. Esc fecha e devolve
  * o foco ao botão; clique fora, escolher um link ou o foco sair do menu
- * também fecham.
+ * também fecham. Ao sair do layout de tela grande (abaixo de 1024 px, onde
+ * o menu some e a conta vira aba), o menu fecha, para não reaparecer aberto
+ * na volta.
  */
 @Component({
   selector: 'tg-account-menu',
@@ -109,6 +118,24 @@ export class TgAccountMenuComponent {
 
   readonly #host = inject<ElementRef<HTMLElement>>(ElementRef).nativeElement;
   private readonly trigger = viewChild.required<ElementRef<HTMLButtonElement>>('trigger');
+
+  constructor() {
+    // Só no navegador; no servidor não há largura de tela. O listener é
+    // removido quando o componente é destruído.
+    const destroyRef = inject(DestroyRef);
+    const view = inject(DOCUMENT).defaultView;
+    if (!isPlatformBrowser(inject(PLATFORM_ID))) return;
+    afterNextRender(() => {
+      const query = view?.matchMedia?.(TG_ACCOUNT_MENU_MEDIA);
+      if (!query) return;
+      // Fecha sem mover o foco: o botão está oculto abaixo do breakpoint.
+      const onChange = (event: MediaQueryListEvent) => {
+        if (!event.matches) this.close();
+      };
+      query.addEventListener('change', onChange);
+      destroyRef.onDestroy(() => query.removeEventListener('change', onChange));
+    });
+  }
 
   protected readonly firstName = computed(() => this.name().trim().split(/\s+/)[0] ?? '');
   protected readonly initials = computed(() => {

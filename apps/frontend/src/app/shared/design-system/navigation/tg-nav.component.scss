@@ -117,8 +117,9 @@ $tab-bar-height: 72px;
   .tg-nav__link {
     flex-direction: row;
     gap: var(--tg-space-2);
-    height: 40px;
-    min-height: 40px;
+    // Alvo mínimo de 44 px, centrado na barra de 72 px.
+    height: 44px;
+    min-height: 44px;
     padding: 0 14px;
     border-radius: var(--tg-radius-full);
     font-size: var(--tg-type-label-size);
