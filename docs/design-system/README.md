@@ -924,7 +924,7 @@ próximo passo. Carregando é skeleton; falha ao carregar é alerta.
 
 | Componente | Entradas |
 | --- | --- |
-| `tg-empty-state` | `title` (obrigatório), `icon`, `compact`, `level` (2 a 6, padrão 2); texto no conteúdo e ação no slot `[tgEmptyAction]` |
+| `tg-empty-state` | `title` (obrigatório), `icon`, `compact`, `level` (inteiro de 2 a 6, padrão 2; outro valor vira `h2`); texto no conteúdo e ação no slot `[tgEmptyAction]` |
 
 Regras:
 
@@ -933,7 +933,13 @@ Regras:
   `action-subtle`, texto até 360 px e 40 px de respiro em cima e embaixo.
 - Compacto (`compact`) para uma seção dentro de uma tela maior: em linha,
   ícone de 22 px em 44 px, borda tracejada `border-default` e ação à
-  direita; abaixo de 600 px, a ação desce, alinhada ao texto.
+  direita. Ele segue a largura do contêiner, não a da tela: com menos de
+  480 px (num card estreito, por exemplo), a ação desce, alinhada ao texto.
+  Ocupa a largura do contêiner; numa linha flex, dê largura a ele.
+- Textos longos quebram, e a ação quebra linha se não couber.
+- Uma ação só. Em desenvolvimento, mais de uma gera um aviso no console
+  (nenhuma é escondida). A ação condicional vai num `@if` com um único
+  elemento.
 - Título diz o que falta ("Você ainda não fez nenhum pedido"); o texto,
   em uma ou duas linhas, diz o que acontece ou o que fazer.
 - No máximo uma ação, sempre o próximo passo: principal para começar,

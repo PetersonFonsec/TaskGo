@@ -58,7 +58,7 @@ describe('TgEmptyStateComponent', () => {
     expect($('#grande .tg-empty-state__text #acao')).toBeNull();
   });
 
-  it('nível do heading configurável; fora de 2 a 6 volta para h2', () => {
+  it('nível do heading configurável; fora de 2 a 6 volta para h2 (a tabela completa está no spec de layout)', () => {
     expect($('#compacto h3')).not.toBeNull();
     fixture.componentInstance.level.set(5);
     fixture.detectChanges();
@@ -75,7 +75,7 @@ describe('TgEmptyStateComponent', () => {
   });
 
   it('grande: centralizado, círculo de 72 px, texto até 360 px, 40 px de respiro', () => {
-    const host = $('#grande');
+    const host = $('#grande .tg-empty-state__box');
     const style = getComputedStyle(host);
     expect(style.textAlign).toBe('center');
     expect(style.paddingTop).toBe('40px');
@@ -88,7 +88,7 @@ describe('TgEmptyStateComponent', () => {
   });
 
   it('compacto: em linha, borda tracejada, círculo de 44 px e ação à direita', () => {
-    const host = $('#compacto');
+    const host = $('#compacto .tg-empty-state__box');
     expect(getComputedStyle(host).flexDirection).toBe('row');
     expect(getComputedStyle(host).borderTopStyle).toBe('dashed');
     expect(getComputedStyle(host).textAlign).toBe('start');
@@ -111,8 +111,8 @@ describe('TgEmptyStateComponent', () => {
         expect(getComputedStyle(icon).color).toBe(token('--tg-action-subtle-text'));
         expect(getComputedStyle($('#grande .tg-empty-state__title')).color).toBe(token('--tg-text-primary'));
         expect(getComputedStyle($('#grande .tg-empty-state__text')).color).toBe(token('--tg-text-secondary'));
-        expect(getComputedStyle($('#compacto')).borderTopColor).toBe(token('--tg-border-default'));
-        expect(getComputedStyle($('#compacto')).backgroundColor).toBe(token('--tg-bg-surface', 'background-color'));
+        expect(getComputedStyle($('#compacto .tg-empty-state__box')).borderTopColor).toBe(token('--tg-border-default'));
+        expect(getComputedStyle($('#compacto .tg-empty-state__box')).backgroundColor).toBe(token('--tg-bg-surface', 'background-color'));
       } finally {
         restore();
       }

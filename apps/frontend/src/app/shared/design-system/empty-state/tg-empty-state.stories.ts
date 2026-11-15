@@ -70,3 +70,25 @@ export const Compacto: Story = {
       </div>`,
   }),
 };
+
+/** O compacto segue o contêiner: num card de 280 px, a ação desce mesmo numa tela larga. */
+export const CompactoEmCardEstreito: Story = {
+  name: 'Compacto em card estreito',
+  render: () => ({
+    template: `
+      <div style="display:flex;gap:16px;flex-wrap:wrap;align-items:start">
+        <div style="width:280px">
+          <tg-empty-state compact icon="map-pin" title="Nenhum endereço cadastrado" level="3">
+            Adicione um endereço para contratar perto de você.
+            <button tgButton tgEmptyAction appearance="outline" size="sm">Adicionar</button>
+          </tg-empty-state>
+        </div>
+        <div style="width:560px;max-width:100%">
+          <tg-empty-state compact icon="map-pin" title="Nenhum endereço cadastrado" level="3">
+            Adicione um endereço para contratar perto de você.
+            <button tgButton tgEmptyAction appearance="outline" size="sm">Adicionar</button>
+          </tg-empty-state>
+        </div>
+      </div>`,
+  }),
+};

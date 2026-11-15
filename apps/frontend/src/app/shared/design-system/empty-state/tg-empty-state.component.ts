@@ -1,4 +1,15 @@
-import { ChangeDetectionStrategy, Component, booleanAttribute, computed, input } from '@angular/core';
+import {
+  ChangeDetectionStrategy,
+  Component,
+  ElementRef,
+  afterEveryRender,
+  booleanAttribute,
+  computed,
+  inject,
+  input,
+  isDevMode,
+  viewChild,
+} from '@angular/core';
 import type { TgIconName } from '@taskgo/icons';
 import { TgIconComponent } from '../icon/tg-icon.component';
 
@@ -20,7 +31,9 @@ export type TgEmptyStateLevel = 2 | 3 | 4 | 5 | 6;
  * Grande (padrão) quando a lista é o assunto da tela ou numa busca sem
  * resultado; `compact` para uma seção dentro de uma tela maior. No máximo
  * uma ação, sempre o próximo passo. É conteúdo comum: título como heading
- * (`level`, padrão 2), ícone decorativo, sem role de alerta.
+ * (`level`, inteiro de 2 a 6, padrão 2), ícone decorativo, sem role de
+ * alerta. O compacto responde à largura do contêiner: abaixo de 480 px, a
+ * ação desce, alinhada ao texto.
  */
 @Component({
   selector: 'tg-empty-state',
@@ -29,7 +42,10 @@ export type TgEmptyStateLevel = 2 | 3 | 4 | 5 | 6;
   host: {
     '[class]': "compact() ? 'tg-empty-state tg-empty-state--compact' : 'tg-empty-state'",
   },
+  // A caixa interna existe para o compacto: o host é o contêiner da container
+  // query (um elemento não consulta o próprio tamanho).
   template: `
+    <div class="tg-empty-state__box">
     @if (icon(); as name) {
       <span class="tg-empty-state__icon"><tg-icon [name]="name" [size]="compact() ? 22 : 32" /></span>
     }
@@ -41,9 +57,10 @@ export type TgEmptyStateLevel = 2 | 3 | 4 | 5 | 6;
         @case (6) { <h6 class="tg-empty-state__title">{{ title() }}</h6> }
         @default { <h2 class="tg-empty-state__title">{{ title() }}</h2> }
       }
-      <div class="tg-empty-state__text"><ng-content /></div>
+      <div #text class="tg-empty-state__text"><ng-content /></div>
     </div>
-    <div class="tg-empty-state__action"><ng-content select="[tgEmptyAction]" /></div>
+    <div #action class="tg-empty-state__action"><ng-content select="[tgEmptyAction]" /></div>
+    </div>
   `,
   styleUrl: './tg-empty-state.component.scss',
 })
@@ -59,6 +76,37 @@ export class TgEmptyStateComponent {
 
   protected readonly headingLevel = computed(() => {
     const level = Number(this.level());
-    return level >= 2 && level <= 6 ? Math.floor(level) : 2;
+    return Number.isInteger(level) && level >= 2 && level <= 6 ? level : 2;
   });
+
+  private readonly text = viewChild.required<ElementRef<HTMLElement>>('text');
+  private readonly action = viewChild.required<ElementRef<HTMLElement>>('action');
+  #warnedActions = false;
+
+  constructor() {
+    // Depois de cada renderização: o CSS não vê texto, então `:empty` falha
+    // com espaços ou com os marcadores de um @if. Aqui se marca o slot vazio
+    // de verdade (sem texto nem elemento) e, em desenvolvimento, se avisa
+    // quando há mais de uma ação. Não roda no servidor; lá vale o `:empty`.
+    afterEveryRender(() => {
+      const text = this.text().nativeElement;
+      const action = this.action().nativeElement;
+      text.classList.toggle('tg-empty-state__text--empty', isBlank(text));
+      action.classList.toggle('tg-empty-state__action--empty', action.children.length === 0);
+      if (!isDevMode()) return;
+      const many = action.children.length > 1;
+      if (many && !this.#warnedActions) {
+        console.warn(
+          `tg-empty-state "${this.title()}": use no máximo uma ação (${action.children.length} elementos com tgEmptyAction). ` +
+            'Todas continuam na tela; deixe só o próximo passo.',
+        );
+      }
+      this.#warnedActions = many;
+    });
+  }
+}
+
+/** Sem texto visível nem elemento. */
+function isBlank(el: HTMLElement) {
+  return el.children.length === 0 && (el.textContent ?? '').trim() === '';
 }
