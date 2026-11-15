@@ -1,0 +1,124 @@
+// Linha de pedido. Só tokens --tg-*; o tema troca os valores.
+// O layout segue a largura do container: numa coluna estreita o botão desce.
+:host {
+  display: block;
+  min-width: 0;
+  container: tg-order-row / inline-size;
+}
+
+.tg-order-row {
+  position: relative;
+  display: flex;
+  align-items: center;
+  gap: var(--tg-space-4);
+  padding: var(--tg-space-4) var(--tg-space-5);
+  color: var(--tg-text-primary);
+  font-family: var(--tg-font-sans);
+  transition: background-color var(--tg-duration-fast) var(--tg-ease-standard);
+
+  &:hover {
+    background: var(--tg-bg-subtle);
+  }
+
+  // O anel fica na linha inteira (por dentro, porque a lista corta o que sai).
+  &:has(.tg-order-row__link:focus-visible) {
+    outline: 2px solid var(--tg-focus-ring);
+    outline-offset: -2px;
+    border-radius: var(--tg-radius-md);
+  }
+}
+
+.tg-order-row__main {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: var(--tg-space-1);
+}
+
+.tg-order-row__head {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--tg-space-1) var(--tg-space-3);
+
+  // O badge não quebra nem encolhe (regra do badge): o título abre espaço.
+  tg-badge {
+    flex: none;
+  }
+}
+
+// Link esticado: o ::after cobre a linha; o botão fica por cima.
+.tg-order-row__link {
+  min-width: 0;
+  color: inherit;
+  font-size: var(--tg-type-body-size);
+  line-height: var(--tg-type-body-line);
+  font-weight: var(--tg-font-weight-bold);
+  text-decoration: none;
+  // Quebra palavras só quando uma sozinha não cabe; com pouco espaço, o
+  // badge desce para a linha de baixo em vez de partir o título.
+  overflow-wrap: break-word;
+
+  &::after {
+    content: '';
+    position: absolute;
+    inset: 0;
+    z-index: 0;
+  }
+
+  &:focus-visible {
+    outline: none;
+  }
+}
+
+.tg-order-row:hover .tg-order-row__link {
+  text-decoration: underline;
+}
+
+.tg-order-row__meta,
+.tg-order-row__amount {
+  margin: 0;
+  font-size: var(--tg-type-body-sm-size);
+  line-height: var(--tg-type-body-sm-line);
+  overflow-wrap: anywhere;
+}
+
+.tg-order-row__meta {
+  color: var(--tg-text-secondary);
+}
+
+.tg-order-row__amount {
+  color: var(--tg-text-primary);
+  font-weight: var(--tg-font-weight-bold);
+}
+
+.tg-order-row__step {
+  position: relative;
+  z-index: 1;
+  flex: none;
+}
+
+// Botão de 36 px com área de toque de 44 px.
+// (centrada no botão, sem depender da borda dele).
+.tg-order-row__action::before {
+  content: '';
+  position: absolute;
+  top: 50%;
+  right: 0;
+  left: 0;
+  height: var(--tg-control-md);
+  translate: 0 -50%;
+}
+
+@container tg-order-row (max-width: 479.98px) {
+  .tg-order-row {
+    flex-wrap: wrap;
+    padding: var(--tg-space-4);
+    gap: var(--tg-space-3);
+  }
+
+  .tg-order-row__main {
+    flex-basis: 100%;
+  }
+}
