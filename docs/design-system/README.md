@@ -22,7 +22,8 @@ migração tela a tela, que vem nas próximas etapas.
 | 6 | Tokens no código e Storybook | Concluída |
 | 7 | Componentes base: botão e ícones (web) | Concluído (PR #12) |
 | 7 | Componentes base: campo de texto (web) | Concluído (PR #13) |
-| 7 | Componentes base: card (web) | Este PR |
+| 7 | Componentes base: card (web) | Concluído (PR #14) |
+| 7 | Componentes base: badge de status (web) | Este PR |
 | 7 a 10 | Demais componentes base, componentes de domínio, piloto, migração | A fazer |
 
 Atributos de marca: próximo, confiável, direto e caloroso sem ser infantil.
@@ -471,6 +472,75 @@ No app, o card é `ion-card`, estilizado pelos tokens na migração das telas
 web (`app-card`, `card-menu`, `card-detail`, `card-thumb` e os de
 agendamento e histórico) convivem com o `tg-card` até a migração tela a
 tela; os de domínio viram componentes sobre ele na Etapa 8.
+
+### Badge de status
+
+Etiqueta que só mostra: o status de um pedido ou pagamento, ou uma marca
+como "Principal". Nunca é clicável nem recebe foco; o que se escolhe é
+rádio, card de escolha ou chip.
+
+```html
+<tg-badge tone="done">Concluído</tg-badge>
+<tg-badge tone="progress" icon="map-pin">Profissional a caminho</tg-badge>
+<tg-badge>Principal</tg-badge>
+<tg-badge tone="accent">Novo no TaskGo</tg-badge>
+```
+
+| Entrada | Valores | Padrão |
+| --- | --- | --- |
+| `tone` | `waiting`, `confirmed`, `progress`, `done`, `cancelled` (status); `neutral`, `accent` (etiquetas) | `neutral` |
+| `icon` | nome de ícone, opcional e decorativo, antes do texto | — |
+
+Regras:
+
+- Status sempre com texto; a cor reforça, nunca é a única informação.
+- Os tons de status são só os cinco da Etapa 2 (`--tg-status-*`). Status
+  novo entra no mapa abaixo, não ganha cor nova. Etiquetas usam `neutral`
+  (`bg-subtle` com `text-secondary`) ou `accent`, nunca as cores de status.
+- Um status por item. Status desconhecido mostra "Em atualização" no
+  neutro, nunca o código cru.
+- Pílula de 24 px, texto de 13 px (`overline`, o menor da interface) em
+  negrito e sem caixa alta, ícone de 14 px. Não quebra, não encolhe e não
+  corta o texto: o layout abre espaço.
+- O mesmo status usa o mesmo ícone em todo lugar.
+
+Mapa dos status do pedido (aprovado; os textos do cliente são os do app):
+
+| Status | Cliente | Prestador | Tom |
+| --- | --- | --- | --- |
+| `AGUARDANDO_APROVACAO` | Aguardando o profissional | Aguardando sua resposta | `waiting` |
+| `AGUARDANDO_PAGAMENTO` | Aguardando pagamento | Aguardando pagamento | `waiting` |
+| `AGENDADO` | Agendado | Agendado | `confirmed` |
+| `EM_DESLOCAMENTO` | Profissional a caminho | A caminho | `progress` |
+| `EM_ANDAMENTO` | Em andamento | Em andamento | `progress` |
+| `AGUARDANDO_CONFIRMACAO_CLIENTE` | Aguardando sua confirmação | Aguardando o cliente | `waiting` |
+| `CONCLUIDO` | Concluído | Concluído | `done` |
+| `DISPUTA` | Em análise | Em análise | `waiting` |
+| `REJEITADO` | Recusado | Recusado | `cancelled` |
+| `CANCELADO` | Cancelado | Cancelado | `cancelled` |
+| desconhecido | Em atualização | Em atualização | `neutral` |
+
+Outros status: no repasse, "Pronto para receber" é `done`; "Em análise",
+"Sincronizando" e "Pendente" são `waiting`; "Recusada" e "Erro no
+cadastro" são `cancelled`. Serviço ativo é `done` e inativo, `neutral`. O
+mapa vira código com os componentes de domínio (Etapa 8).
+
+Acessibilidade:
+
+- É texto comum: sem role, sem `aria-label` e fora do Tab. O leitor lê o
+  status junto do item ("Instalação de chuveiro, Agendado").
+- O contraste é o dos pares de tokens, testado na lib (4,7 a 7,9:1 no
+  cliente, 7,4 a 14,2:1 no prestador); o badge não usa opacidade.
+- Quando o status muda com a tela aberta, o anúncio é da tela (toast ou
+  região de status), não do badge.
+- Se o contexto não deixar claro que é um status, a tela põe um rótulo
+  antes, visível ou só para leitor de tela: "Situação: Agendado".
+
+No app, o badge continua sendo `ion-badge`, com a aparência dos tokens e o
+mesmo mapa, na migração das telas de pedidos. O `app-badge` do web convive
+com o `tg-badge` até a migração; os usos clicáveis dele (Cliente ou
+Profissional no cadastro, escolha do serviço no perfil) viram rádio
+segmentado e card de escolha nessas migrações.
 
 ## Testes
 
