@@ -1,0 +1,91 @@
+// Barra do topo. Só tokens --tg-*; o tema troca os valores.
+@use 'taskgo-tokens' as tg;
+
+:host {
+  position: sticky;
+  top: 0;
+  z-index: 30;
+  display: block;
+  font-family: var(--tg-font-sans);
+}
+
+.tg-app-bar {
+  display: flex;
+  align-items: center;
+  gap: var(--tg-space-6);
+  box-sizing: border-box;
+  height: 56px;
+  padding: 0 var(--tg-space-2) 0 var(--tg-space-4);
+  border-bottom: 1px solid var(--tg-border-default);
+  background: var(--tg-bg-surface);
+  color: var(--tg-text-primary);
+
+  @include tg.tg-from(expanded) {
+    height: 72px;
+    padding: 0 var(--tg-space-4) 0 var(--tg-space-6);
+  }
+}
+
+.tg-app-bar__brand {
+  display: inline-flex;
+  flex: none;
+  align-items: center;
+  gap: 10px;
+  min-height: 44px;
+  border-radius: var(--tg-radius-sm);
+  color: var(--tg-text-primary);
+  font-size: 20px;
+  line-height: 1;
+  font-weight: var(--tg-font-weight-extrabold);
+  letter-spacing: -0.03em;
+  text-decoration: none;
+
+  &:focus-visible {
+    outline: 2px solid var(--tg-focus-ring);
+    outline-offset: 2px;
+  }
+}
+
+.tg-app-bar__mark {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 32px;
+  height: 32px;
+  border-radius: 10px;
+  background: var(--tg-action-primary);
+  color: var(--tg-text-on-action);
+  font-size: 15px;
+}
+
+// O fim da barra (notificações, conta) vai para a direita.
+.tg-app-bar__end {
+  display: flex;
+  flex: none;
+  align-items: center;
+  gap: var(--tg-space-2);
+  margin-left: auto;
+}
+
+// Fica fora da tela até receber foco; é o primeiro item do Tab.
+.tg-app-bar__skip {
+  position: absolute;
+  top: var(--tg-space-2);
+  left: var(--tg-space-2);
+  z-index: 1;
+  padding: var(--tg-space-2) var(--tg-space-4);
+  border-radius: var(--tg-radius-full);
+  background: var(--tg-action-primary);
+  color: var(--tg-text-on-action);
+  font-size: var(--tg-type-label-size);
+  font-weight: var(--tg-font-weight-bold);
+  text-decoration: none;
+  transform: translateY(-200%);
+
+  &:focus-visible,
+  &:focus {
+    transform: none;
+    outline: 2px solid var(--tg-focus-ring);
+    outline-offset: 2px;
+  }
+}

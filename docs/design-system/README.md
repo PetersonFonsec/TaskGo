@@ -23,7 +23,8 @@ migração tela a tela, que vem nas próximas etapas.
 | 7 | Componentes base: botão e ícones (web) | Concluído (PR #12) |
 | 7 | Componentes base: campo de texto (web) | Concluído (PR #13) |
 | 7 | Componentes base: card (web) | Concluído (PR #14) |
-| 7 | Componentes base: badge de status (web) | Este PR |
+| 7 | Componentes base: badge de status (web) | Concluído (PR #15) |
+| 7 | Componentes base: navegação (web) | Este PR |
 | 7 a 10 | Demais componentes base, componentes de domínio, piloto, migração | A fazer |
 
 Atributos de marca: próximo, confiável, direto e caloroso sem ser infantil.
@@ -541,6 +542,81 @@ mesmo mapa, na migração das telas de pedidos. O `app-badge` do web convive
 com o `tg-badge` até a migração; os usos clicáveis dele (Cliente ou
 Profissional no cadastro, escolha do serviço no perfil) viram rádio
 segmentado e card de escolha nessas migrações.
+
+### Navegação
+
+Os mesmos destinos no web e no app, na mesma ordem. A partir de 1024 px, uma
+barra de topo de 72 px; abaixo, um topo de 56 px e uma barra de abas fixa
+embaixo, com a Conta como última aba.
+
+```html
+<tg-app-bar homeLink="/customer">
+  <tg-nav [items]="destinos" [account]="{ label: 'Conta', icon: 'user-circle', link: perfil }" />
+  <app-notification />
+  <tg-account-menu [name]="usuario.nome" detail="Cliente" [links]="linksDaConta" (signOut)="sair()" />
+</tg-app-bar>
+<main id="conteudo" class="tg-nav-offset">…</main>
+```
+
+```ts
+const destinos: TgNavItem[] = [
+  { label: 'Início', icon: 'house', link: '/customer', exact: true },
+  { label: 'Buscar', icon: 'magnifying-glass', link: '/customer/search' },
+  { label: 'Pedidos', icon: 'receipt', link: ['/general', id, 'history'] },
+  { label: 'Favoritos', icon: 'heart', link: '/customer/favorites' },
+];
+```
+
+| Componente | Entradas |
+| --- | --- |
+| `tg-app-bar` | `homeLink` (destino da marca), `mainId` (id do `main`, padrão `conteudo`) |
+| `tg-nav` | `items` (até quatro destinos), `account` (aba da Conta, só abaixo de 1024 px), `label` (padrão `Principal`) |
+| `tg-account-menu` | `name` (obrigatório), `detail`, `photo`, `links`, `signOutLabel`; saída `signOut` |
+
+Destinos aprovados:
+
+| Modo | Destinos | Conta |
+| --- | --- | --- |
+| Cliente | Início, Buscar, Pedidos, Favoritos | Dados pessoais, Endereços, Sair da conta |
+| Prestador | Agenda, Pedidos, Serviços, Ganhos | Dados pessoais, Endereços, Sair da conta |
+
+"Ganhos" é o nome da tela Recebimentos na navegação: cinco abas com texto de
+13 px precisam caber em 360 px. A tela continua com o título "Recebimentos".
+
+Regras:
+
+- Atual: pílula `action-subtle`, ícone preenchido e texto em negrito. Os
+  demais: ícone em contorno e `text-secondary`.
+- Rótulo sempre visível, sem cortar; nada só de ícone na barra de abas.
+- "Sair da conta" fica no menu da conta, separado dos destinos.
+- Telas internas (pedido, perfil do prestador, pagamento) não mostram a
+  barra de abas: a tela não renderiza o `tg-nav` e usa um topo com voltar e
+  título (com a migração do shell).
+- Abaixo de 1024 px, o conteúdo usa a classe `tg-nav-offset`, que abre
+  espaço para a barra de abas e para a área segura do iOS.
+
+Acessibilidade:
+
+- Destinos são links dentro de `nav aria-label="Principal"`, com
+  `aria-current="page"` no atual (o `routerLinkActive` cuida disso). A barra
+  de abas é o mesmo `nav` de links, não um `role="tablist"`.
+- "Pular para o conteúdo" é o primeiro item do Tab. Ele fica fora da tela
+  até receber foco e foca o `main` (que ganha `tabindex="-1"`) sem trocar a
+  rota.
+- O menu da conta é um botão com `aria-expanded` e `aria-controls` que
+  mostra uma lista comum de links (não `role="menu"`). O nome do botão é
+  "Conta de" mais o primeiro nome visível. Esc fecha e devolve o foco ao
+  botão; clique fora, escolher um link ou o foco sair do menu também
+  fecham.
+- Alvos de pelo menos 44 px e o mesmo anel de foco do botão.
+- O botão de notificações é da tela; o nome inclui a contagem, como
+  "Notificações, 2 novas".
+
+No app, a navegação é `ion-tabs` com `ion-tab-bar slot="bottom"`, os mesmos
+destinos e os ícones Phosphor, estilizada pelos tokens na migração da home.
+O `app-header` do web (que ainda mostra a marca antiga "Proxi") e o
+`app-profile-header` (com nome e foto fixos no código) convivem com estes
+componentes até a migração do shell autenticado.
 
 ## Testes
 

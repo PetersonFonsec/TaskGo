@@ -1,0 +1,162 @@
+// Menu da conta. Só tokens --tg-*; o tema troca os valores.
+@use 'taskgo-tokens' as tg;
+
+// Abaixo de 1024 px a conta é uma aba do tg-nav.
+:host {
+  position: relative;
+  display: none;
+  font-family: var(--tg-font-sans);
+
+  @include tg.tg-from(expanded) {
+    display: block;
+  }
+}
+
+.tg-account__trigger {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--tg-space-2);
+  height: 44px;
+  margin: 0;
+  padding: 0 var(--tg-space-2) 0 var(--tg-space-1);
+  border: 0;
+  border-radius: var(--tg-radius-full);
+  background: transparent;
+  color: var(--tg-text-primary);
+  font: inherit;
+  font-size: var(--tg-type-label-size);
+  font-weight: var(--tg-font-weight-bold);
+  cursor: pointer;
+
+  &:hover,
+  &[aria-expanded='true'] {
+    background: var(--tg-bg-subtle);
+  }
+
+  &:focus-visible {
+    outline: 2px solid var(--tg-focus-ring);
+    outline-offset: 2px;
+  }
+}
+
+.tg-account__caret {
+  color: var(--tg-text-secondary);
+}
+
+.tg-account__avatar {
+  display: inline-flex;
+  flex: none;
+  align-items: center;
+  justify-content: center;
+  overflow: hidden;
+  width: 36px;
+  height: 36px;
+  border-radius: var(--tg-radius-full);
+  background: var(--tg-action-subtle);
+  color: var(--tg-action-subtle-text);
+  font-size: var(--tg-type-overline-size);
+  font-weight: var(--tg-font-weight-extrabold);
+
+  img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+  }
+}
+
+.tg-account__avatar--lg {
+  width: 40px;
+  height: 40px;
+}
+
+.tg-account__sr {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  clip-path: inset(50%);
+  white-space: nowrap;
+}
+
+.tg-account__panel {
+  position: absolute;
+  top: calc(100% + var(--tg-space-2));
+  right: 0;
+  z-index: 40;
+  box-sizing: border-box;
+  width: 260px;
+  padding: var(--tg-space-2);
+  border: 1px solid var(--tg-border-default);
+  border-radius: var(--tg-radius-lg);
+  background: var(--tg-bg-surface);
+  box-shadow: var(--tg-elevation-2);
+
+  &[hidden] {
+    display: none;
+  }
+}
+
+.tg-account__who {
+  display: flex;
+  align-items: center;
+  gap: var(--tg-space-3);
+  margin-bottom: 6px;
+  padding: 10px var(--tg-space-3) var(--tg-space-3);
+  border-bottom: 1px solid var(--tg-border-default);
+}
+
+.tg-account__identity {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+  color: var(--tg-text-primary);
+  font-size: var(--tg-type-body-sm-size);
+
+  strong {
+    font-size: 15px;
+  }
+
+  span {
+    color: var(--tg-text-secondary);
+    font-size: var(--tg-type-overline-size);
+  }
+}
+
+.tg-account__list {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.tg-account__item {
+  display: flex;
+  align-items: center;
+  gap: var(--tg-space-3);
+  box-sizing: border-box;
+  width: 100%;
+  min-height: 44px;
+  margin: 0;
+  padding: 0 14px;
+  border: 0;
+  border-radius: 10px;
+  background: transparent;
+  color: var(--tg-text-primary);
+  font: inherit;
+  font-size: var(--tg-type-label-size);
+  font-weight: var(--tg-font-weight-medium);
+  text-align: left;
+  text-decoration: none;
+  cursor: pointer;
+
+  &:hover {
+    background: var(--tg-bg-subtle);
+  }
+
+  &:focus-visible {
+    outline: 2px solid var(--tg-focus-ring);
+    outline-offset: -2px;
+  }
+}
