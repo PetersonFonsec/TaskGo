@@ -26,7 +26,8 @@ migração tela a tela, que vem nas próximas etapas.
 | 7 | Componentes base: badge de status (web) | Concluído (PR #15) |
 | 7 | Componentes base: navegação (web) | Concluído (PR #16) |
 | 7 | Componentes base: abas (web) | Concluído (PR #17) |
-| 7 | Componentes base: diálogo e painel (web) | Este PR |
+| 7 | Componentes base: diálogo e painel (web) | Concluído (PR #18) |
+| 7 | Componentes base: toast e alerta (web) | Este PR |
 | 7 a 10 | Demais componentes base, componentes de domínio, piloto, migração | A fazer |
 
 Atributos de marca: próximo, confiável, direto e caloroso sem ser infantil.
@@ -766,6 +767,75 @@ O `app-drawer`, a confirmação montada em `div` da tela "Confirmar conclusão"
 e o `app-full-modal` convivem com estes componentes até as migrações dessas
 telas. No app, os equivalentes são `ion-alert` e `ion-modal` com os tokens,
 quando o app ganhar confirmações e filtros.
+
+### Toast e alerta
+
+O toast confirma uma ação que deu certo ou dá uma informação passageira. O
+alerta explica um problema ou um estado e fica na tela até deixar de valer.
+Erro nunca é toast: é alerta, perto de onde aconteceu.
+
+```html
+<tg-alert tone="danger" title="Não foi possível carregar seus pedidos">
+  Verifique sua conexão e tente de novo.
+  <button tgButton tgAlertAction appearance="outline" size="sm" (click)="recarregar()">Tentar de novo</button>
+</tg-alert>
+
+<tg-alert tone="info" title="Seu perfil está em análise" dismissible>
+  Você pode receber pedidos assim que a análise terminar.
+</tg-alert>
+```
+
+```ts
+private readonly toast = inject(TgToast);
+
+salvar() {
+  this.toast.show('Endereço salvo.');
+}
+cancelar() {
+  this.toast.show('Pedido cancelado.', { action: 'Desfazer', onAction: () => this.desfazer() });
+}
+```
+
+A `<tg-toast-region />` fica uma vez no shell do app. Ela entra no shell na
+primeira tela que usar toast; este PR não muda telas.
+
+| Componente | Entradas e saídas |
+| --- | --- |
+| `tg-alert` | `tone` (`info`, `success`, `warning` ou `danger`), `title`, `dismissible`, `closeLabel`; slot `[tgAlertAction]`; saída `closed` |
+| `TgToast` | `show(mensagem, { tone, action, onAction, duration })` devolve `{ dismiss() }`; `dismiss()`; `current` |
+| `tg-toast-region` | sem entradas |
+
+Regras:
+
+- Toast claro (superfície com borda e `elevation-2`), embaixo e no centro,
+  até 480 px. No celular e no tablet, com a barra de abas, fica acima dela.
+- Um toast por vez: o novo substitui o anterior. Tons `success` (padrão) e
+  `info`; não há toast de erro.
+- Fica 6 s, ou 10 s com ação, e nunca menos de 6 s. Pausa com o mouse ou o
+  foco em cima e volta a contar quando saem. Esc e o "Fechar" de 44 px
+  fecham.
+- No máximo uma ação, curta ("Desfazer"). Ação que a pessoa não pode perder
+  não vai em toast.
+- Alerta com as cores de feedback dos tokens, raio de 16 px, ícone por tom,
+  título opcional e ações abaixo do texto. Só os informativos têm
+  `dismissible`.
+
+Acessibilidade:
+
+- O toast é anunciado por uma região `role="status"` (`aria-live="polite"`)
+  que existe desde o carregamento, então o primeiro toast também é lido.
+  Ele não rouba o foco; ao fechar com o foco dentro, o foco volta para onde
+  estava antes.
+- Alerta `danger` é `role="alert"`; os demais, `role="status"`. Presente
+  desde o carregamento, é conteúdo e não é anunciado. Ao fechar com o foco
+  dentro, o foco vai para o próximo controle da página.
+- O `LiveAnnouncer` do CDK estava escondido com `display: none` no
+  `styles.scss` global, o que calava os anúncios. Agora usa o padrão
+  visualmente oculto, e os anúncios voltam a ser lidos.
+
+As mensagens de sucesso feitas na própria tela (pagamento, envio e
+confirmação da conclusão) continuam até as migrações dessas telas. No app,
+o equivalente é `ion-toast` com os tokens.
 
 ## Testes
 

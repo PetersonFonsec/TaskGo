@@ -1,0 +1,121 @@
+// Toast do Design System. Só tokens --tg-*; o tema troca os valores.
+// Sem encapsulamento: tudo fica sob .tg-toast-region.
+
+.tg-toast-region {
+  position: fixed;
+  right: 0;
+  bottom: calc(var(--tg-space-4) + env(safe-area-inset-bottom, 0px));
+  left: 0;
+  z-index: 40;
+  display: flex;
+  justify-content: center;
+  padding: 0 var(--tg-space-3);
+  pointer-events: none;
+  font-family: var(--tg-font-sans);
+}
+
+// Abaixo de 1024 px, com a barra de abas (tg-nav) na página: acima dela.
+@media (max-width: 1023.98px) {
+  body:has(.tg-nav) .tg-toast-region {
+    bottom: calc(72px + env(safe-area-inset-bottom, 0px) + var(--tg-space-4));
+  }
+}
+
+.tg-toast-region__live {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  clip-path: inset(50%);
+  white-space: nowrap;
+}
+
+.tg-toast {
+  --_fg: var(--tg-feedback-success-text);
+  --_bg: var(--tg-feedback-success-bg);
+
+  display: flex;
+  align-items: center;
+  gap: var(--tg-space-3);
+  box-sizing: border-box;
+  width: 100%;
+  max-width: 480px;
+  min-height: 56px;
+  padding: var(--tg-space-2) var(--tg-space-2) var(--tg-space-2) var(--tg-space-3);
+  border: 1px solid var(--tg-border-default);
+  border-radius: var(--tg-radius-lg);
+  background: var(--tg-bg-surface);
+  box-shadow: var(--tg-elevation-2);
+  color: var(--tg-text-primary);
+  pointer-events: auto;
+  animation: tg-toast-in var(--tg-duration-base) var(--tg-ease-standard);
+}
+
+.tg-toast--info {
+  --_fg: var(--tg-feedback-info-text);
+  --_bg: var(--tg-feedback-info-bg);
+}
+
+.tg-toast__icon {
+  display: flex;
+  flex: none;
+  align-items: center;
+  justify-content: center;
+  width: 36px;
+  height: 36px;
+  border-radius: var(--tg-radius-full);
+  background: var(--_bg);
+  color: var(--_fg);
+}
+
+.tg-toast__message {
+  flex: 1;
+  margin: 0;
+  font-size: var(--tg-type-body-size);
+  line-height: var(--tg-type-body-sm-line);
+  font-weight: var(--tg-font-weight-medium);
+}
+
+.tg-toast__action,
+.tg-toast__close {
+  display: flex;
+  flex: none;
+  align-items: center;
+  justify-content: center;
+  min-width: 44px;
+  height: 44px;
+  margin: 0;
+  padding: 0;
+  border: 0;
+  border-radius: var(--tg-radius-full);
+  background: transparent;
+  font: inherit;
+  cursor: pointer;
+
+  &:hover {
+    background: var(--tg-bg-subtle);
+  }
+
+  &:focus-visible {
+    outline: 2px solid var(--tg-focus-ring);
+    outline-offset: -2px;
+  }
+}
+
+.tg-toast__action {
+  padding: 0 var(--tg-space-3);
+  color: var(--tg-action-subtle-text);
+  font-size: var(--tg-type-label-size);
+  font-weight: var(--tg-font-weight-extrabold);
+}
+
+.tg-toast__close {
+  color: var(--tg-text-secondary);
+}
+
+@keyframes tg-toast-in {
+  from {
+    opacity: 0;
+    transform: translateY(12px);
+  }
+}

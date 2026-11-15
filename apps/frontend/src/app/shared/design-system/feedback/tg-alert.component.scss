@@ -1,0 +1,90 @@
+// Alerta do Design System. Só tokens --tg-*; o tema troca os valores.
+:host {
+  --_fg: var(--tg-feedback-info-text);
+  --_bg: var(--tg-feedback-info-bg);
+
+  display: flex;
+  gap: var(--tg-space-3);
+  box-sizing: border-box;
+  padding: var(--tg-space-4);
+  border-radius: var(--tg-radius-lg);
+  background: var(--_bg);
+  color: var(--tg-text-primary);
+  font-family: var(--tg-font-sans);
+  font-size: var(--tg-type-body-size);
+  line-height: var(--tg-type-body-line);
+}
+
+:host([hidden]) {
+  display: none;
+}
+
+:host(.tg-alert--success) {
+  --_fg: var(--tg-feedback-success-text);
+  --_bg: var(--tg-feedback-success-bg);
+}
+
+:host(.tg-alert--warning) {
+  --_fg: var(--tg-feedback-warning-text);
+  --_bg: var(--tg-feedback-warning-bg);
+}
+
+:host(.tg-alert--danger) {
+  --_fg: var(--tg-feedback-danger-text);
+  --_bg: var(--tg-feedback-danger-bg);
+}
+
+.tg-alert__icon {
+  flex: none;
+  margin-top: 1px;
+  color: var(--_fg);
+}
+
+.tg-alert__content {
+  display: flex;
+  flex: 1;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
+}
+
+.tg-alert__title {
+  margin: 0;
+  font-weight: var(--tg-font-weight-bold);
+}
+
+.tg-alert__actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--tg-space-2);
+  margin-top: var(--tg-space-2);
+
+  &:not(:has(*)) {
+    display: none;
+  }
+}
+
+.tg-alert__close {
+  display: flex;
+  flex: none;
+  align-items: center;
+  justify-content: center;
+  width: 44px;
+  height: 44px;
+  margin: -10px -10px -10px 0;
+  padding: 0;
+  border: 0;
+  border-radius: var(--tg-radius-full);
+  background: transparent;
+  color: var(--tg-text-secondary);
+  cursor: pointer;
+
+  &:hover {
+    color: var(--tg-text-primary);
+  }
+
+  &:focus-visible {
+    outline: 2px solid var(--tg-focus-ring);
+    outline-offset: -2px;
+  }
+}
