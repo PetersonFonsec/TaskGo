@@ -961,6 +961,77 @@ mostram "Carregando…" e erro, e os caracteres usados como ícone) ficam até
 as migrações dessas telas. No app, o equivalente é o mesmo desenho com os
 tokens, nas migrações do app.
 
+## Componentes de domínio (Etapa 8)
+
+Componentes do TaskGo montados sobre os da Etapa 7. Ficam em
+`shared/design-system` e entram nas telas só na migração de cada uma.
+
+### Card de prestador
+
+O cliente compara profissionais numa lista: quem é, se é verificado, a
+nota, a distância, o serviço e o preço inicial. Só mostra dados reais: o
+que não vier some do card, sem texto fixo no lugar.
+
+```html
+<ul>
+  @for (p of prestadores(); track p.id) {
+    <li>
+      <tg-provider-card
+        [provider]="p"
+        [link]="['/prestadores', p.id]"
+        [favorite]="favoritos()[p.id]"
+        (favoriteChange)="alternarFavorito(p.id, $event)" />
+    </li>
+  }
+</ul>
+```
+
+| Entrada | Valores | Padrão |
+| --- | --- | --- |
+| `provider` | `TgProvider`: `id`, `name`, `photoUrl`, `verified`, `rating`, `ratingCount`, `service`, `priceFrom`, `distanceKm` | obrigatório |
+| `link` | destino do perfil, como no `routerLink` | obrigatório |
+| `favorite` | `true` ou `false`; sem valor, o coração não aparece (flag de favoritos desligada) | — |
+| `headingLevel` | inteiro de 2 a 6; outro valor vira `h3` | `3` |
+| `(favoriteChange)` | pede a troca com o novo valor; o estado fica com a tela | — |
+
+`toTgProvider(dadoDaApi)` converte o prestador como vem da busca e da
+categoria (dados no prestador ou no usuário, nota como número, texto ou
+Decimal, preço no primeiro serviço). Devolve `null` sem id, porque sem id
+não há link.
+
+Regras:
+
+- Em linha: foto de 72 px à esquerda, nome com o selo "Verificado"
+  (`tg-badge` neutro com o ícone `check`), nota e distância, serviço, e à
+  direita o coração e o preço "a partir de".
+- O layout segue a largura do container: abaixo de 480 px a foto passa a
+  56 px e o preço desce, separado por uma linha.
+- Sem avaliações (ou nota inválida): badge "Novo no TaskGo", nunca 0,0.
+  Sem distância: some. Sem preço: "Preço sob consulta". Sem foto, ou se ela
+  falhar: as iniciais do primeiro e do último nome.
+- Nada de dado fixo igual para todos (como "Aceita pix" ou "Disponível 24
+  horas"); um dado novo entra quando a API tiver.
+- Valores em pt-BR: nota com uma casa (até 5,0), distância em km com uma
+  casa, preço em reais sem centavos quando é inteiro.
+
+Acessibilidade:
+
+- É um `tg-card` com o nome como `tgCardLink`: o card inteiro abre o
+  perfil, e o Tab passa só pelo nome e pelo coração. Sem botão "Ver
+  perfil".
+- O nome do link é só o nome do prestador. A foto é decorativa (alt
+  vazio), porque o nome está ao lado.
+- A nota é lida por extenso ("Nota 4,9 de 5, 128 avaliações"); a estrela e
+  o texto curto ficam fora do leitor.
+- O coração é um botão de 44 px com `aria-pressed` e nome "Favoritar Ana
+  Souza". Um erro ao favoritar é da tela (toast), e o card não muda sozinho.
+- A lista é `ul`/`li`, e a tela anuncia quantos encontrou.
+
+O `app-card-provider` (com o `card-detail` e o pipe
+`formatedProviderParam`) continua na busca até a migração dela. No app, a
+lista da categoria (`ion-item`) segue a mesma ordem e os mesmos textos,
+estilizada com os tokens nas migrações do app.
+
 ## Testes
 
 ```bash
