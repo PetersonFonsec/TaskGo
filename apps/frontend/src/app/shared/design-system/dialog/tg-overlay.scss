@@ -1,0 +1,247 @@
+// Diálogo e painel do Design System. Só tokens --tg-*; o tema troca os valores.
+// Sem encapsulamento: as ações são conteúdo da tela. Tudo fica sob .tg-dialog
+// e .tg-sheet. Breakpoint escrito (medium, 600 px) para não reemitir os tokens.
+
+.tg-dialog-host,
+.tg-sheet-host {
+  display: contents;
+}
+
+.tg-dialog,
+.tg-sheet {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+  border: 0;
+  background: var(--tg-bg-surface);
+  color: var(--tg-text-primary);
+  box-shadow: var(--tg-elevation-3);
+  font-family: var(--tg-font-sans);
+  overflow: hidden;
+
+  &::backdrop {
+    background: var(--tg-scrim, rgba(24, 22, 37, 0.56));
+    animation: tg-overlay-fade var(--tg-duration-base, 200ms) var(--tg-ease-standard);
+  }
+
+  // O foco só cai no próprio dialog quando não há ação disponível: ele não é
+  // um controle, então sem anel (o leitor anuncia título e descrição).
+  &:focus {
+    outline: none;
+  }
+}
+
+// Diálogo: centralizado, até 440 px.
+.tg-dialog {
+  width: min(440px, calc(100vw - 32px));
+  max-height: calc(100dvh - 32px);
+  margin: auto;
+  border-radius: var(--tg-radius-2xl);
+
+  &[open] {
+    display: flex;
+    flex-direction: column;
+    gap: var(--tg-space-4);
+    padding: var(--tg-space-6);
+    overflow-y: auto;
+    overscroll-behavior: contain;
+    animation: tg-overlay-pop var(--tg-duration-base) var(--tg-ease-standard);
+  }
+}
+
+.tg-dialog__icon {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 48px;
+  height: 48px;
+  border-radius: var(--tg-radius-full);
+  background: var(--tg-action-subtle);
+  color: var(--tg-action-subtle-text);
+
+  .tg-dialog--danger & {
+    background: var(--tg-feedback-danger-bg);
+    color: var(--tg-feedback-danger-text);
+  }
+}
+
+.tg-dialog__title,
+.tg-sheet__title {
+  margin: 0;
+  font-size: var(--tg-type-title-3-size);
+  line-height: var(--tg-type-title-3-line);
+  font-weight: var(--tg-font-weight-extrabold);
+}
+
+.tg-dialog__body {
+  color: var(--tg-text-secondary);
+  font-size: var(--tg-type-body-size);
+  line-height: var(--tg-type-body-line);
+
+  > :first-child {
+    margin-top: 0;
+  }
+
+  > :last-child {
+    margin-bottom: 0;
+  }
+}
+
+// Abaixo de 600 px: empilhadas, largura toda, a principal (a última) em cima.
+.tg-dialog__actions {
+  display: flex;
+  flex-direction: column-reverse;
+  gap: var(--tg-space-3);
+  margin-top: var(--tg-space-2);
+
+  > * {
+    width: 100%;
+  }
+
+  &:not(:has(*)) {
+    display: none;
+  }
+
+  @media (min-width: 600px) {
+    flex-direction: row;
+    justify-content: flex-end;
+
+    > * {
+      width: auto;
+    }
+  }
+}
+
+// Painel: abaixo de 600 px sobe de baixo; a partir de 600 px fica à direita.
+.tg-sheet {
+  inset: auto 0 0;
+  width: 100%;
+  max-width: 100%;
+  max-height: 88dvh;
+  border-radius: var(--tg-radius-2xl) var(--tg-radius-2xl) 0 0;
+
+  &[open] {
+    display: flex;
+    flex-direction: column;
+    animation: tg-overlay-up var(--tg-duration-base) var(--tg-ease-standard);
+  }
+
+  @media (min-width: 600px) {
+    inset: 0 0 0 auto;
+    width: 440px;
+    height: 100dvh;
+    max-height: 100dvh;
+    border-radius: 0;
+
+    &[open] {
+      animation-name: tg-overlay-left;
+    }
+  }
+}
+
+.tg-sheet__header {
+  display: flex;
+  flex: none;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--tg-space-2);
+  padding: var(--tg-space-3) var(--tg-space-2) var(--tg-space-3) var(--tg-space-5);
+  border-bottom: 1px solid var(--tg-border-default);
+
+  @media (min-width: 600px) {
+    padding: var(--tg-space-4) var(--tg-space-3) var(--tg-space-4) var(--tg-space-6);
+  }
+}
+
+.tg-sheet__close {
+  display: flex;
+  flex: none;
+  align-items: center;
+  justify-content: center;
+  width: 44px;
+  height: 44px;
+  padding: 0;
+  border: 0;
+  border-radius: var(--tg-radius-full);
+  background: transparent;
+  color: var(--tg-text-secondary);
+  cursor: pointer;
+
+  &:hover:not([aria-disabled='true']) {
+    background: var(--tg-bg-subtle);
+    color: var(--tg-text-primary);
+  }
+
+  &:focus-visible {
+    outline: 2px solid var(--tg-focus-ring);
+    outline-offset: 2px;
+  }
+
+  &[aria-disabled='true'] {
+    color: var(--tg-text-disabled);
+    cursor: default;
+  }
+}
+
+.tg-sheet__body {
+  flex: 1;
+  min-height: 0;
+  padding: var(--tg-space-5);
+  overflow-y: auto;
+  overscroll-behavior: contain;
+
+  @media (min-width: 600px) {
+    padding: var(--tg-space-6);
+  }
+}
+
+// Ações fixas embaixo: no celular dividem a largura; acima, à direita.
+.tg-sheet__actions {
+  display: flex;
+  flex: none;
+  gap: var(--tg-space-3);
+  padding: var(--tg-space-3) var(--tg-space-5) calc(var(--tg-space-5) + env(safe-area-inset-bottom, 0px));
+  border-top: 1px solid var(--tg-border-default);
+
+  > * {
+    flex: 1;
+  }
+
+  &:not(:has(*)) {
+    display: none;
+  }
+
+  @media (min-width: 600px) {
+    justify-content: flex-end;
+    padding: var(--tg-space-4) var(--tg-space-6);
+
+    > * {
+      flex: none;
+    }
+  }
+}
+
+@keyframes tg-overlay-fade {
+  from {
+    opacity: 0;
+  }
+}
+
+@keyframes tg-overlay-pop {
+  from {
+    opacity: 0;
+    transform: scale(0.96);
+  }
+}
+
+@keyframes tg-overlay-up {
+  from {
+    transform: translateY(100%);
+  }
+}
+
+@keyframes tg-overlay-left {
+  from {
+    transform: translateX(100%);
+  }
+}
