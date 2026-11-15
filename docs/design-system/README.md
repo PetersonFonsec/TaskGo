@@ -27,7 +27,8 @@ migração tela a tela, que vem nas próximas etapas.
 | 7 | Componentes base: navegação (web) | Concluído (PR #16) |
 | 7 | Componentes base: abas (web) | Concluído (PR #17) |
 | 7 | Componentes base: diálogo e painel (web) | Concluído (PR #18) |
-| 7 | Componentes base: toast e alerta (web) | Este PR |
+| 7 | Componentes base: toast e alerta (web) | Concluído (PR #19) |
+| 7 | Componentes base: skeleton (web) | Este PR |
 | 7 a 10 | Demais componentes base, componentes de domínio, piloto, migração | A fazer |
 
 Atributos de marca: próximo, confiável, direto e caloroso sem ser infantil.
@@ -836,6 +837,73 @@ Acessibilidade:
 As mensagens de sucesso feitas na própria tela (pagamento, envio e
 confirmação da conclusão) continuam até as migrações dessas telas. No app,
 o equivalente é `ion-toast` com os tokens.
+
+### Skeleton
+
+Enquanto os dados chegam, a tela mostra a forma do conteúdo, no lugar de
+um spinner com "Carregando…". O spinner fica só dentro do botão
+(`[loading]` do `tgButton`).
+
+```html
+<tg-loading label="Carregando pedidos" [loading]="carregando()">
+  <ng-template tgLoadingSkeleton>
+    @for (i of [1, 2, 3]; track i) {
+      <div class="pedido">
+        <tg-skeleton shape="rect" width="48" height="48" radius="md" />
+        <div>
+          <tg-skeleton width="62%" height="12" />
+          <tg-skeleton width="44%" height="12" />
+        </div>
+      </div>
+    }
+  </ng-template>
+  … lista de pedidos …
+</tg-loading>
+```
+
+| Componente | Entradas |
+| --- | --- |
+| `tg-skeleton` | `shape` (`text`, `circle` ou `rect`), `width`, `height`, `size` (círculo), `lines`, `radius` (`sm` a `xl`, ou `full`) |
+| `tg-loading` | `label` (obrigatório), `loading`, `delay` (padrão 300 ms); skeleton em `<ng-template tgLoadingSkeleton>` |
+
+Regras:
+
+- O skeleton repete as medidas do conteúdo real (alturas, raios e
+  espaços), para a tela não pular quando os dados chegam.
+- Uma cor só, `border-default`, sobre a superfície ou o fundo. Pulso de
+  opacidade (100% a 60%) a cada 1,6 s; parado com movimento reduzido.
+- Texto: linhas de 12 a 14 px, raio `sm`; com `lines`, a última fica com
+  64%. Bloco: raio `lg` por padrão; chip, `full`.
+- Mostre só o que cabe na primeira tela (3 ou 4 itens de lista, 3 cards).
+- O `tg-loading` espera 300 ms antes de mostrar o skeleton: se os dados
+  chegam antes, a pessoa vai direto ao conteúdo, sem piscar. O `delay` é
+  lido no começo de cada carga; mudar no meio vale para a próxima.
+- O conteúdo só entra na página quando `loading` é falso. Como todo
+  `ng-content`, ele é criado junto com a tela: um componente dentro dele
+  inicia (`ngOnInit`) mesmo durante a carga, não é recriado ao alternar e
+  sai junto com a tela. Enquanto carrega, ele não está no DOM, então não
+  recebe foco nem é lido. Para iniciar algo só com os dados, use `@if` na
+  tela.
+- Limites: `lines` vai de 1 a 20. Medida negativa, `NaN` ou infinita volta
+  ao padrão (100% de largura; 14 px no texto, 80 px no bloco e 48 px no
+  círculo).
+- Erro e vazio continuam com a tela: alerta com "Tentar de novo" e estado
+  vazio.
+
+Acessibilidade:
+
+- O skeleton é decorativo (`aria-hidden`) e não recebe foco.
+- Enquanto carrega, o corpo do `tg-loading` fica com `aria-busy`. Quando o
+  skeleton aparece, o `label` é anunciado uma vez por uma região
+  `role="status"` que fica fora do `aria-busy`; quando os dados chegam, o
+  anúncio é limpo e o conteúdo é lido normalmente.
+- No servidor, nada é agendado: a página pré-renderizada sai sem skeleton
+  e o navegador aplica o atraso depois da hidratação.
+
+O `.spinner` e o "Carregando…" das telas de pedido e de perfil, e o
+`.tag-skeleton` da avaliação, continuam até as migrações dessas telas. A
+classe global `.skeleton`, sem uso, foi removida. No app, o equivalente é
+`ion-skeleton-text` com a cor e o pulso dos tokens, nas migrações do app.
 
 ## Testes
 
