@@ -1,0 +1,28 @@
+// Etapa 7 · Skeleton. Uma cor (border-default) e um pulso de opacidade.
+:host {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  max-width: 100%;
+  flex: none;
+}
+
+.tg-skeleton__bone {
+  display: block;
+  height: var(--_h);
+  border-radius: var(--_r);
+  background: var(--tg-border-default);
+  animation: tg-skeleton-pulse 1.6s ease-in-out infinite;
+}
+
+@keyframes tg-skeleton-pulse {
+  50% {
+    opacity: 0.6;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .tg-skeleton__bone {
+    animation: none;
+  }
+}
