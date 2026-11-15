@@ -978,7 +978,7 @@ que não vier some do card, sem texto fixo no lugar.
     <li>
       <tg-provider-card
         [provider]="p"
-        [link]="['/prestadores', p.id]"
+        [link]="['/customer', p.id]"
         [favorite]="favoritos()[p.id]"
         (favoriteChange)="alternarFavorito(p.id, $event)" />
     </li>
@@ -989,15 +989,25 @@ que não vier some do card, sem texto fixo no lugar.
 | Entrada | Valores | Padrão |
 | --- | --- | --- |
 | `provider` | `TgProvider`: `id`, `name`, `photoUrl`, `verified`, `rating`, `ratingCount`, `service`, `priceFrom`, `distanceKm` | obrigatório |
-| `link` | destino do perfil, como no `routerLink` | obrigatório |
+| `link` | destino do perfil, como no `routerLink`. O perfil público do prestador é `['/customer', p.id]` (tela "Perfil do profissional", que busca `GET /provider/:id` pelo id do Provider) | obrigatório |
 | `favorite` | `true` ou `false`; sem valor, o coração não aparece (flag de favoritos desligada) | — |
 | `headingLevel` | inteiro de 2 a 6; outro valor vira `h3` | `3` |
 | `(favoriteChange)` | pede a troca com o novo valor; o estado fica com a tela | — |
 
-`toTgProvider(dadoDaApi)` converte o prestador como vem da busca e da
-categoria (dados no prestador ou no usuário, nota como número, texto ou
-Decimal, preço no primeiro serviço). Devolve `null` sem id, porque sem id
-não há link.
+`toTgProvider(dadoDaApi, { category })` converte o prestador como vem de
+`GET /provider` e `GET /provider/by-category/:slug` (`publicProviderSelect`
+no backend):
+
+- O id é sempre o do Provider (`id` ou `providerId`; num registro de
+  usuário com `provider` aninhado, o id desse `provider`). O `user.id`
+  nunca entra, porque o perfil busca pelo Provider. Sem id válido (inteiro
+  positivo), devolve `null`, porque sem id não há link.
+- A API não garante a ordem dos serviços. O card mostra o serviço ativo de
+  menor preço válido, com o título e o preço desse mesmo serviço (empate:
+  título, depois id). Com `category`, só os serviços dessa categoria contam.
+  Preço nulo, zero, negativo ou não finito não conta; sem preço válido, o
+  card diz "Preço sob consulta".
+- Nota e contagem aceitam número, texto ou Decimal; o card valida a faixa.
 
 Regras:
 
@@ -1006,7 +1016,9 @@ Regras:
   direita o coração e o preço "a partir de".
 - O layout segue a largura do container: abaixo de 480 px a foto passa a
   56 px e o preço desce, separado por uma linha.
-- Sem avaliações (ou nota inválida): badge "Novo no TaskGo", nunca 0,0.
+- A nota só aparece de 1 a 5 com contagem inteira positiva (cada avaliação
+  é um inteiro de 1 a 5). Sem avaliações, ou com nota ou contagem fora
+  disso: badge "Novo no TaskGo", nunca 0,0 nem uma nota truncada para 5,0.
   Sem distância: some. Sem preço: "Preço sob consulta". Sem foto, ou se ela
   falhar: as iniciais do primeiro e do último nome.
 - Nada de dado fixo igual para todos (como "Aceita pix" ou "Disponível 24

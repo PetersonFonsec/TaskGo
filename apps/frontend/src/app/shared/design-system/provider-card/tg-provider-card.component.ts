@@ -32,7 +32,7 @@ const COUNT = new Intl.NumberFormat('pt-BR');
  *
  *   <tg-provider-card
  *     [provider]="p"
- *     [link]="['/prestadores', p.id]"
+ *     [link]="['/customer', p.id]"           (perfil público: /customer/:id, id do Provider)
  *     [favorite]="favoritos()[p.id]"      (opcional; sem ele, sem coração)
  *     (favoriteChange)="alternar(p.id, $event)" />
  *
@@ -162,16 +162,20 @@ export class TgProviderCardComponent {
 
   protected readonly rating = computed(() => {
     const { rating, ratingCount } = this.provider();
-    const count = Number(ratingCount);
+    if (rating == null || ratingCount == null) return null;
     const value = Number(rating);
-    if (!Number.isFinite(count) || count < 1 || !Number.isFinite(value) || value <= 0) return null;
-    const text = ONE_DECIMAL.format(Math.min(value, 5));
-    const n = Math.floor(count);
-    const countText = COUNT.format(n);
+    const count = Number(ratingCount);
+    // Cada avaliação é um inteiro de 1 a 5, então a média fica entre 1 e 5 e a
+    // contagem é um inteiro positivo. Fora disso o dado não é real: nada de
+    // truncar para 5,0; vale o estado sem avaliação.
+    if (!Number.isFinite(value) || value < 1 || value > 5) return null;
+    if (!Number.isSafeInteger(count) || count < 1) return null;
+    const text = ONE_DECIMAL.format(value);
+    const countText = COUNT.format(count);
     return {
       value: text,
       count: countText,
-      label: `Nota ${text} de 5, ${countText} ${n === 1 ? 'avaliação' : 'avaliações'}`,
+      label: `Nota ${text} de 5, ${countText} ${count === 1 ? 'avaliação' : 'avaliações'}`,
     };
   });
 

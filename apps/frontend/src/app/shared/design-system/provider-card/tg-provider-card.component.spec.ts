@@ -5,7 +5,7 @@ import { TgProviderCardComponent } from './tg-provider-card.component';
 import type { TgProvider } from './tg-provider';
 
 const ana: TgProvider = {
-  id: 'ana',
+  id: '101',
   name: 'Ana Souza',
   verified: true,
   rating: 4.9,
@@ -20,7 +20,7 @@ const ana: TgProvider = {
   template: `
     <tg-provider-card
       [provider]="provider()"
-      [link]="['/prestadores', provider().id]"
+      [link]="['/customer', provider().id]"
       [favorite]="favorite()"
       [headingLevel]="$any(level())"
       (favoriteChange)="changes.push($event)" />
@@ -58,7 +58,7 @@ describe('TgProviderCardComponent', () => {
     const link = q('a.tg-card__link')!;
     expect(q('tg-card.tg-card')).not.toBeNull();
     expect(text(link)).toBe('Ana Souza');
-    expect(link.getAttribute('href')).toBe('/prestadores/ana');
+    expect(link.getAttribute('href')).toBe('/customer/101');
     expect(link.parentElement!.tagName).toBe('H3');
     expect(el.querySelectorAll('a').length).toBe(1);
   });
@@ -91,23 +91,48 @@ describe('TgProviderCardComponent', () => {
     expect(text(q('.tg-provider-card__sr'))).toBe('Nota 5,0 de 5, 1 avaliação');
     set({ rating: 4.25, ratingCount: 1500 });
     expect(text(q('.tg-provider-card__sr'))).toBe('Nota 4,3 de 5, 1.500 avaliações');
-    set({ rating: 9, ratingCount: 3 });
-    expect(text(q('.tg-provider-card__sr'))).toBe('Nota 5,0 de 5, 3 avaliações');
+    set({ rating: 1, ratingCount: 2 });
+    expect(text(q('.tg-provider-card__sr'))).toBe('Nota 1,0 de 5, 2 avaliações');
   });
 
-  it('sem avaliações (ou nota inválida) mostra "Novo no TaskGo", nunca 0,0', () => {
-    for (const patch of [
-      { rating: null, ratingCount: 0 },
-      { rating: 4.5, ratingCount: 0 },
-      { rating: 0, ratingCount: 3 },
-      { rating: NaN, ratingCount: 3 },
-      { rating: 4, ratingCount: null },
-    ]) {
-      set(patch);
-      expect(q('.tg-provider-card__rating')).withContext(JSON.stringify(patch)).toBeNull();
-      expect(text(q('tg-badge[tone="accent"], .tg-badge--accent'))).withContext(JSON.stringify(patch)).toBe('Novo no TaskGo');
-      expect(text(el)).not.toContain('0,0');
+  it('nota: só de 1 a 5; fora disso, "Novo no TaskGo" (nunca truncada para 5,0)', () => {
+    const cases: [number | null, string | null][] = [
+      [4.9, '4,9'],
+      [5, '5,0'],
+      [0, null],
+      [-1, null],
+      [0.5, null],
+      [5.1, null],
+      [9, null],
+      [NaN, null],
+      [Infinity, null],
+      [null, null],
+    ];
+    for (const [rating, shown] of cases) {
+      set({ rating, ratingCount: 10 });
+      const ctx = String(rating);
+      if (shown) {
+        expect(text(q('.tg-provider-card__rating b'))).withContext(ctx).toBe(shown);
+        expect(q('.tg-badge--accent')).withContext(ctx).toBeNull();
+      } else {
+        expect(q('.tg-provider-card__rating')).withContext(ctx).toBeNull();
+        expect(q('.tg-provider-card__sr')).withContext(ctx).toBeNull();
+        expect(text(q('.tg-badge--accent'))).withContext(ctx).toBe('Novo no TaskGo');
+        expect(text(el)).withContext(ctx).not.toContain('5,0');
+      }
     }
+  });
+
+  it('contagem: só inteiro positivo; zero, negativa, fracionária ou ausente vira "Novo no TaskGo"', () => {
+    for (const ratingCount of [0, -3, 2.5, NaN, Infinity, null, undefined]) {
+      set({ rating: 4.5, ratingCount });
+      const ctx = String(ratingCount);
+      expect(q('.tg-provider-card__rating')).withContext(ctx).toBeNull();
+      expect(text(q('.tg-badge--accent'))).withContext(ctx).toBe('Novo no TaskGo');
+      expect(text(el)).withContext(ctx).not.toContain('0,0');
+    }
+    set({ rating: 4.5, ratingCount: 3 });
+    expect(text(q('.tg-provider-card__sr'))).toBe('Nota 4,5 de 5, 3 avaliações');
   });
 
   it('distância com uma casa; sem valor válido, some', () => {
@@ -219,5 +244,58 @@ describe('TgProviderCardComponent', () => {
     );
     expect(focusables.map((n) => n.className.split(' ')[0])).toEqual(['tg-card__link', 'tg-provider-card__favorite']);
     expect(el.contains(document.activeElement)).toBeFalse();
+  });
+});
+
+@Component({ template: '<p id="perfil">perfil</p>' })
+class ProfileStub {}
+
+@Component({
+  imports: [TgProviderCardComponent],
+  template: `
+    <tg-provider-card [provider]="provider" [link]="['/customer', provider.id]" [favorite]="false" />
+  `,
+})
+class RoutedHost {
+  readonly provider: TgProvider = { ...ana, id: '101' };
+}
+
+// Navegação real com a forma da rota do app: /customer/:userId (o parâmetro
+// recebe o id do Provider; a tela busca GET /provider/:id).
+describe('TgProviderCardComponent (navegação)', () => {
+  let fixture: ComponentFixture<RoutedHost>;
+  let router: Router;
+  let el: HTMLElement;
+
+  beforeEach(async () => {
+    TestBed.configureTestingModule({
+      providers: [
+        provideRouter([
+          { path: 'customer/:userId', component: ProfileStub },
+          { path: '**', children: [] },
+        ]),
+      ],
+    });
+    fixture = TestBed.createComponent(RoutedHost);
+    router = TestBed.inject(Router);
+    el = fixture.nativeElement;
+    fixture.detectChanges();
+    await router.navigateByUrl('/customer/search');
+  });
+
+  it('href aponta para o perfil público com o id do Provider', () => {
+    expect(el.querySelector('a.tg-card__link')!.getAttribute('href')).toBe('/customer/101');
+  });
+
+  it('clique no nome navega para /customer/101', async () => {
+    (el.querySelector('a.tg-card__link') as HTMLElement).click();
+    await fixture.whenStable();
+    expect(router.url).toBe('/customer/101');
+  });
+
+  it('clique no coração não navega', async () => {
+    (el.querySelector('.tg-provider-card__favorite') as HTMLElement).click();
+    await fixture.whenStable();
+    expect(router.url).toBe('/customer/search');
   });
 });

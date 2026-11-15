@@ -3,16 +3,17 @@
  * de fora do card (sem nota, distância ou preço inventados).
  */
 export interface TgProvider {
+  /** Id do Provider (não do usuário): é o que o perfil `/customer/:id` busca. */
   id: string;
   name: string;
   photoUrl?: string | null;
   verified?: boolean;
-  /** Nota média de 0 a 5. Sem avaliações (ou sem nota), o card mostra "Novo no TaskGo". */
+  /** Nota média, de 1 a 5 (cada avaliação é um inteiro de 1 a 5). Fora disso, ou sem avaliações, o card mostra "Novo no TaskGo". */
   rating?: number | null;
   ratingCount?: number | null;
-  /** Serviço principal, ou o que casou com a busca. */
+  /** Título do serviço cujo preço aparece em `priceFrom`. */
   service?: string | null;
-  /** Preço base, em reais. Sem valor, o card mostra "Preço sob consulta". */
+  /** Menor preço base entre os serviços elegíveis, em reais. Sem valor, "Preço sob consulta". */
   priceFrom?: number | null;
   /** Distância calculada pela busca. Sem valor, a distância não aparece. */
   distanceKm?: number | null;
@@ -25,33 +26,97 @@ interface DecimalParts {
   d: number[];
 }
 
-/**
- * Converte o prestador como vem da API (busca, categoria) para o card.
- * Aceita os formatos que a busca já trata: dados no prestador ou no usuário,
- * nota como número, texto ou Decimal, e preço no primeiro serviço.
- * Devolve `null` quando não há id, porque sem id não há link para o perfil.
- */
-export function toTgProvider(source: unknown): TgProvider | null {
-  if (!source || typeof source !== 'object') return null;
-  const p = source as Record<string, any>;
-  const user = obj(p['user']);
-  const profile = obj(user['provider']);
-  const service = obj(Array.isArray(p['services']) ? p['services'][0] : undefined);
+/** Contexto da lista: na busca por categoria, só os serviços dessa categoria contam. */
+export interface TgProviderContext {
+  category?: string | null;
+}
 
-  const id = p['id'] ?? p['providerId'] ?? user['id'];
-  if (id == null || id === '') return null;
+/**
+ * Converte o prestador como vem da API para o card. O formato é o
+ * `publicProviderSelect` do backend (GET /provider, /provider/by-category/:slug):
+ * `id` é o id do Provider (BigInt em texto), `user` traz nome e foto, e
+ * `services` traz os serviços ativos, sem ordem garantida.
+ *
+ * - Id: só ids do Provider (`id` ou `providerId` do prestador; num registro
+ *   de usuário com `provider` aninhado, o id desse `provider`). O id do
+ *   usuário nunca é usado: o perfil (`/customer/:id`) busca pelo Provider.
+ *   Sem id válido (inteiro positivo), devolve `null`, porque sem id não há link.
+ * - Serviço e preço: o serviço ativo de menor preço válido (empate: título,
+ *   depois id), com o título e o preço desse mesmo serviço. Com `category`,
+ *   só os serviços dessa categoria. A ordem da API não muda o resultado.
+ * - Nota e contagem como vierem (número, texto ou Decimal); o card valida.
+ */
+export function toTgProvider(source: unknown, context: TgProviderContext = {}): TgProvider | null {
+  if (!source || typeof source !== 'object') return null;
+  const record = source as Record<string, any>;
+  // Registro de usuário com o prestador aninhado: o prestador está em `provider`.
+  const nested = isObject(record['provider']) ? (record['provider'] as Record<string, any>) : null;
+  const p = nested ?? record;
+  const user = nested ? record : obj(p['user']);
+  const profile = obj(user['provider']);
+
+  const id = providerId(p['id']) ?? providerId(p['providerId']);
+  if (!id) return null;
+
+  const main = cheapestService(p['services'], context.category);
 
   return {
-    id: String(id),
+    id,
     name: text(user['name']) ?? text(p['name']) ?? 'Profissional',
     photoUrl: text(user['photoUrl']) ?? text(p['photoUrl']) ?? null,
     verified: !!(p['verified'] ?? profile['verified']),
     rating: toNumber(p['ratingAvg'] ?? p['rating'] ?? profile['ratingAvg']) ?? null,
     ratingCount: toNumber(p['ratingCount'] ?? profile['ratingCount']) ?? null,
-    service: text(service['title']) ?? text(service['name']) ?? text(p['service']) ?? text(p['serviceName']) ?? null,
-    priceFrom: toNumber(p['priceFrom'] ?? service['basePrice'] ?? service['price']) ?? null,
+    service: main?.title ?? null,
+    priceFrom: main?.price ?? null,
     distanceKm: toNumber(p['distanceKm'] ?? p['distance']) ?? null,
   };
+}
+
+/** Id do Provider: BigInt serializado como texto de dígitos, ou inteiro positivo. */
+function providerId(value: unknown): string | undefined {
+  if (typeof value === 'number') return Number.isSafeInteger(value) && value > 0 ? String(value) : undefined;
+  if (typeof value === 'bigint') return value > 0n ? value.toString() : undefined;
+  if (typeof value !== 'string') return undefined;
+  const id = value.trim();
+  return /^[0-9]+$/.test(id) && /[1-9]/.test(id) ? id.replace(/^0+/, '') : undefined;
+}
+
+/**
+ * O serviço elegível mais barato: ativo (ou sem status), da categoria pedida
+ * (quando houver) e com preço finito maior que zero. Título e preço vêm do
+ * mesmo serviço. Se nenhum tiver preço válido, devolve o primeiro título em
+ * ordem alfabética, sem preço ("Preço sob consulta" no card).
+ */
+function cheapestService(
+  services: unknown,
+  category?: string | null,
+): { title: string | null; price: number | null } | null {
+  if (!Array.isArray(services)) return null;
+  const wanted = text(category);
+  const eligible = services
+    .filter(isObject)
+    .map((s) => s as Record<string, any>)
+    .filter((s) => s['status'] == null || s['status'] === 'ATIVO')
+    .filter((s) => !wanted || s['category'] === wanted)
+    .map((s) => {
+      const price = toNumber(s['basePrice']);
+      return {
+        title: text(s['title']) ?? null,
+        price: price != null && price > 0 ? price : null,
+        id: String(s['id'] ?? ''),
+      };
+    });
+  if (!eligible.length) return null;
+  const byText = (a: string | null, b: string | null) => (a ?? '\uffff').localeCompare(b ?? '\uffff', 'pt-BR');
+  eligible.sort(
+    (a, b) =>
+      (a.price ?? Infinity) - (b.price ?? Infinity) ||
+      byText(a.title, b.title) ||
+      a.id.localeCompare(b.id, 'en', { numeric: true }),
+  );
+  const [first] = eligible;
+  return { title: first.title, price: first.price };
 }
 
 /** Número finito a partir de número, texto numérico ou Decimal; senão `undefined`. */
@@ -82,8 +147,12 @@ function isDecimal(value: unknown): value is DecimalParts {
   );
 }
 
+function isObject(value: unknown): value is object {
+  return !!value && typeof value === 'object' && !Array.isArray(value);
+}
+
 function obj(value: unknown): Record<string, any> {
-  return value && typeof value === 'object' ? (value as Record<string, any>) : {};
+  return isObject(value) ? (value as Record<string, any>) : {};
 }
 
 function text(value: unknown): string | undefined {

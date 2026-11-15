@@ -9,7 +9,7 @@ import type { TgProvider } from './tg-provider';
 class PageComponent {}
 
 const ana: TgProvider = {
-  id: 'ana',
+  id: '101',
   name: 'Ana Souza',
   verified: true,
   rating: 4.9,
@@ -19,7 +19,7 @@ const ana: TgProvider = {
   priceFrom: 120,
 };
 const joao: TgProvider = {
-  id: 'joao',
+  id: '102',
   name: 'João Pereira',
   rating: null,
   ratingCount: 0,
@@ -28,7 +28,7 @@ const joao: TgProvider = {
   priceFrom: 90,
 };
 const maria: TgProvider = {
-  id: 'maria',
+  id: '103',
   name: 'Maria Clara de Albuquerque Nogueira',
   verified: true,
   rating: 4.7,
@@ -37,7 +37,7 @@ const maria: TgProvider = {
   priceFrom: 1250,
 };
 const rafael: TgProvider = {
-  id: 'rafael',
+  id: '104',
   name: 'Rafael Santos',
   verified: true,
   rating: 5,
@@ -61,7 +61,7 @@ export const Lista: Story = {
   render: () => ({
     props: {
       providers: [ana, joao, maria, rafael],
-      favorites: { ana: true } as Record<string, boolean>,
+      favorites: { '101': true } as Record<string, boolean>,
       // O estado fica com a tela: o card só pede a troca.
       toggle(this: { favorites: Record<string, boolean> }, id: string, value: boolean) {
         this.favorites = { ...this.favorites, [id]: value };
@@ -73,7 +73,7 @@ export const Lista: Story = {
           <li>
             <tg-provider-card
               [provider]="p"
-              [link]="['/prestadores', p.id]"
+              [link]="['/customer', p.id]"
               [favorite]="!!favorites[p.id]"
               (favoriteChange)="toggle(p.id, $event)" />
           </li>
@@ -87,7 +87,7 @@ export const SemFavorito: Story = {
   name: 'Sem favorito',
   render: () => ({
     props: { p: ana },
-    template: `<div style="max-width:720px"><tg-provider-card [provider]="p" [link]="['/prestadores', p.id]" /></div>`,
+    template: `<div style="max-width:720px"><tg-provider-card [provider]="p" [link]="['/customer', p.id]" /></div>`,
   }),
 };
 
@@ -95,12 +95,12 @@ export const SemFavorito: Story = {
 export const DadosParciais: Story = {
   name: 'Dados parciais',
   render: () => ({
-    props: { a: joao, b: rafael, c: { id: 'x', name: 'Carlos' } satisfies TgProvider },
+    props: { a: joao, b: rafael, c: { id: '105', name: 'Carlos' } satisfies TgProvider },
     template: `
       <div style="display:flex;flex-direction:column;gap:12px;max-width:720px">
-        <tg-provider-card [provider]="a" [link]="['/prestadores', a.id]" [favorite]="false" />
-        <tg-provider-card [provider]="b" [link]="['/prestadores', b.id]" [favorite]="false" />
-        <tg-provider-card [provider]="c" [link]="['/prestadores', c.id]" />
+        <tg-provider-card [provider]="a" [link]="['/customer', a.id]" [favorite]="false" />
+        <tg-provider-card [provider]="b" [link]="['/customer', b.id]" [favorite]="false" />
+        <tg-provider-card [provider]="c" [link]="['/customer', c.id]" />
       </div>`,
   }),
 };
@@ -113,11 +113,11 @@ export const ContainerEstreito: Story = {
     template: `
       <div style="display:flex;gap:24px;align-items:flex-start;flex-wrap:wrap">
         <div style="width:320px;display:flex;flex-direction:column;gap:12px">
-          <tg-provider-card [provider]="a" [link]="['/prestadores', a.id]" [favorite]="true" />
-          <tg-provider-card [provider]="b" [link]="['/prestadores', b.id]" [favorite]="false" />
+          <tg-provider-card [provider]="a" [link]="['/customer', a.id]" [favorite]="true" />
+          <tg-provider-card [provider]="b" [link]="['/customer', b.id]" [favorite]="false" />
         </div>
         <div style="width:560px">
-          <tg-provider-card [provider]="a" [link]="['/prestadores', a.id]" [favorite]="false" />
+          <tg-provider-card [provider]="a" [link]="['/customer', a.id]" [favorite]="false" />
         </div>
       </div>`,
   }),

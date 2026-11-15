@@ -15,7 +15,7 @@ function pinTheme(theme: 'CUSTOMER' | 'PROVIDER') {
 }
 
 const ana: TgProvider = {
-  id: 'ana',
+  id: '101',
   name: 'Ana Souza',
   verified: true,
   rating: 4.9,
@@ -29,7 +29,7 @@ const ana: TgProvider = {
   imports: [TgProviderCardComponent],
   template: `
     <div [style.width.px]="width()">
-      <tg-provider-card [provider]="provider()" [link]="['/prestadores', provider().id]" [favorite]="favorite()" />
+      <tg-provider-card [provider]="provider()" [link]="['/customer', provider().id]" [favorite]="favorite()" />
     </div>
   `,
 })
