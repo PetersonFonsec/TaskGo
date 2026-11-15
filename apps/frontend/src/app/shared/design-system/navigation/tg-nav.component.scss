@@ -1,0 +1,180 @@
+// Navegação principal. Só tokens --tg-*; o tema troca os valores.
+// Sem encapsulamento: tudo fica sob .tg-nav, e tg-nav-offset é para a tela.
+@use 'taskgo-tokens' as tg;
+
+$tab-bar-height: 72px;
+
+.tg-nav-host {
+  display: contents;
+}
+
+// Abaixo de 1024 px: barra de abas fixa embaixo, com a área segura do iOS.
+.tg-nav {
+  position: fixed;
+  right: 0;
+  bottom: 0;
+  left: 0;
+  z-index: 30;
+  box-sizing: border-box;
+  height: calc(#{$tab-bar-height} + env(safe-area-inset-bottom, 0px));
+  padding-bottom: env(safe-area-inset-bottom, 0px);
+  border-top: 1px solid var(--tg-border-default);
+  background: var(--tg-bg-surface);
+  font-family: var(--tg-font-sans);
+}
+
+.tg-nav__list {
+  display: flex;
+  height: 100%;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.tg-nav__entry {
+  display: flex;
+  flex: 1;
+  min-width: 0;
+}
+
+.tg-nav__link {
+  display: flex;
+  flex: 1;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: var(--tg-space-1);
+  min-width: 0;
+  min-height: 44px;
+  color: var(--tg-text-secondary);
+  text-decoration: none;
+  -webkit-tap-highlight-color: transparent;
+
+  &:focus-visible {
+    outline: 2px solid var(--tg-focus-ring);
+    outline-offset: -4px;
+    border-radius: var(--tg-radius-md);
+  }
+}
+
+.tg-nav__icon {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 56px;
+  height: 30px;
+  border-radius: var(--tg-radius-full);
+  transition: background-color var(--tg-duration-fast) var(--tg-ease-standard);
+}
+
+// Rótulo sempre visível, 13 px, sem cortar: cinco abas cabem em 360 px.
+.tg-nav__label {
+  font-size: var(--tg-type-overline-size);
+  line-height: var(--tg-type-overline-line);
+  font-weight: var(--tg-font-weight-medium);
+  white-space: nowrap;
+}
+
+.tg-nav__link--current {
+  color: var(--tg-action-subtle-text);
+
+  .tg-nav__icon {
+    background: var(--tg-action-subtle);
+  }
+
+  .tg-nav__label {
+    font-weight: var(--tg-font-weight-extrabold);
+  }
+}
+
+// Conteúdo da tela: abre espaço para a barra de abas.
+.tg-nav-offset {
+  padding-bottom: calc(#{$tab-bar-height} + env(safe-area-inset-bottom, 0px));
+}
+
+// A partir de 1024 px: links na barra do topo, em pílula; a Conta sai (fica no avatar).
+@include tg.tg-from(expanded) {
+  .tg-nav {
+    position: static;
+    height: auto;
+    padding: 0;
+    border: 0;
+    background: transparent;
+  }
+
+  .tg-nav__list {
+    gap: var(--tg-space-1);
+  }
+
+  .tg-nav__entry {
+    flex: none;
+  }
+
+  .tg-nav__entry--compact {
+    display: none;
+  }
+
+  .tg-nav__link {
+    flex-direction: row;
+    gap: var(--tg-space-2);
+    // Alvo mínimo de 44 px, centrado na barra de 72 px.
+    height: 44px;
+    min-height: 44px;
+    padding: 0 14px;
+    border-radius: var(--tg-radius-full);
+    font-size: var(--tg-type-label-size);
+    line-height: var(--tg-type-label-line);
+    font-weight: var(--tg-font-weight-bold);
+    transition: background-color var(--tg-duration-fast) var(--tg-ease-standard);
+
+    &:hover {
+      background: var(--tg-bg-subtle);
+      color: var(--tg-text-primary);
+    }
+
+    &:focus-visible {
+      outline-offset: 2px;
+      border-radius: var(--tg-radius-full);
+    }
+  }
+
+  .tg-nav__icon {
+    width: auto;
+    height: auto;
+    background: none;
+
+    svg {
+      width: 20px;
+      height: 20px;
+    }
+  }
+
+  .tg-nav__label {
+    font: inherit;
+  }
+
+  .tg-nav__link--current,
+  .tg-nav__link--current:hover {
+    background: var(--tg-action-subtle);
+    color: var(--tg-action-subtle-text);
+
+    .tg-nav__icon {
+      background: none;
+    }
+
+    .tg-nav__label {
+      font-weight: inherit;
+    }
+  }
+
+  .tg-nav-offset {
+    padding-bottom: 0;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .tg-nav__link,
+  .tg-nav__icon {
+    transition: none;
+  }
+}
