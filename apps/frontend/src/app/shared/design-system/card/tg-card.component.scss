@@ -1,0 +1,185 @@
+// Card do Design System. Só tokens --tg-*; o tema troca os valores.
+// Sem encapsulamento (o conteúdo é projetado): tudo fica sob .tg-card.
+
+// O controle da escolha: o rádio ou checkbox em qualquer nível do label.
+$choice: 'input:is([type="radio"], [type="checkbox"])';
+.tg-card {
+  --_pad: var(--tg-space-5);
+
+  position: relative;
+  display: block;
+  box-sizing: border-box;
+  min-width: 0;
+  padding: var(--_pad);
+  border: 1px solid var(--tg-border-default);
+  border-radius: var(--tg-radius-lg);
+  background: var(--tg-bg-surface);
+  box-shadow: var(--tg-elevation-0);
+  color: var(--tg-text-primary);
+  font-family: var(--tg-font-sans);
+  // O anel de foco aparece de uma vez, como no botão e no campo.
+  transition:
+    border-color var(--tg-duration-fast) var(--tg-ease-standard),
+    box-shadow var(--tg-duration-fast) var(--tg-ease-standard);
+}
+
+.tg-card--dense {
+  --_pad: var(--tg-space-4);
+}
+
+// Aparências
+.tg-card--elevated {
+  border-color: transparent;
+  box-shadow: var(--tg-elevation-1);
+}
+
+// No prestador a elevation-1 é vazia: a profundidade vem da borda.
+:root[data-theme='PROVIDER'] .tg-card--elevated {
+  border-color: var(--tg-border-default);
+}
+
+.tg-card--subtle {
+  border-color: transparent;
+  background: var(--tg-bg-subtle);
+}
+
+// Clicável: o card inteiro (a tgCard), a escolha (label tgCard) ou o card
+// com link esticado. Hover escurece a borda e soma a sombra, sem mudar de tamanho.
+a.tg-card {
+  color: inherit;
+  text-decoration: none;
+}
+
+a.tg-card,
+label.tg-card,
+.tg-card:has(.tg-card__link) {
+  cursor: pointer;
+  -webkit-tap-highlight-color: transparent;
+}
+
+a.tg-card:hover,
+label.tg-card:hover,
+.tg-card:has(.tg-card__link):hover {
+  border-color: var(--tg-border-strong);
+  box-shadow: var(--tg-elevation-1);
+}
+
+// Mesmo anel do botão: 2 px, afastado 2 px.
+a.tg-card:focus-visible,
+.tg-card:has(.tg-card__link:focus-visible),
+label.tg-card:has(#{$choice}:focus-visible) {
+  outline: 2px solid var(--tg-focus-ring);
+  outline-offset: 2px;
+}
+
+// Link esticado: o ::after cobre o card; as outras ações ficam por cima.
+// Botões, links e campos são achados pelo seletor abaixo, inclusive dentro
+// de componentes com encapsulamento emulado (o padrão do Angular). O que o
+// seletor não alcança (shadow DOM, web components, elemento clicável com
+// role) a tela marca com o atributo tgCardAction no host.
+.tg-card__link {
+  color: inherit;
+  font: inherit;
+  text-decoration: none;
+
+  &::after {
+    content: '';
+    position: absolute;
+    inset: 0;
+    z-index: 0;
+    border-radius: inherit;
+  }
+
+  // O anel fica no card inteiro.
+  &:focus-visible {
+    outline: none;
+  }
+}
+
+.tg-card:has(.tg-card__link):hover .tg-card__link {
+  text-decoration: underline;
+}
+
+.tg-card:has(.tg-card__link)
+  :is(
+    a:not(.tg-card__link),
+    button,
+    input,
+    select,
+    textarea,
+    label,
+    [tabindex]:not([tabindex='-1']),
+    [tgCardAction]
+  ) {
+  position: relative;
+  z-index: 1;
+}
+
+// Escolha: o input nativo dá teclado, setas e o estado "selecionado".
+// O anel fica só no card (o do input sai), nas duas variantes.
+label.tg-card--choice #{$choice} {
+  margin: 0;
+  outline: none;
+  accent-color: var(--tg-action-primary);
+}
+
+// Com o ✓, o input fica só para teclado e leitor de tela.
+label.tg-card--check #{$choice} {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  clip-path: inset(50%);
+  white-space: nowrap;
+  opacity: 0;
+}
+
+// Selecionado: borda de 2 px na cor de ação (o padding compensa) e o ✓.
+// Nunca só a cor: o ✓ ou o rádio visível mostram o estado.
+label.tg-card:has(#{$choice}:checked) {
+  padding: calc(var(--_pad) - 1px);
+  border-width: 2px;
+  border-color: var(--tg-action-primary);
+}
+
+.tg-card__check {
+  position: absolute;
+  top: var(--tg-space-3);
+  right: var(--tg-space-3);
+  display: none;
+  align-items: center;
+  justify-content: center;
+  width: 22px;
+  height: 22px;
+  border-radius: var(--tg-radius-full);
+  background: var(--tg-action-primary);
+  color: var(--tg-text-on-action);
+}
+
+label.tg-card:has(#{$choice}:checked) > .tg-card__check {
+  display: flex;
+}
+
+// Desabilitado: fundo suave e texto apagado, sem opacidade.
+label.tg-card:has(#{$choice}:disabled) {
+  border-color: var(--tg-border-default);
+  background: var(--tg-bg-subtle);
+  box-shadow: none;
+  cursor: not-allowed;
+
+  &,
+  * {
+    color: var(--tg-text-disabled);
+  }
+
+  > .tg-card__check {
+    background: var(--tg-text-disabled);
+    color: var(--tg-bg-surface);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .tg-card {
+    transition: none;
+  }
+}
