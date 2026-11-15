@@ -1,0 +1,57 @@
+// Badge do Design System. Só tokens --tg-*; o tema troca os valores.
+:host {
+  --_fg: var(--tg-text-secondary);
+  --_bg: var(--tg-bg-subtle);
+
+  display: inline-flex;
+  align-items: center;
+  gap: var(--tg-space-1);
+  box-sizing: border-box;
+  flex: none;
+  height: 24px;
+  padding: 0 10px;
+  border-radius: var(--tg-radius-full);
+  background: var(--_bg);
+  color: var(--_fg);
+  font-family: var(--tg-font-sans);
+  // 13 px é o menor texto da interface; sem caixa alta.
+  font-size: var(--tg-type-overline-size);
+  line-height: var(--tg-type-overline-line);
+  font-weight: var(--tg-font-weight-bold);
+  text-transform: none;
+  // Não quebra, não encolhe e não corta: quem usa abre espaço no layout.
+  white-space: nowrap;
+  vertical-align: middle;
+}
+
+// Status: os pares texto e fundo aprovados (contraste testado nos tokens).
+:host(.tg-badge--waiting) {
+  --_fg: var(--tg-status-waiting-text);
+  --_bg: var(--tg-status-waiting-bg);
+}
+
+:host(.tg-badge--confirmed) {
+  --_fg: var(--tg-status-confirmed-text);
+  --_bg: var(--tg-status-confirmed-bg);
+}
+
+:host(.tg-badge--progress) {
+  --_fg: var(--tg-status-progress-text);
+  --_bg: var(--tg-status-progress-bg);
+}
+
+:host(.tg-badge--done) {
+  --_fg: var(--tg-status-done-text);
+  --_bg: var(--tg-status-done-bg);
+}
+
+:host(.tg-badge--cancelled) {
+  --_fg: var(--tg-status-cancelled-text);
+  --_bg: var(--tg-status-cancelled-bg);
+}
+
+// Etiquetas
+:host(.tg-badge--accent) {
+  --_fg: var(--tg-text-on-accent);
+  --_bg: var(--tg-accent);
+}
