@@ -1,0 +1,148 @@
+// Abas do Design System. Só tokens --tg-*; o tema troca os valores.
+// Sem @use 'taskgo-tokens': ele emite todos os --tg-* de novo no CSS do
+// componente (+5 kB). O breakpoint vai escrito: medium, 600 px.
+
+$fade: 40px;
+
+:host {
+  display: block;
+  font-family: var(--tg-font-sans);
+}
+
+.tg-tabs__bar {
+  margin-bottom: var(--tg-space-4);
+  border-bottom: 1px solid var(--tg-border-default);
+}
+
+// Rola na horizontal quando as abas não cabem; sem barra de rolagem visível.
+.tg-tabs__list {
+  display: flex;
+  gap: var(--tg-space-1);
+  overflow-x: auto;
+  overscroll-behavior-x: contain;
+  scrollbar-width: none;
+
+  &::-webkit-scrollbar {
+    display: none;
+  }
+}
+
+.tg-tabs__bar--fade-end .tg-tabs__list {
+  mask-image: linear-gradient(to right, #000 calc(100% - #{$fade}), transparent);
+}
+
+.tg-tabs__bar--fade-start .tg-tabs__list {
+  mask-image: linear-gradient(to left, #000 calc(100% - #{$fade}), transparent);
+}
+
+.tg-tabs__bar--fade-start.tg-tabs__bar--fade-end .tg-tabs__list {
+  mask-image: linear-gradient(to right, transparent, #000 $fade, #000 calc(100% - #{$fade}), transparent);
+}
+
+.tg-tabs__tab {
+  position: relative;
+  display: inline-flex;
+  flex: none;
+  align-items: center;
+  gap: var(--tg-space-2);
+  box-sizing: border-box;
+  height: 48px;
+  margin: 0;
+  padding: 0 var(--tg-space-3);
+  border: 0;
+  border-radius: var(--tg-radius-md) var(--tg-radius-md) 0 0;
+  background: transparent;
+  color: var(--tg-text-secondary);
+  font: inherit;
+  font-size: var(--tg-type-label-size);
+  line-height: var(--tg-type-label-line);
+  font-weight: var(--tg-font-weight-bold);
+  white-space: nowrap;
+  cursor: pointer;
+  -webkit-tap-highlight-color: transparent;
+  transition:
+    background-color var(--tg-duration-fast) var(--tg-ease-standard),
+    color var(--tg-duration-fast) var(--tg-ease-standard);
+
+  @media (min-width: 600px) {
+    padding: 0 var(--tg-space-4);
+  }
+
+  &:hover {
+    background: var(--tg-bg-subtle);
+    color: var(--tg-text-primary);
+  }
+
+  &:focus-visible {
+    outline: 2px solid var(--tg-focus-ring);
+    outline-offset: -2px;
+  }
+
+  // Só em configuração inválida (valor repetido ou ausente): sem hover.
+  &[aria-disabled='true'] {
+    background: transparent;
+    color: var(--tg-text-disabled);
+    cursor: default;
+  }
+
+  // Selecionada: cor de ação, negrito e barra de 3 px (não depende só de cor).
+  // A barra é borda, para continuar visível em alto contraste.
+  &[aria-selected='true'] {
+    color: var(--tg-action-subtle-text);
+    font-weight: var(--tg-font-weight-extrabold);
+
+    &::after {
+      content: '';
+      position: absolute;
+      right: var(--tg-space-2);
+      bottom: 0;
+      left: var(--tg-space-2);
+      border-top: 3px solid var(--tg-action-primary);
+      border-radius: 3px 3px 0 0;
+    }
+  }
+}
+
+// Reserva a largura do negrito: a aba não muda de tamanho ao ser selecionada.
+.tg-tabs__label {
+  display: inline-flex;
+  flex-direction: column;
+
+  &::after {
+    // Texto alternativo vazio: a cópia não entra no nome da aba.
+    content: attr(data-label);
+    content: attr(data-label) / '';
+    height: 0;
+    overflow: hidden;
+    visibility: hidden;
+    font-weight: var(--tg-font-weight-extrabold);
+    user-select: none;
+    pointer-events: none;
+  }
+}
+
+// 13 px é o menor texto da interface.
+.tg-tabs__count {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  box-sizing: border-box;
+  min-width: 20px;
+  height: 20px;
+  padding: 0 6px;
+  border-radius: var(--tg-radius-full);
+  background: var(--tg-bg-subtle);
+  color: var(--tg-text-secondary);
+  font-size: var(--tg-type-overline-size);
+  line-height: 1;
+  font-weight: var(--tg-font-weight-extrabold);
+
+  .tg-tabs__tab:hover & {
+    background: var(--tg-bg-surface);
+  }
+
+  [aria-selected='true'] & {
+    background: var(--tg-action-subtle);
+    color: var(--tg-action-subtle-text);
+  }
+}

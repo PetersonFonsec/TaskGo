@@ -24,7 +24,8 @@ migração tela a tela, que vem nas próximas etapas.
 | 7 | Componentes base: campo de texto (web) | Concluído (PR #13) |
 | 7 | Componentes base: card (web) | Concluído (PR #14) |
 | 7 | Componentes base: badge de status (web) | Concluído (PR #15) |
-| 7 | Componentes base: navegação (web) | Este PR |
+| 7 | Componentes base: navegação (web) | Concluído (PR #16) |
+| 7 | Componentes base: abas (web) | Este PR |
 | 7 a 10 | Demais componentes base, componentes de domínio, piloto, migração | A fazer |
 
 Atributos de marca: próximo, confiável, direto e caloroso sem ser infantil.
@@ -617,6 +618,78 @@ destinos e os ícones Phosphor, estilizada pelos tokens na migração da home.
 O `app-header` do web (que ainda mostra a marca antiga "Proxi") e o
 `app-profile-header` (com nome e foto fixos no código) convivem com estes
 componentes até a migração do shell autenticado.
+
+### Abas
+
+Trocam seções de conteúdo da mesma tela, como pedidos ativos e concluídos.
+Escolher um valor (dia da agenda, período do gráfico, Cliente ou
+Profissional no cadastro) não é aba: é rádio ou chip.
+
+```html
+<tg-tabs label="Pedidos" [(value)]="aba">
+  <tg-tab value="ativos" label="Ativos" [count]="ativos.length">…</tg-tab>
+  <tg-tab value="concluidos" label="Concluídos">…</tg-tab>
+  <tg-tab value="cancelados" label="Cancelados">…</tg-tab>
+</tg-tabs>
+```
+
+| Componente | Entradas |
+| --- | --- |
+| `tg-tabs` | `label` (nome do conjunto, obrigatório), `value` (aba selecionada, com `[(value)]`) |
+| `tg-tab` | `value` e `label` (obrigatórios), `count` (opcional; zero ou vazio não aparece) |
+
+Onde entram:
+
+| Tela | Abas |
+| --- | --- |
+| Pedidos do cliente | Ativos, Concluídos, Cancelados |
+| Pedidos do prestador | Solicitações, Agendados, Histórico |
+| Perfil do prestador | Serviços, Avaliações, Sobre |
+
+Regras:
+
+- De 2 a 4 abas, com rótulo curto e sempre visível; sem ícone e sem aba
+  desabilitada (sem conteúdo, o painel mostra o estado vazio).
+- Selecionada: texto `action-subtle-text`, negrito e barra de 3 px em
+  `action-primary`. As demais: `text-secondary`. Trilho de 1 px em
+  `border-default`. A aba reserva a largura do negrito e não muda de tamanho
+  ao ser selecionada.
+- Contagem numa pílula pequena, só quando ajuda a decidir (Solicitações 3).
+- Cada aba tem a largura do rótulo, alinhadas à esquerda (12 px de respiro
+  abaixo de 600 px, 16 px acima). Se não couberem, a barra rola na
+  horizontal, com esmaecido na borda onde há mais abas, e a aba selecionada
+  fica inteira à vista (só a barra rola, nunca a página).
+- Sem `value`, ou com um que nenhuma aba tem (inclusive quando a aba dele
+  sai da lista), a primeira aba aparece selecionada, mas o `value` da tela
+  não é reescrito: ele só muda quando a pessoa troca de aba. Se a aba volta,
+  a seleção volta com ela. Quem guarda o filtro (na URL, como
+  `?aba=concluidos`, ou num estado) normaliza o valor do seu lado.
+- Valores são únicos. Uma aba sem `value`, ou que repete o de uma anterior,
+  é configuração inválida: aparece, mas fica inativa (`aria-disabled`,
+  texto `text-disabled`), fora do Tab e das setas, e o clique não faz nada.
+  Vale a primeira aba com aquele valor.
+- Se a aba focada sai da lista (ou é movida) e o foco cai na página, ele vai
+  para a nova aba selecionada. Com o foco fora das abas, mudanças na lista ou
+  no `value` nunca puxam o foco.
+
+Acessibilidade (padrão de abas da WAI-ARIA, ativação automática):
+
+- `role="tablist"` com o nome de `label`; cada aba é um `button role="tab"`
+  com `aria-selected` e `aria-controls`. O `tg-tab` é o painel
+  (`role="tabpanel"`, `aria-labelledby`, `tabindex="0"`) e fica `hidden`
+  quando não está selecionado.
+- Só a aba selecionada entra no Tab. Setas esquerda e direita trocam de aba
+  (com volta no fim) e já mostram o painel; Home e End vão às pontas.
+- A contagem entra no nome: "Solicitações, 3".
+- Alvo de 48 px de altura e o mesmo anel de foco do botão. A seleção não
+  depende só de cor (negrito e barra, que é borda e aparece em alto
+  contraste).
+- Em desenvolvimento, `tg-tab` sem `value` ou `label` e valores repetidos
+  geram aviso no console.
+
+No app, as abas são `ion-segment`, com a aparência de sublinhado dos tokens,
+na migração da tela de pedidos. O `app-tabs` antigo do web, que não tinha
+uso, teclado nem testes ativos, foi removido.
 
 ## Testes
 
