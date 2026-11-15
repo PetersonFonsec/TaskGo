@@ -1,85 +1,142 @@
 <main class="customer-home">
-  @if (addressMissing()) {
-    <section class="address-reminder" aria-labelledby="address-reminder-title">
-      <span class="address-reminder__icon" aria-hidden="true">
-        <fa-icon [icon]="locationIcon" />
-      </span>
-      <div class="address-reminder__content">
-        <h2 id="address-reminder-title">Seu endereço é importante para o atendimento</h2>
-        <p>Cadastre o local onde deseja receber os serviços para facilitar seus agendamentos.</p>
-      </div>
-      <a class="address-reminder__action" [routerLink]="addressLink">Cadastrar endereço</a>
-    </section>
+  @if (addressMissing() && addressLink(); as link) {
+    <tg-alert class="customer-home__address" tone="info" title="Cadastre seu endereço">
+      Assim os profissionais sabem onde atender e a busca mostra quem está perto.
+      <a tgButton tgAlertAction appearance="outline" size="sm" [routerLink]="link">
+        Cadastrar endereço
+      </a>
+    </tg-alert>
   }
 
-  <app-banner />
+  <section class="customer-home__hero" aria-labelledby="customer-home-title">
+    <div class="customer-home__hero-text">
+      <h1 id="customer-home-title" class="customer-home__greeting">
+        {{ firstName() ? 'Olá, ' + firstName() : 'Olá' }}
+      </h1>
+      <p class="customer-home__lead">O que você precisa hoje?</p>
+      <a tgButton iconStart="magnifying-glass" class="customer-home__search" [routerLink]="searchLink">
+        Buscar serviço
+      </a>
+    </div>
+  </section>
+
+  <section class="customer-home__section customer-home__agenda" aria-labelledby="agenda-title">
+    <header class="customer-home__heading">
+      <div>
+        <p class="customer-home__eyebrow">Sua agenda</p>
+        <h2 id="agenda-title" class="customer-home__title">Próximos agendamentos</h2>
+      </div>
+      <a tgButton appearance="outline" size="sm" [routerLink]="searchLink">Agendar serviço</a>
+    </header>
+
+    @if (ordersError()) {
+      <tg-alert tone="danger" title="Não foi possível carregar seus pedidos">
+        Verifique sua conexão e tente de novo.
+        <button
+          tgButton
+          tgAlertAction
+          type="button"
+          appearance="outline"
+          size="sm"
+          (click)="loadOrders()"
+        >
+          Tentar de novo
+        </button>
+      </tg-alert>
+    } @else {
+      <tg-loading label="Carregando seus pedidos" [loading]="ordersLoading()">
+        <ng-template tgLoadingSkeleton>
+          <div class="customer-home__agenda-grid">
+            <div class="customer-home__skeleton-card">
+              <tg-skeleton width="30%" />
+              <tg-skeleton width="40%" height="32" />
+              <tg-skeleton width="70%" />
+              <tg-skeleton [lines]="2" />
+            </div>
+            <div class="customer-home__skeleton-list">
+              @for (i of [1, 2, 3]; track i) {
+                <div class="customer-home__skeleton-row">
+                  <tg-skeleton width="45%" />
+                  <tg-skeleton width="70%" />
+                </div>
+              }
+            </div>
+          </div>
+        </ng-template>
+
+        @if (agenda().highlight || agenda().upcoming.length) {
+          <div class="customer-home__agenda-grid">
+            @if (agenda().highlight; as highlight) {
+              <tg-appointment-card perspective="customer" [order]="highlight" />
+            }
+            @if (agenda().upcoming.length) {
+              <div class="customer-home__more">
+                <!-- Sem destaque (só pedidos em análise), a lista fica sob o título da seção. -->
+                @if (agenda().highlight) {
+                  <h3 class="customer-home__subtitle">Também na agenda</h3>
+                }
+                <ul tgOrderList>
+                  @for (order of agenda().upcoming; track order.id) {
+                    <li><tg-order-row perspective="customer" [order]="order" /></li>
+                  }
+                </ul>
+              </div>
+            }
+          </div>
+        } @else {
+          <tg-empty-state compact icon="calendar-blank" title="Sua agenda está livre" [level]="3">
+            Quando você contratar um serviço, ele aparece aqui.
+            <a tgButton tgEmptyAction appearance="outline" size="sm" [routerLink]="searchLink">
+              Buscar serviço
+            </a>
+          </tg-empty-state>
+        }
+      </tg-loading>
+    }
+  </section>
 
   <section class="customer-home__section" aria-labelledby="categories-title">
-    <header class="section-heading">
+    <header class="customer-home__heading">
       <div>
-        <span class="section-heading__eyebrow">Explore</span>
-        <h2 id="categories-title">Encontre o serviço ideal</h2>
-        <p>Escolha uma categoria e encontre profissionais próximos de você.</p>
+        <p class="customer-home__eyebrow">Explore</p>
+        <h2 id="categories-title" class="customer-home__title">Encontre o serviço ideal</h2>
       </div>
     </header>
 
-    <ul class="category-grid">
+    <ul class="customer-home__categories">
       @for (category of categories(); track category.slug) {
         <li>
-          <a routerLink="/customer/search" [queryParams]="{ categoria: category.slug }">
-            <app-card-thumb [title]="category.name" [image]="category.thumb" />
+          <a
+            tgCard
+            class="customer-home__category"
+            [routerLink]="searchLink"
+            [queryParams]="{ categoria: category.slug }"
+          >
+            <span class="customer-home__category-art">
+              @if (category.thumb) {
+                <img [src]="category.thumb" alt="" loading="lazy" decoding="async" />
+              }
+            </span>
+            <span class="customer-home__category-name">{{ category.name }}</span>
           </a>
         </li>
       }
     </ul>
   </section>
 
-  <section class="customer-home__section" aria-labelledby="appointments-title">
-    <header class="section-heading section-heading--inline">
-      <div>
-        <span class="section-heading__eyebrow">Sua agenda</span>
-        <h2 id="appointments-title">Próximos agendamentos</h2>
-        <p>Acompanhe os serviços que estão por vir.</p>
-      </div>
-      <app-button class="section-heading__action" color="customer">Agendar novo serviço</app-button>
-    </header>
-
-    @if (orders().length) {
-      <app-slider [gap]="16" [perpage]="3" class="customer-home__slider">
-        @for (order of orders(); track order.id) {
-          <app-card-appointment slide-item [order]="order" />
-        }
-      </app-slider>
-    } @else {
-      <div class="empty-state">
-        <span class="empty-state__icon" aria-hidden="true">✓</span>
+  @if (!ordersLoading() && !ordersError() && agenda().history.length) {
+    <section class="customer-home__section" aria-labelledby="history-title">
+      <header class="customer-home__heading">
         <div>
-          <h3>Sua agenda está livre</h3>
-          <p>Quando você contratar um serviço, ele aparecerá aqui.</p>
+          <p class="customer-home__eyebrow">Recentes</p>
+          <h2 id="history-title" class="customer-home__title">Histórico de serviços</h2>
         </div>
-      </div>
-    }
-  </section>
-
-  <section class="customer-home__section" aria-labelledby="history-title">
-    <header class="section-heading">
-      <div>
-        <span class="section-heading__eyebrow">Recentes</span>
-        <h2 id="history-title">Histórico de serviços</h2>
-        <p>Consulte rapidamente os profissionais que já atenderam você.</p>
-      </div>
-    </header>
-
-    <app-slider [gap]="16" [perpage]="3" class="customer-home__slider">
-      @for (item of [1, 2, 3, 4, 5, 6]; track item) {
-        <app-card-service-history
-          slide-item
-          [title]="'Serviço residencial ' + item"
-          address="Casa · Rua Teresa Barbarossa"
-          date="23 de maio · 10:00"
-          provider="Ana Souza"
-        />
-      }
-    </app-slider>
-  </section>
+      </header>
+      <ul tgOrderList>
+        @for (order of agenda().history; track order.id) {
+          <li><tg-order-row perspective="customer" [order]="order" /></li>
+        }
+      </ul>
+    </section>
+  }
 </main>

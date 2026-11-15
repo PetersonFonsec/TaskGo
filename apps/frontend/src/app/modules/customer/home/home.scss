@@ -1,165 +1,214 @@
+// Início do cliente (Etapa 9). Só tokens --tg-*; layout por container query.
+:host {
+  display: block;
+  container: customer-home / inline-size;
+}
+
 .customer-home {
   display: flex;
   flex-direction: column;
-  gap: clamp(42px, 6vw, 72px);
+  gap: var(--tg-space-10);
   margin: 0 auto;
   max-width: 1440px;
-
-  &__section {
-    min-width: 0;
-  }
-  &__slider {
-    display: block;
-  }
+  color: var(--tg-text-primary);
+  font-family: var(--tg-font-sans);
 }
 
-.section-heading {
-  margin-bottom: 22px;
-
-  &--inline {
-    align-items: flex-end;
-    display: flex;
-    justify-content: space-between;
-  }
-
-  &__eyebrow {
-    color: var(--proxi-primary);
-    display: block;
-    font-size: 11px;
-    font-weight: 800;
-    letter-spacing: 0.08em;
-    margin-bottom: 7px;
-    text-transform: uppercase;
-  }
-
-  h2 {
-    color: var(--proxi-text);
-    font-size: clamp(20px, 2.5vw, 25px);
-    letter-spacing: -0.03em;
-  }
-
-  p {
-    color: var(--proxi-text-muted);
-    font-size: 13px;
-    margin-top: 7px;
-  }
-
-  &__action {
-    width: 210px;
-  }
+.customer-home__hero {
+  display: flex;
+  align-items: center;
+  gap: var(--tg-space-6);
+  padding: var(--tg-space-8);
+  background: var(--tg-bg-surface);
+  border: 1px solid var(--tg-border-default);
+  border-radius: var(--tg-radius-xl);
 }
 
-.category-grid {
+.customer-home__hero-text {
+  display: flex;
+  flex: 1;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: var(--tg-space-2);
+  min-width: 0;
+}
+
+.customer-home__greeting {
+  margin: 0;
+  font-size: var(--tg-type-title-1-size);
+  line-height: var(--tg-type-title-1-line);
+  font-weight: var(--tg-font-weight-extrabold);
+  letter-spacing: -0.03em;
+}
+
+.customer-home__lead {
+  margin: 0 0 var(--tg-space-4);
+  color: var(--tg-text-secondary);
+  font-size: var(--tg-type-body-lg-size);
+  line-height: var(--tg-type-body-lg-line);
+}
+
+.customer-home__section {
+  display: flex;
+  flex-direction: column;
+  gap: var(--tg-space-4);
+  min-width: 0;
+}
+
+.customer-home__heading {
+  display: flex;
+  align-items: flex-end;
+  justify-content: space-between;
+  gap: var(--tg-space-3);
+  flex-wrap: wrap;
+}
+
+.customer-home__eyebrow {
+  margin: 0 0 var(--tg-space-1);
+  color: var(--tg-action-subtle-text);
+  font-size: var(--tg-type-overline-size);
+  line-height: var(--tg-type-overline-line);
+  font-weight: var(--tg-font-weight-bold);
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.customer-home__title {
+  margin: 0;
+  font-size: var(--tg-type-title-2-size);
+  line-height: var(--tg-type-title-2-line);
+  font-weight: var(--tg-font-weight-extrabold);
+  letter-spacing: -0.02em;
+}
+
+.customer-home__subtitle {
+  margin: 0 0 var(--tg-space-2);
+  color: var(--tg-text-secondary);
+  font-size: var(--tg-type-overline-size);
+  line-height: var(--tg-type-overline-line);
+  font-weight: var(--tg-font-weight-bold);
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+}
+
+.customer-home__agenda-grid {
   display: grid;
-  gap: 16px;
-  grid-template-columns: repeat(auto-fit, minmax(230px, 1fr));
+  grid-template-columns: minmax(0, 1fr);
+  gap: var(--tg-space-6);
+  align-items: start;
+}
 
-  a {
+.customer-home__more {
+  min-width: 0;
+
+  // Sem destaque, a lista ocupa a largura toda.
+  &:only-child {
+    grid-column: 1 / -1;
+  }
+}
+
+.customer-home__skeleton-card,
+.customer-home__skeleton-list {
+  background: var(--tg-bg-surface);
+  border: 1px solid var(--tg-border-default);
+  border-radius: var(--tg-radius-xl);
+}
+
+.customer-home__skeleton-card {
+  display: flex;
+  flex-direction: column;
+  gap: var(--tg-space-3);
+  padding: var(--tg-space-6);
+}
+
+.customer-home__skeleton-row {
+  display: flex;
+  flex-direction: column;
+  gap: var(--tg-space-2);
+  padding: var(--tg-space-4) var(--tg-space-5);
+
+  & + & {
+    border-top: 1px solid var(--tg-border-default);
+  }
+}
+
+.customer-home__categories {
+  display: grid;
+  gap: var(--tg-space-4);
+  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+// Card de categoria (proposta da Etapa 9): imagem em cima, nome embaixo.
+// O a[tgCard] dá superfície, borda, hover e foco; aqui só o recheio.
+.customer-home__category {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  padding: 0;
+  overflow: hidden;
+  text-decoration: none;
+}
+
+.customer-home__category-art {
+  display: block;
+  height: 160px;
+  // O fundo das artes 3D das categorias é quase o canvas do cliente: as
+  // laterais que o contain deixa se fundem com a imagem.
+  background: var(--tg-bg-canvas);
+
+  img {
     display: block;
-    height: 100%;
-  }
-}
-
-.empty-state {
-  align-items: center;
-  background: var(--proxi-surface);
-  border: 1px dashed #cbd5e1;
-  border-radius: var(--proxi-radius-lg);
-  display: flex;
-  gap: 16px;
-  padding: 24px;
-
-  &__icon {
-    align-items: center;
-    background: var(--proxi-primary-soft);
-    border-radius: 50%;
-    color: var(--proxi-primary);
-    display: flex;
-    flex: 0 0 42px;
-    font-weight: 800;
-    height: 42px;
-    justify-content: center;
-  }
-
-  h3 {
-    font-size: 14px;
-  }
-  p {
-    color: var(--proxi-text-muted);
-    font-size: 12px;
-    margin-top: 5px;
-  }
-}
-
-@media (max-width: 700px) {
-  .section-heading--inline {
-    align-items: flex-start;
-    flex-direction: column;
-    gap: 16px;
-  }
-  .section-heading__action {
     width: 100%;
+    height: 100%;
+    // A arte inteira à vista, sem corte; sobra o fundo neutro nas laterais.
+    object-fit: contain;
+    object-position: center;
   }
-  .category-grid {
+}
+
+.customer-home__category-name {
+  padding: var(--tg-space-3) var(--tg-space-4);
+  color: var(--tg-text-primary);
+  font-size: var(--tg-type-body-size);
+  line-height: var(--tg-type-body-line);
+  font-weight: var(--tg-font-weight-bold);
+}
+
+// Duas colunas na agenda quando cabe o card (540) e a lista.
+@container customer-home (min-width: 900px) {
+  .customer-home__agenda-grid {
+    grid-template-columns: minmax(0, 540px) minmax(0, 1fr);
+  }
+}
+
+// Estreito: a busca ocupa a largura e as categorias ficam em duas colunas.
+@container customer-home (max-width: 599.98px) {
+  .customer-home {
+    gap: var(--tg-space-8);
+  }
+
+  .customer-home__hero {
+    padding: var(--tg-space-5);
+  }
+
+  .customer-home__greeting {
+    font-size: var(--tg-type-title-2-size);
+    line-height: var(--tg-type-title-2-line);
+  }
+
+  .customer-home__search {
+    align-self: stretch;
+  }
+
+  .customer-home__categories {
     grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: var(--tg-space-3);
   }
-}
 
-.address-reminder {
-  display: flex;
-  align-items: center;
-  gap: 20px;
-  padding: 24px;
-  background: var(--proxi-primary-soft);
-  border: 1px solid var(--proxi-primary);
-  border-radius: var(--proxi-radius-lg);
-
-  &__icon {
-    color: var(--proxi-primary);
-    font-size: 28px;
-  }
-  &__content {
-    flex: 1;
-    min-width: 0;
-  }
-  h2 {
-    color: var(--proxi-text);
-    font-size: 18px;
-  }
-  p {
-    color: var(--proxi-text-muted);
-    font-size: 14px;
-    margin-top: 8px;
-    line-height: 1.5;
-  }
-  &__action {
-    background: var(--proxi-primary);
-    color: #fff;
-    border-radius: 12px;
-    padding: 14px 20px;
-    font-size: 14px;
-    font-weight: 700;
-    text-align: center;
-    text-decoration: none;
-    flex-shrink: 0;
-    &:hover {
-      text-decoration: underline;
-    }
-    &:focus-visible {
-      outline: 3px solid var(--proxi-text);
-      outline-offset: 3px;
-    }
-  }
-}
-
-@media (max-width: 700px) {
-  .address-reminder {
-    flex-wrap: wrap;
-    gap: 16px;
-    padding: 20px;
-    &__action {
-      width: 100%;
-      box-sizing: border-box;
-    }
+  .customer-home__category-art {
+    height: 120px;
   }
 }
