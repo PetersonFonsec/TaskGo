@@ -1,0 +1,135 @@
+// Card de agendamento. Só tokens --tg-*; o tema troca os valores.
+// O layout segue a largura do container: numa coluna estreita o status desce
+// e o botão ocupa a largura, mesmo numa tela larga.
+:host {
+  display: block;
+  min-width: 0;
+  container: tg-appointment-card / inline-size;
+}
+
+.tg-appointment-card__card {
+  display: flex;
+  flex-direction: column;
+  gap: var(--tg-space-3);
+}
+
+.tg-appointment-card__top {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: var(--tg-space-2) var(--tg-space-3);
+  margin-bottom: var(--tg-space-1);
+
+  tg-badge {
+    flex: none;
+  }
+}
+
+.tg-appointment-card__when {
+  display: flex;
+  flex-direction: column;
+  gap: var(--tg-space-1);
+  min-width: 0;
+  margin: 0;
+}
+
+.tg-appointment-card__day {
+  color: var(--tg-text-secondary);
+  font-size: var(--tg-type-overline-size);
+  line-height: var(--tg-type-overline-line);
+  font-weight: var(--tg-font-weight-bold);
+  letter-spacing: var(--tg-tracking-overline);
+  text-transform: uppercase;
+}
+
+.tg-appointment-card__time {
+  color: var(--tg-text-primary);
+  font-size: var(--tg-type-title-1-size);
+  line-height: var(--tg-type-title-1-line);
+  font-weight: var(--tg-font-weight-bold);
+  font-variant-numeric: tabular-nums;
+}
+
+.tg-appointment-card__title {
+  margin: 0;
+  min-width: 0;
+  color: var(--tg-text-primary);
+  font-size: var(--tg-type-title-3-size);
+  line-height: var(--tg-type-title-3-line);
+  font-weight: var(--tg-font-weight-bold);
+  overflow-wrap: break-word;
+}
+
+.tg-appointment-card__person,
+.tg-appointment-card__place,
+.tg-appointment-card__amount {
+  display: flex;
+  align-items: flex-start;
+  gap: var(--tg-space-2);
+  min-width: 0;
+  margin: 0;
+  font-size: var(--tg-type-body-size);
+  line-height: var(--tg-type-body-line);
+  overflow-wrap: anywhere;
+}
+
+.tg-appointment-card__person {
+  align-items: center;
+  color: var(--tg-text-primary);
+}
+
+.tg-appointment-card__avatar {
+  flex: none;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  overflow: hidden;
+  width: 32px;
+  height: 32px;
+  border-radius: var(--tg-radius-full);
+  background: var(--tg-action-subtle);
+  color: var(--tg-action-subtle-text);
+  font-size: var(--tg-type-overline-size);
+  font-weight: var(--tg-font-weight-bold);
+
+  img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+  }
+}
+
+.tg-appointment-card__place {
+  color: var(--tg-text-secondary);
+
+  tg-icon {
+    flex: none;
+    margin-top: 2px;
+  }
+}
+
+.tg-appointment-card__amount {
+  display: block;
+  color: var(--tg-text-secondary);
+
+  b {
+    color: var(--tg-text-primary);
+  }
+}
+
+.tg-appointment-card__step {
+  display: flex;
+  margin-top: var(--tg-space-1);
+  padding-top: var(--tg-space-4);
+  border-top: 1px solid var(--tg-border-default);
+}
+
+@container tg-appointment-card (max-width: 479.98px) {
+  .tg-appointment-card__top {
+    flex-direction: column;
+  }
+
+  .tg-appointment-card__action {
+    flex: 1;
+  }
+}

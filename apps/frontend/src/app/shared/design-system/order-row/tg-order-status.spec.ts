@@ -1,4 +1,5 @@
-import { TG_ORDER_STATUSES, tgOrderNextStep, tgOrderStatus } from './tg-order-status';
+import { TG_ORDER_STATUSES, tgOrderNextStep, tgOrderStatus, tgOrderStatusIcon } from './tg-order-status';
+import { tgDistance, tgMoney, tgWhenParts } from './tg-order-format';
 import { when } from './tg-order-row.component';
 
 describe('tgOrderStatus (mapa aprovado na Etapa 7)', () => {
@@ -191,5 +192,52 @@ describe('when (data da linha)', () => {
     for (const v of [null, undefined, '', 'amanhã', NaN, new Date('x')]) {
       expect(when(v as never, now)).withContext(String(v)).toBe('Data a combinar');
     }
+  });
+});
+
+describe('tgOrderStatusIcon (um ícone por status)', () => {
+  it('o mesmo ícone em todo lugar; desconhecido sem ícone', () => {
+    const icons: Record<string, string> = {
+      AGUARDANDO_APROVACAO: 'hourglass',
+      AGUARDANDO_PAGAMENTO: 'wallet',
+      AGENDADO: 'calendar-blank',
+      EM_DESLOCAMENTO: 'map-pin',
+      EM_ANDAMENTO: 'wrench',
+      AGUARDANDO_CONFIRMACAO_CLIENTE: 'hourglass',
+      CONCLUIDO: 'check',
+      DISPUTA: 'warning-circle',
+      REJEITADO: 'x',
+      CANCELADO: 'x',
+    };
+    expect(Object.keys(icons).sort()).toEqual([...TG_ORDER_STATUSES].sort());
+    for (const [status, icon] of Object.entries(icons)) {
+      expect(tgOrderStatusIcon(status)).withContext(status).toBe(icon as never);
+    }
+    for (const status of ['PENDENTE', '', null, undefined, '__proto__', 'toString']) {
+      expect(tgOrderStatusIcon(status)).withContext(String(status)).toBeNull();
+    }
+  });
+});
+
+describe('tgWhenParts, tgDistance e tgMoney', () => {
+  const now = new Date(2026, 10, 15, 16, 0);
+
+  it('dia e hora separados', () => {
+    expect(tgWhenParts(new Date(2026, 10, 15, 14, 0), now)).toEqual({ day: 'Hoje', time: '14:00' });
+    expect(tgWhenParts(new Date(2026, 10, 16, 9, 0), now)).toEqual({ day: 'Amanhã', time: '09:00' });
+    expect(tgWhenParts(new Date(2026, 10, 18, 9, 0), now)).toEqual({ day: 'Qua, 18 nov', time: '09:00' });
+    expect(tgWhenParts(new Date(2027, 0, 4, 8, 0), now)).toEqual({ day: 'Seg, 04 jan 2027', time: '08:00' });
+    for (const v of [null, undefined, '', 'x', NaN]) {
+      expect(tgWhenParts(v as never, now)).withContext(String(v)).toBeNull();
+    }
+  });
+
+  it('distância e valor; inválido some', () => {
+    expect(tgDistance(1.25)).toBe('1,3 km');
+    expect(tgDistance(0)).toBe('0,0 km');
+    for (const v of [null, undefined, -1, NaN]) expect(tgDistance(v as never)).withContext(String(v)).toBeNull();
+    expect(tgMoney(180)!.replace(/\s/g, ' ')).toBe('R$ 180');
+    expect(tgMoney(99.5)!.replace(/\s/g, ' ')).toBe('R$ 99,50');
+    for (const v of [null, undefined, 0, -1, NaN]) expect(tgMoney(v as never)).withContext(String(v)).toBeNull();
   });
 });

@@ -17,6 +17,9 @@ import {
   tgOrderNextStep,
   tgOrderStatus,
 } from './tg-order-status';
+import { tgDistance, tgMoney, when } from './tg-order-format';
+
+export { when } from './tg-order-format';
 
 /** Dados que a linha mostra. A tela monta a partir do pedido da API. */
 export interface TgOrderRowData {
@@ -44,12 +47,6 @@ export interface TgOrderRowData {
    */
   paymentStatus?: string | null;
 }
-
-const WEEKDAYS = ['Dom', 'Seg', 'Ter', 'Qua', 'Qui', 'Sex', 'Sáb'];
-const MONTHS = ['jan', 'fev', 'mar', 'abr', 'mai', 'jun', 'jul', 'ago', 'set', 'out', 'nov', 'dez'];
-const KM = new Intl.NumberFormat('pt-BR', { minimumFractionDigits: 1, maximumFractionDigits: 1 });
-const BRL = new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' });
-const BRL_INT = new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL', maximumFractionDigits: 0 });
 
 /**
  * Lista de pedidos: a superfície com as divisórias entre as linhas.
@@ -174,84 +171,13 @@ export class TgOrderRowComponent {
 
   protected readonly meta = computed(() => {
     const { person, scheduledFor, neighborhood, distanceKm } = this.order();
-    const place = [neighborhood?.trim(), this.perspective() === 'provider' ? distance(distanceKm) : null]
+    const place = [neighborhood?.trim(), this.perspective() === 'provider' ? tgDistance(distanceKm) : null]
       .filter(Boolean)
       .join(', ');
     return [person?.trim(), when(scheduledFor), place].filter(Boolean).join(' · ');
   });
 
-  protected readonly amount = computed(() => {
-    if (this.perspective() !== 'provider') return null;
-    const raw = this.order().amount;
-    const value = Number(raw);
-    if (raw == null || !Number.isFinite(value) || value <= 0) return null;
-    return (Number.isInteger(value) ? BRL_INT : BRL).format(value);
-  });
-}
-
-function distance(km: number | null | undefined): string | null {
-  const value = Number(km);
-  if (km == null || !Number.isFinite(value) || value < 0) return null;
-  return `${KM.format(value)} km`;
-}
-
-/** Partes do dia civil num fuso (sem fuso: o do navegador). */
-interface CivilDate {
-  year: number;
-  month: number;
-  day: number;
-  time: string;
-}
-
-const CIVIL = new Map<string, Intl.DateTimeFormat>();
-
-function civilFormat(timeZone: string | undefined): Intl.DateTimeFormat {
-  const key = timeZone ?? '';
-  let format = CIVIL.get(key);
-  if (!format) {
-    format = new Intl.DateTimeFormat('en-US', {
-      timeZone,
-      year: 'numeric',
-      month: 'numeric',
-      day: 'numeric',
-      hour: '2-digit',
-      minute: '2-digit',
-      hourCycle: 'h23',
-    });
-    CIVIL.set(key, format);
-  }
-  return format;
-}
-
-function civil(date: Date, timeZone: string | undefined): CivilDate {
-  const parts: Record<string, string> = {};
-  for (const { type, value } of civilFormat(timeZone).formatToParts(date)) parts[type] = value;
-  return { year: +parts['year'], month: +parts['month'], day: +parts['day'], time: `${parts['hour']}:${parts['minute']}` };
-}
-
-/** Número do dia civil: a diferença entre dois é sempre inteira, com ou sem horário de verão. */
-function dayNumber({ year, month, day }: CivilDate): number {
-  return Date.UTC(year, month - 1, day) / 86_400_000;
-}
-
-/**
- * "Hoje, 14:00", "Amanhã, 09:00", "Ontem, 15:00", "Ter, 18 nov, 09:00" (com o
- * ano se não for o atual). Sem data: "Data a combinar". Compara dias civis
- * (não 24 h), então dias de 23 ou 25 h no horário de verão não mudam a
- * conta. `timeZone` (IANA) é o fuso de quem vê; sem ele, o do navegador.
- */
-export function when(value: string | number | Date | null | undefined, now = new Date(), timeZone?: string): string {
-  if (value == null || value === '') return 'Data a combinar';
-  const date = value instanceof Date ? value : new Date(value);
-  if (Number.isNaN(date.getTime()) || Number.isNaN(now.getTime())) return 'Data a combinar';
-  const target = civil(date, timeZone);
-  const today = civil(now, timeZone);
-  const days = dayNumber(target) - dayNumber(today);
-  if (days === 0) return `Hoje, ${target.time}`;
-  if (days === 1) return `Amanhã, ${target.time}`;
-  if (days === -1) return `Ontem, ${target.time}`;
-  const weekday = new Date(Date.UTC(target.year, target.month - 1, target.day)).getUTCDay();
-  const year = target.year === today.year ? '' : ` ${target.year}`;
-  const day = String(target.day).padStart(2, '0');
-  return `${WEEKDAYS[weekday]}, ${day} ${MONTHS[target.month - 1]}${year}, ${target.time}`;
+  protected readonly amount = computed(() =>
+    this.perspective() === 'provider' ? tgMoney(this.order().amount) : null,
+  );
 }

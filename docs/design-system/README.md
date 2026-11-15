@@ -1111,7 +1111,7 @@ Regras:
 - O serviço é o link para o pedido (`/orders/:id`) e cobre a linha inteira;
   o botão do próximo passo fica por cima.
 - Badge só com texto na linha, sem ícone de status. O ícone fica no card de
-  agendamento em destaque.
+  agendamento em destaque (`tgOrderStatusIcon`).
 - Linha de apoio: pessoa · data · bairro. A data é "Hoje, 14:00", "Amanhã",
   "Ontem" ou "Ter, 18 nov, 09:00" (com o ano quando não é o atual); sem
   data, "Data a combinar". Só o bairro: o endereço completo fica na tela do
@@ -1145,6 +1145,80 @@ Os mapas de status de cada tela (`card-appointment`, início do prestador)
 continuam até a migração delas, quando passam a usar `tgOrderStatus`. No
 app, "Meus pedidos" (`ion-item`) segue a mesma ordem e o mesmo mapa, nas
 migrações do app.
+
+### Card de agendamento
+
+O próximo serviço em destaque, sobre o `tg-card`. Mostra quando é, o status,
+o serviço, a outra pessoa, o endereço completo e, quando é a vez de quem
+vê, o próximo passo. A tela escolhe qual pedido destacar: o ativo com a
+data mais próxima. Os demais pedidos ficam na lista, com a linha de pedido.
+
+```html
+<tg-appointment-card
+  perspective="provider"
+  [order]="proximo()"
+  [busy]="atualizando()"
+  (statusAction)="avancar($event)" />
+```
+
+| Entrada | Valores | Padrão |
+| --- | --- | --- |
+| `order` | `TgAppointmentData`: `id`, `status`, `service`, `person`, `personPhotoUrl`, `scheduledFor`, `address`, `neighborhood`, `distanceKm`, `amount`, `reviewed`, `paymentStatus` | obrigatório |
+| `perspective` | `customer` ou `provider`: muda o texto do status, a distância, o valor e o próximo passo | obrigatório |
+| `busy` | a tela está trocando o status; o botão fica em carregando | `false` |
+| `headingLevel` | nível do título, inteiro de 2 a 6 (outro valor vira `h3`) | `3` |
+| `(statusAction)` | pede a troca (`EM_DESLOCAMENTO` ou `EM_ANDAMENTO`); a tela chama a API | — |
+
+O status e o próximo passo são os da linha de pedido (`tgOrderStatus` e
+`tgOrderNextStep`, com "Pagar" ou "Ver QR Code" pelo `paymentStatus`). Da
+API para o card, use `toTgAppointment(pedido, perspective)`: faz o mesmo que
+`toTgOrderRow` e acrescenta a foto da outra pessoa e o endereço "rua,
+número, complemento". Os ids vêm do `TgIdGenerator`, como na linha. É o único lugar em que o badge de status leva ícone,
+dado por `tgOrderStatusIcon(status)`:
+
+| Status | Ícone |
+| --- | --- |
+| `AGUARDANDO_APROVACAO`, `AGUARDANDO_CONFIRMACAO_CLIENTE` | `hourglass` |
+| `AGUARDANDO_PAGAMENTO` | `wallet` |
+| `AGENDADO` | `calendar-blank` |
+| `EM_DESLOCAMENTO` | `map-pin` |
+| `EM_ANDAMENTO` | `wrench` |
+| `CONCLUIDO` | `check` |
+| `DISPUTA` | `warning-circle` |
+| `REJEITADO`, `CANCELADO` | `x` |
+| desconhecido | sem ícone ("Em atualização") |
+
+Regras:
+
+- Quando vem primeiro: o dia ("Hoje", "Amanhã", "Ter, 18 nov") em
+  `overline` e a hora em `title-1`. Sem data, "Data a combinar" e sem hora.
+- O serviço é o link para o pedido (`tgCardLink`) e cobre o card; o botão
+  fica por cima.
+- A pessoa aparece com foto ou iniciais (a foto é decorativa, `alt` vazio;
+  se falhar, voltam as iniciais).
+- Endereço completo: rua, número e complemento · bairro, porque é a próxima
+  visita. Na linha de pedido continua só o bairro.
+- Para o prestador, a distância entra junto do endereço e aparece "Valor
+  estimado R$ 120". O cliente não vê esses dois.
+- No máximo um próximo passo, botão médio (44 px). Sem passo, sem rodapé.
+- O layout segue a largura do container: abaixo de 480 px, o status desce
+  para baixo da data e o botão ocupa a largura.
+
+Acessibilidade:
+
+- O link tem o nome do serviço e, como descrição, o status e a data
+  ("Instalação de chuveiro", "Profissional a caminho", "Hoje 14:00").
+- O ícone do badge é decorativo; o texto do status diz tudo.
+- O botão tem o serviço como descrição. Em carregamento, `aria-busy`, e o
+  clique não repete o pedido.
+- Tab: o serviço e o próximo passo. Hover e foco são os do `tg-card` com
+  link esticado.
+
+O `app-card-appointment` (carrossel do início do cliente) continua até a
+migração do início, quando vira um `tg-appointment-card` com o próximo
+agendamento e a lista de pedidos abaixo. Carregando, use o skeleton; sem
+agendamento, o estado vazio ("Sua agenda está livre"). No app, o mesmo
+conteúdo vai num `ion-card` com os tokens, nas migrações do app.
 
 ## Testes
 
