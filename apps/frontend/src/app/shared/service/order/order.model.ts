@@ -98,6 +98,10 @@ export interface OrderModel {
 	serviceId: string;
 	status: 'PENDENTE' | 'CONFIRMADO' | 'EM_ANDAMENTO' | 'CONCLUIDO' | 'CANCELADO' | string;
 	finalPrice?: DecimalLike | null;
+	/** Preço estimado no pedido (o base do serviço na criação). */
+	estimatedPrice?: DecimalLike | null;
+	/** Quando o prestador finalizou o serviço: a partir daí, `finalPrice` é o valor final. */
+	providerFinishedAt?: string | null;
 	requestedAt?: any;
 	scheduledFor?: any | null;
 	client?: UserModel | null;

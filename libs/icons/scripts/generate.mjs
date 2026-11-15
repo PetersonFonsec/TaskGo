@@ -16,6 +16,7 @@ const ICONS = [
   'eye',
   'eye-slash',
   'heart',
+  'hourglass',
   'house',
   'magnifying-glass',
   'map-pin',

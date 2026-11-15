@@ -1,3 +1,4 @@
+import type { TgIconName } from '@taskgo/icons';
 import type { TgBadgeTone } from '../badge/tg-badge.component';
 
 /** Status do pedido no backend (enum OrderStatus do Prisma). */
@@ -51,6 +52,27 @@ export function tgOrderStatus(status: unknown, perspective: TgOrderPerspective):
   if (!isTgOrderStatus(status)) return UNKNOWN;
   const entry = MAP[status];
   return { label: perspective === 'provider' ? entry.provider : entry.customer, tone: entry.tone };
+}
+
+const ICONS: Record<TgOrderStatusCode, TgIconName> = {
+  AGUARDANDO_APROVACAO: 'hourglass',
+  AGUARDANDO_PAGAMENTO: 'wallet',
+  AGENDADO: 'calendar-blank',
+  EM_DESLOCAMENTO: 'map-pin',
+  EM_ANDAMENTO: 'wrench',
+  AGUARDANDO_CONFIRMACAO_CLIENTE: 'hourglass',
+  CONCLUIDO: 'check',
+  DISPUTA: 'warning-circle',
+  REJEITADO: 'x',
+  CANCELADO: 'x',
+};
+
+/**
+ * O ícone do status, o mesmo em todo lugar que mostrar ícone (o card de
+ * agendamento; a linha de pedido fica só com texto). Desconhecido: null.
+ */
+export function tgOrderStatusIcon(status: unknown): TgIconName | null {
+  return isTgOrderStatus(status) ? ICONS[status] : null;
 }
 
 /** Mudança de status que a própria linha pede (a tela chama a API). */
