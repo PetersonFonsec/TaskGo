@@ -1,8 +1,8 @@
 <main class="customer-home">
-  @if (addressMissing()) {
+  @if (addressMissing() && addressLink(); as link) {
     <tg-alert class="customer-home__address" tone="info" title="Cadastre seu endereço">
       Assim os profissionais sabem onde atender e a busca mostra quem está perto.
-      <a tgButton tgAlertAction appearance="outline" size="sm" [routerLink]="addressLink">
+      <a tgButton tgAlertAction appearance="outline" size="sm" [routerLink]="link">
         Cadastrar endereço
       </a>
     </tg-alert>
@@ -64,12 +64,17 @@
           </div>
         </ng-template>
 
-        @if (agenda().highlight; as highlight) {
+        @if (agenda().highlight || agenda().upcoming.length) {
           <div class="customer-home__agenda-grid">
-            <tg-appointment-card perspective="customer" [order]="highlight" />
+            @if (agenda().highlight; as highlight) {
+              <tg-appointment-card perspective="customer" [order]="highlight" />
+            }
             @if (agenda().upcoming.length) {
               <div class="customer-home__more">
-                <h3 class="customer-home__subtitle">Também na agenda</h3>
+                <!-- Sem destaque (só pedidos em análise), a lista fica sob o título da seção. -->
+                @if (agenda().highlight) {
+                  <h3 class="customer-home__subtitle">Também na agenda</h3>
+                }
                 <ul tgOrderList>
                   @for (order of agenda().upcoming; track order.id) {
                     <li><tg-order-row perspective="customer" [order]="order" /></li>

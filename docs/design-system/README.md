@@ -1262,18 +1262,23 @@ agenda, categorias e histórico.
 | --- | --- | --- |
 | Endereço | `tg-alert` informativo + "Cadastrar endereço" | Só quando a consulta diz que não há endereço; falha na consulta não mostra. |
 | Saudação | `h1` com o primeiro nome, `a[tgButton]` "Buscar serviço" | Sem nome, só "Olá". Sem ilustração: a antiga saiu e uma nova, no estilo I1, pode voltar depois. |
-| Destaque | `tg-appointment-card` | O ativo que pede ação do cliente (Pagar, Ver QR Code, Confirmar conclusão); senão, o de data mais próxima (decisão 1). |
-| Também na agenda | `ul[tgOrderList]` com `tg-order-row` | Os demais ativos, data mais próxima primeiro, até 3. Sem data vai para o fim. |
-| Histórico | `ul[tgOrderList]` com `tg-order-row` | Concluídos, cancelados e recusados, mais recentes primeiro, até 3, com "Avaliar" quando falta. Sem nenhum, a seção some. |
+| Destaque | `tg-appointment-card` | Só um atendimento em curso (aguardando aprovação ou pagamento, agendado, a caminho, em andamento, aguardando sua confirmação): o que pede ação do cliente (Pagar, Ver QR Code, Confirmar conclusão); senão, o de data mais próxima (decisão 1). |
+| Também na agenda | `ul[tgOrderList]` com `tg-order-row` | Primeiro os pedidos em análise (`DISPUTA`) e de status desconhecido, que nunca vão para o destaque mas não podem sumir; depois os demais em curso, data mais próxima primeiro. Até 3. Só em análise: a lista aparece sem destaque, não "agenda livre". |
+| Histórico | `ul[tgOrderList]` com `tg-order-row` | Concluídos, cancelados e recusados, encerramento mais recente primeiro, até 3, com "Avaliar" quando falta. Sem nenhum, a seção some. |
 | Categorias | `a[tgCard]` com imagem em cima e nome embaixo | O card inteiro é o link para a busca filtrada. Imagem decorativa (o nome é o texto do link), inteira, sem corte (`object-fit: contain` sobre `bg-canvas`, o fundo das artes); sem imagem, só o fundo. Duas colunas abaixo de 600 px. |
 | Carregando | `tg-loading` com skeleton do card e da lista | |
 | Erro | `tg-alert` de perigo com "Tentar de novo" | Nunca vira "agenda livre". |
 | Vazio | `tg-empty-state` compacto + "Buscar serviço" | |
 
 A seleção fica em `customer-home.agenda.ts` (`customerHomeAgenda`), função
-pura com testes próprios. Ativo é todo status que não está encerrado,
-inclusive um desconhecido ("Em atualização"). Categorias e pedidos carregam
-em separado: a falha de um não esconde o outro.
+pura com testes próprios. O encerramento usa só datas reais da listagem:
+`clientConfirmedAt` ou `providerFinishedAt` no concluído; `payment.canceledAt`
+ou `payment.refundedAt` no cancelado ou recusado. O pedido não guarda a data
+do cancelamento (só a linha do tempo, que a listagem não traz), então um
+cancelado sem pagamento usa a data do pedido. Categorias e pedidos carregam
+em separado: a falha de um não esconde o outro. Cada carga de pedidos cancela
+a anterior (`switchMap`). Sessão sem id não consulta nada e mostra o erro
+com "Tentar de novo".
 
 "Agendar serviço" e "Buscar serviço" levam à busca; não há "Ver todos"
 porque a página de histórico ainda não existe.

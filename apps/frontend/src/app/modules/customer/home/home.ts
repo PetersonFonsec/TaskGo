@@ -9,7 +9,7 @@ import {
   OnInit,
   signal,
 } from '@angular/core';
-import { finalize } from 'rxjs';
+import { catchError, map, of, Subject, switchMap } from 'rxjs';
 
 import { Address } from '@shared/service/address/address';
 import { UserLoggedService } from '@shared/service/user-logged/user-logged.service';
@@ -66,8 +66,23 @@ export class Home implements OnInit {
   #destroyRef = inject(DestroyRef);
 
   readonly addressMissing = signal(false);
-  readonly addressLink = ['/general', this.#userLogged.user().user.id, 'addresses'];
   readonly searchLink = '/customer/search';
+
+  /**
+   * Id de quem está logado. A sessão vem do localStorage e pode estar vazia
+   * ou incompleta (`{}`, `null` depois do logout): sem id, nada que depende
+   * do usuário é consultado e nenhum link leva `undefined`.
+   */
+  readonly #userId = computed(() => {
+    const id: unknown = this.#userLogged.user()?.user?.id;
+    return (typeof id === 'string' && id.trim()) || (typeof id === 'number' && Number.isFinite(id))
+      ? String(id)
+      : null;
+  });
+  readonly addressLink = computed(() => {
+    const id = this.#userId();
+    return id ? ['/general', id, 'addresses'] : null;
+  });
 
   /** Primeiro nome de quem está logado; sem nome, só "Olá". */
   readonly firstName = computed(() => this.#userLogged.user()?.user?.name?.trim().split(/\s+/)[0] ?? '');
@@ -78,16 +93,46 @@ export class Home implements OnInit {
   readonly ordersError = signal(false);
   readonly agenda = computed(() => customerHomeAgenda(this.orders()));
 
-  ngOnInit(): void {
-    const user = this.#userLogged.user().user;
+  /**
+   * Cada carga de pedidos passa por aqui. O switchMap cancela a anterior:
+   * só a mais recente muda pedidos, carregamento e erro, e uma resposta (ou
+   * erro) antiga nunca sobrescreve a atual. Ao destruir a tela, a carga em
+   * curso é cancelada.
+   */
+  readonly #ordersRequests = new Subject<string>();
 
-    this.#address
-      .getAddress(user.id, 1)
-      .pipe(takeUntilDestroyed(this.#destroyRef))
-      .subscribe({
-        next: ({ data }) => this.addressMissing.set(data.length === 0),
-        error: () => this.addressMissing.set(false),
+  constructor() {
+    this.#ordersRequests
+      .pipe(
+        switchMap((userId) => {
+          this.ordersLoading.set(true);
+          this.ordersError.set(false);
+          return this.#order.getOrderByClient(userId).pipe(
+            map((orders): OrdersResult => ({ ok: true, orders })),
+            catchError(() => of<OrdersResult>({ ok: false })),
+          );
+        }),
+        takeUntilDestroyed(this.#destroyRef),
+      )
+      .subscribe((result) => {
+        this.orders.set(result.ok ? result.orders : []);
+        this.ordersError.set(!result.ok);
+        this.ordersLoading.set(false);
       });
+  }
+
+  ngOnInit(): void {
+    const userId = this.#userId();
+
+    if (userId) {
+      this.#address
+        .getAddress(userId, 1)
+        .pipe(takeUntilDestroyed(this.#destroyRef))
+        .subscribe({
+          next: ({ data }) => this.addressMissing.set(data.length === 0),
+          error: () => this.addressMissing.set(false),
+        });
+    }
 
     // Categorias e pedidos carregam em separado: a falha de um não esconde o outro.
     this.#categoryService
@@ -101,23 +146,19 @@ export class Home implements OnInit {
     this.loadOrders();
   }
 
+  /** Carrega (ou recarrega, no "Tentar de novo") os pedidos de quem está logado. */
   loadOrders(): void {
-    const user = this.#userLogged.user().user;
-    this.ordersLoading.set(true);
-    this.ordersError.set(false);
-
-    this.#order
-      .getOrderByClient(user.id)
-      .pipe(
-        takeUntilDestroyed(this.#destroyRef),
-        finalize(() => this.ordersLoading.set(false)),
-      )
-      .subscribe({
-        next: (orders) => this.orders.set(orders),
-        error: () => {
-          this.orders.set([]);
-          this.ordersError.set(true);
-        },
-      });
+    const userId = this.#userId();
+    if (userId) {
+      this.#ordersRequests.next(userId);
+      return;
+    }
+    // Sessão sem id: não consulta; a agenda mostra o erro com "Tentar de novo",
+    // que lê a sessão outra vez.
+    this.orders.set([]);
+    this.ordersError.set(true);
+    this.ordersLoading.set(false);
   }
 }
+
+type OrdersResult = { ok: true; orders: OrdersResponse } | { ok: false };

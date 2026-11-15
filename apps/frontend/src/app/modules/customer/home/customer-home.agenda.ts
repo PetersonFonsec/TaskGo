@@ -10,57 +10,102 @@ import { tgOrderNextStep } from '@shared/design-system/order-row/tg-order-status
 /** Pedidos encerrados: vão para o histórico, nunca para a agenda. */
 const CLOSED_STATUSES: ReadonlySet<string> = new Set(['CONCLUIDO', 'CANCELADO', 'REJEITADO']);
 
-/** Quantos pedidos ativos aparecem abaixo do destaque. */
+/**
+ * Status de um atendimento em curso, que pode ir para o destaque. Fora
+ * daqui e fora dos encerrados ficam `DISPUTA` ("Em análise": um problema
+ * relatado, não uma visita marcada) e status desconhecidos ("Em
+ * atualização"): continuam visíveis na lista, mas nunca no destaque.
+ */
+const SCHEDULED_STATUSES: ReadonlySet<string> = new Set([
+  'AGUARDANDO_APROVACAO',
+  'AGUARDANDO_PAGAMENTO',
+  'AGENDADO',
+  'EM_DESLOCAMENTO',
+  'EM_ANDAMENTO',
+  'AGUARDANDO_CONFIRMACAO_CLIENTE',
+]);
+
+/** Quantos pedidos ativos aparecem na lista. */
 export const CUSTOMER_HOME_UPCOMING_LIMIT = 3;
 /** Quantos pedidos encerrados aparecem no histórico. */
 export const CUSTOMER_HOME_HISTORY_LIMIT = 3;
 
-/** O pedido da lista do cliente, com a data do pedido para ordenar o histórico. */
+/**
+ * O pedido da lista do cliente (GET /order/client/:id), com as datas que
+ * ordenam o histórico. Todas vêm da API; nenhuma é calculada aqui.
+ */
 export interface CustomerHomeOrderSource extends TgAppointmentSource {
   requestedAt?: unknown;
+  /** O cliente confirmou a conclusão. */
+  clientConfirmedAt?: unknown;
+  /** O prestador finalizou o serviço. */
+  providerFinishedAt?: unknown;
+  payment?: (TgAppointmentSource['payment'] & { canceledAt?: unknown; refundedAt?: unknown }) | null;
 }
 
 export interface CustomerHomeAgenda {
   /** O card em destaque: o ativo que pede ação do cliente ou, senão, o de data mais próxima. */
   highlight: TgAppointmentData | null;
-  /** Os demais ativos, data mais próxima primeiro (até 3). */
+  /** Em análise (disputa) e status desconhecido primeiro; depois os demais ativos por data (até 3). */
   upcoming: TgOrderRowData[];
-  /** Encerrados, mais recentes primeiro (até 3). */
+  /** Encerrados, o encerramento mais recente primeiro (até 3). */
   history: TgOrderRowData[];
 }
 
 /**
  * Separa os pedidos do cliente para a tela inicial (Etapa 9, decisão 1):
- * - ativos são todos os não encerrados (inclusive status desconhecido, que
- *   aparece como "Em atualização");
- * - o destaque é o ativo que pede ação do cliente (Pagar, Ver QR Code,
- *   Confirmar conclusão) e, se nenhum pede, o de data mais próxima; sem
- *   data vai para o fim; empate mantém a ordem da API;
- * - o histórico usa a data marcada ou, sem ela, a do pedido.
+ * - o destaque é um atendimento em curso (SCHEDULED_STATUSES): o que pede
+ *   ação do cliente (Pagar, Ver QR Code, Confirmar conclusão) e, se nenhum
+ *   pede, o de data mais próxima; sem data vai para o fim;
+ * - a lista traz primeiro os pedidos em análise (DISPUTA) ou com status
+ *   desconhecido, que nunca vão para o destaque mas não podem sumir; depois
+ *   os demais em curso, por data;
+ * - o histórico ordena pela data de encerramento (`closedAt`);
+ * - empate mantém a ordem da API; a entrada não é alterada.
  */
 export function customerHomeAgenda(orders: readonly CustomerHomeOrderSource[]): CustomerHomeAgenda {
-  const active: CustomerHomeOrderSource[] = [];
+  const scheduled: CustomerHomeOrderSource[] = [];
+  const review: CustomerHomeOrderSource[] = [];
   const closed: CustomerHomeOrderSource[] = [];
-  for (const order of orders) (CLOSED_STATUSES.has(order.status) ? closed : active).push(order);
+  for (const order of orders) {
+    if (CLOSED_STATUSES.has(order.status)) closed.push(order);
+    else if (SCHEDULED_STATUSES.has(order.status)) scheduled.push(order);
+    else review.push(order);
+  }
 
-  const byDate = sortBy(active, (order) => timeOf(order.scheduledFor), 'asc');
-  const needsAction = byDate.filter((order) => customerStep(order));
-  const highlight = needsAction[0] ?? byDate[0] ?? null;
+  const byDate = sortBy(scheduled, (order) => timeOf(order.scheduledFor), 'asc');
+  const highlight = byDate.find((order) => customerStep(order)) ?? byDate[0] ?? null;
 
-  const upcoming = byDate
-    .filter((order) => order !== highlight)
+  const upcoming = [
+    ...sortBy(review, (order) => timeOf(order.scheduledFor), 'asc'),
+    ...byDate.filter((order) => order !== highlight),
+  ]
     .slice(0, CUSTOMER_HOME_UPCOMING_LIMIT)
     .map((order) => toTgOrderRow(order, 'customer'));
 
-  const history = sortBy(
-    closed,
-    (order) => timeOf(order.scheduledFor) ?? timeOf(order.requestedAt),
-    'desc',
-  )
+  const history = sortBy(closed, closedAt, 'desc')
     .slice(0, CUSTOMER_HOME_HISTORY_LIMIT)
     .map((order) => toTgOrderRow(order, 'customer'));
 
   return { highlight: highlight ? toTgAppointment(highlight, 'customer') : null, upcoming, history };
+}
+
+/**
+ * Quando o pedido foi encerrado, só com datas reais da API:
+ * - concluído: a confirmação do cliente ou, sem ela, a finalização do prestador;
+ * - cancelado ou recusado: o cancelamento ou o reembolso do pagamento.
+ *   O pedido não guarda a data do cancelamento (só a linha do tempo, que a
+ *   listagem não traz); sem pagamento cancelado, não há data de encerramento.
+ * Sem data de encerramento válida, vale a data do pedido (`requestedAt`,
+ * sempre preenchida pelo backend), que é anterior ao encerramento. Sem
+ * nenhuma data válida, o pedido vai para o fim.
+ */
+function closedAt(order: CustomerHomeOrderSource): number | null {
+  const closing =
+    order.status === 'CONCLUIDO'
+      ? (timeOf(order.clientConfirmedAt) ?? timeOf(order.providerFinishedAt))
+      : (timeOf(order.payment?.canceledAt) ?? timeOf(order.payment?.refundedAt));
+  return closing ?? timeOf(order.requestedAt);
 }
 
 function customerStep(order: CustomerHomeOrderSource): boolean {

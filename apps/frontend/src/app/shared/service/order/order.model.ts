@@ -61,6 +61,9 @@ export interface PaymentModel {
 	pixQrCode?: string | null;
 	pixQrCodeBase64?: string | null;
 	pixExpiresAt?: any | null;
+	/** Quando o pagamento foi cancelado (com o pedido) ou reembolsado. */
+	canceledAt?: string | null;
+	refundedAt?: string | null;
 	platformAmount?: DecimalLike | null;
 	providerAmount?: DecimalLike | null;
 	feePct?: DecimalLike | null;
@@ -102,6 +105,8 @@ export interface OrderModel {
 	estimatedPrice?: DecimalLike | null;
 	/** Quando o prestador finalizou o serviço: a partir daí, `finalPrice` é o valor final. */
 	providerFinishedAt?: string | null;
+	/** Quando o cliente confirmou a conclusão. */
+	clientConfirmedAt?: string | null;
 	requestedAt?: any;
 	scheduledFor?: any | null;
 	client?: UserModel | null;
