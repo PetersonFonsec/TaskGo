@@ -125,7 +125,7 @@ export const ComAgenda: Story = {
   decorators: [applicationConfig({ providers: providers(of(ORDERS), of(HOME)) })],
 };
 
-/** Prestador novo: agenda vazia, indicadores zerados, sem últimos serviços. */
+/** Conta nova: agenda livre e, sem nenhum serviço concluído, um estado vazio no lugar de ganhos e insights. */
 export const Vazio: Story = {
   decorators: [applicationConfig({ providers: providers(of([]), of(EMPTY_HOME)) })],
 };

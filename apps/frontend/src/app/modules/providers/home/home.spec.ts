@@ -353,6 +353,27 @@ describe('ProviderHomePage', () => {
       ]);
     });
 
+    it('conta nova: um estado vazio no lugar de ganhos, gráfico, recentes e insights', async () => {
+      await setup();
+      flushHome({
+        ...home,
+        earnings: { today: 0, month: 0, previousMonth: 0, lastSixMonths: home.earnings.lastSixMonths.map((m) => ({ ...m, revenue: 0 })) },
+        services: { completedTotal: 0, completedThisWeek: 0 },
+        rating: { average: 0, count: 0 },
+        recentServices: [],
+        insights: { mostRequestedService: null, averageTicket: 0, mostServedNeighborhood: null, monthlyGrowth: null },
+      });
+      const section = el.querySelector('section[aria-labelledby="earnings-title"]')!;
+      const empty = section.querySelector('tg-empty-state')!;
+      expect(text(empty)).toContain('Seus ganhos aparecem aqui');
+      expect(empty.querySelector('a')!.getAttribute('href')).toBe('/provider/services');
+      expect(el.querySelector('.provider-home__kpi')).toBeNull();
+      expect(el.querySelector('app-provider-revenue-chart')).toBeNull();
+      expect(el.querySelector('.provider-home__note')).toBeNull();
+      expect(el.querySelector('#recent-title')).toBeNull();
+      expect(el.querySelector('#insights-title')).toBeNull();
+    });
+
     it('com erro, mostra o alerta e "Tentar de novo" carrega outra vez; a agenda continua', async () => {
       await setup(of([order('1', 'AGENDADO')]));
       http.expectOne(endpoint).flush({}, { status: 503, statusText: 'Unavailable' });

@@ -31,6 +31,12 @@ export interface ProviderHomeInsight {
 }
 
 export interface ProviderHomeEarnings {
+  /**
+   * Já houve algum serviço concluído ou ganho. Sem nenhum (conta nova), a
+   * tela troca ganhos, gráfico, recentes e insights por um estado vazio, em
+   * vez de mostrar tudo zerado.
+   */
+  hasHistory: boolean;
   kpis: ProviderHomeKpi[];
   revenue: RevenueByMonth[];
   recent: ProviderHomeRecent[];
@@ -130,7 +136,16 @@ export function providerHomeEarnings(home: ProviderHomeData, now: Date = new Dat
   const insights = home.insights;
   const ticket = amount(insights?.averageTicket);
   const monthlyGrowth = insights?.monthlyGrowth;
+  const hasHistory =
+    completed > 0 ||
+    recent.length > 0 ||
+    amount(earnings.today) > 0 ||
+    month > 0 ||
+    previous > 0 ||
+    revenue.some((item) => amount(item?.revenue) > 0);
+
   return {
+    hasHistory,
     kpis,
     revenue,
     recent,

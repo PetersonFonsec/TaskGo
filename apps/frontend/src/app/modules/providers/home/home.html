@@ -23,7 +23,9 @@
     </header>
 
     @if (actionError(); as message) {
-      <tg-alert tone="danger" title="Não foi possível atualizar o atendimento">{{ message }}</tg-alert>
+      <tg-alert tone="danger" title="Não foi possível atualizar o atendimento">{{
+        message
+      }}</tg-alert>
     }
 
     @if (ordersError()) {
@@ -160,37 +162,50 @@
         </ng-template>
 
         @if (earnings(); as data) {
-          <div class="provider-home__earnings">
-            <p class="provider-home__note">
-              Os valores são a sua parte em serviços pagos; não confirmam o repasse no banco.
-            </p>
-            <ul class="provider-home__kpis">
-              @for (kpi of data.kpis; track kpi.id) {
-                <li>
-                  <tg-card class="provider-home__kpi">
-                    <span class="provider-home__kpi-label">
-                      <tg-icon [name]="kpi.icon" [size]="20" />
-                      {{ kpi.label }}
-                    </span>
-                    <span class="provider-home__kpi-value">{{ kpi.value }}</span>
-                    <span class="provider-home__kpi-desc" [class.provider-home__positive]="kpi.positive">
-                      {{ kpi.description }}
-                    </span>
-                  </tg-card>
-                </li>
-              }
-            </ul>
-            <tg-card class="provider-home__chart">
-              <h3 class="provider-home__card-title">Ganhos nos últimos 6 meses</h3>
-              <app-provider-revenue-chart [data]="data.revenue" />
-            </tg-card>
-          </div>
+          @if (!data.hasHistory) {
+            <tg-empty-state compact icon="wallet" title="Seus ganhos aparecem aqui" [level]="3">
+              Depois do primeiro serviço concluído, você acompanha aqui o que recebeu, sua avaliação
+              e os dados do seu negócio.
+              <a tgButton tgEmptyAction appearance="outline" size="sm" [routerLink]="servicesLink">
+                Ver meus serviços
+              </a>
+            </tg-empty-state>
+          } @else {
+            <div class="provider-home__earnings">
+              <p class="provider-home__note">
+                Os valores são a sua parte em serviços pagos; não confirmam o repasse no banco.
+              </p>
+              <ul class="provider-home__kpis">
+                @for (kpi of data.kpis; track kpi.id) {
+                  <li>
+                    <tg-card class="provider-home__kpi">
+                      <span class="provider-home__kpi-label">
+                        <tg-icon [name]="kpi.icon" [size]="20" />
+                        {{ kpi.label }}
+                      </span>
+                      <span class="provider-home__kpi-value">{{ kpi.value }}</span>
+                      <span
+                        class="provider-home__kpi-desc"
+                        [class.provider-home__positive]="kpi.positive"
+                      >
+                        {{ kpi.description }}
+                      </span>
+                    </tg-card>
+                  </li>
+                }
+              </ul>
+              <tg-card class="provider-home__chart">
+                <h3 class="provider-home__card-title">Ganhos nos últimos 6 meses</h3>
+                <app-provider-revenue-chart [data]="data.revenue" />
+              </tg-card>
+            </div>
+          }
         }
       </tg-loading>
     }
   </section>
 
-  @if (earnings(); as data) {
+  @if (earnings()?.hasHistory && earnings(); as data) {
     <div class="provider-home__columns">
       <section class="provider-home__section" aria-labelledby="recent-title">
         <header class="provider-home__heading">
@@ -218,7 +233,12 @@
                   }
                   @if (service.rating !== null) {
                     <span>
-                      <tg-icon name="star" weight="fill" [size]="16" [label]="'Nota ' + service.rating" />
+                      <tg-icon
+                        name="star"
+                        weight="fill"
+                        [size]="16"
+                        [label]="'Nota ' + service.rating"
+                      />
                       <span aria-hidden="true">{{ service.rating }}</span>
                     </span>
                   } @else {

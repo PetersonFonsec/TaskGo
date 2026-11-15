@@ -91,6 +91,19 @@ describe('providerHomeEarnings', () => {
     expect(filled[3].positive).toBeTrue();
   });
 
+  it('conta nova (nenhum serviço nem ganho) não tem histórico', () => {
+    const fresh = data({
+      earnings: { today: 0, month: 0, previousMonth: 0, lastSixMonths: [{ month: 'Nov', revenue: 0 }] },
+      services: { completedTotal: 0, completedThisWeek: 0 },
+      rating: { average: 0, count: 0 },
+    });
+    expect(providerHomeEarnings(fresh, NOW).hasHistory).toBeFalse();
+    expect(providerHomeEarnings(data(), NOW).hasHistory).toBeTrue();
+    // Um ganho num mês antigo já conta, mesmo sem serviço no total.
+    const old = { ...fresh, earnings: { ...fresh.earnings, lastSixMonths: [{ month: 'Jun', revenue: 50 }] } };
+    expect(providerHomeEarnings(old, NOW).hasHistory).toBeTrue();
+  });
+
   it('campos ausentes viram zero, sem quebrar', () => {
     const broken = { insights: null } as unknown as ProviderHomeData;
     const result = providerHomeEarnings(broken, NOW);

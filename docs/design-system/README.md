@@ -1310,6 +1310,7 @@ vêm do painel `/auth/provider-home`, como antes.
 | Carregando | `tg-loading` com skeleton do card, da lista e dos indicadores | |
 | Erro | `tg-alert` de perigo com "Tentar de novo", um por fonte | Nunca vira "agenda livre" nem ganhos zerados. |
 | Vazio | `tg-empty-state` compacto + "Ver meus serviços" | |
+| Conta nova | `tg-empty-state` compacto "Seus ganhos aparecem aqui" + "Ver meus serviços" | Sem nenhum serviço concluído nem ganho, o estado vazio fica no lugar dos indicadores, do gráfico, dos últimos serviços e dos insights, em vez de tudo zerado. Os números aparecem a partir do primeiro serviço. |
 
 A seleção fica em `provider-home.agenda.ts` (`providerHomeAgenda`) e a
 formatação do painel em `provider-home.earnings.ts`
