@@ -1163,17 +1163,40 @@ data mais próxima. Os demais pedidos ficam na lista, com a linha de pedido.
 
 | Entrada | Valores | Padrão |
 | --- | --- | --- |
-| `order` | `TgAppointmentData`: `id`, `status`, `service`, `person`, `personPhotoUrl`, `scheduledFor`, `address`, `neighborhood`, `distanceKm`, `amount`, `reviewed`, `paymentStatus` | obrigatório |
+| `order` | `TgAppointmentData`: `id`, `status`, `service`, `person`, `personPhotoUrl`, `scheduledFor`, `address`, `neighborhood`, `distanceKm`, `amount`, `amountKind`, `reviewed`, `paymentStatus` | obrigatório |
 | `perspective` | `customer` ou `provider`: muda o texto do status, a distância, o valor e o próximo passo | obrigatório |
 | `busy` | a tela está trocando o status; o botão fica em carregando | `false` |
 | `headingLevel` | nível do título, inteiro de 2 a 6 (outro valor vira `h3`) | `3` |
+| `now` | hora de referência para "Hoje", "Amanhã" e "Ontem"; sem ela, o `TgClock` | — |
 | `(statusAction)` | pede a troca (`EM_DESLOCAMENTO` ou `EM_ANDAMENTO`); a tela chama a API | — |
 
 O status e o próximo passo são os da linha de pedido (`tgOrderStatus` e
 `tgOrderNextStep`, com "Pagar" ou "Ver QR Code" pelo `paymentStatus`). Da
 API para o card, use `toTgAppointment(pedido, perspective)`: faz o mesmo que
 `toTgOrderRow` e acrescenta a foto da outra pessoa e o endereço "rua,
-número, complemento". Os ids vêm do `TgIdGenerator`, como na linha. É o único lugar em que o badge de status leva ícone,
+número, complemento". Os ids vêm do `TgIdGenerator`, como na linha.
+
+Dados da API:
+
+- **Valores (`Decimal`).** O interceptor do backend não reconhece o Decimal
+  do Prisma, porque a classe é minificada. Por isso os valores chegam como
+  `{ s, e, d }`. Os mappers convertem número, texto numérico e esse formato
+  com o mesmo `toNumber` do card de prestador. Valor ausente, inválido, não
+  finito ou menor ou igual a zero fica sem valor. Isso vale também para a
+  linha de pedido.
+- **Valor e rótulo.** O valor é o bruto do serviço, o que o cliente paga. Não
+  é o ganho do prestador, que desconta a taxa e só aparece no detalhe do
+  pedido. No backend, `finalPrice` nasce igual ao preço base e só passa a
+  ser final quando o prestador finaliza o serviço (`providerFinishedAt`).
+  Então `tgOrderAmount` devolve `kind: 'final'` depois disso, e o card
+  mostra "Valor final"; antes, `estimated` e "Valor estimado".
+- **Distância.** Só aparece se a entrada trouxer `distanceKm` (número finito
+  e maior ou igual a zero). Hoje só o detalhe do pedido tem esse dado, e as
+  listagens não. O card nunca calcula nem inventa a distância.
+- **Datas relativas.** "Hoje", "Amanhã" e "Ontem" usam a entrada `now`, ou o
+  `TgClock`. O `TgClock` é um relógio único para a aplicação, que só no
+  navegador agenda a próxima meia-noite e atualiza todos os cards, sem
+  timer por card e sem recriá-los. No servidor ele não agenda nada. É o único lugar em que o badge de status leva ícone,
 dado por `tgOrderStatusIcon(status)`:
 
 | Status | Ícone |

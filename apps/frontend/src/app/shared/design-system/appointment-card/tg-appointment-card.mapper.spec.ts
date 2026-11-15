@@ -32,6 +32,8 @@ describe('toTgAppointment (pedido da API para o card)', () => {
   it('cliente: endereço completo, profissional sem foto válida e Ver QR Code', () => {
     const card = toTgAppointment(api(), 'customer');
     expect(card).toEqual({
+      distanceKm: null,
+      amountKind: 'estimated',
       id: '42',
       status: 'AGUARDANDO_PAGAMENTO',
       service: 'Instalação de chuveiro',
@@ -64,5 +66,35 @@ describe('toTgAppointment (pedido da API para o card)', () => {
     const empty = toTgAppointment(api({ addressSnap: null }), 'customer');
     expect(empty.address).toBeNull();
     expect(empty.neighborhood).toBeNull();
+  });
+
+  describe('distância (só quando a entrada traz)', () => {
+    const withDistance = (distanceKm: unknown) => toTgAppointment({ ...api(), distanceKm }, 'provider').distanceKm;
+
+    it('válida, inclusive zero e Decimal', () => {
+      expect(withDistance(1.2)).toBe(1.2);
+      expect(withDistance(0)).toBe(0);
+      expect(withDistance('3.5')).toBe(3.5);
+      expect(withDistance({ s: 1, e: 0, d: [2, 5000000] })).toBe(2.5);
+    });
+
+    it('ausente, null, negativa, não finita ou inválida: sem distância (nunca inventada)', () => {
+      expect(toTgAppointment(api(), 'provider').distanceKm).toBeNull();
+      for (const v of [undefined, null, '', -1, NaN, Infinity, 'perto', {}]) {
+        expect(withDistance(v)).withContext(String(v)).toBeNull();
+      }
+    });
+  });
+
+  describe('valor e rótulo', () => {
+    it('estimado antes da finalização, final depois', () => {
+      expect(toTgAppointment(api(), 'provider')).toEqual(jasmine.objectContaining({ amount: 120, amountKind: 'estimated' }));
+      const done = { ...api({ status: 'AGUARDANDO_CONFIRMACAO_CLIENTE', finalPrice: 135 as never }), providerFinishedAt: '2026-11-15T18:00:00.000Z' };
+      expect(toTgAppointment(done, 'provider')).toEqual(jasmine.objectContaining({ amount: 135, amountKind: 'final' }));
+    });
+
+    it('sem valor: nem valor nem rótulo', () => {
+      expect(toTgAppointment(api({ payment: null }), 'provider')).toEqual(jasmine.objectContaining({ amount: null, amountKind: null }));
+    });
   });
 });

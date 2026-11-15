@@ -3,6 +3,7 @@ import {
   Component,
   booleanAttribute,
   computed,
+  inject,
   input,
   linkedSignal,
   output,
@@ -12,6 +13,7 @@ import { TgBadgeComponent } from '../badge/tg-badge.component';
 import { TgButtonComponent } from '../button/tg-button.component';
 import { TgCardComponent, TgCardLinkDirective } from '../card/tg-card.component';
 import { TgIconComponent } from '../icon/tg-icon.component';
+import { TgClock } from '../tg-clock';
 import { tgIds } from '../tg-id';
 import { TG_NO_DATE, tgDistance, tgMoney, tgWhenParts } from '../order-row/tg-order-format';
 import {
@@ -40,8 +42,13 @@ export interface TgAppointmentData {
   neighborhood?: string | null;
   /** Distância até o endereço (só para o prestador). */
   distanceKm?: number | null;
-  /** Valor estimado, em reais (só para o prestador). */
+  /**
+   * Valor bruto do serviço, em reais (só para o prestador). Não é o ganho
+   * líquido dele, que desconta a taxa da plataforma.
+   */
   amount?: number | null;
+  /** De onde vem o valor: "final" depois que o prestador finaliza; senão, "estimated". Rótulo: "Valor final" ou "Valor estimado". */
+  amountKind?: 'estimated' | 'final' | null;
   /** O cliente já avaliou (tira o "Avaliar"). Da API: `review` presente. */
   reviewed?: boolean | null;
   /** Status do pagamento (`payment.status`): "Pagar" ou "Ver QR Code", como na linha de pedido. */
@@ -135,7 +142,7 @@ export type TgAppointmentHeadingLevel = 2 | 3 | 4 | 5 | 6;
       }
 
       @if (amount(); as value) {
-        <p class="tg-appointment-card__amount">Valor estimado{{ ' ' }}<b>{{ value }}</b></p>
+        <p class="tg-appointment-card__amount">{{ amountLabel() }}{{ ' ' }}<b>{{ value }}</b></p>
       }
 
       @if (step(); as next) {
@@ -170,6 +177,12 @@ export class TgAppointmentCardComponent {
   readonly busy = input(false, { transform: booleanAttribute });
   /** Nível do título: inteiro de 2 a 6; outro valor vira h3. */
   readonly headingLevel = input(3, { transform: toHeadingLevel });
+  /**
+   * Hora de referência para "Hoje", "Amanhã" e "Ontem". A tela pode passar o
+   * próprio relógio; sem ela, vale o TgClock, um só para a aplicação, que
+   * atualiza na virada do dia.
+   */
+  readonly now = input<Date | null | undefined>(undefined);
 
   /** Pedido de troca de status ("Estou a caminho", "Iniciar serviço"). A tela chama a API. */
   readonly statusAction = output<TgOrderStatusAction>();
@@ -185,7 +198,8 @@ export class TgAppointmentCardComponent {
   protected readonly status = computed(() => tgOrderStatus(this.order().status, this.perspective()));
   protected readonly statusIcon = computed(() => tgOrderStatusIcon(this.order().status));
   protected readonly step = computed(() => tgOrderNextStep(this.order(), this.perspective()));
-  protected readonly whenParts = computed(() => tgWhenParts(this.order().scheduledFor));
+  readonly #clock = inject(TgClock);
+  protected readonly whenParts = computed(() => tgWhenParts(this.order().scheduledFor, this.now() ?? this.#clock.now()));
 
   protected readonly person = computed(() => this.order().person?.trim() || null);
 
@@ -214,6 +228,7 @@ export class TgAppointmentCardComponent {
     return [where, km].filter(Boolean).join(', ') || null;
   });
 
+  protected readonly amountLabel = computed(() => (this.order().amountKind === 'final' ? 'Valor final' : 'Valor estimado'));
   protected readonly amount = computed(() =>
     this.perspective() === 'provider' ? tgMoney(this.order().amount) : null,
   );

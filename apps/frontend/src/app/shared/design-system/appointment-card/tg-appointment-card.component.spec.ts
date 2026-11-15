@@ -32,6 +32,7 @@ const base: TgAppointmentData = {
       [perspective]="perspective()"
       [busy]="busy()"
       [headingLevel]="level()"
+      [now]="now()"
       (statusAction)="actions.push($event)" />
     <tg-appointment-card [order]="other" perspective="customer" />
   `,
@@ -41,6 +42,7 @@ class Host {
   readonly perspective = signal<TgOrderPerspective>('customer');
   readonly busy = signal(false);
   readonly level = signal<unknown>(3);
+  readonly now = signal<Date | null | undefined>(undefined);
   readonly other: TgAppointmentData = { id: '8', status: 'CANCELADO', service: 'Pintura' };
   readonly actions: TgOrderStatusAction[] = [];
 }
@@ -149,6 +151,69 @@ describe('TgAppointmentCardComponent', () => {
     expect(q('.tg-appointment-card__amount')).toBeNull();
     set({ address: null, neighborhood: null, distanceKm: 0.8 }, 'provider');
     expect(text(q('.tg-appointment-card__place'))).toBe('0,8 km');
+  });
+
+  describe('valor e rótulo', () => {
+    it('prestador: "Valor estimado" ou "Valor final" conforme a origem', () => {
+      set({ amount: 120, amountKind: 'estimated' }, 'provider');
+      expect(text(q('.tg-appointment-card__amount')).replace(/\s/g, ' ')).toBe('Valor estimado R$ 120');
+      set({ amount: 135, amountKind: 'final' }, 'provider');
+      expect(text(q('.tg-appointment-card__amount')).replace(/\s/g, ' ')).toBe('Valor final R$ 135');
+      set({ amount: 120, amountKind: null }, 'provider');
+      expect(text(q('.tg-appointment-card__amount'))).toContain('Valor estimado');
+    });
+
+    it('sem valor, ou para o cliente: nada', () => {
+      set({ amount: null, amountKind: 'final' }, 'provider');
+      expect(q('.tg-appointment-card__amount')).toBeNull();
+      set({ amount: 135, amountKind: 'final' }, 'customer');
+      expect(q('.tg-appointment-card__amount')).toBeNull();
+    });
+  });
+
+  describe('distância', () => {
+    it('prestador: só com valor válido; zero aparece', () => {
+      set({ address: null, neighborhood: 'Pinheiros', distanceKm: 0 }, 'provider');
+      expect(text(q('.tg-appointment-card__place'))).toBe('Pinheiros, 0,0 km');
+      for (const distanceKm of [null, undefined, -1, NaN, Infinity]) {
+        set({ address: null, neighborhood: 'Pinheiros', distanceKm }, 'provider');
+        expect(text(q('.tg-appointment-card__place'))).withContext(String(distanceKm)).toBe('Pinheiros');
+      }
+    });
+
+    it('cliente nunca vê a distância', () => {
+      set({ address: null, neighborhood: 'Pinheiros', distanceKm: 1.2 }, 'customer');
+      expect(text(q('.tg-appointment-card__place'))).toBe('Pinheiros');
+    });
+  });
+
+  describe('data relativa com hora de referência da tela', () => {
+    const at = (d: number, h: number, m = 0) => new Date(2026, 10, d, h, m);
+
+    it('hoje, amanhã, sem data e inválida', () => {
+      host.now.set(at(15, 16));
+      set({ scheduledFor: at(15, 14) });
+      expect(text(q('.tg-appointment-card__when'))).toBe('Hoje 14:00');
+      set({ scheduledFor: at(16, 9, 30) });
+      expect(text(q('.tg-appointment-card__when'))).toBe('Amanhã 09:30');
+      set({ scheduledFor: null });
+      expect(text(q('.tg-appointment-card__when'))).toBe('Data a combinar');
+      set({ scheduledFor: 'amanhã' });
+      expect(text(q('.tg-appointment-card__when'))).toBe('Data a combinar');
+    });
+
+    it('a mudança da referência atualiza o card sem recriá-lo', () => {
+      set({ scheduledFor: at(16, 9, 30) });
+      host.now.set(at(15, 23, 59));
+      fixture.detectChanges();
+      const before = q('.tg-appointment-card__when');
+      expect(text(before)).toBe('Amanhã 09:30');
+      host.now.set(at(16, 0, 1));
+      fixture.detectChanges();
+      expect(text(q('.tg-appointment-card__when'))).toBe('Hoje 09:30');
+      expect(q('.tg-appointment-card__when')).toBe(before);
+      expect(described(q('a.tg-card__link')!)).toContain('Hoje 09:30');
+    });
   });
 
   describe('próximo passo', () => {
