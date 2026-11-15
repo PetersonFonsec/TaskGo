@@ -20,7 +20,8 @@ migração tela a tela, que vem nas próximas etapas.
 | 5 | Ilustração I1 (3D das categorias recolorido) | Aprovada |
 | 5 | Ícones: Phosphor nas duas plataformas | Aprovada |
 | 6 | Tokens no código e Storybook | Concluída |
-| 7 | Componentes base: botão e ícones (web) | Este PR |
+| 7 | Componentes base: botão e ícones (web) | Concluído (PR #12) |
+| 7 | Componentes base: campo de texto (web) | Este PR |
 | 7 a 10 | Demais componentes base, componentes de domínio, piloto, migração | A fazer |
 
 Atributos de marca: próximo, confiável, direto e caloroso sem ser infantil.
@@ -301,6 +302,82 @@ Regras:
   cliente não tem contraste suficiente no fundo escuro.
 - No app, o botão continua sendo `ion-button`, estilizado pelos tokens na
   migração das telas.
+
+### Campo de texto
+
+No web, `tg-field` envolve um `input` ou `textarea` nativo marcado com
+`tgInput`. O input continua recebendo ngModel, formControl, máscara
+(ngx-mask), autocomplete e validação nativa diretamente, sem
+ControlValueAccessor. O campo cuida do rótulo, da dica e da mensagem de erro:
+
+```html
+<tg-field label="E-mail" hint="Usamos para enviar o recibo."
+          [error]="email.touched && email.invalid ? 'Informe um e-mail válido.' : ''">
+  <input tgInput type="email" name="email" autocomplete="email"
+         required [(ngModel)]="payload.email" #email="ngModel" />
+</tg-field>
+
+<tg-field label="Senha">
+  <input tgInput type="password" autocomplete="current-password" formControlName="password" />
+  <tg-password-toggle tgSuffix />
+</tg-field>
+
+<tg-field label="Valor da hora">
+  <span tgPrefix>R$</span>
+  <input tgInput inputmode="decimal" formControlName="price" />
+</tg-field>
+```
+
+| Entrada | Valores | Padrão |
+| --- | --- | --- |
+| `label` | texto do rótulo, sempre obrigatório | — |
+| `hint` | texto de apoio abaixo do campo | `''` |
+| `error` | mensagem dizendo como corrigir; vazia é sem erro | `''` |
+| `optional` | marca "(opcional)" no rótulo | `false` |
+| `variant` | `default` ou `search` (pílula, lupa, rótulo só para leitor de tela) | `default` |
+
+Regras:
+
+- Rótulo sempre visível e acima do campo (também no app). O placeholder é
+  só exemplo e nunca substitui o rótulo.
+- Erro com borda de perigo e mensagem escrita com ícone, nunca só pela cor.
+  A tela decide quando mostrar; o padrão é depois que a pessoa sai do campo
+  (`touched`) ou tenta enviar.
+- Desabilitado sem opacidade (fundo suave, texto apagado). Somente leitura
+  tem fundo suave e texto normal.
+- Sem estado verde de "válido". Obrigatório não leva asterisco; opcional
+  leva "(opcional)".
+- Altura de 44 px (`control-md`), raio de 12 px, borda de 1,5 px
+  `border-strong` e texto de 16 px, que evita o zoom do iOS ao focar. Foco
+  com o mesmo anel do botão.
+
+Acessibilidade:
+
+- O rótulo dá nome ao input por `label for`; o id é gerado, ou o `id` da
+  tela é mantido.
+- `aria-describedby` e `aria-invalid` são divididos com a tela, que pode
+  usar atributo estático, binding (`[attr.aria-describedby]`) ou o DOM:
+  - `aria-describedby`: os ids da tela vêm primeiro, depois o da dica ou do
+    erro, sem repetição. Ao trocar entre dica e erro, só o id do campo muda.
+  - `aria-invalid`: com erro visível no campo, vale `"true"`. Sem erro, vale
+    o valor mais recente da tela, ou nenhum. O campo não mexe na validação
+    do FormControl.
+  - Para isso, a diretiva observa só esses dois atributos do próprio input
+    e para de observar quando é destruída.
+- A área da mensagem tem `aria-live="polite"`, então o erro é anunciado
+  quando aparece.
+- `tg-password-toggle` é um botão `type="button"` com nome fixo "Mostrar
+  senha", `aria-pressed` (que segue o tipo real do input) e
+  `aria-controls`; ele troca o `type` do input entre password e text. Fica
+  indisponível sem input, com input que não é de senha e com o input
+  desabilitado. Desabilitar o input oculta a senha de novo.
+- Use `autocomplete` e `inputmode` certos (`email`, `tel`,
+  `current-password`, `new-password`, `postal-code`).
+
+No app, o campo continua sendo `ion-input`, com
+`labelPlacement="stacked"`, `fill="outline"`, `helperText` e `errorText`,
+estilizado pelos tokens na migração das telas. O `app-input-text` do web
+convive com o `tg-field` até a migração tela a tela.
 
 ## Testes
 

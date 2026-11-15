@@ -11,6 +11,8 @@ const ICONS = [
   'arrow-right',
   'calendar-blank',
   'check',
+  'eye',
+  'eye-slash',
   'house',
   'magnifying-glass',
   'map-pin',
@@ -18,6 +20,7 @@ const ICONS = [
   'star',
   'trash',
   'user',
+  'warning-circle',
   'x',
 ];
 

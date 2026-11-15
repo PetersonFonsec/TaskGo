@@ -1,0 +1,190 @@
+// Campo de texto do Design System. Só tokens --tg-*; o tema troca os valores.
+// Sem encapsulamento (o input é conteúdo projetado): tudo fica sob .tg-field.
+.tg-field {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  min-width: 0;
+  font-family: var(--tg-font-sans);
+}
+
+.tg-field__label {
+  color: var(--tg-text-primary);
+  font-size: var(--tg-type-label-size);
+  line-height: var(--tg-type-label-line);
+  font-weight: var(--tg-font-weight-bold);
+}
+
+.tg-field__optional {
+  color: var(--tg-text-secondary);
+  font-weight: var(--tg-font-weight-medium);
+}
+
+.tg-field__control {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  box-sizing: border-box;
+  min-height: var(--tg-control-md);
+  padding: 0 var(--tg-space-4);
+  border: 1.5px solid var(--tg-border-strong);
+  border-radius: var(--tg-radius-md);
+  background: var(--tg-bg-surface);
+  color: var(--tg-text-primary);
+  cursor: text;
+  // Só a borda anima; o anel de foco aparece de uma vez, como no botão.
+  transition: border-color var(--tg-duration-fast) var(--tg-ease-standard);
+
+  &:hover {
+    border-color: var(--tg-text-secondary);
+  }
+
+  // Mesmo anel do botão: 2 px, afastado 2 px.
+  &:has(.tg-input:focus-visible) {
+    border-color: var(--tg-focus-ring);
+    outline: 2px solid var(--tg-focus-ring);
+    outline-offset: 2px;
+  }
+
+  // Com sufixo (botão de senha), o respiro à direita fica com o botão.
+  &:has(> [tgSuffix]) {
+    padding-right: 6px;
+  }
+}
+
+.tg-input {
+  flex: 1;
+  min-width: 0;
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+  border: 0;
+  outline: 0;
+  background: transparent;
+  color: inherit;
+  // 16 px também no celular: abaixo disso o iOS dá zoom ao focar.
+  font: inherit;
+  font-size: var(--tg-type-body-size);
+  line-height: var(--tg-type-body-line);
+  font-weight: var(--tg-font-weight-medium);
+  appearance: none;
+
+  &::placeholder {
+    color: var(--tg-text-secondary);
+    font-weight: var(--tg-font-weight-regular);
+    opacity: 1;
+  }
+}
+
+input.tg-input {
+  height: calc(var(--tg-control-md) - 3px);
+}
+
+textarea.tg-input {
+  min-height: calc(3 * var(--tg-type-body-line));
+  padding: 10px 0;
+  resize: vertical;
+}
+
+.tg-field__control:has(> textarea.tg-input) {
+  align-items: flex-start;
+}
+
+.tg-field__affix,
+.tg-field__control > [tgPrefix] {
+  display: inline-flex;
+  flex: none;
+  align-items: center;
+  color: var(--tg-text-secondary);
+  font-weight: var(--tg-font-weight-bold);
+}
+
+.tg-field__toggle {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 32px;
+  height: 32px;
+  margin: 0;
+  padding: 0;
+  border: 0;
+  border-radius: var(--tg-radius-full);
+  background: transparent;
+  color: var(--tg-text-secondary);
+  cursor: pointer;
+
+  &:hover {
+    background: var(--tg-bg-subtle);
+    color: var(--tg-text-primary);
+  }
+
+  &:focus-visible {
+    outline: 2px solid var(--tg-focus-ring);
+    outline-offset: 1px;
+  }
+}
+
+.tg-field__message {
+  font-size: var(--tg-type-body-sm-size);
+  line-height: var(--tg-type-body-sm-line);
+
+  &:empty {
+    display: none;
+  }
+}
+
+.tg-field__hint {
+  color: var(--tg-text-secondary);
+}
+
+.tg-field__error {
+  display: flex;
+  align-items: flex-start;
+  gap: 6px;
+  color: var(--tg-feedback-danger-text);
+  font-weight: var(--tg-font-weight-bold);
+
+  tg-icon {
+    margin-top: 2px;
+  }
+}
+
+// Erro: borda de perigo; a mensagem diz como corrigir (nunca só a cor).
+.tg-field--invalid .tg-field__control,
+.tg-field--invalid .tg-field__control:hover {
+  border-color: var(--tg-feedback-danger-text);
+}
+
+// Desabilitado: sem opacidade, para continuar legível.
+.tg-field:has(.tg-input:disabled) {
+  .tg-field__label {
+    color: var(--tg-text-disabled);
+  }
+
+  .tg-field__control {
+    border-color: var(--tg-border-default);
+    background: var(--tg-bg-subtle);
+    color: var(--tg-text-disabled);
+    cursor: not-allowed;
+  }
+}
+
+// Somente leitura: fundo suave, texto normal.
+.tg-field:has(.tg-input[readonly]) .tg-field__control {
+  border-color: var(--tg-border-default);
+  background: var(--tg-bg-subtle);
+}
+
+// Busca: pílula com lupa; o rótulo fica só para leitor de tela.
+.tg-field--search .tg-field__control {
+  border-radius: var(--tg-radius-full);
+}
+
+.tg-field__sr {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  clip-path: inset(50%);
+  white-space: nowrap;
+}
