@@ -355,12 +355,22 @@ Acessibilidade:
 
 - O rótulo dá nome ao input por `label for`; o id é gerado, ou o `id` da
   tela é mantido.
-- Dica ou erro entram no `aria-describedby`, somados a um
-  `aria-describedby` estático da tela. `aria-invalid="true"` só com erro.
+- `aria-describedby` e `aria-invalid` são divididos com a tela, que pode
+  usar atributo estático, binding (`[attr.aria-describedby]`) ou o DOM:
+  - `aria-describedby`: os ids da tela vêm primeiro, depois o da dica ou do
+    erro, sem repetição. Ao trocar entre dica e erro, só o id do campo muda.
+  - `aria-invalid`: com erro visível no campo, vale `"true"`. Sem erro, vale
+    o valor mais recente da tela, ou nenhum. O campo não mexe na validação
+    do FormControl.
+  - Para isso, a diretiva observa só esses dois atributos do próprio input
+    e para de observar quando é destruída.
 - A área da mensagem tem `aria-live="polite"`, então o erro é anunciado
   quando aparece.
 - `tg-password-toggle` é um botão `type="button"` com nome fixo "Mostrar
-  senha", `aria-pressed` e `aria-controls`; ele troca o `type` do input.
+  senha", `aria-pressed` (que segue o tipo real do input) e
+  `aria-controls`; ele troca o `type` do input entre password e text. Fica
+  indisponível sem input, com input que não é de senha e com o input
+  desabilitado. Desabilitar o input oculta a senha de novo.
 - Use `autocomplete` e `inputmode` certos (`email`, `tel`,
   `current-password`, `new-password`, `postal-code`).
 
