@@ -1,0 +1,13 @@
+{
+  "name": "icons",
+  "$schema": "../../node_modules/nx/schemas/project-schema.json",
+  "projectType": "library",
+  "sourceRoot": "libs/icons/src",
+  "targets": {
+    "generate": {
+      "executor": "nx:run-commands",
+      "options": { "command": "node libs/icons/scripts/generate.mjs" }
+    }
+  },
+  "tags": ["scope:shared", "type:lib"]
+}
