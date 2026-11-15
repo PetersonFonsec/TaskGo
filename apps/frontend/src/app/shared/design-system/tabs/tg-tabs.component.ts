@@ -1,4 +1,6 @@
+import { DOCUMENT } from '@angular/common';
 import {
+  AfterContentChecked,
   ChangeDetectionStrategy,
   Component,
   DestroyRef,
@@ -62,6 +64,8 @@ export class TgTabComponent {
   readonly tabId = `tg-tab-${nextId}`;
   readonly panelId = `tg-tab-panel-${nextId++}`;
   readonly selected = computed(() => this.#tabs.selected() === this);
+  /** Sem valor, ou repetindo o de uma aba anterior: configuração inválida. */
+  readonly inactive = computed(() => !this.#tabs.isActive(this));
   readonly hasCount = computed(() => {
     const count = this.count();
     return typeof count === 'number' && count > 0;
@@ -85,7 +89,15 @@ export class TgTabComponent {
  *
  * Segue o padrão de abas da WAI-ARIA, com ativação automática: só a aba
  * selecionada entra no Tab; setas trocam de aba (com volta no fim), Home e
- * End vão às pontas. Sem valor (ou com um que não existe), vale a primeira.
+ * End vão às pontas.
+ *
+ * Fallback: sem `value`, ou com um que nenhuma aba tem, a primeira aba
+ * aparece selecionada, mas o `value` da tela não é reescrito (só muda quando
+ * a pessoa troca de aba). Se a tela guarda o filtro, ela o normaliza.
+ *
+ * Valores são únicos. Uma aba sem valor, ou que repete o de uma anterior, é
+ * configuração inválida: aparece, mas fica inativa (aria-disabled), fora do
+ * Tab e das setas, e o clique não faz nada. Em desenvolvimento, avisa.
  * Escolher um valor (dia, período, tipo de conta) não é aba: é rádio ou chip.
  */
 @Component({
@@ -104,6 +116,7 @@ export class TgTabComponent {
             [attr.aria-controls]="tab.panelId"
             [attr.aria-selected]="tab.selected()"
             [attr.aria-label]="tab.name()"
+            [attr.aria-disabled]="tab.inactive() || null"
             [tabIndex]="tab.selected() ? 0 : -1"
             (click)="select(tab)"
           >
@@ -119,18 +132,34 @@ export class TgTabComponent {
   `,
   styleUrl: './tg-tabs.component.scss',
 })
-export class TgTabsComponent {
+export class TgTabsComponent implements AfterContentChecked {
   /** Nome do conjunto de abas para o leitor de tela, como "Pedidos". */
   readonly label = input.required<string>();
   /** Valor da aba selecionada; muda quando a pessoa troca de aba. */
   readonly value = model<string | undefined>(undefined);
 
   readonly tabs = contentChildren(TgTabComponent);
-  readonly selected = computed(() => {
-    const tabs = this.tabs();
-    const value = this.value();
-    return (value !== undefined && tabs.find((tab) => tab.value() === value)) || tabs[0] || null;
+  /** As abas que podem ser selecionadas: com valor, na primeira vez que ele aparece. */
+  readonly #active = computed(() => {
+    const seen = new Set<string>();
+    return this.tabs().filter((tab) => {
+      const value = tab.value();
+      if (!value || seen.has(value)) return false;
+      seen.add(value);
+      return true;
+    });
   });
+  readonly #activeSet = computed(() => new Set(this.#active()));
+  readonly selected = computed(() => {
+    const active = this.#active();
+    const value = this.value();
+    return active.find((tab) => tab.value() === value) ?? active[0] ?? null;
+  });
+
+  readonly #document = inject(DOCUMENT);
+  readonly #host = inject<ElementRef<HTMLElement>>(ElementRef).nativeElement;
+  /** Se o foco estava numa aba logo antes desta atualização da lista. */
+  #focusWasOnTab = false;
 
   /** Esmaecido nas bordas quando a barra rola na horizontal. */
   protected readonly fadeStart = signal(false);
@@ -146,6 +175,9 @@ export class TgTabsComponent {
       this.tabs().forEach((tab) => (tab.label(), tab.count()));
       this.#reveal(selected);
       this.measure();
+      // A aba focada saiu (ou foi movida) e o foco caiu na página: devolve
+      // à selecionada. Só nesse caso; nunca puxa o foco de fora.
+      if (this.#focusWasOnTab && !this.#focusOnTab()) this.#button(selected)?.focus();
     });
 
     if (isDevMode()) {
@@ -169,32 +201,49 @@ export class TgTabsComponent {
     });
   }
 
+  /** O conteúdo (as abas) já foi atualizado e os botões ainda não. */
+  ngAfterContentChecked() {
+    this.#focusWasOnTab = this.#focusOnTab();
+  }
+
+  isActive(tab: TgTabComponent) {
+    return this.#activeSet().has(tab);
+  }
+
   select(tab: TgTabComponent) {
     const value = tab.value();
-    if (value !== undefined) this.value.set(value);
+    if (value && this.isActive(tab)) this.value.set(value);
   }
 
   protected onKeydown(event: KeyboardEvent) {
+    // Anda pela ordem de todas as abas, mas só para nas ativas.
     const tabs = this.tabs();
     const current = tabs.findIndex((tab) => tab.tabId === (event.target as HTMLElement).id);
-    if (current < 0) return;
-    const last = tabs.length - 1;
+    const active = this.#active();
+    if (current < 0 || !active.length) return;
+    const after = active.find((tab) => tabs.indexOf(tab) > current) ?? active[0];
+    const before = [...active].reverse().find((tab) => tabs.indexOf(tab) < current) ?? active[active.length - 1];
     const next =
-      event.key === 'ArrowRight' ? (current === last ? 0 : current + 1)
-      : event.key === 'ArrowLeft' ? (current === 0 ? last : current - 1)
-      : event.key === 'Home' ? 0
-      : event.key === 'End' ? last
-      : -1;
-    if (next < 0) return;
+      event.key === 'ArrowRight' ? after
+      : event.key === 'ArrowLeft' ? before
+      : event.key === 'Home' ? active[0]
+      : event.key === 'End' ? active[active.length - 1]
+      : null;
+    if (!next) return;
     event.preventDefault();
-    this.select(tabs[next]);
-    this.#button(tabs[next])?.focus();
+    this.select(next);
+    this.#button(next)?.focus();
   }
 
   protected measure() {
     const list = this.list().nativeElement;
     this.fadeStart.set(list.scrollLeft > 1);
     this.fadeEnd.set(list.scrollLeft + list.clientWidth < list.scrollWidth - 1);
+  }
+
+  #focusOnTab() {
+    const focused = this.#document.activeElement;
+    return !!focused && focused.getAttribute('role') === 'tab' && this.#host.contains(focused);
   }
 
   #button(tab: TgTabComponent | null) {

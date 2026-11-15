@@ -659,9 +659,18 @@ Regras:
   abaixo de 600 px, 16 px acima). Se não couberem, a barra rola na
   horizontal, com esmaecido na borda onde há mais abas, e a aba selecionada
   fica inteira à vista (só a barra rola, nunca a página).
-- Sem `value`, ou com um que não existe, vale a primeira aba. Se a aba
-  aberta precisar sobreviver ao voltar ou a um link compartilhado, a tela a
-  guarda na URL (`?aba=concluidos`).
+- Sem `value`, ou com um que nenhuma aba tem (inclusive quando a aba dele
+  sai da lista), a primeira aba aparece selecionada, mas o `value` da tela
+  não é reescrito: ele só muda quando a pessoa troca de aba. Se a aba volta,
+  a seleção volta com ela. Quem guarda o filtro (na URL, como
+  `?aba=concluidos`, ou num estado) normaliza o valor do seu lado.
+- Valores são únicos. Uma aba sem `value`, ou que repete o de uma anterior,
+  é configuração inválida: aparece, mas fica inativa (`aria-disabled`,
+  texto `text-disabled`), fora do Tab e das setas, e o clique não faz nada.
+  Vale a primeira aba com aquele valor.
+- Se a aba focada sai da lista (ou é movida) e o foco cai na página, ele vai
+  para a nova aba selecionada. Com o foco fora das abas, mudanças na lista ou
+  no `value` nunca puxam o foco.
 
 Acessibilidade (padrão de abas da WAI-ARIA, ativação automática):
 

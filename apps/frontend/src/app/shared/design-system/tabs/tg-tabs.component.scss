@@ -78,6 +78,13 @@ $fade: 40px;
     outline-offset: -2px;
   }
 
+  // Só em configuração inválida (valor repetido ou ausente): sem hover.
+  &[aria-disabled='true'] {
+    background: transparent;
+    color: var(--tg-text-disabled);
+    cursor: default;
+  }
+
   // Selecionada: cor de ação, negrito e barra de 3 px (não depende só de cor).
   // A barra é borda, para continuar visível em alto contraste.
   &[aria-selected='true'] {
