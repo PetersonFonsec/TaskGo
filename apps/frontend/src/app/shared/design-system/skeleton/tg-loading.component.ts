@@ -14,6 +14,7 @@ import {
   input,
   numberAttribute,
   signal,
+  untracked,
 } from '@angular/core';
 import { NgTemplateOutlet } from '@angular/common';
 
@@ -35,8 +36,11 @@ export class TgLoadingSkeletonDirective {
  *     … conteúdo …
  *   </tg-loading>
  *
- * O conteúdo só aparece quando `loading` é falso. Erro e vazio são da tela:
- * alerta com "Tentar de novo" e estado vazio.
+ * O conteúdo só entra no DOM quando `loading` é falso. Como todo
+ * `ng-content`, ele é criado com a tela: componentes dentro dele iniciam
+ * (`ngOnInit`) mesmo durante a carga, não são recriados ao alternar e
+ * saem junto com a tela. Para iniciar só com os dados, use `@if` na tela.
+ * Erro e vazio são da tela: alerta com "Tentar de novo" e estado vazio.
  */
 @Component({
   selector: 'tg-loading',
@@ -79,7 +83,7 @@ export class TgLoadingComponent {
   readonly label = input.required<string>();
   /** Os dados estão carregando. */
   readonly loading = input(false, { transform: booleanAttribute });
-  /** Espera antes de mostrar o skeleton, em ms. */
+  /** Espera antes de mostrar o skeleton, em ms. Lida no início de cada carga. */
   readonly delay = input(300, { transform: numberAttribute });
 
   protected readonly skeleton = contentChild(TgLoadingSkeletonDirective);
@@ -88,19 +92,25 @@ export class TgLoadingComponent {
   readonly #waited = signal(false);
   // No servidor não há espera nem skeleton: a página sai sem ele e o
   // navegador decide depois da hidratação.
-  protected readonly showSkeleton = computed(
-    () => this.#browser && this.loading() && (this.delay() <= 0 || this.#waited()),
-  );
+  protected readonly showSkeleton = computed(() => this.#browser && this.loading() && this.#waited());
   #timer: ReturnType<typeof setTimeout> | null = null;
 
   constructor() {
     inject(DestroyRef).onDestroy(() => this.#clear());
+    // Só `loading` dispara: mudar o `delay` no meio de uma carga vale para a
+    // próxima, sem esconder o skeleton que já está na tela. O efeito roda na
+    // detecção de mudanças do componente, antes do template, e cancela o
+    // tempo da carga anterior; um tempo cancelado não chega a rodar.
     effect(() => {
       const loading = this.loading();
-      const delay = this.delay();
+      const delay = untracked(this.delay);
       this.#clear();
       this.#waited.set(false);
-      if (!loading || !this.#browser || delay <= 0) return;
+      if (!loading || !this.#browser) return;
+      if (!(delay > 0)) {
+        this.#waited.set(true);
+        return;
+      }
       this.#timer = setTimeout(() => {
         this.#timer = null;
         this.#waited.set(true);

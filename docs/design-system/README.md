@@ -876,9 +876,19 @@ Regras:
   64%. Bloco: raio `lg` por padrão; chip, `full`.
 - Mostre só o que cabe na primeira tela (3 ou 4 itens de lista, 3 cards).
 - O `tg-loading` espera 300 ms antes de mostrar o skeleton: se os dados
-  chegam antes, a pessoa vai direto ao conteúdo, sem piscar.
-- O conteúdo só aparece quando `loading` é falso. Erro e vazio continuam
-  com a tela: alerta com "Tentar de novo" e estado vazio.
+  chegam antes, a pessoa vai direto ao conteúdo, sem piscar. O `delay` é
+  lido no começo de cada carga; mudar no meio vale para a próxima.
+- O conteúdo só entra na página quando `loading` é falso. Como todo
+  `ng-content`, ele é criado junto com a tela: um componente dentro dele
+  inicia (`ngOnInit`) mesmo durante a carga, não é recriado ao alternar e
+  sai junto com a tela. Enquanto carrega, ele não está no DOM, então não
+  recebe foco nem é lido. Para iniciar algo só com os dados, use `@if` na
+  tela.
+- Limites: `lines` vai de 1 a 20. Medida negativa, `NaN` ou infinita volta
+  ao padrão (100% de largura; 14 px no texto, 80 px no bloco e 48 px no
+  círculo).
+- Erro e vazio continuam com a tela: alerta com "Tentar de novo" e estado
+  vazio.
 
 Acessibilidade:
 

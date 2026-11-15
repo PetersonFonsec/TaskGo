@@ -1,4 +1,4 @@
-import { Component, PLATFORM_ID, signal } from '@angular/core';
+import { Component, OnDestroy, OnInit, PLATFORM_ID, signal } from '@angular/core';
 import { ComponentFixture, TestBed } from '@angular/core/testing';
 import { TgLoadingComponent, TgLoadingSkeletonDirective } from './tg-loading.component';
 import { TgSkeletonComponent } from './tg-skeleton.component';
@@ -210,8 +210,13 @@ describe('TgLoadingComponent', () => {
     expect($('#osso')).not.toBeNull();
   });
 
-  it('delay 0 mostra logo', () => {
+  it('delay 0 mostra logo (na próxima carga, se mudou no meio desta)', () => {
     fixture.componentInstance.delay.set(0);
+    fixture.detectChanges();
+    expect($('#osso')).toBeNull();
+    fixture.componentInstance.loading.set(false);
+    fixture.detectChanges();
+    fixture.componentInstance.loading.set(true);
     fixture.detectChanges();
     expect($('#osso')).not.toBeNull();
   });
@@ -234,5 +239,399 @@ describe('TgLoadingComponent no servidor', () => {
     expect(fixture.nativeElement.querySelector('#osso')).toBeNull();
     expect(fixture.nativeElement.querySelector('.tg-loading__body').getAttribute('aria-busy')).toBe('true');
     fixture.destroy();
+  });
+});
+
+// ---------------------------------------------------------------------------
+// Revisão do PR #20
+// ---------------------------------------------------------------------------
+
+@Component({
+  imports: [TgSkeletonComponent],
+  template: `
+    <div style="width: 400px">
+      <tg-skeleton id="alvo" [shape]="shape()" [lines]="lines()" [size]="size()" [width]="width()" [height]="height()" />
+    </div>
+  `,
+})
+class InputsHost {
+  readonly shape = signal<'text' | 'circle' | 'rect'>('text');
+  readonly lines = signal<number>(1);
+  readonly size = signal<number>(48);
+  readonly width = signal<string | number | undefined>(undefined);
+  readonly height = signal<string | number | undefined>(undefined);
+}
+
+describe('TgSkeletonComponent: entradas inválidas', () => {
+  let fixture: ComponentFixture<InputsHost>;
+  const host = () => fixture.componentInstance;
+  const el = () => fixture.nativeElement.querySelector('#alvo') as HTMLElement;
+  const bones = () => Array.from(el().querySelectorAll<HTMLElement>('.tg-skeleton__bone'));
+  const render = () => fixture.detectChanges();
+
+  beforeEach(() => {
+    fixture = TestBed.createComponent(InputsHost);
+    document.body.appendChild(fixture.nativeElement);
+    render();
+  });
+  afterEach(() => fixture.nativeElement.remove());
+
+  it('lines=1 e lines=3 (última com 64%)', () => {
+    expect(bones().length).toBe(1);
+    host().lines.set(3);
+    render();
+    expect(bones().length).toBe(3);
+    expect(bones()[2].style.width).toBe('64%');
+  });
+
+  for (const [name, value] of [['0', 0], ['-1', -1], ['NaN', NaN], ['Infinity', Infinity], ['-Infinity', -Infinity]] as const) {
+    it(`lines=${name}: uma linha, sem erro`, () => {
+      host().lines.set(value);
+      expect(() => render()).not.toThrow();
+      expect(bones().length).toBe(1);
+    });
+  }
+
+  it('lines=1000000: limitado a 20 linhas', () => {
+    host().lines.set(1_000_000);
+    render();
+    expect(bones().length).toBe(20);
+    expect(bones()[19].style.width).toBe('64%');
+  });
+
+  it('lines fracionário arredonda para baixo', () => {
+    host().lines.set(2.7);
+    render();
+    expect(bones().length).toBe(2);
+  });
+
+  for (const [name, value] of [['-20', -20], ['NaN', NaN], ['Infinity', Infinity], ['0', 0]] as const) {
+    it(`size=${name}: volta ao padrão de 48 px`, () => {
+      host().shape.set('circle');
+      host().size.set(value);
+      render();
+      const box = bones()[0].getBoundingClientRect();
+      expect(box.width).toBe(48);
+      expect(box.height).toBe(48);
+    });
+  }
+
+  it('width e height negativos ou NaN: voltam ao padrão', () => {
+    host().shape.set('rect');
+    for (const bad of [-120, NaN, '-120', Infinity]) {
+      host().width.set(bad);
+      host().height.set(bad);
+      render();
+      const box = bones()[0].getBoundingClientRect();
+      expect(box.width).withContext(String(bad)).toBe(400);
+      expect(box.height).withContext(String(bad)).toBe(80);
+    }
+  });
+
+  it('valores CSS válidos continuam: %, px, rem e número', () => {
+    host().shape.set('rect');
+    const cases: [string | number, number][] = [['62%', 248], ['120px', 120], ['5rem', 80], [96, 96], ['96', 96]];
+    for (const [value, px] of cases) {
+      host().width.set(value);
+      host().height.set(value === '62%' ? 40 : value);
+      render();
+      expect(bones()[0].getBoundingClientRect().width).withContext(String(value)).toBeCloseTo(px, 0);
+    }
+  });
+
+  it('as três formas continuam', () => {
+    for (const shape of ['text', 'circle', 'rect'] as const) {
+      host().shape.set(shape);
+      render();
+      expect(el().classList).toContain(`tg-skeleton--${shape}`);
+      expect(bones().length).toBe(1);
+    }
+  });
+
+  it('não tem nada focável', () => {
+    host().lines.set(5);
+    render();
+    expect(el().querySelectorAll('a, button, input, [tabindex]').length).toBe(0);
+  });
+});
+
+@Component({
+  imports: [TgLoadingComponent, TgLoadingSkeletonDirective, TgSkeletonComponent],
+  template: `
+    <tg-loading id="a" [label]="label()" [loading]="loading()" [delay]="delay()">
+      <ng-template tgLoadingSkeleton><tg-skeleton class="osso" /></ng-template>
+      <p class="conteudo">Pronto</p>
+    </tg-loading>
+  `,
+})
+class RaceHost {
+  readonly loading = signal(true);
+  readonly delay = signal(300);
+  readonly label = signal('Carregando pedidos');
+}
+
+describe('TgLoadingComponent: tempo', () => {
+  let fixture: ComponentFixture<RaceHost>;
+  const host = () => fixture.componentInstance;
+  const skeleton = () => fixture.nativeElement.querySelector('.osso') as HTMLElement | null;
+  const status = () => fixture.nativeElement.querySelector('[role=status]') as HTMLElement;
+  const render = () => fixture.detectChanges();
+  const tick = (ms: number) => {
+    jasmine.clock().tick(ms);
+    render();
+  };
+
+  beforeEach(() => {
+    jasmine.clock().install();
+    fixture = TestBed.createComponent(RaceHost);
+    document.body.appendChild(fixture.nativeElement);
+    render();
+  });
+  afterEach(() => {
+    fixture.destroy();
+    fixture.nativeElement.remove();
+    jasmine.clock().uninstall();
+  });
+
+  it('299 ms: ausente; 300 ms: visível', () => {
+    tick(299);
+    expect(skeleton()).toBeNull();
+    tick(1);
+    expect(skeleton()).not.toBeNull();
+  });
+
+  it('true → false antes de 300 ms: o skeleton nunca aparece', () => {
+    tick(150);
+    host().loading.set(false);
+    render();
+    for (let i = 0; i < 10; i++) {
+      tick(100);
+      expect(skeleton()).toBeNull();
+    }
+  });
+
+  it('true → false → true: o novo carregamento espera os 300 ms dele', () => {
+    tick(250);
+    host().loading.set(false);
+    render();
+    host().loading.set(true);
+    render();
+    tick(299);
+    expect(skeleton()).toBeNull();
+    tick(1);
+    expect(skeleton()).not.toBeNull();
+  });
+
+  it('alternância no vencimento, antes da tela atualizar: o tempo antigo não vale para a nova carga', () => {
+    tick(299);
+    host().loading.set(false); // ainda sem detectChanges: o efeito não rodou
+    jasmine.clock().tick(1); // o tempo antigo vence aqui
+    host().loading.set(true);
+    render();
+    expect(skeleton()).toBeNull();
+    tick(299);
+    expect(skeleton()).toBeNull();
+    tick(1);
+    expect(skeleton()).not.toBeNull();
+  });
+
+  it('tempo antigo vencendo depois de voltar a carregar, sem atualizar a tela: não mostra cedo', () => {
+    tick(100);
+    host().loading.set(false);
+    host().loading.set(true); // sem detectChanges entre as trocas
+    jasmine.clock().tick(200); // vence o tempo da carga anterior
+    render();
+    // O sinal mudou e voltou: é a mesma carga para o Angular. Segue o tempo de 300 ms.
+    expect(skeleton()).not.toBeNull();
+  });
+
+  it('delay alterado durante a carga vale só para a próxima', () => {
+    tick(100);
+    host().delay.set(1000);
+    render();
+    tick(200);
+    expect(skeleton()).not.toBeNull();
+    host().loading.set(false);
+    render();
+    host().loading.set(true);
+    render();
+    tick(999);
+    expect(skeleton()).toBeNull();
+    tick(1);
+    expect(skeleton()).not.toBeNull();
+  });
+
+  it('delay alterado com o skeleton já na tela não o esconde', () => {
+    tick(300);
+    host().delay.set(5000);
+    render();
+    expect(skeleton()).not.toBeNull();
+  });
+
+  it('delay=0: imediato no navegador', () => {
+    host().loading.set(false);
+    render();
+    host().delay.set(0);
+    host().loading.set(true);
+    render();
+    expect(skeleton()).not.toBeNull();
+  });
+
+  it('destruir com tempo pendente: nada é agendado depois e nenhum callback roda', () => {
+    const cmp = fixture.debugElement.children[0].componentInstance as TgLoadingComponent;
+    tick(100);
+    fixture.destroy();
+    jasmine.clock().tick(1000);
+    expect((cmp as unknown as { showSkeleton: () => boolean }).showSkeleton()).toBeFalse();
+  });
+
+  it('label muda durante o carregamento: o anúncio acompanha', () => {
+    tick(300);
+    expect(status().textContent?.trim()).toBe('Carregando pedidos');
+    host().label.set('Carregando endereços');
+    render();
+    expect(status().textContent?.trim()).toBe('Carregando endereços');
+  });
+
+  it('aria-busy durante e depois; role=status fora da região ocupada', () => {
+    const body = fixture.nativeElement.querySelector('.tg-loading__body') as HTMLElement;
+    expect(body.getAttribute('aria-busy')).toBe('true');
+    expect(status().closest('[aria-busy]')).toBeNull();
+    host().loading.set(false);
+    render();
+    expect(body.hasAttribute('aria-busy')).toBeFalse();
+  });
+});
+
+@Component({
+  imports: [TgLoadingComponent],
+  template: `
+    <tg-loading label="Carregando" [loading]="loading()"><p class="conteudo">Pronto</p></tg-loading>
+  `,
+})
+class NoSkeletonHost {
+  readonly loading = signal(true);
+}
+
+describe('TgLoadingComponent sem tgLoadingSkeleton', () => {
+  beforeEach(() => jasmine.clock().install());
+  afterEach(() => jasmine.clock().uninstall());
+
+  it('anuncia e fica ocupado, sem erro; depois mostra o conteúdo', () => {
+    const fixture = TestBed.createComponent(NoSkeletonHost);
+    fixture.detectChanges();
+    jasmine.clock().tick(300);
+    expect(() => fixture.detectChanges()).not.toThrow();
+    expect(fixture.nativeElement.querySelector('[role=status]').textContent.trim()).toBe('Carregando');
+    expect(fixture.nativeElement.querySelector('.conteudo')).toBeNull();
+    fixture.componentInstance.loading.set(false);
+    fixture.detectChanges();
+    expect(fixture.nativeElement.querySelector('.conteudo')).not.toBeNull();
+    fixture.destroy();
+  });
+});
+
+@Component({
+  imports: [TgLoadingComponent, TgLoadingSkeletonDirective, TgSkeletonComponent],
+  template: `
+    <tg-loading id="um" label="Carregando um" [loading]="um()"><ng-template tgLoadingSkeleton><tg-skeleton /></ng-template>Um</tg-loading>
+    <tg-loading id="dois" label="Carregando dois" [loading]="dois()" [delay]="600"><ng-template tgLoadingSkeleton><tg-skeleton /></ng-template>Dois</tg-loading>
+  `,
+})
+class TwoHost {
+  readonly um = signal(true);
+  readonly dois = signal(true);
+}
+
+describe('TgLoadingComponent: instâncias independentes', () => {
+  beforeEach(() => jasmine.clock().install());
+  afterEach(() => jasmine.clock().uninstall());
+
+  it('cada uma com o próprio tempo e estado', () => {
+    const fixture = TestBed.createComponent(TwoHost);
+    const sk = (id: string) => fixture.nativeElement.querySelector(`#${id} tg-skeleton`);
+    fixture.detectChanges();
+    jasmine.clock().tick(300);
+    fixture.detectChanges();
+    expect(sk('um')).not.toBeNull();
+    expect(sk('dois')).toBeNull();
+    fixture.componentInstance.um.set(false);
+    fixture.detectChanges();
+    jasmine.clock().tick(300);
+    fixture.detectChanges();
+    expect(sk('um')).toBeNull();
+    expect(sk('dois')).not.toBeNull();
+    fixture.destroy();
+  });
+});
+
+let childLog: string[] = [];
+
+@Component({ selector: 'tg-test-child', template: `<button class="filho">Ver pedido</button>` })
+class ChildProbe implements OnInit, OnDestroy {
+  ngOnInit() {
+    childLog.push('init');
+  }
+  ngOnDestroy() {
+    childLog.push('destroy');
+  }
+}
+
+@Component({
+  imports: [TgLoadingComponent, TgLoadingSkeletonDirective, TgSkeletonComponent, ChildProbe],
+  template: `
+    @if (shown()) {
+      <tg-loading label="Carregando" [loading]="loading()" [delay]="0">
+        <ng-template tgLoadingSkeleton><tg-skeleton /></ng-template>
+        <tg-test-child />
+      </tg-loading>
+    }
+  `,
+})
+class ProjectionHost {
+  readonly loading = signal(true);
+  readonly shown = signal(true);
+}
+
+describe('TgLoadingComponent: conteúdo projetado', () => {
+  let fixture: ComponentFixture<ProjectionHost>;
+  const button = () => fixture.nativeElement.querySelector('.filho') as HTMLButtonElement | null;
+
+  beforeEach(() => {
+    childLog = [];
+    fixture = TestBed.createComponent(ProjectionHost);
+    document.body.appendChild(fixture.nativeElement);
+    fixture.detectChanges();
+  });
+  afterEach(() => {
+    fixture.destroy();
+    fixture.nativeElement.remove();
+  });
+
+  it('o filho é criado com a tela, mesmo carregando, mas fica fora do DOM', () => {
+    expect(childLog).toEqual(['init']);
+    expect(button()).toBeNull();
+    expect(fixture.nativeElement.querySelectorAll('button, a, input, [tabindex]').length).toBe(0);
+  });
+
+  it('alternar carregando e pronto não recria o filho; o conteúdo aparece e recebe foco', () => {
+    fixture.componentInstance.loading.set(false);
+    fixture.detectChanges();
+    expect(button()).not.toBeNull();
+    button()?.focus();
+    expect(document.activeElement).toBe(button());
+    fixture.componentInstance.loading.set(true);
+    fixture.detectChanges();
+    expect(button()).toBeNull();
+    fixture.componentInstance.loading.set(false);
+    fixture.detectChanges();
+    expect(button()).not.toBeNull();
+    expect(childLog).toEqual(['init']);
+  });
+
+  it('o filho é destruído junto com o pai', () => {
+    fixture.componentInstance.shown.set(false);
+    fixture.detectChanges();
+    expect(childLog).toEqual(['init', 'destroy']);
   });
 });
