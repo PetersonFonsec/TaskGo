@@ -1066,7 +1066,7 @@ lista única com divisória (`ul tgOrderList`).
 
 | Entrada | Valores | Padrão |
 | --- | --- | --- |
-| `order` | `TgOrderRowData`: `id`, `status`, `service`, `person`, `scheduledFor`, `neighborhood`, `distanceKm`, `amount`, `reviewed` | obrigatório |
+| `order` | `TgOrderRowData`: `id`, `status`, `service`, `person`, `scheduledFor`, `neighborhood`, `distanceKm`, `amount`, `reviewed`, `paymentStatus` | obrigatório |
 | `perspective` | `customer` ou `provider`: muda o texto do status, a linha de apoio e o próximo passo | obrigatório |
 | `busy` | a tela está trocando o status deste pedido; o botão fica em carregando | `false` |
 | `(statusAction)` | pede a troca (`EM_DESLOCAMENTO` ou `EM_ANDAMENTO`); a tela chama a API | — |
@@ -1079,13 +1079,32 @@ próximo passo.
 | Status | Próximo passo do cliente | Próximo passo do prestador |
 | --- | --- | --- |
 | `AGUARDANDO_APROVACAO` | — | Responder (`/orders/:id`) |
-| `AGUARDANDO_PAGAMENTO` | Pagar (`/orders/:id/payment`) | — |
+| `AGUARDANDO_PAGAMENTO` | Pagar, com o pagamento em `CREATED` ou sem valor; Ver QR Code, com `PENDENTE` (os dois em `/orders/:id/payment`); nenhum nos demais | — |
 | `AGENDADO` | — | Estou a caminho (pede `EM_DESLOCAMENTO`) |
 | `EM_DESLOCAMENTO` | — | Iniciar serviço (pede `EM_ANDAMENTO`) |
 | `EM_ANDAMENTO` | — | Finalizar serviço (`/orders/:id/finish`) |
 | `AGUARDANDO_CONFIRMACAO_CLIENTE` | Confirmar conclusão (`/orders/:id/confirm`) | — |
 | `CONCLUIDO` | Avaliar, se ainda não avaliou (`/orders/:id/review`) | — |
 | `DISPUTA`, `REJEITADO`, `CANCELADO` | — | — |
+
+Pagamento, conforme o backend: o pedido nasce com o pagamento em `CREATED`;
+"Pagar" cria a cobrança e o PIX fica `PENDENTE`. O pedido só passa para
+`AGENDADO` com o pagamento pago (`PAGO`, `CAPTURED` ou `RELEASED`) e volta
+para `AGUARDANDO_PAGAMENTO` se o pagamento deixar de valer, então `AGENDADO`
+não pede pagamento. Com o pagamento autorizado, pago, falho, cancelado,
+estornado ou desconhecido, a API não aceita outra cobrança: a linha não
+oferece pagamento e leva ao pedido.
+
+Da API para a linha, use `toTgOrderRow(pedido, perspective)`. Ele recebe o
+pedido das listagens (`OrderModel`) e devolve `TgOrderRowData`:
+
+- `review` presente vira `reviewed: true`, e o "Avaliar" some;
+- `payment.status` vira `paymentStatus`;
+- a outra pessoa é o profissional para o cliente e o cliente para o
+  prestador;
+- o valor é o final, ou o do pagamento.
+
+A distância não vem nas listagens.
 
 Regras:
 
@@ -1096,7 +1115,9 @@ Regras:
 - Linha de apoio: pessoa · data · bairro. A data é "Hoje, 14:00", "Amanhã",
   "Ontem" ou "Ter, 18 nov, 09:00" (com o ano quando não é o atual); sem
   data, "Data a combinar". Só o bairro: o endereço completo fica na tela do
-  pedido.
+  pedido. Hoje, amanhã e ontem são dias civis, então o horário de verão não
+  muda a conta. `when(data, agora, fuso)` aceita um fuso IANA, usado nos
+  testes; sem ele, vale o do navegador.
 - Para o prestador, a distância entra junto do bairro e o valor estimado
   aparece embaixo. O cliente não vê esses dois.
 - No máximo um próximo passo, só quando é a vez de quem vê. Botão pequeno
@@ -1115,6 +1136,10 @@ Acessibilidade:
   (toast).
 - Hover: fundo `bg-subtle` e serviço sublinhado. Foco: o anel padrão na
   linha.
+- Os ids das referências (`aria-describedby`) vêm do `TgIdGenerator`, um
+  contador por aplicação. No SSR, cada requisição e o cliente começam do
+  zero, então os ids batem na hidratação. Não usam o id do pedido, porque o
+  mesmo pedido pode aparecer duas vezes na tela.
 
 Os mapas de status de cada tela (`card-appointment`, início do prestador)
 continuam até a migração delas, quando passam a usar `tgOrderStatus`. No

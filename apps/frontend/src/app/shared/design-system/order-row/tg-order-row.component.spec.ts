@@ -201,4 +201,57 @@ describe('TgOrderRowComponent', () => {
     const ids = [...el.querySelectorAll('[id]')].map((n) => n.id);
     expect(new Set(ids).size).toBe(ids.length);
   });
+
+  describe('ids e referências ARIA', () => {
+    const rows = () => [...el.querySelectorAll<HTMLElement>('tg-order-row')];
+    const refsOk = () =>
+      [...el.querySelectorAll('[aria-describedby]')].every((n) =>
+        n.getAttribute('aria-describedby')!.split(/\s+/).every((id) => {
+          const target = document.getElementById(id);
+          return target !== null && n.closest('tg-order-row') === target.closest('tg-order-row');
+        }),
+      );
+
+    it('cada referência aponta para um elemento da mesma linha', () => {
+      set({ status: 'AGENDADO' }, 'provider');
+      expect(rows().length).toBe(2);
+      expect(refsOk()).toBeTrue();
+    });
+
+    it('as associações seguem certas quando os dados mudam', () => {
+      const before = q('a.tg-order-row__link')!.id;
+      for (const [status, perspective] of [
+        ['AGUARDANDO_PAGAMENTO', 'customer'],
+        ['AGENDADO', 'provider'],
+        ['CONCLUIDO', 'customer'],
+        ['CANCELADO', 'customer'],
+      ] as const) {
+        set({ status, service: `Serviço ${status}` }, perspective);
+        expect(refsOk()).withContext(status).toBeTrue();
+        expect(q('a.tg-order-row__link')!.id).withContext(status).toBe(before);
+        expect(described(q('a.tg-order-row__link')!)).withContext(status).toBe(text(q('tg-badge')));
+      }
+    });
+
+    it('pedidos com o mesmo id na mesma página não colidem', () => {
+      host.order.set({ ...base, id: '8' });
+      fixture.detectChanges();
+      const ids = [...el.querySelectorAll('[id]')].map((n) => n.id);
+      expect(new Set(ids).size).toBe(ids.length);
+      expect(refsOk()).toBeTrue();
+    });
+
+    it('cada aplicação começa do zero, como o servidor por requisição e o cliente na hidratação', () => {
+      const first = rows().map((r) => r.querySelector('a.tg-order-row__link')!.id);
+      el.remove();
+      TestBed.resetTestingModule();
+      TestBed.configureTestingModule({ providers: [provideRouter([])] });
+      const again = TestBed.createComponent(Host);
+      again.detectChanges();
+      const second = [...again.nativeElement.querySelectorAll('a.tg-order-row__link')].map((a: Element) => a.id);
+      expect(second).toEqual(first);
+      expect(new Set(first).size).toBe(2);
+      again.destroy();
+    });
+  });
 });

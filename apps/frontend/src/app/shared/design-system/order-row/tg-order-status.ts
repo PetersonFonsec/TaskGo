@@ -61,19 +61,44 @@ export type TgOrderNextStep =
   | { label: string; action: TgOrderStatusAction; link?: undefined };
 
 /**
+ * Status do pagamento (enum PaymentStatus do backend) em que o cliente ainda
+ * age: CREATED (o pedido nasce com ele; "Pagar" cria a cobrança) e PENDENTE
+ * (PIX gerado, falta pagar: "Ver QR Code"). Em qualquer outro, inclusive
+ * autorizado, pago, falho, cancelado ou desconhecido, a API não aceita uma
+ * nova cobrança, então a linha não oferece pagamento e leva ao pedido.
+ */
+function paymentStep(id: string, paymentStatus: string | null | undefined): TgOrderNextStep | null {
+  const link = ['/orders', id, 'payment'] as const;
+  if (paymentStatus == null || paymentStatus === '' || paymentStatus === 'CREATED') return { label: 'Pagar', link };
+  if (paymentStatus === 'PENDENTE') return { label: 'Ver QR Code', link };
+  return null;
+}
+
+/** O que o próximo passo precisa saber do pedido. */
+export interface TgOrderStepInput {
+  id: string;
+  status: unknown;
+  /** O cliente já avaliou (tira o "Avaliar"). */
+  reviewed?: boolean | null;
+  /** Status do pagamento (PaymentStatus). Sem valor: pagamento ainda não iniciado. */
+  paymentStatus?: string | null;
+}
+
+/**
  * O próximo passo de quem está vendo, quando é a vez dessa pessoa. No
  * máximo um. Links levam à tela do passo; "Estou a caminho" e "Iniciar
  * serviço" são pedidos de troca de status que a tela executa.
+ *
+ * Pagamento: só em AGUARDANDO_PAGAMENTO. O backend só passa o pedido para
+ * AGENDADO com o pagamento pago e o devolve para AGUARDANDO_PAGAMENTO se o
+ * pagamento deixar de valer, então AGENDADO não pede pagamento.
  */
-export function tgOrderNextStep(
-  order: { id: string; status: unknown; reviewed?: boolean | null },
-  perspective: TgOrderPerspective,
-): TgOrderNextStep | null {
+export function tgOrderNextStep(order: TgOrderStepInput, perspective: TgOrderPerspective): TgOrderNextStep | null {
   const { id, status } = order;
   if (perspective === 'customer') {
     switch (status) {
       case 'AGUARDANDO_PAGAMENTO':
-        return { label: 'Pagar', link: ['/orders', id, 'payment'] };
+        return paymentStep(id, order.paymentStatus);
       case 'AGUARDANDO_CONFIRMACAO_CLIENTE':
         return { label: 'Confirmar conclusão', link: ['/orders', id, 'confirm'] };
       case 'CONCLUIDO':

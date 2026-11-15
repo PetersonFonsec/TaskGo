@@ -10,6 +10,7 @@ import {
 import { RouterLink } from '@angular/router';
 import { TgBadgeComponent } from '../badge/tg-badge.component';
 import { TgButtonComponent } from '../button/tg-button.component';
+import { tgIds } from '../tg-id';
 import {
   type TgOrderPerspective,
   type TgOrderStatusAction,
@@ -34,18 +35,21 @@ export interface TgOrderRowData {
   distanceKm?: number | null;
   /** Valor estimado do pedido, em reais (só para o prestador). */
   amount?: number | null;
-  /** O cliente já avaliou (tira o "Avaliar"). */
+  /** O cliente já avaliou (tira o "Avaliar"). Da API: `review` presente. */
   reviewed?: boolean | null;
+  /**
+   * Status do pagamento (PaymentStatus da API, `payment.status`). Decide entre
+   * "Pagar" (CREATED ou sem valor) e "Ver QR Code" (PENDENTE) em
+   * AGUARDANDO_PAGAMENTO; outro valor não oferece pagamento.
+   */
+  paymentStatus?: string | null;
 }
 
-const TIME = new Intl.DateTimeFormat('pt-BR', { hour: '2-digit', minute: '2-digit' });
 const WEEKDAYS = ['Dom', 'Seg', 'Ter', 'Qua', 'Qui', 'Sex', 'Sáb'];
 const MONTHS = ['jan', 'fev', 'mar', 'abr', 'mai', 'jun', 'jul', 'ago', 'set', 'out', 'nov', 'dez'];
 const KM = new Intl.NumberFormat('pt-BR', { minimumFractionDigits: 1, maximumFractionDigits: 1 });
 const BRL = new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' });
 const BRL_INT = new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL', maximumFractionDigits: 0 });
-
-let nextId = 0;
 
 /**
  * Lista de pedidos: a superfície com as divisórias entre as linhas.
@@ -160,8 +164,10 @@ export class TgOrderRowComponent {
   /** Pedido de troca de status ("Estou a caminho", "Iniciar serviço"). A tela chama a API. */
   readonly statusAction = output<TgOrderStatusAction>();
 
-  protected readonly titleId = `tg-order-row-title-${nextId}`;
-  protected readonly statusId = `tg-order-row-status-${nextId++}`;
+  // Ids por aplicação (estáveis no SSR com hidratação), não por pedido: o mesmo pedido pode aparecer duas vezes na tela.
+  readonly #ids = tgIds('tg-order-row');
+  protected readonly titleId = this.#ids('title');
+  protected readonly statusId = this.#ids('status');
 
   protected readonly status = computed(() => tgOrderStatus(this.order().status, this.perspective()));
   protected readonly step = computed(() => tgOrderNextStep(this.order(), this.perspective()));
@@ -189,21 +195,63 @@ function distance(km: number | null | undefined): string | null {
   return `${KM.format(value)} km`;
 }
 
-/** "Hoje, 14:00", "Amanhã, 09:00", "Ontem, 15:00", "Ter, 18 nov, 09:00" (com o ano se não for o atual). Sem data: "Data a combinar". */
-export function when(value: string | number | Date | null | undefined, now = new Date()): string {
-  if (value == null || value === '') return 'Data a combinar';
-  const date = value instanceof Date ? value : new Date(value);
-  if (Number.isNaN(date.getTime())) return 'Data a combinar';
-  const days = Math.round((startOfDay(date) - startOfDay(now)) / 86_400_000);
-  const time = TIME.format(date);
-  if (days === 0) return `Hoje, ${time}`;
-  if (days === 1) return `Amanhã, ${time}`;
-  if (days === -1) return `Ontem, ${time}`;
-  const year = date.getFullYear() === now.getFullYear() ? '' : ` ${date.getFullYear()}`;
-  const day = String(date.getDate()).padStart(2, '0');
-  return `${WEEKDAYS[date.getDay()]}, ${day} ${MONTHS[date.getMonth()]}${year}, ${time}`;
+/** Partes do dia civil num fuso (sem fuso: o do navegador). */
+interface CivilDate {
+  year: number;
+  month: number;
+  day: number;
+  time: string;
 }
 
-function startOfDay(date: Date) {
-  return new Date(date.getFullYear(), date.getMonth(), date.getDate()).getTime();
+const CIVIL = new Map<string, Intl.DateTimeFormat>();
+
+function civilFormat(timeZone: string | undefined): Intl.DateTimeFormat {
+  const key = timeZone ?? '';
+  let format = CIVIL.get(key);
+  if (!format) {
+    format = new Intl.DateTimeFormat('en-US', {
+      timeZone,
+      year: 'numeric',
+      month: 'numeric',
+      day: 'numeric',
+      hour: '2-digit',
+      minute: '2-digit',
+      hourCycle: 'h23',
+    });
+    CIVIL.set(key, format);
+  }
+  return format;
+}
+
+function civil(date: Date, timeZone: string | undefined): CivilDate {
+  const parts: Record<string, string> = {};
+  for (const { type, value } of civilFormat(timeZone).formatToParts(date)) parts[type] = value;
+  return { year: +parts['year'], month: +parts['month'], day: +parts['day'], time: `${parts['hour']}:${parts['minute']}` };
+}
+
+/** Número do dia civil: a diferença entre dois é sempre inteira, com ou sem horário de verão. */
+function dayNumber({ year, month, day }: CivilDate): number {
+  return Date.UTC(year, month - 1, day) / 86_400_000;
+}
+
+/**
+ * "Hoje, 14:00", "Amanhã, 09:00", "Ontem, 15:00", "Ter, 18 nov, 09:00" (com o
+ * ano se não for o atual). Sem data: "Data a combinar". Compara dias civis
+ * (não 24 h), então dias de 23 ou 25 h no horário de verão não mudam a
+ * conta. `timeZone` (IANA) é o fuso de quem vê; sem ele, o do navegador.
+ */
+export function when(value: string | number | Date | null | undefined, now = new Date(), timeZone?: string): string {
+  if (value == null || value === '') return 'Data a combinar';
+  const date = value instanceof Date ? value : new Date(value);
+  if (Number.isNaN(date.getTime()) || Number.isNaN(now.getTime())) return 'Data a combinar';
+  const target = civil(date, timeZone);
+  const today = civil(now, timeZone);
+  const days = dayNumber(target) - dayNumber(today);
+  if (days === 0) return `Hoje, ${target.time}`;
+  if (days === 1) return `Amanhã, ${target.time}`;
+  if (days === -1) return `Ontem, ${target.time}`;
+  const weekday = new Date(Date.UTC(target.year, target.month - 1, target.day)).getUTCDay();
+  const year = target.year === today.year ? '' : ` ${target.year}`;
+  const day = String(target.day).padStart(2, '0');
+  return `${WEEKDAYS[weekday]}, ${day} ${MONTHS[target.month - 1]}${year}, ${target.time}`;
 }

@@ -93,7 +93,7 @@ export const Prestador: Story = {
   }),
 };
 
-/** Sem data, status desconhecido e textos longos. */
+/** Sem data, status desconhecido, PIX pendente (Ver QR Code), pagamento autorizado e textos longos. */
 export const CasosDeBorda: Story = {
   name: 'Casos de borda',
   render: () => ({
@@ -109,6 +109,8 @@ export const CasosDeBorda: Story = {
           neighborhood: 'Jardim Paulista',
         },
         { id: '3003', status: 'CONCLUIDO', service: 'Pintura de quarto', person: 'Rafael Santos', reviewed: true, scheduledFor: at(-30, 8) },
+        { id: '3004', status: 'AGUARDANDO_PAGAMENTO', service: 'Limpeza residencial', person: 'Ana Souza', paymentStatus: 'PENDENTE', scheduledFor: at(2, 9), neighborhood: 'Pinheiros' },
+        { id: '3005', status: 'AGUARDANDO_PAGAMENTO', service: 'Conserto de tomada', person: 'Carlos Lima', paymentStatus: 'AUTORIZADO', scheduledFor: at(4, 16), neighborhood: 'Moema' },
       ] satisfies TgOrderRowData[],
     },
     template: `
