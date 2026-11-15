@@ -1261,7 +1261,7 @@ agenda, categorias e histórico.
 | Parte | Componente | Regra |
 | --- | --- | --- |
 | Endereço | `tg-alert` informativo + "Cadastrar endereço" | Só quando a consulta diz que não há endereço; falha na consulta não mostra. |
-| Saudação | `h1` com o primeiro nome, `a[tgButton]` "Buscar serviço" | Sem nome, só "Olá". A ilustração é decorativa e some abaixo de 600 px de container (decisão 3). |
+| Saudação | `h1` com o primeiro nome, `a[tgButton]` "Buscar serviço" | Sem nome, só "Olá". Sem ilustração: a antiga saiu e uma nova, no estilo I1, pode voltar depois. |
 | Destaque | `tg-appointment-card` | O ativo que pede ação do cliente (Pagar, Ver QR Code, Confirmar conclusão); senão, o de data mais próxima (decisão 1). |
 | Também na agenda | `ul[tgOrderList]` com `tg-order-row` | Os demais ativos, data mais próxima primeiro, até 3. Sem data vai para o fim. |
 | Histórico | `ul[tgOrderList]` com `tg-order-row` | Concluídos, cancelados e recusados, mais recentes primeiro, até 3, com "Avaliar" quando falta. Sem nenhum, a seção some. |

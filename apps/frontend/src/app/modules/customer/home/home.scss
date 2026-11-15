@@ -48,14 +48,6 @@
   line-height: var(--tg-type-body-lg-line);
 }
 
-.customer-home__art {
-  flex: none;
-  width: 240px;
-  height: auto;
-  max-height: 200px;
-  object-fit: contain;
-}
-
 .customer-home__section {
   display: flex;
   flex-direction: column;
@@ -184,7 +176,7 @@
   }
 }
 
-// Estreito: a ilustração sai, a busca ocupa a largura e as categorias ficam em duas colunas.
+// Estreito: a busca ocupa a largura e as categorias ficam em duas colunas.
 @container customer-home (max-width: 599.98px) {
   .customer-home {
     gap: var(--tg-space-8);
@@ -192,10 +184,6 @@
 
   .customer-home__hero {
     padding: var(--tg-space-5);
-  }
-
-  .customer-home__art {
-    display: none;
   }
 
   .customer-home__greeting {

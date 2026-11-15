@@ -104,9 +104,9 @@ describe('Home', () => {
       expect(el.querySelector('h1')!.textContent!.trim()).toBe('Olá');
     });
 
-    it('a ilustração é decorativa', async () => {
+    it('não tem ilustração', async () => {
       await setup();
-      expect(el.querySelector('.customer-home__art')!.getAttribute('alt')).toBe('');
+      expect(el.querySelector('.customer-home__hero img')).toBeNull();
     });
   });
 
