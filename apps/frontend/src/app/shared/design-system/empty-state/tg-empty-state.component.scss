@@ -1,0 +1,139 @@
+// Estado vazio do Design System. Só tokens --tg-*; o tema troca os valores.
+:host {
+  display: block;
+  color: var(--tg-text-primary);
+  font-family: var(--tg-font-sans);
+}
+
+.tg-empty-state__box {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: var(--tg-space-2);
+  box-sizing: border-box;
+  padding: var(--tg-space-10) var(--tg-space-6);
+  text-align: center;
+}
+
+.tg-empty-state__icon {
+  display: flex;
+  flex: none;
+  align-items: center;
+  justify-content: center;
+  width: 72px;
+  height: 72px;
+  margin-bottom: var(--tg-space-2);
+  border-radius: var(--tg-radius-full);
+  background: var(--tg-action-subtle);
+  color: var(--tg-action-subtle-text);
+}
+
+.tg-empty-state__body {
+  display: flex;
+  flex-direction: column;
+  gap: var(--tg-space-2);
+  max-width: 360px;
+  min-width: 0;
+}
+
+.tg-empty-state__title,
+.tg-empty-state__text {
+  overflow-wrap: anywhere;
+}
+
+.tg-empty-state__title {
+  margin: 0;
+  font-size: var(--tg-type-title-3-size);
+  line-height: var(--tg-type-title-3-line);
+  font-weight: var(--tg-font-weight-bold);
+}
+
+.tg-empty-state__text {
+  margin: 0;
+  color: var(--tg-text-secondary);
+  font-size: var(--tg-type-body-size);
+  line-height: var(--tg-type-body-line);
+}
+
+.tg-empty-state__action {
+  max-width: 100%;
+  margin-top: var(--tg-space-2);
+}
+
+// Slot vazio: `:empty` vale no servidor; no navegador, a classe também
+// pega espaços e marcadores de @if.
+.tg-empty-state__text:empty,
+.tg-empty-state__text--empty,
+.tg-empty-state__action:empty,
+.tg-empty-state__action--empty {
+  display: none;
+}
+
+// A ação projetada (em geral um tgButton, que não quebra linha) cabe na
+// largura disponível. Único estilo que alcança conteúdo projetado.
+:host ::ng-deep .tg-empty-state__action > * {
+  max-width: 100%;
+  white-space: normal;
+}
+
+// Compacto: em linha, com borda tracejada; a ação vai à direita. O host é o
+// contêiner, para o layout seguir a largura disponível, não a da tela.
+:host(.tg-empty-state--compact) {
+  container: tg-empty-state / inline-size;
+
+  .tg-empty-state__box {
+    flex-direction: row;
+    align-items: center;
+    gap: var(--tg-space-3);
+    padding: var(--tg-space-4);
+    border: 1px dashed var(--tg-border-default);
+    border-radius: var(--tg-radius-lg);
+    background: var(--tg-bg-surface);
+    text-align: start;
+  }
+
+  .tg-empty-state__icon {
+    width: 44px;
+    height: 44px;
+    margin: 0;
+  }
+
+  .tg-empty-state__body {
+    flex: 1;
+    gap: 2px;
+    max-width: none;
+  }
+
+  .tg-empty-state__title {
+    font-size: var(--tg-type-body-size);
+    line-height: var(--tg-type-body-line);
+  }
+
+  .tg-empty-state__text {
+    font-size: var(--tg-type-body-sm-size);
+    line-height: var(--tg-type-body-sm-line);
+  }
+
+  .tg-empty-state__action {
+    flex: none;
+    margin: 0;
+  }
+}
+
+// Compacto com menos de 480 px: a ação desce, alinhada ao texto.
+@container tg-empty-state (max-width: 479.98px) {
+  :host(.tg-empty-state--compact) {
+    .tg-empty-state__box {
+      flex-wrap: wrap;
+    }
+
+    .tg-empty-state__action {
+      flex: 1 0 100%;
+    }
+
+    .tg-empty-state__icon ~ .tg-empty-state__action {
+      box-sizing: border-box;
+      padding-inline-start: calc(44px + var(--tg-space-3));
+    }
+  }
+}

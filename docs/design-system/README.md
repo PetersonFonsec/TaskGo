@@ -28,7 +28,8 @@ migração tela a tela, que vem nas próximas etapas.
 | 7 | Componentes base: abas (web) | Concluído (PR #17) |
 | 7 | Componentes base: diálogo e painel (web) | Concluído (PR #18) |
 | 7 | Componentes base: toast e alerta (web) | Concluído (PR #19) |
-| 7 | Componentes base: skeleton (web) | Este PR |
+| 7 | Componentes base: skeleton (web) | Concluído (PR #20) |
+| 7 | Componentes base: estado vazio (web) | Este PR |
 | 7 a 10 | Demais componentes base, componentes de domínio, piloto, migração | A fazer |
 
 Atributos de marca: próximo, confiável, direto e caloroso sem ser infantil.
@@ -904,6 +905,61 @@ O `.spinner` e o "Carregando…" das telas de pedido e de perfil, e o
 `.tag-skeleton` da avaliação, continuam até as migrações dessas telas. A
 classe global `.skeleton`, sem uso, foi removida. No app, o equivalente é
 `ion-skeleton-text` com a cor e o pulso dos tokens, nas migrações do app.
+
+### Estado vazio
+
+Quando não há nada para mostrar, a tela diz o que falta e qual é o
+próximo passo. Carregando é skeleton; falha ao carregar é alerta.
+
+```html
+<tg-empty-state icon="receipt" title="Você ainda não fez nenhum pedido">
+  Encontre um profissional e agende em poucos passos.
+  <a tgButton tgEmptyAction routerLink="/buscar">Buscar profissionais</a>
+</tg-empty-state>
+
+<tg-empty-state compact icon="calendar-blank" title="Sua agenda está livre" level="3">
+  Quando você contratar um serviço, ele aparece aqui.
+</tg-empty-state>
+```
+
+| Componente | Entradas |
+| --- | --- |
+| `tg-empty-state` | `title` (obrigatório), `icon`, `compact`, `level` (inteiro de 2 a 6, padrão 2; outro valor vira `h2`); texto no conteúdo e ação no slot `[tgEmptyAction]` |
+
+Regras:
+
+- Grande (padrão) quando a lista é o assunto da tela ou numa busca sem
+  resultado: centralizado, ícone de 32 px num círculo de 72 px com
+  `action-subtle`, texto até 360 px e 40 px de respiro em cima e embaixo.
+- Compacto (`compact`) para uma seção dentro de uma tela maior: em linha,
+  ícone de 22 px em 44 px, borda tracejada `border-default` e ação à
+  direita. Ele segue a largura do contêiner, não a da tela: com menos de
+  480 px (num card estreito, por exemplo), a ação desce, alinhada ao texto.
+  Ocupa a largura do contêiner; numa linha flex, dê largura a ele.
+- Textos longos quebram, e a ação quebra linha se não couber.
+- Uma ação só. Em desenvolvimento, mais de uma gera um aviso no console
+  (nenhuma é escondida). A ação condicional vai num `@if` com um único
+  elemento.
+- Título diz o que falta ("Você ainda não fez nenhum pedido"); o texto,
+  em uma ou duas linhas, diz o que acontece ou o que fazer.
+- No máximo uma ação, sempre o próximo passo: principal para começar,
+  contorno para desfazer um filtro ("Limpar filtros"); sem ação quando
+  não há o que fazer.
+- Ícone, não ilustração; nada de caractere no lugar de ícone.
+
+Acessibilidade:
+
+- É conteúdo comum: o título é um heading (`h2` por padrão; use `level`
+  para encaixar na estrutura da tela), o ícone é decorativo e não há role
+  de alerta, porque estar vazio não é erro.
+- Quando o vazio aparece depois de uma busca ou filtro, a tela anuncia o
+  resultado pela própria região de status.
+- O foco não vai sozinho para o estado vazio; a ação entra no Tab normal.
+
+Os vazios atuais das telas (`.empty-state` e variações, inclusive os que
+mostram "Carregando…" e erro, e os caracteres usados como ícone) ficam até
+as migrações dessas telas. No app, o equivalente é o mesmo desenho com os
+tokens, nas migrações do app.
 
 ## Testes
 
