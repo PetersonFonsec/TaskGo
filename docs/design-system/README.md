@@ -236,6 +236,10 @@ formulário e link funcionando sem reimplementar nada:
 | `loading` | mostra o indicador, mantém o nome e bloqueia o clique | `false` |
 | `fullWidth` | ocupa a largura toda | `false` |
 
+`loading`, `fullWidth` e `iconOnly` aceitam a sintaxe de atributo HTML
+(`<button tgButton loading>`) e binding (`[loading]="salvando()"`).
+`iconOnly="false"` vale como falso.
+
 Regras:
 
 - Uma ação sólida por área. As demais usam `subtle`, `outline` ou `ghost`.
@@ -284,10 +288,12 @@ Regras:
   - `<label for>` e `title`, que também dão nome.
 
   O aviso sai uma vez a cada vez que o botão entra no estado inválido. Ele
-  reavalia quando `iconOnly` muda e quando `aria-label`, `aria-labelledby`
-  ou `title` mudam no próprio botão. Mudanças só no texto do elemento
-  referenciado ou num `<label>` não disparam nova verificação. Texto vindo
-  de CSS (`::before`) fica fora do cálculo. O componente nunca cria um nome
+  reavalia quando `iconOnly` muda, quando `aria-label`, `aria-labelledby`
+  ou `title` mudam no próprio botão e quando muda o conteúdo dos alvos do
+  `aria-labelledby` (só esses elementos são observados, e só com `iconOnly`
+  ativo). Não disparam nova verificação: mudança no texto de um `<label>`
+  associado e um id citado que só passa a existir depois. Texto vindo de
+  CSS (`::before`) fica fora do cálculo. O componente nunca cria um nome
   sozinho, e a verificação não existe no build de produção.
 - O bloqueio atua só no `click` (a ativação), na fase de captura, antes dos
   handlers e do `routerLink`. Teclas como Tab e as setas não são canceladas.

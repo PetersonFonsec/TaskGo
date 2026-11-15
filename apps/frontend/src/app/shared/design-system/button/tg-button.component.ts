@@ -5,6 +5,7 @@ import {
   ElementRef,
   afterNextRender,
   afterRenderEffect,
+  booleanAttribute,
   computed,
   effect,
   inject,
@@ -60,12 +61,13 @@ export class TgButtonComponent {
   readonly appearance = input<TgButtonAppearance>('solid');
   readonly tone = input<TgButtonTone>('brand');
   readonly size = input<TgButtonSize>('md');
-  readonly loading = input(false);
-  readonly fullWidth = input(false);
+  // booleanAttribute: aceita a sintaxe HTML (`loading`, `iconOnly="false"`) e binding.
+  readonly loading = input(false, { transform: booleanAttribute });
+  readonly fullWidth = input(false, { transform: booleanAttribute });
   readonly iconStart = input<TgIconName | undefined>(undefined);
   readonly iconEnd = input<TgIconName | undefined>(undefined);
   /** Botão só de ícone: use `iconStart` e o atributo nativo `aria-label`. */
-  readonly iconOnly = input(false);
+  readonly iconOnly = input(false, { transform: booleanAttribute });
 
   readonly #host = inject<ElementRef<HTMLElement>>(ElementRef);
   readonly #destroyRef = inject(DestroyRef);
@@ -125,14 +127,30 @@ export class TgButtonComponent {
 
   /**
    * Avisa quando `iconOnly` fica sem nome acessível (ver accessibleName).
-   * Reavalia quando `iconOnly` muda (signal) e quando `aria-label`,
-   * `aria-labelledby` ou `title` do próprio host mudam (MutationObserver só
-   * nesses atributos). Avisa uma vez por entrada no estado inválido.
+   * Reavalia quando `iconOnly` muda (signal), quando `aria-label`,
+   * `aria-labelledby` ou `title` do próprio host mudam, e quando muda o
+   * conteúdo dos alvos atuais do `aria-labelledby`. Os alvos só são
+   * observados com `iconOnly` ativo e trocam quando a lista de ids muda.
+   * Avisa uma vez por entrada no estado inválido.
    */
   #warnWhenIconOnlyHasNoName() {
     const el = this.#host.nativeElement;
     let warned = false;
+    let refsObserver: MutationObserver | null = null;
+    let observedRefs: string | null = null;
+    const observeRefs = () => {
+      const ids = this.iconOnly() ? (el.getAttribute('aria-labelledby') ?? '') : '';
+      if (!refsObserver || ids === observedRefs) return;
+      observedRefs = ids;
+      refsObserver.disconnect();
+      const root = el.getRootNode() as Document | ShadowRoot;
+      for (const id of idRefs(ids)) {
+        const ref = root.getElementById?.(id);
+        if (ref) refsObserver.observe(ref, REF_OBSERVER_OPTIONS);
+      }
+    };
     const check = () => {
+      observeRefs();
       const invalid = this.iconOnly() && accessibleName(el) === '';
       if (invalid && !warned) {
         console.warn('tgButton: botão só de ícone precisa de nome acessível (aria-label ou aria-labelledby com texto).', el);
@@ -144,7 +162,12 @@ export class TgButtonComponent {
     afterNextRender(() => {
       const observer = new MutationObserver(check);
       observer.observe(el, { attributes: true, attributeFilter: ['aria-label', 'aria-labelledby', 'title'] });
-      this.#destroyRef.onDestroy(() => observer.disconnect());
+      refsObserver = new MutationObserver(check);
+      this.#destroyRef.onDestroy(() => {
+        observer.disconnect();
+        refsObserver?.disconnect();
+      });
+      check();
     });
   }
 
@@ -157,6 +180,15 @@ export class TgButtonComponent {
     return this.loading() || this.#host.nativeElement.getAttribute('aria-disabled') === 'true';
   }
 }
+
+/** O que muda o texto de um alvo de aria-labelledby (ver accessibleName). */
+const REF_OBSERVER_OPTIONS: MutationObserverInit = {
+  subtree: true,
+  childList: true,
+  characterData: true,
+  attributes: true,
+  attributeFilter: ['aria-label', 'aria-hidden', 'hidden', 'alt', 'title', 'style', 'class'],
+};
 
 type SharedAttribute = 'aria-disabled' | 'aria-describedby';
 const SHARED_ATTRIBUTES: SharedAttribute[] = ['aria-disabled', 'aria-describedby'];

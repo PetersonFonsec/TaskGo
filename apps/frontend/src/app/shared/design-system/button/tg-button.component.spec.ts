@@ -104,6 +104,54 @@ class ScreenStateHostComponent {
 @Component({ imports: [TgButtonComponent], template: '' })
 class NameCaseHostComponent {}
 
+/** Inputs booleanos na sintaxe de atributo HTML e por binding. */
+@Component({
+  imports: [TgButtonComponent],
+  template: `
+    <button id="icon-attr" tgButton iconStart="x" iconOnly aria-label="Fechar">Texto escondido</button>
+    <button id="icon-true" tgButton iconStart="x" [iconOnly]="true" aria-label="Fechar"></button>
+    <button id="icon-false" tgButton [iconOnly]="false">Continuar</button>
+    <button id="icon-str-false" tgButton iconOnly="false">Continuar</button>
+    <button id="icon-none" tgButton>Continuar</button>
+    <button id="loading-attr" tgButton loading (click)="clicks = clicks + 1">Salvando</button>
+    <button id="loading-bind" tgButton [loading]="isLoading()" (click)="clicks = clicks + 1">Salvar</button>
+    <button id="full-attr" tgButton fullWidth>Continuar</button>
+    <button id="full-bind" tgButton [fullWidth]="full()">Continuar</button>
+    <button
+      id="docs"
+      tgButton
+      appearance="ghost"
+      iconStart="x"
+      iconOnly
+      aria-label="Fechar"
+    ></button>
+  `,
+})
+class BooleanAttributesHostComponent {
+  readonly isLoading = signal(false);
+  readonly full = signal(false);
+  clicks = 0;
+}
+
+/** aria-labelledby cujo texto muda depois da primeira verificação. */
+@Component({
+  imports: [TgButtonComponent],
+  template: `
+    <span id="rotulo-a">{{ label() }}</span>
+    <span id="rotulo-b">{{ other() }}</span>
+    <span id="rotulo-oculto" hidden>{{ label() }}</span>
+    @if (show()) {
+      <button tgButton iconOnly iconStart="x" [attr.aria-labelledby]="labelledBy()"></button>
+    }
+  `,
+})
+class LabelledByTextHostComponent {
+  readonly label = signal('Fechar');
+  readonly other = signal('');
+  readonly labelledBy = signal('rotulo-a');
+  readonly show = signal(true);
+}
+
 describe('TgButtonComponent', () => {
   let fixture: ComponentFixture<HostComponent>;
   let host: HostComponent;
@@ -692,4 +740,155 @@ describe('TgButtonComponent: nome de iconOnly conforme a especificação', () =>
       expect(warnings).toBe(nome ? 0 : 1);
     });
   }
+});
+
+describe('TgButtonComponent: inputs booleanos', () => {
+  let fixture: ComponentFixture<BooleanAttributesHostComponent>;
+  let host: BooleanAttributesHostComponent;
+  const byId = (id: string) => fixture.nativeElement.querySelector(`#${id}`) as HTMLButtonElement;
+
+  beforeEach(() => {
+    fixture = TestBed.createComponent(BooleanAttributesHostComponent);
+    host = fixture.componentInstance;
+    fixture.detectChanges();
+  });
+
+  it('iconOnly sem valor ativa o modo, esconde o texto e mantém o nome', () => {
+    const el = byId('icon-attr');
+    expect(el.classList).toContain('tg-button--icon-only');
+    expect(el.querySelector('.tg-button__label')).toBeNull();
+    expect(el.textContent).not.toContain('Texto escondido');
+    expect(accessibleName(el)).toBe('Fechar');
+  });
+
+  it('[iconOnly]="true" continua funcionando', () => {
+    expect(byId('icon-true').classList).toContain('tg-button--icon-only');
+  });
+
+  for (const id of ['icon-false', 'icon-str-false', 'icon-none']) {
+    it(`${id}: não ativa o modo e mantém o texto`, () => {
+      const el = byId(id);
+      expect(el.classList).not.toContain('tg-button--icon-only');
+      expect(accessibleName(el)).toBe('Continuar');
+    });
+  }
+
+  it('loading sem valor carrega, bloqueia o clique e mantém o foco', () => {
+    const el = byId('loading-attr');
+    el.focus();
+    el.click();
+    expect(el.classList).toContain('tg-button--loading');
+    expect(el.getAttribute('aria-busy')).toBe('true');
+    expect(host.clicks).toBe(0);
+    expect(document.activeElement).toBe(el);
+    expect(accessibleName(el)).toBe('Salvando');
+  });
+
+  it('[loading] por binding liga e desliga', () => {
+    const el = byId('loading-bind');
+    host.isLoading.set(true);
+    fixture.detectChanges();
+    el.click();
+    expect(el.classList).toContain('tg-button--loading');
+    expect(host.clicks).toBe(0);
+
+    host.isLoading.set(false);
+    fixture.detectChanges();
+    el.click();
+    expect(el.classList).not.toContain('tg-button--loading');
+    expect(host.clicks).toBe(1);
+  });
+
+  it('fullWidth sem valor e por binding', () => {
+    expect(byId('full-attr').classList).toContain('tg-button--full');
+    const bound = byId('full-bind');
+    expect(bound.classList).not.toContain('tg-button--full');
+    host.full.set(true);
+    fixture.detectChanges();
+    expect(bound.classList).toContain('tg-button--full');
+  });
+
+  it('exemplo da documentação compila e funciona', () => {
+    const el = byId('docs');
+    expect(el.classList).toContain('tg-button--icon-only');
+    expect(el.classList).toContain('tg-button--ghost');
+    expect(accessibleName(el)).toBe('Fechar');
+  });
+});
+
+describe('TgButtonComponent: texto do aria-labelledby muda', () => {
+  let fixture: ComponentFixture<LabelledByTextHostComponent>;
+  let host: LabelledByTextHostComponent;
+  let warn: jasmine.Spy;
+
+  const settle = async () => {
+    fixture.detectChanges();
+    await new Promise((resolve) => setTimeout(resolve));
+  };
+  const warnings = () => warn.calls.allArgs().filter(([message]) => String(message).startsWith('tgButton')).length;
+
+  beforeEach(async () => {
+    warn = spyOn(console, 'warn');
+    fixture = TestBed.createComponent(LabelledByTextHostComponent);
+    host = fixture.componentInstance;
+    await settle();
+  });
+
+  it('referência válida no início: sem aviso', () => {
+    expect(warnings()).toBe(0);
+  });
+
+  it('texto vira vazio: avisa; volta a ter texto: para; mudanças repetidas não duplicam', async () => {
+    host.label.set('');
+    await settle();
+    expect(warnings()).toBe(1);
+
+    host.label.set('   ');
+    await settle();
+    expect(warnings()).toBe(1);
+
+    host.label.set('Fechar janela');
+    await settle();
+    host.label.set('Fechar');
+    await settle();
+    expect(warnings()).toBe(1);
+
+    host.label.set('');
+    await settle();
+    expect(warnings()).toBe(2);
+  });
+
+  it('troca de aria-labelledby passa a acompanhar o novo alvo', async () => {
+    host.labelledBy.set('rotulo-b');
+    await settle();
+    expect(warnings()).toBe(1);
+
+    host.other.set('Fechar');
+    await settle();
+    host.label.set(''); // o alvo antigo não importa mais
+    await settle();
+    expect(warnings()).toBe(1);
+
+    host.other.set('');
+    await settle();
+    expect(warnings()).toBe(2);
+  });
+
+  it('alvo escondido continua valendo e é acompanhado', async () => {
+    host.labelledBy.set('rotulo-oculto');
+    await settle();
+    expect(warnings()).toBe(0);
+
+    host.label.set('');
+    await settle();
+    expect(warnings()).toBe(1);
+  });
+
+  it('depois de destruído, não observa mais', async () => {
+    host.show.set(false);
+    await settle();
+    host.label.set('');
+    await settle();
+    expect(warnings()).toBe(0);
+  });
 });
