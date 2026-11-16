@@ -286,5 +286,112 @@ describe('Address (register step 3)', () => {
       expect(fixture.componentInstance.locating()).toBeFalse();
       expect(input('location-button')).not.toBeNull();
     });
+
+    describe('address from a replaced CEP (regressão PR #38, revisão final)', () => {
+      const values = () =>
+        ['street-input', 'neighborhood-input', 'number-input', 'complement-input'].map((id) => input(id)?.value ?? null);
+      const form = () => {
+        const c = fixture.componentInstance;
+        return [c.street(), c.neighborhood(), c.city(), c.state(), c.lat(), c.lng()];
+      };
+      const EMPTY = ['', '', '', '', 0, 0];
+
+      async function foundA() {
+        await type('zipcode-input', CEP_A);
+        await answer(CEP_A, FOUND);
+        expect(form()).toEqual(['Avenida Paulista', 'Bela Vista', 'São Paulo', 'SP', -23.56, -46.65]);
+      }
+
+      it('1: a found CEP followed by a CEP not found keeps nothing from the first', async () => {
+        await foundA();
+        await type('zipcode-input', CEP_B);
+        expect(form()).toEqual(EMPTY);
+        expect(values().slice(0, 2)).toEqual(['', '']);
+        await answer(CEP_B, { status: 404 }, true);
+        expect(form()).toEqual(EMPTY);
+        expect(place()).toBe('');
+        expect(input('city-input')!.value).toBe('');
+        expect(input('state-input')!.value).toBe('');
+        await type('street-input', 'Rua Manual');
+        expect(fixture.componentInstance.street()).toBe('Rua Manual');
+      });
+
+      it('2: a found CEP followed by an HTTP error does not bring the old address back', async () => {
+        await foundA();
+        await type('number-input', '1000');
+        await type('zipcode-input', CEP_B);
+        await answer(CEP_B, { status: 500 }, true);
+        expect(alert()?.textContent).toContain('Não foi possível buscar o CEP');
+        expect(form()).toEqual(EMPTY);
+        expect(input('city-input')).not.toBeNull();
+        submit();
+        expect(errors()).toEqual(['Informe a rua.', 'Informe o bairro.', 'Informe a cidade.', 'Informe a UF.']);
+        expect(navigate).not.toHaveBeenCalled();
+      });
+
+      it('3: a found CEP followed by another found CEP shows only the second', async () => {
+        await foundA();
+        await type('zipcode-input', CEP_B);
+        expect(form()).toEqual(EMPTY);
+        expect(busy()).toBeTrue();
+        await answer(CEP_B, FROM_B);
+        expect(form()).toEqual(['Avenida Rio Branco', 'Centro', 'Rio de Janeiro', 'RJ', -22.9, -43.18]);
+        expect(values().slice(0, 2)).toEqual(['Avenida Rio Branco', 'Centro']);
+      });
+
+      it('4: changing only the CEP mask keeps everything and does not look it up again', async () => {
+        await foundA();
+        await type('number-input', '1000');
+        await type('complement-input', 'Sala 1');
+        await type('zipcode-input', '01310-100');
+        expect(getLatLngByCep).toHaveBeenCalledTimes(1);
+        expect(form()).toEqual(['Avenida Paulista', 'Bela Vista', 'São Paulo', 'SP', -23.56, -46.65]);
+        expect(values()).toEqual(['Avenida Paulista', 'Bela Vista', '1000', 'Sala 1']);
+      });
+
+      it('5: an incomplete CEP drops the address and cannot be saved', async () => {
+        await foundA();
+        await type('number-input', '1000');
+        await type('zipcode-input', '0131010');
+        expect(form()).toEqual(EMPTY);
+        expect(fixture.componentInstance.lookup()).toBe('idle');
+        expect(values()[2]).toBe('1000');
+        submit();
+        expect(errors()).toContain('Informe os 8 dígitos do CEP.');
+        expect(navigate).not.toHaveBeenCalled();
+      });
+
+      it('6: coming back to the step keeps the saved address without a new lookup', async () => {
+        await foundA();
+        await type('number-input', '1000');
+        submit();
+        expect(navigate).toHaveBeenCalledWith('/authenticate/register');
+
+        element.remove();
+        fixture = TestBed.createComponent(Address);
+        element = fixture.nativeElement;
+        document.body.appendChild(element);
+        fixture.detectChanges();
+        await fixture.whenStable();
+        // O ngModel escreve o valor depois do primeiro ciclo; a máscara formata no seguinte.
+        fixture.detectChanges();
+        await fixture.whenStable();
+
+        expect(input('zipcode-input')!.value).toBe('01310-100');
+        expect(values()).toEqual(['Avenida Paulista', 'Bela Vista', '1000', '']);
+        expect(form()).toEqual(['Avenida Paulista', 'Bela Vista', 'São Paulo', 'SP', -23.56, -46.65]);
+        expect(getLatLngByCep).toHaveBeenCalledTimes(1);
+      });
+
+      it('7: a late answer for the replaced CEP changes nothing', async () => {
+        await type('zipcode-input', CEP_A);
+        await type('zipcode-input', CEP_B);
+        await answer(CEP_A, FOUND);
+        expect(form()).toEqual(EMPTY);
+        expect(busy()).toBeTrue();
+        await answer(CEP_B, FROM_B);
+        expect(form()).toEqual(['Avenida Rio Branco', 'Centro', 'Rio de Janeiro', 'RJ', -22.9, -43.18]);
+      });
+    });
   });
 });

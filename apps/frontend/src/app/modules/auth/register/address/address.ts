@@ -121,9 +121,10 @@ export class Address {
   }
 
   /**
-   * Coordenadas valem para o CEP em que foram obtidas: um CEP diferente as
-   * descarta, junto com a consulta e o pedido de localização em andamento.
-   * Sem mudança nos dígitos, nada muda.
+   * O endereço vindo do CEP (rua, bairro, cidade, UF) e as coordenadas valem
+   * para o CEP em que foram obtidos: um CEP diferente os descarta, junto com
+   * a consulta e o pedido de localização em andamento. Número e complemento
+   * ficam. Sem mudança nos dígitos (só a máscara), nada muda.
    */
   setCep(value: string) {
     const before = onlyDigits(this.cep());
@@ -133,6 +134,10 @@ export class Address {
     this.#locationRequest?.unsubscribe();
     this.#locationRequest = null;
     this.locationError.set('');
+    this.street.set('');
+    this.neighborhood.set('');
+    this.city.set('');
+    this.state.set('');
     this.lat.set(0);
     this.lng.set(0);
     this.#cepChanges.next(cep);
