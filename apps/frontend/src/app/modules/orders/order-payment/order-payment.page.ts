@@ -12,7 +12,7 @@ import {
 import { isPlatformBrowser } from '@angular/common';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { ActivatedRoute, RouterLink } from '@angular/router';
-import { catchError, forkJoin, map, of, Subject, switchMap } from 'rxjs';
+import { catchError, forkJoin, map, of, Subject, switchMap, throwError } from 'rxjs';
 
 import { TgAlertComponent } from '@shared/design-system/feedback/tg-alert.component';
 import { TgBadgeComponent } from '@shared/design-system/badge/tg-badge.component';
@@ -87,6 +87,16 @@ export class OrderPaymentPage implements OnInit {
   });
 
   #id = '';
+  /**
+   * Geração da navegação: muda a cada pedido aberto (inclusive A → B → A).
+   * Toda operação guarda a geração em que começou e é ignorada se ela mudou.
+   */
+  #nav = 0;
+  /** Ordem das leituras do pagamento: só a mais nova que já chegou vale. */
+  #paymentSeq = 0;
+  #appliedSeq = 0;
+  /** Conferência automática em curso (evita outra por cima). */
+  #autoChecking = false;
   readonly #loads = new Subject<string>();
   #copyTimer: ReturnType<typeof setTimeout> | null = null;
 
@@ -96,15 +106,18 @@ export class OrderPaymentPage implements OnInit {
         switchMap((id) => {
           this.loading.set(true);
           this.loadError.set(null);
+          const seq = ++this.#paymentSeq;
           return forkJoin({
             order: this.#orders.getOrderDetails(id),
-            // Sem cobrança ainda (ou falha ao consultar): a tela oferece "Gerar Pix"; o backend devolve a cobrança existente.
-            payment: this.#orders.getOrderPayment(id).pipe(catchError(() => of(null))),
+            // GET /orders/:id/payment responde 404 "Pagamento ainda não iniciado" quando não há
+            // cobrança: só isso libera "Gerar Pix". Qualquer outra falha deixa a existência da
+            // cobrança desconhecida, e a tela mostra o erro com "Tentar de novo".
+            payment: this.#orders
+              .getOrderPayment(id)
+              .pipe(catchError((error: unknown) => (isNotFound(error) ? of(null) : throwError(() => error)))),
           }).pipe(
-            map((value): { ok: true; value: Loaded } => ({ ok: true, value })),
-            catchError((error: unknown) =>
-              of({ ok: false as const, notFound: error instanceof HttpErrorResponse && error.status === 404 }),
-            ),
+            map((value): { ok: true; value: Loaded; seq: number } => ({ ok: true, value, seq })),
+            catchError((error: unknown) => of({ ok: false as const, notFound: isNotFound(error) })),
           );
         }),
         takeUntilDestroyed(this.#destroyRef),
@@ -118,12 +131,10 @@ export class OrderPaymentPage implements OnInit {
           return;
         }
         this.order.set(result.value.order);
-        this.payment.set(result.value.payment);
+        this.#applyPayment(result.seq, result.value.payment);
       });
 
-    this.#destroyRef.onDestroy(() => {
-      if (this.#copyTimer !== null) clearTimeout(this.#copyTimer);
-    });
+    this.#destroyRef.onDestroy(() => this.#clearCopyTimer());
     // No servidor (SSR) não agenda nada, para não segurar a renderização.
     if (!isPlatformBrowser(inject(PLATFORM_ID))) return;
     const timer = setInterval(() => {
@@ -138,8 +149,14 @@ export class OrderPaymentPage implements OnInit {
       const id = params.get('id') ?? '';
       if (id === this.#id && this.order()) return;
       this.#id = id;
+      // Nova navegação: o que estava em curso no pedido anterior deixa de valer.
+      this.#nav++;
+      this.#autoChecking = false;
+      this.#clearCopyTimer();
       this.order.set(null);
       this.payment.set(null);
+      this.creating.set(false);
+      this.checking.set(false);
       this.actionError.set('');
       this.stillPending.set(false);
       this.copyState.set('idle');
@@ -155,21 +172,24 @@ export class OrderPaymentPage implements OnInit {
   createPix(): void {
     const id = this.order()?.id;
     if (!id || this.creating()) return;
+    const nav = this.#nav;
+    const seq = ++this.#paymentSeq;
     this.actionError.set('');
     this.creating.set(true);
+    // A criação não é repetida sozinha: se a navegação mudar, a resposta é só ignorada
+    // (o backend devolve a cobrança existente numa próxima tentativa).
     this.#orders
       .createOrderPayment(id, { method: 'PIX' })
       .pipe(takeUntilDestroyed(this.#destroyRef))
       .subscribe({
         next: (payment) => {
+          if (nav !== this.#nav) return;
           this.creating.set(false);
-          if (id !== this.#id) return;
-          this.now.set(new Date());
-          this.payment.set(payment);
+          this.#applyPayment(seq, payment);
         },
         error: (error: unknown) => {
+          if (nav !== this.#nav) return;
           this.creating.set(false);
-          if (id !== this.#id) return;
           this.actionError.set(apiMessage(error) ?? 'Não foi possível gerar o Pix. Tente de novo em instantes.');
         },
       });
@@ -183,41 +203,82 @@ export class OrderPaymentPage implements OnInit {
   async copyCode(): Promise<void> {
     const code = this.view()?.code;
     if (!code) return;
+    const nav = this.#nav;
+    let copied: boolean;
     try {
       await navigator.clipboard.writeText(code);
-      this.copyState.set('copied');
+      copied = true;
     } catch {
-      this.copyState.set('failed');
+      copied = false;
     }
-    if (this.#copyTimer !== null) clearTimeout(this.#copyTimer);
-    this.#copyTimer = setTimeout(() => this.copyState.set('idle'), 3000);
+    // A cópia terminou depois de abrir outro pedido: o resultado (sucesso ou falha) não vale aqui.
+    if (nav !== this.#nav) return;
+    this.copyState.set(copied ? 'copied' : 'failed');
+    this.#clearCopyTimer();
+    this.#copyTimer = setTimeout(() => {
+      this.#copyTimer = null;
+      if (nav === this.#nav) this.copyState.set('idle');
+    }, 3000);
   }
 
+  /**
+   * Confere o pagamento. A manual ("Já paguei") vale mesmo com uma automática em curso;
+   * a automática não começa se já houver uma conferência em curso. Cada leitura tem um
+   * número de ordem, e uma resposta mais velha do que a última aplicada é descartada,
+   * para um "Pago" não voltar a "Aguardando pagamento".
+   */
   #check(manual: boolean): void {
     const id = this.order()?.id;
     if (!id || this.checking()) return;
+    if (!manual && this.#autoChecking) return;
+    const nav = this.#nav;
+    const seq = ++this.#paymentSeq;
     if (manual) {
       this.checking.set(true);
       this.stillPending.set(false);
+    } else {
+      this.#autoChecking = true;
     }
     this.#orders
       .getOrderPayment(id)
       .pipe(takeUntilDestroyed(this.#destroyRef))
       .subscribe({
         next: (payment) => {
+          if (nav !== this.#nav) return;
           if (manual) this.checking.set(false);
-          if (id !== this.#id) return;
-          this.now.set(new Date());
-          this.payment.set(payment);
-          if (manual) this.stillPending.set(this.view()?.pix === 'pending');
+          else this.#autoChecking = false;
+          const applied = this.#applyPayment(seq, payment);
+          if (manual) this.stillPending.set(applied && this.view()?.pix === 'pending');
         },
         error: () => {
-          if (manual) this.checking.set(false);
-          if (id !== this.#id || !manual) return;
+          if (nav !== this.#nav) return;
+          if (!manual) {
+            this.#autoChecking = false;
+            return;
+          }
+          this.checking.set(false);
           this.actionError.set('Não foi possível conferir o pagamento. Tente de novo em instantes.');
         },
       });
   }
+
+  /** Aplica uma leitura do pagamento se ela for mais nova que a última aplicada. */
+  #applyPayment(seq: number, payment: OrderPaymentResponse | null): boolean {
+    if (seq <= this.#appliedSeq) return false;
+    this.#appliedSeq = seq;
+    this.now.set(new Date());
+    this.payment.set(payment);
+    return true;
+  }
+
+  #clearCopyTimer(): void {
+    if (this.#copyTimer !== null) clearTimeout(this.#copyTimer);
+    this.#copyTimer = null;
+  }
+}
+
+function isNotFound(error: unknown): boolean {
+  return error instanceof HttpErrorResponse && error.status === 404;
 }
 
 function apiMessage(error: unknown): string | null {
