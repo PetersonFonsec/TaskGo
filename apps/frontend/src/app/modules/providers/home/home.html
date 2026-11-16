@@ -22,14 +22,18 @@
       </div>
     </header>
 
-    @if (syncError()) {
+    @if (syncError() || syncStale()) {
       <tg-alert
         class="provider-home__sync"
         tone="warning"
         title="Sua agenda pode estar desatualizada"
       >
-        A mudança foi enviada, mas não conseguimos carregar a agenda de novo. Os atendimentos
-        alterados ficam bloqueados até a agenda atualizar.
+        @if (syncError()) {
+          A mudança foi enviada, mas não conseguimos carregar a agenda de novo.
+        } @else {
+          A mudança foi enviada, mas a agenda ainda não mostra o status novo.
+        }
+        Os atendimentos alterados ficam bloqueados até a agenda atualizar.
         <button
           tgButton
           tgAlertAction

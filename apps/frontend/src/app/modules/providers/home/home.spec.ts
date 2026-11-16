@@ -461,6 +461,182 @@ describe('ProviderHomePage', () => {
     });
   });
 
+  describe('confirmação por pedido depois da troca de status', () => {
+    let updates: Record<string, Subject<object>>;
+    let reloads: Subject<OrdersResponse>[];
+
+    async function start(initial: OrderModel[]) {
+      updates = {};
+      reloads = [];
+      await setup(of(initial));
+      flushHome();
+      orderService.updateOrderStatus.and.callFake((id: string) => (updates[id] ??= new Subject<object>()));
+      orderService.getOrderByProvider.and.callFake(() => {
+        const next = new Subject<OrdersResponse>();
+        reloads.push(next);
+        return next;
+      });
+    }
+
+    const succeed = (id: string) => {
+      updates[id].next({});
+      updates[id].complete();
+    };
+    const busy = () => [...component.updating()].sort();
+    const syncAlert = () => el.querySelector('.provider-home__sync');
+    const retry = () => {
+      syncAlert()!.querySelector<HTMLButtonElement>('button')!.click();
+      fixture.detectChanges();
+    };
+
+    it('1. resposta com status antigo mantém o pedido bloqueado até uma sincronização confirmar', async () => {
+      await start([order('A', 'AGENDADO')]);
+      component.advance('A', 'EM_DESLOCAMENTO');
+      succeed('A');
+      reloads[0].next([order('A', 'AGENDADO')]);
+      fixture.detectChanges();
+      expect(busy()).toEqual(['A']);
+      expect(text(syncAlert())).toContain('Sua agenda pode estar desatualizada');
+
+      retry();
+      reloads[1].next([order('A', 'EM_DESLOCAMENTO')]);
+      fixture.detectChanges();
+      expect(busy()).toEqual([]);
+      expect(text(el.querySelector('tg-appointment-card'))).toContain('Iniciar serviço');
+    });
+
+    it('2. A e B confirmados; a lista traz só A atualizado: só A é solto', async () => {
+      await start([order('A', 'AGENDADO', { scheduledFor: TODAY_14H }), order('B', 'EM_DESLOCAMENTO')]);
+      component.advance('A', 'EM_DESLOCAMENTO');
+      component.advance('B', 'EM_ANDAMENTO');
+      succeed('A');
+      succeed('B');
+      reloads[1].next([order('A', 'EM_DESLOCAMENTO', { scheduledFor: TODAY_14H }), order('B', 'EM_DESLOCAMENTO')]);
+      fixture.detectChanges();
+      expect(busy()).toEqual(['B']);
+
+      retry();
+      reloads[2].next([order('A', 'EM_DESLOCAMENTO', { scheduledFor: TODAY_14H }), order('B', 'EM_ANDAMENTO')]);
+      fixture.detectChanges();
+      expect(busy()).toEqual([]);
+      expect(syncAlert()).toBeNull();
+    });
+
+    it('3. R1 respondendo depois de R2 não sobrescreve os dados', async () => {
+      await start([order('A', 'AGENDADO', { scheduledFor: TODAY_14H }), order('B', 'EM_DESLOCAMENTO')]);
+      component.advance('A', 'EM_DESLOCAMENTO');
+      succeed('A');
+      component.advance('B', 'EM_ANDAMENTO');
+      succeed('B');
+      reloads[1].next([order('A', 'EM_DESLOCAMENTO'), order('B', 'EM_ANDAMENTO')]);
+      reloads[0].next([order('A', 'AGENDADO'), order('B', 'EM_DESLOCAMENTO')]);
+      expect(component.orders().map((o) => o.status)).toEqual(['EM_DESLOCAMENTO', 'EM_ANDAMENTO']);
+      expect(busy()).toEqual([]);
+    });
+
+    it('4. a recarga de A não solta B, cuja troca ainda não respondeu', async () => {
+      await start([order('A', 'AGENDADO', { scheduledFor: TODAY_14H }), order('B', 'EM_DESLOCAMENTO')]);
+      component.advance('A', 'EM_DESLOCAMENTO');
+      component.advance('B', 'EM_ANDAMENTO');
+      succeed('A');
+      reloads[0].next([order('A', 'EM_DESLOCAMENTO'), order('B', 'EM_DESLOCAMENTO')]);
+      fixture.detectChanges();
+      expect(busy()).toEqual(['B']);
+      expect(syncAlert()).toBeNull();
+      // Com a troca de B pendente, B não pode ser enviado de novo.
+      component.advance('B', 'EM_ANDAMENTO');
+      expect(orderService.updateOrderStatus).toHaveBeenCalledTimes(2);
+
+      succeed('B');
+      reloads[1].next([order('A', 'EM_DESLOCAMENTO'), order('B', 'EM_ANDAMENTO')]);
+      expect(busy()).toEqual([]);
+    });
+
+    it('5. falha de sincronização: agenda à vista, pedido protegido, aviso e nova tentativa', async () => {
+      await start([order('A', 'AGENDADO')]);
+      component.advance('A', 'EM_DESLOCAMENTO');
+      succeed('A');
+      reloads[0].error(new Error('rede'));
+      fixture.detectChanges();
+      expect(component.orders().map((o) => o.id)).toEqual(['A']);
+      expect(el.querySelector('tg-appointment-card')).not.toBeNull();
+      expect(busy()).toEqual(['A']);
+      component.advance('A', 'EM_DESLOCAMENTO');
+      expect(orderService.updateOrderStatus).toHaveBeenCalledTimes(1);
+      expect(syncAlert()).not.toBeNull();
+
+      retry();
+      reloads[1].next([order('A', 'EM_DESLOCAMENTO')]);
+      fixture.detectChanges();
+      expect(busy()).toEqual([]);
+      expect(syncAlert()).toBeNull();
+    });
+
+    it('6. status antigo e depois o esperado: solta e tira o aviso', async () => {
+      await start([order('A', 'EM_DESLOCAMENTO')]);
+      component.advance('A', 'EM_ANDAMENTO');
+      succeed('A');
+      reloads[0].next([order('A', 'EM_DESLOCAMENTO')]);
+      fixture.detectChanges();
+      expect(syncAlert()).not.toBeNull();
+      retry();
+      reloads[1].next([order('A', 'EM_ANDAMENTO')]);
+      fixture.detectChanges();
+      expect(busy()).toEqual([]);
+      expect(syncAlert()).toBeNull();
+      expect(text(el.querySelector('tg-appointment-card'))).toContain('Finalizar serviço');
+    });
+
+    it('6b. um status posterior ao esperado também confirma (o pedido avançou de verdade)', async () => {
+      await start([order('A', 'AGENDADO')]);
+      component.advance('A', 'EM_DESLOCAMENTO');
+      succeed('A');
+      reloads[0].next([order('A', 'EM_ANDAMENTO')]);
+      expect(busy()).toEqual([]);
+    });
+
+    it('6c. pedido que sumiu da lista não conta como confirmado', async () => {
+      await start([order('A', 'AGENDADO'), order('X', 'AGENDADO')]);
+      component.advance('A', 'EM_DESLOCAMENTO');
+      succeed('A');
+      reloads[0].next([order('X', 'AGENDADO')]);
+      expect(busy()).toEqual(['A']);
+      // Se voltar com o status antigo, continua bloqueado.
+      component.syncOrders();
+      reloads[1].next([order('A', 'AGENDADO'), order('X', 'AGENDADO')]);
+      expect(busy()).toEqual(['A']);
+    });
+
+    it('7. destruir a tela com troca e sincronização pendentes encerra tudo', async () => {
+      await start([order('A', 'AGENDADO', { scheduledFor: TODAY_14H }), order('B', 'EM_DESLOCAMENTO')]);
+      component.advance('A', 'EM_DESLOCAMENTO');
+      component.advance('B', 'EM_ANDAMENTO');
+      succeed('A');
+      const before = component.orders();
+      fixture.destroy();
+      expect(updates['B'].observed).toBeFalse();
+      expect(reloads[0].observed).toBeFalse();
+      succeed('B');
+      reloads[0].next([]);
+      expect(component.orders()).toBe(before);
+      expect(reloads.length).toBe(1);
+    });
+
+    it('8. fluxo normal: uma troca, uma recarga, botão solto sem pedidos extras', async () => {
+      await start([order('A', 'AGENDADO')]);
+      component.advance('A', 'EM_DESLOCAMENTO');
+      succeed('A');
+      reloads[0].next([order('A', 'EM_DESLOCAMENTO')]);
+      fixture.detectChanges();
+      expect(busy()).toEqual([]);
+      expect(syncAlert()).toBeNull();
+      expect(orderService.updateOrderStatus).toHaveBeenCalledTimes(1);
+      expect(reloads.length).toBe(1);
+      // Uma recarga inicial + uma depois da troca.
+      expect(orderService.getOrderByProvider).toHaveBeenCalledTimes(2);
+    });
+  });
+
   describe('mais de 10 solicitações', () => {
     const requests = (n: number) =>
       Array.from({ length: n }, (_, i) =>
