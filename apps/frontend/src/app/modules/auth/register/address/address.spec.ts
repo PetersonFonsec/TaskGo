@@ -23,7 +23,7 @@ describe('Address (register step 3)', () => {
   let getLatLngByCep: jasmine.Spy<(cep: string) => Observable<CepResult>>;
   let getCurrentPosition: jasmine.Spy<() => Observable<{ latitude: number; longitude: number }>>;
 
-  async function setup(lookup: () => Observable<CepResult> = () => of(FOUND)) {
+  async function setup(lookup: (cep: string) => Observable<CepResult> = () => of(FOUND)) {
     getLatLngByCep = jasmine.createSpy('getLatLngByCep').and.callFake(lookup);
     getCurrentPosition = jasmine.createSpy('getCurrentPosition').and.returnValue(of({ latitude: -22.9, longitude: -43.2 }));
     TestBed.configureTestingModule({
@@ -157,5 +157,134 @@ describe('Address (register step 3)', () => {
     pending.complete();
     fixture.detectChanges();
     expect(element.querySelector('#address-submit')?.getAttribute('aria-busy')).not.toBe('true');
+  });
+
+  describe('requests that answer late (regressão PR #38)', () => {
+    const CEP_A = '01310100';
+    const CEP_B = '20040002';
+    const FROM_B: CepResult = {
+      latitude: -22.9,
+      longitude: -43.18,
+      street: 'Avenida Rio Branco',
+      neighborhood: 'Centro',
+      city: 'Rio de Janeiro',
+      state: 'RJ',
+    };
+    let pending: Record<string, Subject<CepResult>>;
+    const busy = () => element.querySelector('#address-submit')?.getAttribute('aria-busy') === 'true';
+    const place = () => element.querySelector('.address__place')?.textContent?.trim() ?? '';
+    const coordinates = () => [fixture.componentInstance.lat(), fixture.componentInstance.lng()];
+    async function answer(cep: string, result: CepResult | { status: number }, fails = false) {
+      if (fails) pending[cep].error(result);
+      else {
+        pending[cep].next(result as CepResult);
+        pending[cep].complete();
+      }
+      fixture.detectChanges();
+      await fixture.whenStable();
+      fixture.detectChanges();
+    }
+
+    beforeEach(async () => {
+      pending = {};
+      await setup((cep) => (pending[cep] = new Subject<CepResult>()));
+    });
+
+    it('A: ignores the answer for a CEP that was replaced', async () => {
+      await type('zipcode-input', CEP_A);
+      await type('zipcode-input', CEP_B);
+      await answer(CEP_A, FOUND);
+      expect(input('street-input')!.value).toBe('');
+      expect(place()).not.toContain('São Paulo');
+      expect(busy()).toBeTrue();
+      await answer(CEP_B, FROM_B);
+      expect(input('street-input')!.value).toBe('Avenida Rio Branco');
+      expect(place()).toContain('Rio de Janeiro · RJ');
+      expect(coordinates()).toEqual([-22.9, -43.18]);
+    });
+
+    it('B: ignores the answer after the CEP became incomplete', async () => {
+      await type('zipcode-input', CEP_A);
+      await type('zipcode-input', '0131010');
+      expect(busy()).toBeFalse();
+      await answer(CEP_A, FOUND);
+      expect(input('street-input')!.value).toBe('');
+      expect(place()).toBe('');
+      expect(alert()).toBeNull();
+      expect(coordinates()).toEqual([0, 0]);
+    });
+
+    it('C: ignores the failure of a CEP that was replaced', async () => {
+      await type('zipcode-input', CEP_A);
+      await type('zipcode-input', CEP_B);
+      await answer(CEP_A, { status: 404 }, true);
+      expect(alert()).toBeNull();
+      expect(busy()).toBeTrue();
+      await answer(CEP_B, FROM_B);
+      expect(alert()).toBeNull();
+      expect(place()).toContain('Rio de Janeiro · RJ');
+    });
+
+    async function fillWithoutCoordinates() {
+      await type('street-input', 'Rua Nova');
+      await type('number-input', '12');
+      await type('neighborhood-input', 'Centro');
+      await type('city-input', 'Niterói');
+      await type('state-input', 'RJ');
+    }
+
+    it('D: drops the device location when the CEP changes', async () => {
+      await type('zipcode-input', CEP_A);
+      await answer(CEP_A, { status: 404 }, true);
+      input('location-button')!.click();
+      fixture.detectChanges();
+      expect(coordinates()).toEqual([-22.9, -43.2]);
+
+      await type('zipcode-input', CEP_B);
+      await answer(CEP_B, { status: 404 }, true);
+      expect(coordinates()).toEqual([0, 0]);
+      expect(input('location-button')).not.toBeNull();
+
+      await fillWithoutCoordinates();
+      submit();
+      expect(navigate).not.toHaveBeenCalled();
+      expect(alert()?.classList).toContain('tg-alert--danger');
+      expect(document.activeElement).toBe(input('location-button'));
+    });
+
+    it('E: keeps the device location while other fields change', async () => {
+      await type('zipcode-input', CEP_A);
+      await answer(CEP_A, { status: 404 }, true);
+      input('location-button')!.click();
+      fixture.detectChanges();
+      await fillWithoutCoordinates();
+      await type('complement-input', 'Casa 2');
+      await type('number-input', '15');
+      expect(coordinates()).toEqual([-22.9, -43.2]);
+      submit();
+      expect(TestBed.inject(RegisterUser).user().address).toEqual(
+        jasmine.objectContaining({ cep: CEP_A, number: '15', complement: 'Casa 2', lat: -22.9, lng: -43.2 }),
+      );
+      expect(navigate).toHaveBeenCalledWith('/authenticate/register');
+    });
+
+    it('F: ignores a device location that arrives after the CEP changed', async () => {
+      const position = new Subject<{ latitude: number; longitude: number }>();
+      getCurrentPosition.and.returnValue(position);
+      await type('zipcode-input', CEP_A);
+      await answer(CEP_A, { status: 404 }, true);
+      input('location-button')!.click();
+      fixture.detectChanges();
+
+      await type('zipcode-input', CEP_B);
+      await answer(CEP_B, { status: 404 }, true);
+      position.next({ latitude: -22.9, longitude: -43.2 });
+      position.complete();
+      fixture.detectChanges();
+
+      expect(coordinates()).toEqual([0, 0]);
+      expect(fixture.componentInstance.locating()).toBeFalse();
+      expect(input('location-button')).not.toBeNull();
+    });
   });
 });

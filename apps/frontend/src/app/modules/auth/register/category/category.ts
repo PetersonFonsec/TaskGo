@@ -1,7 +1,7 @@
 import { ChangeDetectionStrategy, Component, DestroyRef, ElementRef, inject, signal, viewChild } from '@angular/core';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { Router, RouterLink } from '@angular/router';
-import { Subject, catchError, finalize, of, startWith, switchMap, tap } from 'rxjs';
+import { Subject, catchError, of, startWith, switchMap, tap } from 'rxjs';
 
 import { RegisterUser } from '@modules/auth/services/register-user/register-user';
 import { CategoryService } from '@shared/service/category/category';
@@ -42,6 +42,9 @@ export class Category {
   readonly list = viewChild<ElementRef<HTMLElement>>('list');
 
   constructor() {
+    // Só a consulta ativa mexe no estado: o switchMap descarta a anterior, e
+    // loading e erro são decididos pela resposta, não por finalize (que
+    // rodaria ao cancelar a consulta antiga, depois de a nova começar).
     this.retry
       .pipe(
         startWith(undefined),
@@ -49,20 +52,16 @@ export class Category {
           this.loading.set(true);
           this.loadError.set(false);
         }),
-        switchMap(() =>
-          this.#categoryService.getCategories().pipe(
-            catchError(() => {
-              this.loadError.set(true);
-              return of(null);
-            }),
-            finalize(() => this.loading.set(false)),
-          ),
-        ),
+        switchMap(() => this.#categoryService.getCategories().pipe(catchError(() => of(null)))),
         takeUntilDestroyed(inject(DestroyRef)),
       )
       .subscribe((response) => {
         this.loading.set(false);
-        if (response) this.categories.set(response.data ?? []);
+        if (!response) {
+          this.loadError.set(true);
+          return;
+        }
+        this.categories.set(response.data ?? []);
       });
   }
 

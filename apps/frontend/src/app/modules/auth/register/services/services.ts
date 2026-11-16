@@ -2,7 +2,7 @@ import { ChangeDetectionStrategy, Component, DestroyRef, ElementRef, computed, i
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { ActivatedRoute, Router, RouterLink } from '@angular/router';
 import { LiveAnnouncer } from '@angular/cdk/a11y';
-import { Subject, catchError, combineLatest, finalize, map, of, startWith, switchMap, tap } from 'rxjs';
+import { Subject, catchError, combineLatest, map, of, startWith, switchMap, tap } from 'rxjs';
 
 import { RegisterUser } from '@modules/auth/services/register-user/register-user';
 import { CategoryService } from '@shared/service/category/category';
@@ -55,26 +55,27 @@ export class Services {
   readonly list = viewChild<ElementRef<HTMLElement>>('list');
 
   constructor() {
+    // Só a consulta ativa mexe no estado: o switchMap descarta a anterior, e
+    // loading e erro são decididos pela resposta, não por finalize (que
+    // rodaria ao cancelar a consulta antiga, depois de a nova começar). A
+    // lista é limpa ao começar, para não mostrar a categoria anterior.
     combineLatest([this.#route.paramMap.pipe(map((params) => params.get('categoryId') ?? '')), this.retry.pipe(startWith(undefined))])
       .pipe(
         tap(() => {
           this.loading.set(true);
           this.loadError.set(false);
+          this.categoryName.set('');
+          this.services.set([]);
         }),
-        switchMap(([id]) =>
-          this.#categoryService.getCategoryById(id).pipe(
-            catchError(() => {
-              this.loadError.set(true);
-              return of(null);
-            }),
-            finalize(() => this.loading.set(false)),
-          ),
-        ),
+        switchMap(([id]) => this.#categoryService.getCategoryById(id).pipe(catchError(() => of(null)))),
         takeUntilDestroyed(inject(DestroyRef)),
       )
       .subscribe((category) => {
         this.loading.set(false);
-        if (!category) return;
+        if (!category) {
+          this.loadError.set(true);
+          return;
+        }
         this.categoryName.set(category.name ?? '');
         this.services.set(category.subcategories ?? []);
       });

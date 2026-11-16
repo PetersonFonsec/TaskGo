@@ -4,7 +4,7 @@ import { LiveAnnouncer } from '@angular/cdk/a11y';
 import { FormsModule } from '@angular/forms';
 import { Router, RouterLink } from '@angular/router';
 import { NgxMaskDirective, provideNgxMask } from 'ngx-mask';
-import { Subject, catchError, finalize, map, of, switchMap, tap } from 'rxjs';
+import { Subject, Subscription, catchError, finalize, map, of, startWith, switchMap } from 'rxjs';
 
 import { RegisterUser } from '@modules/auth/services/register-user/register-user';
 import { Geolocalization } from '@shared/service/geolocalization/geolocalization';
@@ -87,27 +87,30 @@ export class Address {
   /** O botão hospeda o TgButton: sem `read`, a consulta devolveria o componente. */
   readonly locationButton = viewChild('locationButton', { read: ElementRef<HTMLButtonElement> });
 
-  readonly #cepLookup = new Subject<string>();
+  /** Cada mudança de CEP (só dígitos). O switchMap cancela a consulta anterior. */
+  readonly #cepChanges = new Subject<string>();
+  /** Pedido de localização em andamento; cai quando o CEP muda. */
+  #locationRequest: Subscription | null = null;
 
   constructor() {
-    this.#cepLookup
+    this.#cepChanges
       .pipe(
-        tap(() => this.lookup.set('loading')),
         switchMap((cep) =>
-          this.#geolocalization.getLatLngByCep(cep).pipe(
-            map((result) => ({ result, status: 'found' as const })),
-            catchError((error: { status?: number }) => of({ result: null, status: error?.status === 404 ? ('notFound' as const) : ('error' as const) })),
-          ),
+          cep.length !== 8
+            ? of({ result: null, status: 'idle' as const })
+            : this.#geolocalization.getLatLngByCep(cep).pipe(
+                map((result) => ({ result, status: 'found' as const })),
+                catchError((error: { status?: number }) =>
+                  of({ result: null, status: error?.status === 404 ? ('notFound' as const) : ('error' as const) }),
+                ),
+                startWith({ result: null, status: 'loading' as const }),
+              ),
         ),
         takeUntilDestroyed(this.#destroyRef),
       )
       .subscribe(({ result, status }) => {
         this.lookup.set(status);
-        if (!result) {
-          this.lat.set(0);
-          this.lng.set(0);
-          return;
-        }
+        if (!result) return;
         this.street.set(result.street ?? result.raw?.street ?? '');
         this.neighborhood.set(result.neighborhood ?? result.raw?.district ?? '');
         this.city.set(result.city ?? '');
@@ -117,21 +120,29 @@ export class Address {
       });
   }
 
+  /**
+   * Coordenadas valem para o CEP em que foram obtidas: um CEP diferente as
+   * descarta, junto com a consulta e o pedido de localização em andamento.
+   * Sem mudança nos dígitos, nada muda.
+   */
   setCep(value: string) {
     const before = onlyDigits(this.cep());
     this.cep.set(value);
     const cep = onlyDigits(value);
     if (cep === before) return;
+    this.#locationRequest?.unsubscribe();
+    this.#locationRequest = null;
     this.locationError.set('');
-    if (cep.length === 8) this.#cepLookup.next(cep);
-    else this.lookup.set('idle');
+    this.lat.set(0);
+    this.lng.set(0);
+    this.#cepChanges.next(cep);
   }
 
   useMyLocation() {
     if (this.locating()) return;
     this.locating.set(true);
     this.locationError.set('');
-    this.#geolocalization
+    this.#locationRequest = this.#geolocalization
       .getCurrentPosition()
       .pipe(
         finalize(() => this.locating.set(false)),

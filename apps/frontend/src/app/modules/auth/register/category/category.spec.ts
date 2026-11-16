@@ -111,4 +111,58 @@ describe('Category (register step 4)', () => {
     expect(radio(2).checked).toBeTrue();
     expect(radio(1).checked).toBeFalse();
   });
+
+  describe('only the active request drives loading (regressão PR #38)', () => {
+    it('G: stays loading while a newer request runs', () => {
+      const requests: Subject<CategoriesResponse>[] = [];
+      setup(() => {
+        const request = new Subject<CategoriesResponse>();
+        requests.push(request);
+        return request;
+      });
+      create();
+      fixture.componentInstance.retry.next();
+      fixture.detectChanges();
+      expect(requests.length).toBe(2);
+      expect(fixture.componentInstance.loading()).toBeTrue();
+
+      requests[0].next(page([category(9, 'Antiga')]));
+      requests[0].complete();
+      fixture.detectChanges();
+      expect(fixture.componentInstance.loading()).toBeTrue();
+      expect(fixture.componentInstance.categories()).toEqual([]);
+
+      requests[1].next(page([category(1, 'Limpeza')]));
+      requests[1].complete();
+      fixture.detectChanges();
+      expect(fixture.componentInstance.loading()).toBeFalse();
+      expect(fixture.componentInstance.categories().map((c) => c.name)).toEqual(['Limpeza']);
+    });
+
+    it('H: retry after a failure loads again and clears the alert', () => {
+      const requests: Subject<CategoriesResponse>[] = [];
+      setup(() => {
+        const request = new Subject<CategoriesResponse>();
+        requests.push(request);
+        return request;
+      });
+      create();
+      requests[0].error(new Error('offline'));
+      fixture.detectChanges();
+      expect(element.querySelector('tg-alert')?.textContent).toContain('Não foi possível carregar as categorias');
+      expect(fixture.componentInstance.loading()).toBeFalse();
+
+      element.querySelector<HTMLButtonElement>('tg-alert button')!.click();
+      fixture.detectChanges();
+      expect(fixture.componentInstance.loading()).toBeTrue();
+      expect(element.querySelector('tg-alert')).toBeNull();
+
+      requests[1].next(page([category(1, 'Limpeza')]));
+      requests[1].complete();
+      fixture.detectChanges();
+      expect(fixture.componentInstance.loading()).toBeFalse();
+      expect(element.querySelector('tg-alert')).toBeNull();
+      expect(radio(1)).not.toBeNull();
+    });
+  });
 });

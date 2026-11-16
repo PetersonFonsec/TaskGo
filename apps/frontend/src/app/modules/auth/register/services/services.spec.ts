@@ -1,6 +1,6 @@
 import { ComponentFixture, TestBed } from '@angular/core/testing';
-import { ActivatedRoute, convertToParamMap, provideRouter, Router } from '@angular/router';
-import { BehaviorSubject, Observable, of, throwError } from 'rxjs';
+import { ActivatedRoute, convertToParamMap, ParamMap, provideRouter, Router } from '@angular/router';
+import { BehaviorSubject, Observable, of, Subject, throwError } from 'rxjs';
 import { RegisterUser } from '@modules/auth/services/register-user/register-user';
 import { CategoryService } from '@shared/service/category/category';
 import { ICategoryWithSubCategories, ISubCategory } from '@shared/service/category/category.model';
@@ -37,15 +37,17 @@ describe('Services (register step 4)', () => {
   let element: HTMLElement;
   let navigate: jasmine.Spy;
   let getCategoryById: jasmine.Spy<(id: string) => Observable<ICategoryWithSubCategories>>;
+  let params: BehaviorSubject<ParamMap>;
 
-  function setup(response: () => Observable<ICategoryWithSubCategories> = () => of(CLEANING)) {
+  function setup(response: (id: string) => Observable<ICategoryWithSubCategories> = () => of(CLEANING)) {
+    params = new BehaviorSubject(convertToParamMap({ categoryId: '1' }));
     getCategoryById = jasmine.createSpy('getCategoryById').and.callFake(response);
     TestBed.configureTestingModule({
       imports: [Services],
       providers: [
         provideRouter([]),
         { provide: CategoryService, useValue: { getCategoryById } },
-        { provide: ActivatedRoute, useValue: { paramMap: new BehaviorSubject(convertToParamMap({ categoryId: '1' })) } },
+        { provide: ActivatedRoute, useValue: { paramMap: params } },
       ],
     });
     navigate = spyOn(TestBed.inject(Router), 'navigateByUrl').and.resolveTo(true);
@@ -119,5 +121,76 @@ describe('Services (register step 4)', () => {
     fixture.detectChanges();
     expect(getCategoryById).toHaveBeenCalledTimes(2);
     expect(element.querySelectorAll('#service-list label[tgCard]').length).toBe(3);
+  });
+
+  describe('only the active request drives loading (regressão PR #38)', () => {
+    const REPAIRS: ICategoryWithSubCategories = {
+      ...CLEANING,
+      id: 2,
+      name: 'Reparos',
+      subcategories: [service(21, 'Elétrica', 2), service(22, 'Encanamento', 2)],
+    };
+    let requests: Record<string, Subject<ICategoryWithSubCategories>[]>;
+    const names = () => fixture.componentInstance.services().map((s) => s.name);
+    function answer(id: string, category: ICategoryWithSubCategories, index = 0) {
+      requests[id][index].next(category);
+      requests[id][index].complete();
+      fixture.detectChanges();
+    }
+
+    beforeEach(() => {
+      requests = {};
+      setup((id) => {
+        const request = new Subject<ICategoryWithSubCategories>();
+        (requests[id] ??= []).push(request);
+        return request;
+      });
+      create();
+    });
+
+    it('I: a category change ignores the old answer and stays loading', () => {
+      params.next(convertToParamMap({ categoryId: '2' }));
+      fixture.detectChanges();
+      expect(fixture.componentInstance.loading()).toBeTrue();
+
+      answer('1', CLEANING);
+      expect(fixture.componentInstance.loading()).toBeTrue();
+      expect(names()).toEqual([]);
+
+      answer('2', REPAIRS);
+      expect(fixture.componentInstance.loading()).toBeFalse();
+      expect(names()).toEqual(['Elétrica', 'Encanamento']);
+      expect(element.querySelector('h1')?.textContent?.trim()).toBe('Reparos: o que você faz?');
+    });
+
+    it('I: does not show the previous category while the next one loads', () => {
+      answer('1', CLEANING);
+      expect(names().length).toBe(3);
+      params.next(convertToParamMap({ categoryId: '2' }));
+      fixture.detectChanges();
+      expect(fixture.componentInstance.loading()).toBeTrue();
+      expect(names()).toEqual([]);
+      expect(element.querySelector('h1')?.textContent?.trim()).toBe('O que você faz?');
+    });
+
+    it('G: stays loading while a retry replaces the request', () => {
+      fixture.componentInstance.retry.next();
+      fixture.detectChanges();
+      expect(requests['1'].length).toBe(2);
+      expect(fixture.componentInstance.loading()).toBeTrue();
+      answer('1', CLEANING, 1);
+      expect(fixture.componentInstance.loading()).toBeFalse();
+    });
+
+    it('H: an old failure does not replace a newer answer', () => {
+      fixture.componentInstance.retry.next();
+      fixture.detectChanges();
+      requests['1'][0].error(new Error('offline'));
+      fixture.detectChanges();
+      expect(element.querySelector('tg-alert')).toBeNull();
+      answer('1', CLEANING, 1);
+      expect(element.querySelector('tg-alert')).toBeNull();
+      expect(names().length).toBe(3);
+    });
   });
 });
