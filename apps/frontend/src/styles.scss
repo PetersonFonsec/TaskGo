@@ -194,7 +194,9 @@ html {
   font-family: var(--primary-font-family);
   margin: 0;
   padding: 0;
-  overflow-x: hidden;
+  // clip, não hidden: hidden faz do body um contêiner de rolagem e quebra o
+  // position: sticky (a barra do topo rolava junto com a página).
+  overflow-x: clip;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
 }

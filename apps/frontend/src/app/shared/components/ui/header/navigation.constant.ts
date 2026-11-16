@@ -1,121 +1,70 @@
-import { faArrowRightFromBracket, faLocationDot, faUser } from '@fortawesome/free-solid-svg-icons';
-import { IconDefinition } from '@fortawesome/fontawesome-svg-core';
-
+import type { TgNavItem } from '@shared/design-system/navigation/tg-nav-item';
 import { Roles, RolesBack } from '@shared/enums/roles.enum';
 
-export type NavigationMatch = 'exact' | 'prefix';
-export type NavigationAction = 'logout';
-
-interface NavigationItemBase {
-  readonly id: string;
-  readonly label: string;
-  readonly icon: IconDefinition;
-  readonly roles: readonly RolesBack[];
+/**
+ * Navegação do shell logado (docs/design-system/README.md, "Navegação"):
+ * os mesmos destinos no web e no app, na mesma ordem, por modo.
+ */
+export interface ShellNavigation {
+  /** Destino da marca: a home do modo. */
+  readonly home: string;
+  /** Destinos principais (no máximo quatro). */
+  readonly destinations: readonly TgNavItem[];
+  /** Aba da Conta, só abaixo de 1024 px. */
+  readonly account: TgNavItem;
+  /** Links do menu da conta (o "Sair da conta" vem do próprio menu). */
+  readonly accountLinks: readonly TgNavItem[];
+  /** Linha de apoio do menu da conta. */
+  readonly roleLabel: string;
 }
-
-export interface NavigationLinkItem extends NavigationItemBase {
-  readonly kind: 'link';
-  readonly path: (userId: string) => readonly string[];
-  readonly match: NavigationMatch;
-}
-
-export interface NavigationActionItem extends NavigationItemBase {
-  readonly kind: 'action';
-  readonly action: NavigationAction;
-}
-
-export type NavigationItem = NavigationLinkItem | NavigationActionItem;
-
-export interface NavigationGroup {
-  readonly id: string;
-  readonly label: string;
-  readonly items: readonly NavigationItem[];
-}
-
-export type ResolvedNavigationItem =
-  | (Omit<NavigationLinkItem, 'path'> & { readonly routerLink: readonly string[] })
-  | NavigationActionItem;
-
-export interface ResolvedNavigationGroup {
-  readonly id: string;
-  readonly label: string;
-  readonly items: readonly ResolvedNavigationItem[];
-}
-
-const AUTHENTICATED_ROLES = [RolesBack.CUSTOMER, RolesBack.PROVIDER] as const;
-
-export const NAVIGATION_GROUPS: readonly NavigationGroup[] = [
-  {
-    id: 'account',
-    label: 'Minha conta',
-    items: [
-      {
-        id: 'personal-data',
-        label: 'Dados Pessoais',
-        icon: faUser,
-        roles: AUTHENTICATED_ROLES,
-        kind: 'link',
-        path: (userId) => ['/general', userId, 'profile'],
-        match: 'prefix',
-      },
-      {
-        id: 'addresses',
-        label: 'Endereços',
-        icon: faLocationDot,
-        roles: AUTHENTICATED_ROLES,
-        kind: 'link',
-        path: (userId) => ['/general', userId, 'addresses'],
-        match: 'exact',
-      },
-      {
-        id: 'logout',
-        label: 'Sair da Conta',
-        icon: faArrowRightFromBracket,
-        roles: AUTHENTICATED_ROLES,
-        kind: 'action',
-        action: 'logout',
-      },
-    ],
-  },
-] as const;
 
 export function normalizeNavigationRole(
   role: Roles | RolesBack | string | undefined,
 ): RolesBack | null {
-  if (role === Roles.CUSTOMER || role === RolesBack.CUSTOMER) {
-    return RolesBack.CUSTOMER;
-  }
-
-  if (role === Roles.PROVIDER || role === RolesBack.PROVIDER) {
-    return RolesBack.PROVIDER;
-  }
-
+  if (role === Roles.CUSTOMER || role === RolesBack.CUSTOMER) return RolesBack.CUSTOMER;
+  if (role === Roles.PROVIDER || role === RolesBack.PROVIDER) return RolesBack.PROVIDER;
   return null;
 }
 
-export function resolveNavigationGroups(
+export function resolveShellNavigation(
   role: Roles | RolesBack | string | undefined,
   userId: string | undefined,
-): readonly ResolvedNavigationGroup[] {
+): ShellNavigation | null {
   const normalizedRole = normalizeNavigationRole(role);
-  if (!normalizedRole || !userId) {
-    return [];
+  if (!normalizedRole || !userId) return null;
+
+  const orders: TgNavItem = { label: 'Pedidos', icon: 'receipt', link: ['/general', userId, 'history'] };
+  const account: TgNavItem = { label: 'Conta', icon: 'user-circle', link: ['/general', userId, 'home'] };
+  const accountLinks: readonly TgNavItem[] = [
+    { label: 'Dados pessoais', icon: 'user', link: ['/general', userId, 'profile'] },
+    { label: 'Endereços', icon: 'map-pin', link: ['/general', userId, 'addresses'] },
+  ];
+
+  if (normalizedRole === RolesBack.PROVIDER) {
+    return {
+      home: '/provider',
+      destinations: [
+        { label: 'Agenda', icon: 'calendar-blank', link: '/provider', exact: true },
+        orders,
+        { label: 'Serviços', icon: 'wrench', link: '/provider/services' },
+        { label: 'Ganhos', icon: 'wallet', link: '/provider/recebimentos' },
+      ],
+      account,
+      accountLinks,
+      roleLabel: 'Profissional',
+    };
   }
 
-  return NAVIGATION_GROUPS.map((group) => ({
-    id: group.id,
-    label: group.label,
-    items: group.items
-      .filter((item) => item.roles.includes(normalizedRole))
-      .map((item): ResolvedNavigationItem => {
-        if (item.kind === 'action') {
-          return item;
-        }
-
-        return {
-          ...item,
-          routerLink: item.path(userId),
-        };
-      }),
-  })).filter((group) => group.items.length > 0);
+  return {
+    home: '/customer',
+    destinations: [
+      { label: 'Início', icon: 'house', link: '/customer', exact: true },
+      { label: 'Buscar', icon: 'magnifying-glass', link: '/customer/search' },
+      orders,
+      { label: 'Favoritos', icon: 'heart', link: '/customer/favorites' },
+    ],
+    account,
+    accountLinks,
+    roleLabel: 'Cliente',
+  };
 }

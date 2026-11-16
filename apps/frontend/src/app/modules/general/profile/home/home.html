@@ -1,17 +1,22 @@
-<section class="home">
-  <header class="home_header">
-    <h2 class="subtitle">Menus</h2>
-  </header>
+<section class="account" aria-labelledby="account-title">
+  <h2 id="account-title" class="account__title">Conta</h2>
 
-  <div class="home_container">
-    <ul>
-      @for (item of itens; track $index) {
+  <ul class="account__list">
+    @for (item of links; track item.link) {
       <li>
-        <a [routerLink]="item.link" class="home_card-link">
-          <app-card-menu [title]="item.title" [subtitle]="item.subtitle" [icon]="item.icon" />
+        <a tgCard class="account__item" [routerLink]="item.link">
+          <span class="account__icon"><tg-icon [name]="item.icon" [size]="24" /></span>
+          <span class="account__text">
+            <strong class="account__label">{{ item.label }}</strong>
+            <span class="account__description">{{ item.description }}</span>
+          </span>
+          <tg-icon class="account__chevron" name="arrow-right" [size]="20" />
         </a>
       </li>
-      }
-    </ul>
-  </div>
+    }
+  </ul>
+
+  <button tgButton type="button" appearance="outline" tone="danger" iconStart="sign-out" (click)="signOut()">
+    Sair da conta
+  </button>
 </section>

@@ -1,22 +1,23 @@
 <footer class="footer">
-  <div class="footer_container">
-    <div class="footer_brand">
-      <span class="footer_brand-mark" aria-hidden="true">P</span>
+  <div class="footer__inner">
+    <div class="footer__brand">
+      <span class="footer__mark" aria-hidden="true">T</span>
       <div>
-        <strong>Proxi</strong>
-        <p>Serviços de confiança, perto de você.</p>
+        <strong class="footer__name">TaskGo</strong>
+        <p class="footer__tagline">Serviços de casa, perto de você.</p>
       </div>
     </div>
-    <nav class="footer_links">
-      <app-footer-links title="Institucional" [links]="institucionalLinks" class="footer_links_column" />
-      <app-footer-links title="Menus" [links]="menusLinks" class="footer_links_column" />
-      <app-footer-links title="Social" [links]="socialLinks" direction="horizontal" class="footer_links_column" />
+
+    <nav class="footer__nav" aria-label="Institucional">
+      <ul class="footer__links">
+        @for (item of links; track item.link) {
+          <li><a class="footer__link" [routerLink]="item.link">{{ item.label }}</a></li>
+        }
+      </ul>
     </nav>
 
-    <hr class="footer_divider" />
-
-    <p class="footer_legend">
-      © 2026 Proxi. Todos os direitos reservados. Agência de Serviços Online S.A. ·
+    <p class="footer__legal">
+      © {{ year }} TaskGo. Todos os direitos reservados. Agência de Serviços Online S.A. ·
       CNPJ 47.977.172/0001-83 · São Bernardo do Campo/SP
     </p>
   </div>

@@ -1,61 +1,99 @@
-@use "variables/breakpoints";
+// Rodapé do shell logado. Só tokens --tg-*; o tema troca os valores.
+@use 'taskgo-tokens' as tg;
+
+:host {
+  display: block;
+}
 
 .footer {
-  background: #0f172a;
-  color: #cbd5e1;
-  padding: 48px var(--proxi-page-padding) 28px;
+  border-top: 1px solid var(--tg-border-default);
+  background: var(--tg-bg-surface);
+  color: var(--tg-text-secondary);
+  font-family: var(--tg-font-sans);
+}
 
-  &_container {
-    margin: 0 auto;
-    max-width: 1440px;
-    width: 100%;
-  }
+.footer__inner {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--tg-space-4) var(--tg-space-6);
+  box-sizing: border-box;
+  max-width: 1440px;
+  margin: 0 auto;
+  padding: var(--tg-space-6) var(--tg-space-4);
 
-  &_brand {
-    align-items: center;
-    display: flex;
-    gap: 12px;
-    margin-bottom: 36px;
-
-    &-mark {
-      align-items: center;
-      background: var(--proxi-primary);
-      border-radius: 11px;
-      color: #fff;
-      display: flex;
-      font-size: 18px;
-      font-weight: 800;
-      height: 40px;
-      justify-content: center;
-      width: 40px;
-    }
-
-    strong { color: #fff; font-size: 18px; }
-    p { color: #94a3b8; font-size: 12px; margin-top: 4px; }
-  }
-
-  &_links {
-    display: grid;
-    gap: 32px;
-    grid-template-columns: repeat(3, minmax(0, 1fr));
-  }
-
-  &_divider {
-    border: 0;
-    border-top: 1px solid #334155;
-    margin: 36px 0 22px;
-  }
-
-  &_legend {
-    color: #94a3b8;
-    font-size: 11px;
-    line-height: 1.7;
-    text-align: center;
+  @include tg.tg-from(expanded) {
+    padding: var(--tg-space-8) var(--tg-space-6);
   }
 }
 
-@media (max-width: breakpoints.$tablet) {
-  .footer { padding-top: 36px; }
-  .footer_links { grid-template-columns: 1fr; }
-  .footer_legend { text-align: left; }
+.footer__brand {
+  display: flex;
+  align-items: center;
+  gap: var(--tg-space-3);
+}
+
+.footer__mark {
+  display: inline-flex;
+  flex: none;
+  align-items: center;
+  justify-content: center;
+  width: 32px;
+  height: 32px;
+  border-radius: 10px;
+  background: var(--tg-action-primary);
+  color: var(--tg-text-on-action);
+  font-size: 15px;
+  font-weight: var(--tg-font-weight-extrabold);
+}
+
+.footer__name {
+  color: var(--tg-text-primary);
+  font-size: var(--tg-type-body-size);
+  font-weight: var(--tg-font-weight-bold);
+}
+
+.footer__tagline {
+  margin: 0;
+  font-size: var(--tg-type-body-sm-size);
+}
+
+.footer__links {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0 var(--tg-space-2);
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.footer__link {
+  display: inline-flex;
+  align-items: center;
+  min-height: 44px;
+  padding: 0 var(--tg-space-2);
+  border-radius: var(--tg-radius-sm);
+  color: var(--tg-text-secondary);
+  font-size: var(--tg-type-body-sm-size);
+  font-weight: var(--tg-font-weight-medium);
+  text-decoration: none;
+
+  &:hover {
+    color: var(--tg-text-primary);
+    text-decoration: underline;
+  }
+
+  &:focus-visible {
+    outline: 2px solid var(--tg-focus-ring);
+    outline-offset: 2px;
+  }
+}
+
+.footer__legal {
+  flex-basis: 100%;
+  margin: 0;
+  padding-top: var(--tg-space-4);
+  border-top: 1px solid var(--tg-border-default);
+  font-size: var(--tg-type-body-sm-size);
 }

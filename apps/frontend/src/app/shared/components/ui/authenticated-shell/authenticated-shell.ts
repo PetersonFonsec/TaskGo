@@ -9,10 +9,10 @@ import { Header } from '../header/header';
   selector: 'app-authenticated-shell',
   imports: [Footer, Header, RouterOutlet],
   template: `
-    <div class="authenticated-shell" data-testid="authenticated-shell">
-      <app-header class="authenticated-shell_header" />
+    <div class="authenticated-shell tg-nav-offset" data-testid="authenticated-shell">
+      <app-header />
 
-      <main class="authenticated-shell_main">
+      <main id="conteudo" class="authenticated-shell_main">
         <div class="authenticated-shell_content">
           <router-outlet />
         </div>
@@ -22,25 +22,26 @@ import { Header } from '../header/header';
     </div>
   `,
   styles: `
+    // Fundo e texto do Design System: o tema (cliente claro, prestador
+    // escuro) troca os valores. A classe tg-nav-offset abre espaço para a
+    // barra de abas abaixo de 1024 px, inclusive para o rodapé.
     .authenticated-shell {
-      background: var(--proxi-background);
+      background: var(--tg-bg-canvas);
+      color: var(--tg-text-primary);
       display: flex;
       flex-direction: column;
       min-height: 100dvh;
       width: 100%;
-
-      &_header {
-        position: sticky;
-        top: 0;
-        width: 100%;
-        z-index: 20;
-      }
 
       &_main {
         display: flex;
         flex: 1;
         min-width: 0;
         width: 100%;
+
+        &:focus {
+          outline: none;
+        }
       }
 
       &_content {
@@ -52,6 +53,19 @@ import { Header } from '../header/header';
       &_footer {
         width: 100%;
       }
+    }
+
+    // Ponte para as telas ainda não migradas: no tema do profissional
+    // (escuro), os tokens antigos --proxi-* passam a apontar para os do
+    // Design System, para o texto e as superfícies seguirem o fundo escuro.
+    // Sai quando a última tela deixar de usar --proxi-*.
+    :host-context([data-theme='PROVIDER']) .authenticated-shell {
+      --proxi-surface: var(--tg-bg-surface);
+      --proxi-background: var(--tg-bg-subtle);
+      --proxi-text: var(--tg-text-primary);
+      --proxi-text-muted: var(--tg-text-secondary);
+      --proxi-border: var(--tg-border-default);
+      --proxi-primary-soft: var(--tg-action-subtle);
     }
   `,
 })

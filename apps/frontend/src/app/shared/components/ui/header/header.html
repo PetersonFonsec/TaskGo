@@ -1,30 +1,18 @@
-<header class="header">
-  <div class="header_leading">
-    <button
-      class="header_brand"
-      type="button"
-      (click)="navigateToHome()"
-      aria-label="Ir para o início"
-    >
-      <span class="header_brand-mark" aria-hidden="true">P</span>
-      <span class="header_brand-name">Proxi</span>
-    </button>
-  </div>
-
-  <nav class="header_navigation" aria-label="Navegação da conta" data-testid="account-navigation">
-    @for (group of groups(); track group.id) {
-      <ul [attr.aria-label]="group.label">
-        @for (item of group.items; track item.id) {
-          <li>
-            <app-navigation-item [item]="item" (actionSelected)="handleAction($event)" />
-          </li>
-        }
-      </ul>
-    }
-  </nav>
-
-  <div class="header_content">
-    <app-notification />
-    <app-profile-header />
-  </div>
-</header>
+<tg-app-bar [homeLink]="navigation()?.home ?? '/'">
+  <!-- Um elemento por bloco, para o tg-nav cair no slot dele no tg-app-bar. -->
+  @if (navigation(); as nav) {
+    <tg-nav [items]="nav.destinations" [account]="nav.account" />
+  }
+  @if (navigation(); as nav) {
+    <div class="header__actions">
+      <app-notification />
+      <tg-account-menu
+        [name]="name()"
+        [detail]="nav.roleLabel"
+        [photo]="photo()"
+        [links]="nav.accountLinks"
+        (signOut)="signOut()"
+      />
+    </div>
+  }
+</tg-app-bar>

@@ -39,7 +39,8 @@ Ionic) continuam valendo até a migração tela a tela.
 | 10 | Pagamento do pedido (web) | Concluído (PR #35) |
 | 10 | Busca de profissionais (web) | Concluído (PR #35) |
 | 10 | Entrar, recuperar acesso e Criar conta (web) | Concluído (PR #37) |
-| 10 | Passos do cadastro e conta criada (web) | Este PR |
+| 10 | Passos do cadastro e conta criada (web) | Concluído (PR #38) |
+| 10 | Shell logado: topo, abas, conta e rodapé (web) | Este PR |
 
 Atributos de marca: próximo, confiável, direto e caloroso sem ser infantil.
 
@@ -628,9 +629,33 @@ Acessibilidade:
 
 No app, a navegação é `ion-tabs` com `ion-tab-bar slot="bottom"`, os mesmos
 destinos e os ícones Phosphor, estilizada pelos tokens na migração da home.
-O `app-header` do web (que ainda mostra a marca antiga "Proxi") e o
-`app-profile-header` (com nome e foto fixos no código) convivem com estes
-componentes até a migração do shell autenticado.
+#### Shell logado (web)
+
+O `app-authenticated-shell` envolve as telas de cliente, prestador e conta
+(`/customer`, `/provider`, `/general`). O `app-header` monta o `tg-app-bar`
+com os destinos do modo (`resolveShellNavigation`, em
+`shared/components/ui/header/navigation.constant.ts`), o `app-notification`
+e o `tg-account-menu` com o nome, a foto (ou as iniciais) e o modo
+("Cliente" ou "Profissional") de quem está na sessão. O `main` tem
+`id="conteudo"` (alvo do "Pular para o conteúdo"), e o shell inteiro usa
+`tg-nav-offset`, para o rodapé também ficar acima da barra de abas.
+
+- Fundo `bg-canvas` e texto `text-primary`: no modo prestador, o shell é
+  escuro, como as telas migradas esperam.
+- A aba "Conta" (abaixo de 1024 px) leva a `/general/:id/home`, com
+  "Dados pessoais", "Endereços" e "Sair da conta" (no celular não há o
+  menu da conta).
+- Rodapé `app-footer`: marca, links institucionais que existem
+  (`/institutional/about`, `faq`, `support`) e a linha legal.
+- Ponte temporária: no modo prestador, o shell aponta os tokens antigos
+  `--proxi-surface`, `--proxi-background`, `--proxi-text`,
+  `--proxi-text-muted`, `--proxi-border` e `--proxi-primary-soft` para os
+  do Design System, para as telas ainda não migradas ficarem legíveis no
+  fundo escuro. Sai quando nenhuma tela usar `--proxi-*`.
+- O `body` usa `overflow-x: clip` (não `hidden`), para o `position: sticky`
+  da barra do topo funcionar.
+- "Pedidos" leva a `/general/:id/history`, que ainda é um esboço; a tela de
+  pedidos é a próxima migração.
 
 ### Abas
 
