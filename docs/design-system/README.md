@@ -8,7 +8,7 @@ Storybook do web, em **Fundamentos**.
 
 Os tokens existem e são carregados pelos dois apps. As primeiras telas
 migradas são os inícios do cliente e do prestador no web (Etapa 9, telas
-piloto). Nas demais, os tokens
+piloto) e os detalhes do pedido (Etapa 10). Nas demais, os tokens
 antigos (`--color-*`, `--proxi-*`, `--space-*`, `--font-size-*` e o azul do
 Ionic) continuam valendo até a migração tela a tela.
 
@@ -33,8 +33,9 @@ Ionic) continuam valendo até a migração tela a tela.
 | 7 | Componentes base: estado vazio (web) | Concluído (PR #21) |
 | 8 | Domínio: card de prestador, linha de pedido, card de agendamento (web) | Concluído (PRs #22, #23 e #24) |
 | 9 | Piloto: início do cliente (web) | Concluído (PR #25) |
-| 9 | Piloto: início do prestador (web) | Este PR |
-| 10 | Migração tela a tela (web e app) | A fazer |
+| 9 | Piloto: início do prestador (web) | Concluído (PR #27) |
+| 10 | Migração tela a tela (web e app) | Em andamento |
+| 10 | Detalhes do pedido (web) | Este PR |
 
 Atributos de marca: próximo, confiável, direto e caloroso sem ser infantil.
 
@@ -1315,6 +1316,38 @@ vêm do painel `/auth/provider-home`, como antes.
 A seleção fica em `provider-home.agenda.ts` (`providerHomeAgenda`) e a
 formatação do painel em `provider-home.earnings.ts`
 (`providerHomeEarnings`), funções puras com testes próprios.
+
+## Telas migradas (Etapa 10)
+
+As demais telas, uma por vez, no caminho das telas piloto.
+
+### Detalhes do pedido (web)
+
+`modules/orders/order-details`, rota `orders/:id`, a mesma para cliente e
+prestador (o tema segue quem está logado). Story: **Telas/Detalhes do
+pedido** (pagamento pendente, confirmar conclusão, prestador agendado,
+concluído e avaliado, recusado, carregando e erro).
+
+Decisões aprovadas: (1) o próximo passo fica no resumo, no topo, e a barra
+fixa no rodapé saiu; (2) cada um vê só a outra pessoa; (3) a tela mostra o
+que a API já manda e antes ficava escondido (a parte do prestador, a taxa,
+a distância, as observações da finalização, o ajuste de preço e a
+avaliação). As fotos do pedido ainda não aparecem.
+
+| Parte | Componente | Regra |
+| --- | --- | --- |
+| Voltar e título | link "Voltar ao início", `h1` com o serviço | Acima do título, "Pedido #id · categoria"; abaixo, a data do pedido. "Falar com o suporte" (`a[tgButton]` ghost) abre o mesmo e-mail de antes. |
+| Resumo | `tg-card` | Quando (Hoje/Amanhã/data e hora, ou "Data a combinar"), `tg-badge` com o mapa de status e o ícone do DS, endereço completo (cidade, CEP e, para o prestador, a distância), a outra pessoa (foto ou iniciais; para o cliente, verificado e nota) e o próximo passo. |
+| Próximo passo | `a/button[tgButton]` | O mesmo de `tgOrderNextStep` (Pagar, Ver QR Code, Confirmar conclusão, Avaliar, Responder, Estou a caminho, Iniciar serviço, Finalizar serviço). Ao lado de "Confirmar conclusão", "Reportar problema" em outline. Agendado e já pago não pede pagamento. |
+| Troca de status | `button[tgButton]` com `loading` | Um clique por vez; o botão só solta quando o pedido recarregado (em silêncio) sai do status em que a troca foi pedida. Recarga com o status antigo ou falha na recarga: o pedido fica à vista e bloqueado, com `tg-alert` de atenção ("O pedido pode estar desatualizado") e "Tentar de novo". Erro da troca: `tg-alert` de perigo com a mensagem da API. |
+| Avisos | `tg-alert` | Prazo de expiração (atenção, pela perspectiva: "Pague até 15:40", "O cliente tem até 15:40 para pagar", "Responda até…"); cancelamento ou recusa (perigo, com motivo e observação). |
+| Pagamento | `tg-card` com `dl` | Valor estimado ou final, forma (Pix, Cartão) e situação em português ("Em atualização" se desconhecida). Para o prestador, "Sua parte" (estimada até o valor final) e a taxa da plataforma. |
+| Conclusão | `tg-card` com `dl` | Só quando há observações do prestador, motivo de ajuste de preço ou avaliação. |
+| Linha do tempo | `app-order-timeline` em um `tg-card` | Só tokens e o ícone `check` do DS. |
+| Carregando e erro | `tg-loading` com skeleton; `tg-alert` de perigo | 404: "Este pedido não foi encontrado", sem "Tentar de novo"; outras falhas, com "Tentar de novo". |
+
+A formatação fica em `order-details.view.ts` (`orderDetailsView` e
+`orderExpiryNotice`), funções puras com testes próprios.
 
 ## Testes
 

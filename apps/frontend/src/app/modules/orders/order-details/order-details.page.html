@@ -1,54 +1,233 @@
-<main class="order-page">
-  @if (loading()) {
-    <div class="state-card loading" aria-live="polite">
-      <span class="spinner"></span><strong>Carregando detalhes do pedido…</strong>
-    </div>
-  } @else if (error() && !order()) {
-    <div class="state-card error-state">
-      <span class="state-icon">!</span><h1>Ops, algo deu errado</h1><p>{{ error() }}</p>
-      <div><button class="button primary" (click)="load()">Tentar novamente</button><button class="button link" (click)="goBack()">Voltar</button></div>
-    </div>
-  } @else if (order(); as current) {
-    <header class="page-header">
-      <button class="icon-button" type="button" aria-label="Voltar" (click)="goBack()">←</button>
-      <div><p class="eyebrow">Pedido #{{ current.id }}</p><h1>Detalhes do pedido</h1></div>
-      <span class="status" [attr.data-status]="current.status">{{ statusLabel() }}</span>
-      <a class="icon-button help" href="mailto:suporte@proxi.com.br" aria-label="Falar com o suporte">?</a>
-    </header>
+<main class="order-details">
+  <a class="order-details__back" [routerLink]="backLink()">
+    <tg-icon name="arrow-left" [size]="20" />
+    Voltar ao início
+  </a>
 
-    @if (error()) { <div class="inline-error" role="alert">{{ error() }}</div> }
-    @if (expirationNotice()) { <div class="expiry-notice" role="status">{{ expirationNotice() }}</div> }
+  @if (loadError() === 'notFound') {
+    <tg-alert tone="danger" title="Este pedido não foi encontrado">
+      Confira o link ou volte ao início para ver seus pedidos.
+    </tg-alert>
+  } @else if (loadError() === 'failed') {
+    <tg-alert tone="danger" title="Não foi possível carregar o pedido">
+      Verifique sua conexão e tente de novo.
+      <button tgButton tgAlertAction type="button" appearance="outline" size="sm" (click)="load()">
+        Tentar de novo
+      </button>
+    </tg-alert>
+  } @else {
+    <tg-loading label="Carregando o pedido" [loading]="loading()">
+      <ng-template tgLoadingSkeleton>
+        <div class="order-details__skeleton">
+          <tg-skeleton width="30%" />
+          <tg-skeleton width="55%" height="36" />
+          <div class="order-details__grid">
+            <div class="order-details__skeleton-card">
+              <tg-skeleton width="30%" />
+              <tg-skeleton width="25%" height="32" />
+              <tg-skeleton [lines]="2" />
+              <tg-skeleton width="40%" height="44" />
+            </div>
+            <div class="order-details__skeleton-card">
+              <tg-skeleton width="50%" />
+              <tg-skeleton [lines]="4" />
+            </div>
+          </div>
+        </div>
+      </ng-template>
 
-    <section class="hero-card">
-      <div class="service-symbol" aria-hidden="true">⚡</div>
-      <div class="service-copy"><span>{{ current.service.category }}</span><h2>{{ current.service.title }}</h2><p>Solicitado em {{ formatDate(current.schedule.requestedAt) }}</p></div>
-      <div class="participant">
-        <img [src]="current.provider.photoUrl || 'https://dummyimage.com/120x120/ede9fe/6d28d9&text=P'" [alt]="'Foto de ' + current.provider.name">
-        <div><small>Prestador</small><strong>{{ current.provider.name }} @if (current.provider.verified) { <span class="verified" title="Prestador verificado">✓</span> }</strong><span class="rating">★ {{ current.provider.ratingAvg?.toFixed(1) }} <em>({{ current.provider.ratingCount }})</em></span></div>
-      </div>
-      @if (role() === 'PRESTADOR') { <div class="client"><small>Cliente</small><strong>{{ current.client.name }}</strong></div> }
-    </section>
+      @if (view(); as v) {
+        <div class="order-details__content">
+          <header class="order-details__header">
+            <div class="order-details__heading">
+              <p class="order-details__eyebrow">{{ v.eyebrow }}</p>
+              <h1 class="order-details__title">{{ v.title }}</h1>
+              @if (v.requested) {
+                <p class="order-details__requested">{{ v.requested }}</p>
+              }
+            </div>
+            <a tgButton appearance="ghost" size="sm" [href]="supportLink">Falar com o suporte</a>
+          </header>
 
-    @if (current.cancellation; as cancellation) {
-      <section class="cancellation" role="status">
-        <strong>{{ role() === 'PRESTADOR' ? 'Você recusou esta solicitação' : 'O prestador não pôde atender este pedido' }}</strong>
-        <p>Motivo: {{ cancellation.label }}</p>
-        @if (cancellation.note) { <p class="cancellation-note">“{{ cancellation.note }}”</p> }
-      </section>
-    }
+          @if (syncError() || syncStale()) {
+            <tg-alert
+              class="order-details__sync"
+              tone="warning"
+              title="O pedido pode estar desatualizado"
+            >
+              @if (syncError()) {
+                A mudança foi enviada, mas não conseguimos carregar o pedido de novo.
+              } @else {
+                A mudança foi enviada, mas o pedido ainda não mostra o status novo.
+              }
+              <button
+                tgButton
+                tgAlertAction
+                type="button"
+                appearance="outline"
+                size="sm"
+                (click)="sync()"
+              >
+                Tentar de novo
+              </button>
+            </tg-alert>
+          }
 
-    <div class="content-grid">
-      <div class="cards-column">
-        <section class="card"><div class="card-title"><span>▣</span><div><h2>Agendamento</h2><p>Quando e onde será o atendimento</p></div></div>
-          <dl class="details-grid"><div><dt>Data</dt><dd>{{ formatDate(current.schedule.scheduledFor) }}</dd></div><div><dt>Horário</dt><dd>{{ formatTime(current.schedule.scheduledFor) }}</dd></div><div class="wide"><dt>Endereço</dt><dd>{{ addressLine(current) }}</dd><span>{{ current.address?.city || 'Cidade não informada' }}@if (current.address?.state) { / {{ current.address?.state }}} · CEP {{ current.address?.cep || 'não informado' }}</span></div></dl>
-        </section>
-        <section class="card"><div class="card-title"><span>R$</span><div><h2>Pagamento</h2><p>Resumo financeiro do pedido</p></div></div>
-          @if (current.payment; as payment) { <dl class="details-grid"><div><dt>{{ payment.finalAmount !== null ? 'Valor final' : 'Valor estimado' }}</dt><dd class="price">{{ formatMoney(payment.finalAmount ?? payment.estimatedAmount) }}</dd></div><div><dt>Forma de pagamento</dt><dd>{{ paymentMethod(payment.method) }}</dd></div><div><dt>Status financeiro</dt><dd><span class="payment-status">{{ humanize(payment.status) }}</span></dd></div></dl> } @else { <p class="muted">Informações de pagamento indisponíveis.</p> }
-        </section>
-      </div>
-      <section class="card timeline-card"><div class="card-title"><span>◷</span><div><h2>Acompanhe seu pedido</h2><p>Atualizações do atendimento</p></div></div><app-order-timeline [events]="current.timeline" /></section>
-    </div>
+          @if (actionError(); as message) {
+            <tg-alert tone="danger" title="Não foi possível atualizar o pedido">{{
+              message
+            }}</tg-alert>
+          }
 
-    @if (actions().length) { <aside class="action-bar"><div><strong>Próximo passo</strong><p>Atualize o pedido para manter todos informados.</p></div><div class="action-buttons">@for (action of actions(); track action.label) { <button class="button" [class.primary]="!action.secondary" [class.secondary]="action.secondary" [disabled]="actionLoading()" (click)="runAction(action)">{{ actionLoading() ? 'Aguarde…' : action.label }}</button> }</div></aside> }
+          @if (v.cancellation; as c) {
+            <tg-alert tone="danger" [title]="c.title">
+              Motivo: {{ c.reason }}
+              @if (c.note) {
+                <span class="order-details__quote">“{{ c.note }}”</span>
+              }
+            </tg-alert>
+          }
+
+          @if (expiry(); as notice) {
+            <tg-alert tone="warning" [title]="notice.title">{{ notice.body }}</tg-alert>
+          }
+
+          <div class="order-details__grid">
+            <div class="order-details__column">
+              <tg-card class="order-details__summary" aria-label="Resumo do atendimento">
+                <div class="order-details__top">
+                  <p class="order-details__when">
+                    <span class="order-details__day">{{ v.when.day + ' ' }}</span>
+                    @if (v.when.time) {
+                      <span class="order-details__time">{{ v.when.time }}</span>
+                    }
+                  </p>
+                  <tg-badge [tone]="v.status.tone" [icon]="v.status.icon ?? undefined">{{
+                    v.status.label
+                  }}</tg-badge>
+                </div>
+
+                @if (v.address) {
+                  <p class="order-details__place">
+                    <tg-icon name="map-pin" [size]="20" />
+                    <span>
+                      <span class="order-details__street">{{ v.address }}</span>
+                      @if (v.addressDetail) {
+                        <span class="order-details__detail">{{ v.addressDetail }}</span>
+                      }
+                    </span>
+                  </p>
+                }
+
+                <div class="order-details__person">
+                  <span class="order-details__avatar">
+                    @if (v.person.photoUrl) {
+                      <img [src]="v.person.photoUrl" alt="" loading="lazy" decoding="async" />
+                    } @else {
+                      <span aria-hidden="true">{{ v.person.initials }}</span>
+                    }
+                  </span>
+                  <span class="order-details__person-text">
+                    <span class="order-details__role">{{ v.person.role }}</span>
+                    <span class="order-details__name">
+                      {{ v.person.name }}
+                      @if (v.person.verified) {
+                        <tg-icon name="check" [size]="16" label="Prestador verificado" />
+                      }
+                    </span>
+                    @if (v.person.rating) {
+                      <span class="order-details__rating">
+                        <tg-icon name="star" weight="fill" [size]="16" />
+                        {{ v.person.rating }}
+                      </span>
+                    }
+                  </span>
+                </div>
+
+                @if (v.step || v.reportLink) {
+                  <div class="order-details__step">
+                    @if (v.step; as step) {
+                      @if (step.link) {
+                        <a tgButton [routerLink]="step.link">{{ step.label }}</a>
+                      } @else {
+                        <button
+                          tgButton
+                          type="button"
+                          [loading]="updating()"
+                          (click)="advance(step.action)"
+                        >
+                          {{ step.label }}
+                        </button>
+                      }
+                    }
+                    @if (v.reportLink) {
+                      <a tgButton appearance="outline" [routerLink]="v.reportLink"
+                        >Reportar problema</a
+                      >
+                    }
+                  </div>
+                }
+              </tg-card>
+
+              <tg-card>
+                <h2 class="order-details__card-title">Pagamento</h2>
+                <dl class="order-details__list">
+                  @for (item of v.payment; track item.label) {
+                    <div>
+                      <dt>{{ item.label }}</dt>
+                      <dd>{{ item.value }}</dd>
+                    </div>
+                  }
+                  @for (item of v.earnings; track item.label) {
+                    <div>
+                      <dt>{{ item.label }}</dt>
+                      <dd>{{ item.value }}</dd>
+                    </div>
+                  }
+                </dl>
+              </tg-card>
+
+              @if (v.completion.length || v.review) {
+                <tg-card>
+                  <h2 class="order-details__card-title">Conclusão</h2>
+                  <dl class="order-details__list order-details__list--single">
+                    @for (item of v.completion; track item.label) {
+                      <div>
+                        <dt>{{ item.label }}</dt>
+                        <dd>{{ item.value }}</dd>
+                      </div>
+                    }
+                    @if (v.review; as r) {
+                      <div>
+                        <dt>Avaliação do cliente</dt>
+                        <dd>
+                          <span class="order-details__rating">
+                            <tg-icon
+                              name="star"
+                              weight="fill"
+                              [size]="16"
+                              [label]="'Nota ' + r.rating + ' de 5'"
+                            />
+                            <span aria-hidden="true">{{ r.rating }}</span>
+                          </span>
+                          @if (r.comment) {
+                            <span class="order-details__quote">“{{ r.comment }}”</span>
+                          }
+                        </dd>
+                      </div>
+                    }
+                  </dl>
+                </tg-card>
+              }
+            </div>
+
+            <tg-card class="order-details__timeline">
+              <h2 class="order-details__card-title">Acompanhe o pedido</h2>
+              <app-order-timeline [events]="v.timeline" />
+            </tg-card>
+          </div>
+        </div>
+      }
+    </tg-loading>
   }
 </main>
