@@ -212,21 +212,22 @@ describe('Autenticação', () => {
     cy.clearLocalStorage();
   });
 
-  it('valida campos obrigatórios do login', () => {
+  it('valida campos obrigatórios do login ao enviar', () => {
+    cy.intercept('POST', `${apiUrl}/auth/login`, cy.spy().as('loginRequest'));
     visitAuth('/authenticate/login');
 
     const login = new LoginElements(client);
-    login.submitButton.should('be.disabled');
+    login.submitButton.should('be.enabled').click();
+    cy.contains('.tg-field__error', 'Informe seu e-mail.').should('be.visible');
+    cy.contains('.tg-field__error', 'Informe sua senha.').should('be.visible');
+    login.emailInput.should('have.focus').and('have.attr', 'aria-invalid', 'true');
 
     login.emailInput.type('email-invalido');
     login.passwordInput.type(client.password);
-    login.submitButton.should('be.disabled');
-    login.passwordInput.clear();
-    login.emailInput.clear().type(client.email);
-    login.submitButton.should('be.disabled');
-
-    login.passwordInput.type(client.password);
-    login.submitButton.should('be.enabled');
+    login.submitButton.click();
+    cy.contains('.tg-field__error', 'Informe um e-mail válido').should('be.visible');
+    login.emailInput.should('have.focus');
+    cy.get('@loginRequest').should('not.have.been.called');
   });
 
   it('exibe erro quando as credenciais são inválidas', () => {
@@ -326,7 +327,7 @@ describe('Cadastro de usuários', () => {
     visitAuth('/authenticate/register');
 
     const register = new RegisterElements(client);
-    register.customerBadge.click();
+    register.customerChoice.click();
     register.categoryStep.should('not.exist');
     register.registerButton.should('be.disabled');
 
@@ -397,7 +398,8 @@ describe('Cadastro de usuários', () => {
     const register = new RegisterElements(provider);
     register.toFormRegisterButton.click();
     cy.url().should('include', '/authenticate/register');
-    register.providerBadge.should('have.class', 'selected');
+    register.providerChoice.click();
+    register.providerChoice.find('input').should('be.checked');
     register.categoryStep.should('be.visible');
     register.registerButton.should('be.disabled');
 

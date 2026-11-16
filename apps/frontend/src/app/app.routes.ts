@@ -72,6 +72,7 @@ export const routes: Routes = [
   },
   {
     path: UrlBase.AUTHENTICATE,
+    title: 'Boas-vindas ao TaskGo',
     component: AuthPage,
     children: AuthRoutes,
     canActivate: [userLoggedGuard],

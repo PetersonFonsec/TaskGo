@@ -1,20 +1,38 @@
-<main id="auth-page">
-  <app-layout-slider (change)="updateTheme($event)" id="auth-page_container">
-    <app-layout-slider-item (createdAccount)="goToCreateAccountForm($event)" (login)="goToLoging($event)"
-      title="Quero divulgar o meu serviço" subtitle="Consiga clientes de forma rapida facil e acima de tudo gratuita!"
-      [disabled]="disabledaActions()" [userType]="userType.PROVIDER">
-      <img slot="ilustration" src="/ilustrations/provider-illustration.png"
-        alt="Ilustração de um prestador de serviço" />
-    </app-layout-slider-item>
-
-    <app-layout-slider-item (createdAccount)="goToCreateAccountForm($event)" (login)="goToLoging($event)"
-      title="Quero encontrar um cliente" subtitle="Consiga clientes de forma rapida facil e acima de tudo gratuita!"
-      [disabled]="disabledaActions()" [userType]="userType.CUSTOMER">
-      <img slot="ilustration" src="/ilustrations/customer-illustration.png" alt="Ilustração de um cliente" />
-    </app-layout-slider-item>
-  </app-layout-slider>
-
-  <aside id="auth-page_forms">
-    <router-outlet (activate)='onActivate($event)'></router-outlet>
+<main class="auth">
+  <aside class="auth__brand" aria-label="TaskGo">
+    <p class="auth__logo">TaskGo</p>
+    <div class="auth__pitch">
+      <p class="auth__headline">Serviços de casa,<br />perto de você.</p>
+      <ul class="auth__highlights">
+        @for (item of highlights; track item) {
+          <li>
+            <span class="auth__check" aria-hidden="true"><tg-icon name="check" [size]="14" /></span>
+            {{ item }}
+          </li>
+        }
+      </ul>
+    </div>
+    <p class="auth__tagline">Serviços perto de você</p>
   </aside>
+
+  <section class="auth__content">
+    <div class="auth__panel">
+      <router-outlet (activate)="hasChild.set(true)" (deactivate)="hasChild.set(false)" />
+      @if (!hasChild()) {
+        <div class="auth__welcome">
+          <header class="auth__header">
+            <h1 class="auth__title">Boas-vindas ao TaskGo</h1>
+            <p class="auth__lead">Entre na sua conta ou crie uma em poucos passos.</p>
+          </header>
+          <div class="auth__actions">
+            <a tgButton id="auth-login-link" size="lg" routerLink="/authenticate/login">Entrar</a>
+            <a tgButton id="auth-register-link" size="lg" appearance="outline" routerLink="/authenticate/register" (click)="startRegister()">
+              Criar conta
+            </a>
+          </div>
+          <p class="auth__note">Quer oferecer serviços? Escolha "Profissional" ao criar a conta.</p>
+        </div>
+      }
+    </div>
+  </section>
 </main>

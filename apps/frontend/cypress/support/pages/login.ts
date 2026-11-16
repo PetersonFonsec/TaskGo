@@ -8,16 +8,16 @@ export default class LoginElements {
     return cy.get('#register-link');
   }
   get submitButton() {
-    return cy.get('#login-form_footer button');
+    return cy.get('#login-submit');
   }
   get alertComponent() {
-    return cy.get('.alert');
+    return cy.get('tg-alert');
   }
   get passwordInput() {
-    return cy.get('#senha-input');
+    return cy.get('#login-password');
   }
   get emailInput() {
-    return cy.get('#email-input');
+    return cy.get('#login-email');
   }
 
   public fillFormValid() {

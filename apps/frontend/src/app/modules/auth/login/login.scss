@@ -1,46 +1,66 @@
-@use "../../../scss/mixins/grid" as grid;
+// Entrar (Etapa 10). Só tokens --tg-*; cabeçalho vem da casca (auth-page.scss).
+:host {
+  display: block;
+}
 
-#login-form {
-  @include grid.directionColumn();
-  @include grid.container(400px);
-  max-height: 500px;
-  height: 100%;
+.login {
+  display: flex;
+  flex-direction: column;
+  gap: var(--tg-space-6);
+}
 
-  &_links {
-    text-align: center;
+.login__form {
+  display: flex;
+  flex-direction: column;
+  gap: var(--tg-space-4);
+}
 
-    a {
-      margin-bottom: var(--space-4);
+// "Esqueci minha senha" na linha do rótulo, à direita.
+.login__password {
+  position: relative;
+}
+
+.login__forgot {
+  position: absolute;
+  top: 0;
+  right: 0;
+  color: var(--tg-action-primary);
+  font-size: var(--tg-type-label-size);
+  line-height: var(--tg-type-label-line);
+  font-weight: var(--tg-font-weight-bold);
+  text-decoration: none;
+
+  &:hover {
+    text-decoration: underline;
+  }
+
+  &:focus-visible {
+    outline: 2px solid var(--tg-focus-ring);
+    outline-offset: 2px;
+    border-radius: var(--tg-radius-sm);
+  }
+}
+
+.login__footer {
+  margin: 0;
+  color: var(--tg-text-secondary);
+  font-size: var(--tg-type-body-size);
+  line-height: var(--tg-type-body-line);
+  text-align: center;
+
+  a {
+    color: var(--tg-action-primary);
+    font-weight: var(--tg-font-weight-bold);
+    text-decoration: none;
+
+    &:hover {
+      text-decoration: underline;
+    }
+
+    &:focus-visible {
+      outline: 2px solid var(--tg-focus-ring);
+      outline-offset: 2px;
+      border-radius: var(--tg-radius-sm);
     }
   }
-
-  &_links,
-  &_footer,
-  &_content,
-  &_header {
-    display: block;
-    margin-bottom: var(--space-10);
-    width: 100%;
-  }
-
-  &_header {
-    display: flex;
-    gap: var(--space-6);
-    flex-direction: column;
-  }
-
-  &_content {
-    flex: 1;
-    gap: var(--space-6);
-
-    app-input-text {
-      margin-bottom: var(--space-6);
-    }
-  }
-
-  alert {
-    margin: 24px 0;
-  }
-
-  &_footer {}
 }

@@ -1,60 +1,166 @@
-@use "/mixins/grid";
+// Criar conta (Etapa 10). Só tokens --tg-*; cabeçalho vem da casca (auth-page.scss).
+:host {
+  display: block;
+}
 
-#register-form {
-  @include grid.directionColumn();
-  @include grid.container(400px);
-  height: 100%;
-  padding: var(--space-10) 0;
+.register {
+  display: flex;
+  flex-direction: column;
+  gap: var(--tg-space-6);
+}
 
-  &_links {
-    text-align: center;
+.register__types {
+  margin: 0;
+  padding: 0;
+  border: 0;
+  min-width: 0;
+}
 
-    a {
-      margin-bottom: var(--space-4);
+.register__legend,
+.register__subtitle {
+  margin: 0 0 var(--tg-space-3);
+  padding: 0;
+  font-size: var(--tg-type-body-size);
+  line-height: var(--tg-type-body-line);
+  font-weight: var(--tg-font-weight-bold);
+}
+
+.register__type-list {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: var(--tg-space-3);
+}
+
+.register__type {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: var(--tg-space-3);
+}
+
+.register__type-icon {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 40px;
+  height: 40px;
+  border-radius: var(--tg-radius-full);
+  background: var(--tg-action-subtle);
+  color: var(--tg-action-subtle-text);
+}
+
+.register__type-text {
+  display: flex;
+  flex-direction: column;
+  gap: var(--tg-space-1);
+
+  strong {
+    font-size: var(--tg-type-body-size);
+    line-height: var(--tg-type-body-line);
+  }
+
+  span {
+    color: var(--tg-text-secondary);
+    font-size: var(--tg-type-body-sm-size);
+    line-height: var(--tg-type-body-sm-line);
+  }
+}
+
+.register__steps-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  gap: var(--tg-space-2);
+
+  .register__subtitle {
+    margin-bottom: var(--tg-space-3);
+  }
+}
+
+.register__progress {
+  flex: none;
+  color: var(--tg-text-secondary);
+  font-size: var(--tg-type-body-sm-size);
+  line-height: var(--tg-type-body-sm-line);
+}
+
+.register__step-list {
+  display: flex;
+  flex-direction: column;
+  gap: var(--tg-space-2);
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.register__step {
+  display: flex;
+  align-items: center;
+  gap: var(--tg-space-3);
+}
+
+.register__step-marker {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  flex: none;
+  width: 28px;
+  height: 28px;
+  border: 1.5px solid var(--tg-border-strong);
+  border-radius: var(--tg-radius-full);
+  color: var(--tg-text-secondary);
+  font-size: var(--tg-type-label-size);
+  font-weight: var(--tg-font-weight-bold);
+
+  &--done {
+    border-color: var(--tg-action-primary);
+    background: var(--tg-action-primary);
+    color: var(--tg-text-on-action);
+  }
+}
+
+.register__step-label {
+  flex: 1;
+  min-width: 0;
+  font-weight: var(--tg-font-weight-bold);
+}
+
+.register__step-arrow {
+  color: var(--tg-text-secondary);
+}
+
+.register__footer {
+  display: flex;
+  flex-direction: column;
+  gap: var(--tg-space-3);
+}
+
+.register__hint,
+.register__login {
+  margin: 0;
+  color: var(--tg-text-secondary);
+  font-size: var(--tg-type-body-sm-size);
+  line-height: var(--tg-type-body-sm-line);
+  text-align: center;
+}
+
+.register__login {
+  font-size: var(--tg-type-body-size);
+  line-height: var(--tg-type-body-line);
+
+  a {
+    color: var(--tg-action-primary);
+    font-weight: var(--tg-font-weight-bold);
+    text-decoration: none;
+
+    &:hover {
+      text-decoration: underline;
     }
-  }
 
-  &_links,
-  &_footer,
-  &_content,
-  &_header {
-    display: block;
-    margin-bottom: var(--space-10);
-    width: 100%;
-  }
-
-  &_header {
-    display: flex;
-    gap: var(--space-6);
-    flex-direction: column;
-  }
-
-  &_content {
-    flex: 1;
-    gap: var(--space-6);
-    display: flex;
-    flex-direction: column;
-    align-items: flex-start;
-
-    .row {
-      display: flex;
-      width: 100%;
-      align-items: center;
-      justify-content: flex-start;
-      gap: 12px;
-    }
-  }
-
-  &_footer {
-    margin-bottom: 0;
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    justify-content: center;
-    gap: 22px;
-
-    &_link {
-      text-decoration: inline;
+    &:focus-visible {
+      outline: 2px solid var(--tg-focus-ring);
+      outline-offset: 2px;
+      border-radius: var(--tg-radius-sm);
     }
   }
 }

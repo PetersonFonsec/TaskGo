@@ -1,48 +1,178 @@
-@use "mixins/position";
-@use "variables/breakpoints";
+// Casca da autenticação (Etapa 10). Só tokens --tg-*.
+// Até 960 px: faixa compacta da marca em cima e a tela embaixo. A partir daí, lado a lado.
+:host {
+  display: block;
+  min-height: 100dvh;
+  background: var(--tg-bg-canvas);
+  color: var(--tg-text-primary);
+  font-family: var(--tg-font-sans);
+}
 
-#auth-page {
-  @include position.flexCenter();
-  width: 100dvw;
+.auth {
+  display: flex;
+  flex-direction: column;
+  gap: var(--tg-space-5);
+  box-sizing: border-box;
+  min-height: 100dvh;
+  padding: var(--tg-space-4);
+}
 
-  @media (min-width: breakpoints.$desktop) {
-    height: 100dvh;
-  }
+.auth__brand {
+  display: flex;
+  align-items: center;
+  gap: var(--tg-space-3);
+  padding: var(--tg-space-4);
+  border-radius: var(--tg-radius-xl);
+  background: var(--tg-action-primary);
+  color: var(--tg-text-on-action);
+}
 
-  &_container {
-    position: relative;
-    overflow: hidden;
-    flex: 1;
-  }
+.auth__logo {
+  margin: 0;
+  font-size: var(--tg-type-title-3-size);
+  line-height: var(--tg-type-title-3-line);
+  font-weight: var(--tg-font-weight-extrabold);
+  letter-spacing: var(--tg-tracking-title);
+}
 
-  &_forms {
-    background: var(--background-color);
-    transition: var(--transition);
-    height: 100dvh;
-    flex: 0 0 0%;
-    z-index: 1;
+.auth__pitch {
+  display: none;
+}
+
+.auth__tagline {
+  margin: 0;
+  font-size: var(--tg-type-body-sm-size);
+  line-height: var(--tg-type-body-sm-line);
+  opacity: 0.85;
+}
+
+.auth__content {
+  display: flex;
+  justify-content: center;
+  flex: 1;
+}
+
+.auth__panel {
+  width: 100%;
+  max-width: 420px;
+}
+
+.auth__welcome {
+  display: flex;
+  flex-direction: column;
+  gap: var(--tg-space-6);
+}
+
+// Cabeçalho comum às telas da autenticação (entrar e recuperar usam as mesmas classes).
+:host ::ng-deep {
+  .auth__header {
+    display: flex;
     flex-direction: column;
-    min-height: 100dvh;
-    max-width: 100%;
+    gap: var(--tg-space-2);
+  }
 
-    @media (min-width: breakpoints.$desktop) {
-      height: 100%;
-      max-width: 500px;
+  .auth__title {
+    margin: 0;
+    font-size: var(--tg-type-title-1-size);
+    line-height: var(--tg-type-title-1-line);
+    font-weight: var(--tg-font-weight-extrabold);
+    letter-spacing: var(--tg-tracking-title);
+  }
+
+  .auth__lead {
+    margin: 0;
+    color: var(--tg-text-secondary);
+    font-size: var(--tg-type-body-size);
+    line-height: var(--tg-type-body-line);
+  }
+}
+
+.auth__actions {
+  display: flex;
+  flex-direction: column;
+  gap: var(--tg-space-3);
+}
+
+.auth__note {
+  margin: 0;
+  color: var(--tg-text-secondary);
+  font-size: var(--tg-type-body-sm-size);
+  line-height: var(--tg-type-body-sm-line);
+  text-align: center;
+}
+
+@media (min-width: 960px) {
+  .auth {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+    gap: var(--tg-space-8);
+    align-items: stretch;
+    padding: var(--tg-space-6);
+  }
+
+  .auth__brand {
+    flex-direction: column;
+    align-items: flex-start;
+    justify-content: space-between;
+    gap: var(--tg-space-8);
+    padding: var(--tg-space-10);
+    border-radius: var(--tg-radius-2xl);
+  }
+
+  .auth__logo {
+    font-size: var(--tg-type-title-2-size);
+    line-height: var(--tg-type-title-2-line);
+  }
+
+  .auth__pitch {
+    display: flex;
+    flex-direction: column;
+    gap: var(--tg-space-5);
+  }
+
+  .auth__headline {
+    margin: 0;
+    font-size: var(--tg-type-display-size);
+    line-height: var(--tg-type-display-line);
+    font-weight: var(--tg-font-weight-extrabold);
+    letter-spacing: var(--tg-tracking-display);
+  }
+
+  .auth__highlights {
+    display: flex;
+    flex-direction: column;
+    gap: var(--tg-space-3);
+    margin: 0;
+    padding: 0;
+    list-style: none;
+    font-size: var(--tg-type-body-size);
+    line-height: var(--tg-type-body-line);
+
+    li {
+      display: flex;
+      align-items: center;
+      gap: var(--tg-space-3);
     }
   }
 
-  &_forms:has(form) {
-    @include position.flexCenter();
-    padding: var(--space-6);
-    flex: 0 0 100%;
-    margin: 0;
+  .auth__check {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    flex: none;
+    width: 24px;
+    height: 24px;
+    border-radius: var(--tg-radius-full);
+    background: var(--tg-accent);
+    color: var(--tg-text-on-accent);
+  }
 
-    @media (min-width: breakpoints.$desktop) {
-      border-bottom-left-radius: 16px;
-      border-top-left-radius: 16px;
-      margin-left: -20px;
-      min-width: 480px;
-      flex: 0 0 25%;
-    }
+  .auth__tagline {
+    display: none;
+  }
+
+  .auth__content {
+    align-items: center;
+    padding: var(--tg-space-8) 0;
   }
 }

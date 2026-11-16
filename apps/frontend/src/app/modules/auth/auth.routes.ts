@@ -3,16 +3,18 @@ import { Routes } from '@angular/router';
 export const AuthRoutes: Routes = [
   {
     path: 'forgot-password',
+    title: 'Recuperar acesso',
     loadComponent: () => import('./recovery/recovery.page').then((c) => c.RecoveryPage),
   },
   {
     path: 'reset-password',
+    title: 'Criar nova senha',
     data: { reset: true },
     loadComponent: () => import('./recovery/recovery.page').then((c) => c.RecoveryPage),
   },
   {
     path: 'login',
-    title: `Login `,
+    title: 'Entrar',
     loadComponent: () => import('@modules/auth/login/login').then((c) => c.Login),
     data: { animation: 'login' },
   },

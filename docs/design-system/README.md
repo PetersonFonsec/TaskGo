@@ -36,8 +36,9 @@ Ionic) continuam valendo até a migração tela a tela.
 | 9 | Piloto: início do prestador (web) | Concluído (PR #27) |
 | 10 | Migração tela a tela (web e app) | Em andamento |
 | 10 | Detalhes do pedido (web) | Concluído (PR #33) |
-| 10 | Pagamento do pedido (web) | PR #35 |
-| 10 | Busca de profissionais (web) | Este PR |
+| 10 | Pagamento do pedido (web) | Concluído (PR #35) |
+| 10 | Busca de profissionais (web) | Concluído (PR #35) |
+| 10 | Entrar e recuperar acesso (web) | Este PR |
 
 Atributos de marca: próximo, confiável, direto e caloroso sem ser infantil.
 
@@ -1403,6 +1404,36 @@ lado; (4) a lista vem dos mais próximos para os mais distantes.
 
 A filtragem por nota, distância e preço continua no navegador, sobre o que a
 API devolve.
+
+### Entrar e recuperar acesso (web)
+
+`modules/auth`: a casca `AuthPage` (rota `authenticate`), Entrar
+(`authenticate/login`), Recuperar acesso (`authenticate/forgot-password`) e
+Criar nova senha (`authenticate/reset-password#token=...`). Os endpoints e
+o `returnUrl` dos e-mails de pedido não mudaram. Story: **Telas/Entrar e
+recuperar acesso** (entrada, entrar, entrar com falha da API, recuperar
+acesso, criar nova senha e link inválido).
+
+Decisões aprovadas: (1) a migração da autenticação vem em duas entregas;
+esta é a primeira e o cadastro vem depois, com proposta própria; (2) o
+carrossel de perfis saiu: a entrada mostra "Entrar" e "Criar conta", a
+escolha entre cliente e profissional fica no cadastro e estas telas usam o
+tema do cliente; (3) o painel da marca não tem ilustração por enquanto; (4)
+os erros aparecem ao enviar, e não com o botão desabilitado.
+
+| Parte | Componente | Regra |
+| --- | --- | --- |
+| Casca | painel da marca e `router-outlet` | A partir de 960 px, lado a lado: "TaskGo", "Serviços de casa, perto de você." e três destaques com `check`. No celular, uma faixa ("TaskGo · Serviços perto de você"). Liga o tema do cliente e mantém o tipo do cadastro em sincronia com o tema. |
+| Entrada | `h1` "Boas-vindas ao TaskGo", `a[tgButton]` | "Entrar" (solid) e "Criar conta" (outline, volta ao tema do cliente). |
+| Entrar | `tg-field` com `tgInput` e `tg-password-toggle` | "Esqueci minha senha" na linha do rótulo da senha. "Entrar" sempre ativo: ao enviar, cada campo mostra o erro, o foco vai ao primeiro inválido e o erro some ao corrigir. Durante o pedido, `loading` e um envio por vez. Erro da API: `tg-alert` de perigo. Rodapé: "Ainda não tem conta? Criar conta". |
+| Recuperar acesso | `tg-field` e "Enviar link" | "Voltar para entrar" no topo. Enviado, o formulário dá lugar a "Confira seu e-mail" (`tg-alert` de sucesso, com o e-mail) e "Voltar para entrar". |
+| Criar nova senha | `tg-field` com `tg-password-toggle` | Dica "Pelo menos 10 caracteres." (de 10 a 72, a regra do backend). Salva: "Senha atualizada" e "Entrar". Sem token: "Link inválido ou vencido", com "Pedir novo link". |
+
+| Criar conta | `label[tgCard]` com rádio; `a[tgCard]` com `tg-badge` | Tipo de conta em dois cards de escolha (Cliente e Profissional, com ícone e uma frase), que trocam o tema na hora. Cada passo é um card-link com número (ou `check` quando feito), o selo "Feito" ou "Pendente" e "x de y" no título. "Criar sua conta" fica desabilitado até todos os passos, com o motivo abaixo; durante o pedido, `loading`. Erro da API: `tg-alert` de perigo. |
+
+O título da aba acompanha o `h1` de cada tela. Os formulários de cada passo
+do cadastro (perfil, contato, endereço, categoria e serviços) e o aviso de
+conta criada ainda são os antigos.
 
 ## Testes
 

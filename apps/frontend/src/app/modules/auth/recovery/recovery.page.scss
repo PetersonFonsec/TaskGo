@@ -1,0 +1,38 @@
+// Recuperar acesso e Criar nova senha (Etapa 10). Só tokens --tg-*.
+:host {
+  display: block;
+}
+
+.recovery {
+  display: flex;
+  flex-direction: column;
+  gap: var(--tg-space-6);
+}
+
+.recovery__form {
+  display: flex;
+  flex-direction: column;
+  gap: var(--tg-space-4);
+}
+
+.recovery__back {
+  display: inline-flex;
+  align-items: center;
+  align-self: flex-start;
+  gap: var(--tg-space-1);
+  color: var(--tg-action-primary);
+  font-size: var(--tg-type-label-size);
+  line-height: var(--tg-type-label-line);
+  font-weight: var(--tg-font-weight-bold);
+  text-decoration: none;
+
+  &:hover {
+    text-decoration: underline;
+  }
+
+  &:focus-visible {
+    outline: 2px solid var(--tg-focus-ring);
+    outline-offset: 2px;
+    border-radius: var(--tg-radius-sm);
+  }
+}

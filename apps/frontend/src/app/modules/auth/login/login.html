@@ -1,57 +1,51 @@
-<form #form="ngForm" (ngSubmit)="login()" id="login-form">
-  <header id="login-form_header">
-    <h2 class="main-title">Login</h2>
-    <p class="text">Por favor, insira suas credenciais para acessar sua conta.</p>
+<div class="login">
+  <header class="auth__header">
+    <h1 class="auth__title">Entrar</h1>
+    <p class="auth__lead">Use o e-mail e a senha da sua conta.</p>
   </header>
 
-  <div id="login-form_content">
-    <app-input-text
-      name="email"
-      id="email"
-      type="email"
-      [email]="true"
-      label="Email"
-      [autofocus]="true"
-      [required]="true"
-      placeholder="Informe o seu email"
-      #email="ngModel"
-      [(ngModel)]="payload.email"
-    />
-
-    <app-input-text
-      name="senha"
-      id="senha"
-      [(ngModel)]="payload.password"
-      type="password"
-      label="Senha"
-      #password="ngModel"
-      [required]="true"
-      placeholder="Informe a sua senha"
-    />
-  </div>
-
-  <div id="login-form_links">
-    <a
-      id="forgot-password-link"
-      routerLink="/authenticate/forgot-password"
-      class="text color-neutral"
-    >
-      Esqueceu a senha ? <strong class="text">Clique aqui.</strong>
-    </a>
-
-    <a id="register-link" routerLink="/authenticate/register" class="text color-neutral">
-      Ainda não tem uma conta ?
-      <strong class="text">Cadastre-se !</strong>
-    </a>
-  </div>
-
   @if (error()) {
-    <alert @fade>
-      {{ error() }}
-    </alert>
+    <tg-alert tone="danger" title="Não foi possível entrar">{{ error() }}</tg-alert>
   }
 
-  <footer id="login-form_footer">
-    <app-button type="submit" [disabled]="!!form.invalid" color="primary"> Entrar </app-button>
-  </footer>
-</form>
+  <form class="login__form" novalidate (submit)="$event.preventDefault(); login()">
+    <tg-field label="E-mail" [error]="emailError()">
+      <input
+        #emailInput
+        tgInput
+        id="login-email"
+        name="email"
+        type="email"
+        inputmode="email"
+        autocomplete="email"
+        placeholder="nome@email.com"
+        [value]="email()"
+        (input)="setValue('email', $event)"
+      />
+    </tg-field>
+
+    <div class="login__password">
+      <tg-field label="Senha" [error]="passwordError()">
+        <input
+          #passwordInput
+          tgInput
+          id="login-password"
+          name="password"
+          type="password"
+          autocomplete="current-password"
+          [value]="password()"
+          (input)="setValue('password', $event)"
+        />
+        <tg-password-toggle tgSuffix />
+      </tg-field>
+      <a id="forgot-password-link" class="login__forgot" routerLink="/authenticate/forgot-password">Esqueci minha senha</a>
+    </div>
+
+    <button tgButton id="login-submit" type="submit" size="lg" fullWidth [loading]="loading()">Entrar</button>
+  </form>
+
+  <p class="login__footer">
+    Ainda não tem conta?
+    <a id="register-link" routerLink="/authenticate/register">Criar conta</a>
+  </p>
+</div>
