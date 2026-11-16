@@ -85,6 +85,59 @@
     font-size: var(--tg-type-body-size);
     line-height: var(--tg-type-body-line);
   }
+
+  // Passos do cadastro: "Passo n" acima do título, voltar no topo e o formulário.
+  .auth__screen {
+    display: flex;
+    flex-direction: column;
+    gap: var(--tg-space-6);
+  }
+
+  .auth__eyebrow {
+    margin: 0;
+    color: var(--tg-text-secondary);
+    font-size: var(--tg-type-overline-size);
+    line-height: var(--tg-type-overline-line);
+    font-weight: var(--tg-font-weight-bold);
+    letter-spacing: var(--tg-tracking-overline);
+    text-transform: uppercase;
+  }
+
+  .auth__back {
+    display: inline-flex;
+    align-items: center;
+    align-self: flex-start;
+    gap: var(--tg-space-1);
+    color: var(--tg-action-primary);
+    font-size: var(--tg-type-label-size);
+    line-height: var(--tg-type-label-line);
+    font-weight: var(--tg-font-weight-bold);
+    text-decoration: none;
+
+    &:hover {
+      text-decoration: underline;
+    }
+
+    &:focus-visible {
+      outline: 2px solid var(--tg-focus-ring);
+      outline-offset: 2px;
+      border-radius: var(--tg-radius-sm);
+    }
+  }
+
+  .auth__form {
+    display: flex;
+    flex-direction: column;
+    gap: var(--tg-space-4);
+  }
+
+
+  .auth__muted {
+    margin: 0;
+    color: var(--tg-text-secondary);
+    font-size: var(--tg-type-body-sm-size);
+    line-height: var(--tg-type-body-sm-line);
+  }
 }
 
 .auth__actions {

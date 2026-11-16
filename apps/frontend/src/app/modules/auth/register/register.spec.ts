@@ -22,7 +22,7 @@ describe('Register', () => {
     register = jasmine.createSpy('register').and.callFake(response);
     TestBed.configureTestingModule({
       imports: [Register],
-      providers: [provideRouter([]), { provide: RegisterUser, useValue: { completeSteps, register } }],
+      providers: [provideRouter([]), { provide: RegisterUser, useValue: { completeSteps, register, user: signal({ name: 'Ana Souza' }) } }],
     });
     TestBed.inject(Theme).setTheme(Roles.CUSTOMER);
     TestBed.inject(UserStorage).type.set(Roles.CUSTOMER);
@@ -72,7 +72,7 @@ describe('Register', () => {
     expect(element.querySelector('#register-hint')).toBeNull();
   });
 
-  it('registers once while the request runs and then opens the success modal', () => {
+  it('registers once while the request runs and then shows "Conta criada" in place of the steps', async () => {
     const pending = new Subject<unknown>();
     setup({ profile: true, contact: true, address: true }, () => pending);
     submit().click();
@@ -83,7 +83,27 @@ describe('Register', () => {
     pending.next({ user: {} });
     pending.complete();
     fixture.detectChanges();
-    expect(fixture.componentInstance.showModal()).toBeTrue();
+    await fixture.whenStable();
+    const title = element.querySelector<HTMLElement>('h1');
+    expect(title?.textContent?.trim()).toBe('Conta criada');
+    expect(document.activeElement).toBe(title);
+    expect(element.querySelector('.auth__lead')?.textContent).toContain('Tudo pronto, Ana.');
+    expect(element.querySelector('#register-submit')).toBeNull();
+    expect(element.querySelector('.full-modal')).toBeNull();
+    expect(element.querySelector('#register-done-primary')?.getAttribute('href')).toBe('/customer/search');
+    expect(element.querySelector('#register-done-primary')?.textContent?.trim()).toBe('Buscar profissionais');
+    expect(element.querySelector('#register-done-home')?.textContent?.trim()).toBe('Ir para o início');
+  });
+
+  it('points a new provider to "Configurar meus serviços"', () => {
+    setup({ profile: true, contact: true, address: true, service: true });
+    radio('account-type-provider').click();
+    fixture.detectChanges();
+    submit().click();
+    fixture.detectChanges();
+    const primary = element.querySelector('#register-done-primary');
+    expect(primary?.textContent?.trim()).toBe('Configurar meus serviços');
+    expect(primary?.getAttribute('href')).toBe('/provider/services');
   });
 
   it('shows the API error in a danger alert', () => {
@@ -93,5 +113,6 @@ describe('Register', () => {
     submit().click();
     fixture.detectChanges();
     expect(element.querySelector('tg-alert')?.textContent).toContain('Email já cadastrado');
+    expect(element.querySelector('h1')?.textContent?.trim()).toBe('Criar conta');
   });
 });

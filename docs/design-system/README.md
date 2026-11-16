@@ -38,7 +38,8 @@ Ionic) continuam valendo até a migração tela a tela.
 | 10 | Detalhes do pedido (web) | Concluído (PR #33) |
 | 10 | Pagamento do pedido (web) | Concluído (PR #35) |
 | 10 | Busca de profissionais (web) | Concluído (PR #35) |
-| 10 | Entrar e recuperar acesso (web) | Este PR |
+| 10 | Entrar, recuperar acesso e Criar conta (web) | Concluído (PR #37) |
+| 10 | Passos do cadastro e conta criada (web) | Este PR |
 
 Atributos de marca: próximo, confiável, direto e caloroso sem ser infantil.
 
@@ -1428,12 +1429,34 @@ os erros aparecem ao enviar, e não com o botão desabilitado.
 | Entrar | `tg-field` com `tgInput` e `tg-password-toggle` | "Esqueci minha senha" na linha do rótulo da senha. "Entrar" sempre ativo: ao enviar, cada campo mostra o erro, o foco vai ao primeiro inválido e o erro some ao corrigir. Durante o pedido, `loading` e um envio por vez. Erro da API: `tg-alert` de perigo. Rodapé: "Ainda não tem conta? Criar conta". |
 | Recuperar acesso | `tg-field` e "Enviar link" | "Voltar para entrar" no topo. Enviado, o formulário dá lugar a "Confira seu e-mail" (`tg-alert` de sucesso, com o e-mail) e "Voltar para entrar". |
 | Criar nova senha | `tg-field` com `tg-password-toggle` | Dica "Pelo menos 10 caracteres." (de 10 a 72, a regra do backend). Salva: "Senha atualizada" e "Entrar". Sem token: "Link inválido ou vencido", com "Pedir novo link". |
-
 | Criar conta | `label[tgCard]` com rádio; `a[tgCard]` com `tg-badge` | Tipo de conta em dois cards de escolha (Cliente e Profissional, com ícone e uma frase), que trocam o tema na hora. Cada passo é um card-link com número (ou `check` quando feito), o selo "Feito" ou "Pendente" e "x de y" no título. "Criar sua conta" fica desabilitado até todos os passos, com o motivo abaixo; durante o pedido, `loading`. Erro da API: `tg-alert` de perigo. |
 
-O título da aba acompanha o `h1` de cada tela. Os formulários de cada passo
-do cadastro (perfil, contato, endereço, categoria e serviços) e o aviso de
-conta criada ainda são os antigos.
+O título da aba acompanha o `h1` de cada tela.
+
+### Passos do cadastro e conta criada
+
+Rotas `authenticate/profile`, `contact`, `address`, `category` e
+`category/:id/service`. O pedido `POST /auth/register` não mudou. Story:
+**Telas/Cadastro** (um passo por história, com erros, CEP não encontrado e
+conta criada de cliente e de profissional).
+
+Decisões aprovadas: (1) um passo por tela, com "Voltar para Criar conta" no
+topo e "Salvar e voltar" no fim; (2) senha de 10 a 72 caracteres e CPF com os
+dígitos verificadores conferidos; (3) CEP não encontrado mostra um aviso com
+"Usar minha localização", porque a API exige latitude e longitude; (4) a
+conta criada aparece na própria casca, sem modal. Como em Entrar, os erros
+aparecem ao enviar, o foco vai ao primeiro inválido e os botões nunca ficam
+desabilitados por validação.
+
+| Passo | Componente | Regra |
+| --- | --- | --- |
+| Cabeçalho | `a.auth__back`, sobretítulo e `h1` | "Passo 1" a "Passo 4 · profissional" acima do título. O rascunho fica guardado: voltar a um passo traz o que já foi preenchido. |
+| Perfil | `tg-field` com `tgInput`, máscara e `tg-password-toggle` | Nome, e-mail, celular com DDD, CPF e senha com confirmação, um campo por linha. CPF inválido: "Confira o CPF: os dígitos não batem." |
+| Contato | `tg-field` opcional, prefixo `@` | WhatsApp, Instagram, Facebook e LinkedIn, todos opcionais. WhatsApp, se preenchido, precisa estar completo. O `@` digitado ou colado no Instagram não duplica. |
+| Localização | `tg-field`, `tg-alert` e "Usar minha localização" | O CEP completo busca o endereço e mostra "Cidade · UF". Sem coordenadas, `tg-alert` de aviso ("Não achamos esse CEP", "Precisamos da sua localização" ou "Não foi possível buscar o CEP") com o botão; cidade e UF viram campos quando o CEP não as trouxe. Salvar sem localização torna o aviso de perigo e leva o foco ao botão. |
+| Categoria | `label[tgCard]` com rádio, `tg-loading` | Grade de cards (2 colunas). Carregando: esqueletos. Falha: `tg-alert` de perigo com "Tentar de novo". Sem escolha: "Escolha uma categoria". |
+| Serviços | `label[tgCard]` com checkbox | Lista da categoria, com "N selecionados". Sem escolha: "Escolha pelo menos um serviço". "Adicionar serviços" volta para Criar conta. |
+| Conta criada | ícone `check`, `h1` com foco, `a[tgButton]` | Substitui os passos. Profissional: "Configurar meus serviços" e "Ir para o início". Cliente: "Buscar profissionais" e "Ir para o início". |
 
 ## Testes
 

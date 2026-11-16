@@ -7,17 +7,17 @@ const apiUrl = Cypress.env('url');
 const client = {
   name: 'Cliente Teste',
   email: 'cliente.teste@taskgo.com',
-  password: '123456',
-  cpf: '123.456.789-01',
-  phone: '(11) 91234-5678',
+  password: 'senha-cliente-123',
+  cpf: '529.982.247-25',
+  phone: '(11) 9 1234-5678',
 };
 
 const provider = {
   name: 'Prestador Teste',
   email: 'prestador.teste@taskgo.com',
-  password: '123456',
-  cpf: '123.456.789-10',
-  phone: '(11) 92345-6789',
+  password: 'senha-prestador-123',
+  cpf: '123.456.789-09',
+  phone: '(11) 9 2345-6789',
 };
 
 const authResponses = {
@@ -112,20 +112,19 @@ function fillProfile(user: typeof client) {
 
   cy.get('#profile-step').click();
   cy.url().should('include', '/authenticate/profile');
-  profile.submitButton.should('be.disabled');
   profile.fillForm();
-  profile.submitButton.should('be.enabled').click();
+  profile.submitButton.click();
   cy.url().should('include', '/authenticate/register');
 }
 
 function fillContact() {
   cy.get('#contact-step').click();
   cy.url().should('include', '/authenticate/contact');
-  cy.get('#whatsapp-input').type('11 11 99999-9999');
-  cy.get('#instagram-input').type('@taskgo');
+  cy.get('#whatsapp-input').type('11999999999');
+  cy.get('#instagram-input').type('@taskgo').should('have.value', 'taskgo');
   cy.get('#facebook-input').type('taskgo');
   cy.get('#linkedin-input').type('taskgo');
-  cy.contains('#social-form_footer button', 'Salvar').click();
+  cy.get('#social-submit').click();
   cy.url().should('include', '/authenticate/register');
 }
 
@@ -140,7 +139,7 @@ function fillAddress() {
   cy.get('#neighborhood-input').should('have.value', cepResponse.neighborhood);
   cy.get('#number-input').type('100');
   cy.get('#complement-input').type('Sala 1');
-  cy.contains('#address-form_footer button', 'Criar endereço').should('be.enabled').click();
+  cy.get('#address-submit').click();
   cy.url().should('include', '/authenticate/register');
 }
 
@@ -151,26 +150,35 @@ function fillProviderService() {
   cy.get('#category-step').click();
   cy.url().should('include', '/authenticate/category');
   cy.wait('@getCategories');
-  cy.contains('#category-form_content app-card', 'Limpeza').click();
-  cy.contains('#category-form_footer button', 'Selecionar categoria').should('be.enabled').click();
+  cy.get('#category-submit').click();
+  cy.contains('tg-alert', 'Escolha uma categoria').should('be.visible');
+  cy.contains('#category-list label', 'Limpeza').click();
+  cy.get('#category-1 input[type=radio]').should('be.checked');
+  cy.get('#category-submit').click();
 
   cy.url().should('include', '/authenticate/category/1/service');
   cy.wait('@getCategoryDetails');
-  cy.contains('#service-form_content label.checkbox', 'Faxina residencial').click();
-  cy.get('#service-form_content input[type=checkbox]').should('be.checked');
-  cy.contains('#service-form_content label.checkbox', 'Faxina residencial').click();
-  cy.get('#service-form_content input[type=checkbox]').should('not.be.checked');
-  cy.contains('#service-form_footer button', 'Adicionar serviços').should('be.disabled');
-  cy.contains('#service-form_content label.checkbox', 'Faxina residencial').click();
-  cy.contains('#service-form_footer button', 'Adicionar serviços').should('be.enabled').click();
+  cy.contains('#service-list label', 'Faxina residencial').click();
+  cy.get('#service-list input[type=checkbox]').should('be.checked');
+  cy.contains('#service-list label', 'Faxina residencial').click();
+  cy.get('#service-list input[type=checkbox]').should('not.be.checked');
+  cy.get('#services-submit').click();
+  cy.contains('tg-alert', 'Escolha pelo menos um serviço').should('be.visible');
+  cy.contains('#service-list label', 'Faxina residencial').click();
+  cy.get('#services-submit').click();
   cy.url().should('include', '/authenticate/register');
 }
 
 function assertRegisteredSession(role: 'client' | 'provider') {
   const response = authResponses[role];
   const path = role === 'client' ? '/customer' : '/provider';
-  cy.contains('.full-modal', 'Perfil Criado!!').should('be.visible');
-  cy.contains('.full-modal button', 'Acessar Plataforma').click();
+  cy.contains('h1', 'Conta criada').should('be.visible').and('have.focus');
+  cy.get('#register-done-primary').should(
+    'have.attr',
+    'href',
+    role === 'client' ? '/customer/search' : '/provider/services',
+  );
+  cy.get('#register-done-home').click();
   cy.location('pathname').should('eq', path);
   cy.window().then((win) => {
     expect(win.localStorage.getItem('@ODIN/TOKEN')).to.equal(response.access_token);
@@ -298,11 +306,13 @@ describe('Cadastro de usuários', () => {
     visitAuth('/authenticate/profile');
     const profile = new RegisterProfileFormElements(client);
     profile.fillForm();
-    profile.confirmPasswordInput.clear().type('outra-senha');
-    profile.submitButton.should('be.disabled');
-    cy.contains('[role=alert]', 'As senhas devem ser iguais.').should('be.visible');
+    profile.confirmPasswordInput.clear().type('outra-senha-123');
+    profile.submitButton.click();
+    cy.contains('tg-field', 'As senhas não são iguais.').should('be.visible');
+    profile.confirmPasswordInput.should('have.focus');
+    cy.location('pathname').should('eq', '/authenticate/profile');
     profile.confirmPasswordInput.clear().type(client.password);
-    profile.submitButton.should('be.enabled').click();
+    profile.submitButton.click();
     cy.location('pathname').should('eq', '/authenticate/register');
   });
 
@@ -344,7 +354,7 @@ describe('Cadastro de usuários', () => {
         expect(user.name).to.equal(client.name);
         expect(user.email).to.equal(client.email);
         expect(user.phone).to.equal('11912345678');
-        expect(user.cpf).to.equal('12345678901');
+        expect(user.cpf).to.equal('52998224725');
         expect(user.password).to.equal(client.password);
         expect(user.address).to.include({
           cep: '01001000',
@@ -376,7 +386,7 @@ describe('Cadastro de usuários', () => {
 
     cy.wait('@registerError');
     register.alertComponent.should('contain.text', 'Email já cadastrado');
-    cy.get('.full-modal').should('not.exist');
+    cy.contains('h1', 'Conta criada').should('not.exist');
     cy.window().its('localStorage').invoke('getItem', '@ODIN/TOKEN').should('be.null');
     cy.intercept('POST', `${apiUrl}/auth/register`, {
       statusCode: 201,

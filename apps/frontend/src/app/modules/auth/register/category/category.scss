@@ -1,36 +1,27 @@
-@use "../../../../scss/mixins/grid" as grid;
+// Passo 4 do cadastro (Etapa 10). Só tokens --tg-*.
+:host {
+  display: block;
+}
 
-#category-form {
-  @include grid.directionColumn();
-  @include grid.container(400px);
-  height: 100%;
-  padding: var(--space-10) 0;
+.choice-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: var(--tg-space-3);
+}
 
-  &_links,
-  &_footer,
-  &_content,
-  &_header {
-    display: block;
-    margin-bottom: var(--space-14);
-    width: 100%;
-  }
+.choice {
+  display: flex;
+  align-items: center;
+  gap: var(--tg-space-3);
+}
 
-  &_header {
-    display: flex;
-    gap: var(--space-6);
-    flex-direction: column;
-  }
+.choice__label {
+  font-weight: var(--tg-font-weight-bold);
+  overflow-wrap: anywhere;
+}
 
-  &_content {
-    display: grid;
-    grid-template-columns: repeat(2, 1fr);
-    gap: var(--space-6);
-    flex: 1;
-  }
-
-  &_footer {
-    display: flex;
-    gap: var(--space-6);
-    margin-bottom: 0;
-  }
+.choice-list {
+  display: flex;
+  flex-direction: column;
+  gap: var(--tg-space-3);
 }

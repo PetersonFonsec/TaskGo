@@ -1,50 +1,62 @@
-import { Component, inject, signal } from '@angular/core';
+import { ChangeDetectionStrategy, Component, ElementRef, computed, inject, signal, viewChild } from '@angular/core';
 import { LiveAnnouncer } from '@angular/cdk/a11y';
 import { FormsModule } from '@angular/forms';
-import { Router } from '@angular/router';
-
-import { InputTextComponent } from '@shared/components/forms/input-text/input-text.component';
-import { ButtonBackComponent } from '@shared/components/ui/button-back/button-back.component';
-import { ButtonComponent } from '@shared/components/ui/button/button.component';
+import { Router, RouterLink } from '@angular/router';
+import { NgxMaskDirective, provideNgxMask } from 'ngx-mask';
 
 import { RegisterUser } from '@modules/auth/services/register-user/register-user';
+import { TgButtonComponent } from '@shared/design-system/button/tg-button.component';
+import { TgFieldComponent } from '@shared/design-system/field/tg-field.component';
+import { TgInputDirective } from '@shared/design-system/field/tg-input.directive';
+import { TgIconComponent } from '@shared/design-system/icon/tg-icon.component';
+import { mobileError } from '../register-validation';
 
-export class SocialForm {
-  whatsapp = '';
-  instagram = '';
-  facebook = '';
-  linkdin = '';
+/** Instagram sem o @ na tela (o @ é o prefixo do campo) e com o @ no rascunho. */
+export const instagramHandle = (value: string) => value.trim().replace(/^@+/, '');
 
-  constructor(obj: Partial<SocialForm>) {
-    Object.assign(this, obj);
-  }
-}
+/** Passo 2 do cadastro: contato e redes, tudo opcional. */
 @Component({
   selector: 'app-social',
-  imports: [
-    InputTextComponent,
-    ButtonComponent,
-    ButtonBackComponent,
-    FormsModule
-  ],
+  imports: [FormsModule, NgxMaskDirective, RouterLink, TgButtonComponent, TgFieldComponent, TgIconComponent, TgInputDirective],
+  providers: [provideNgxMask()],
   templateUrl: './social.html',
-  styleUrl: './social.scss',
+  styles: ':host { display: block; }',
+  changeDetection: ChangeDetectionStrategy.OnPush,
 })
 export class Social {
   #liveAnnouncer = inject(LiveAnnouncer);
   #registerUser = inject(RegisterUser);
   #router = inject(Router);
-  error = signal("");
 
-  payload!: SocialForm;
+  readonly #draft = this.#registerUser.user().social;
+  readonly whatsapp = signal(this.#draft.whatsapp);
+  readonly instagram = signal(instagramHandle(this.#draft.instagram));
+  readonly facebook = signal(this.#draft.facebook);
+  readonly linkedin = signal(this.#draft.linkdin);
+  readonly submitted = signal(false);
 
-  ngOnInit(): void {
-    this.payload = new SocialForm(this.#registerUser.user().social);
+  readonly whatsappError = computed(() => (this.submitted() ? mobileError(this.whatsapp(), true) : ''));
+  readonly whatsappInput = viewChild<ElementRef<HTMLInputElement>>('whatsappInput');
+
+  /** O @ já é o prefixo do campo: colar ou digitar "@perfil" guarda só "perfil". */
+  handle(value: string) {
+    return instagramHandle(value ?? '');
   }
 
   saveSocial() {
-    this.#registerUser.addSocial(this.payload);
-    this.#liveAnnouncer.announce("Salvo dados pessoais com sucesso");
+    this.submitted.set(true);
+    if (this.whatsappError()) {
+      this.whatsappInput()?.nativeElement.focus();
+      return;
+    }
+    const instagram = instagramHandle(this.instagram());
+    this.#registerUser.addSocial({
+      whatsapp: this.whatsapp(),
+      instagram: instagram ? `@${instagram}` : '',
+      facebook: this.facebook().trim(),
+      linkdin: this.linkedin().trim(),
+    });
+    this.#liveAnnouncer.announce('Contato salvo');
     this.#router.navigateByUrl('/authenticate/register');
   }
 }

@@ -1,26 +1,50 @@
-<form id="category-form">
-  <header id="category-form_header">
-    <h2 class="main-title">
-      Em que categoria <br>
-      seu serviço se enquadra?
-    </h2>
-    <p class="text">
-     Todos os serviços são agrupados em categorias
-    </p>
+<div class="auth__screen">
+  <a class="auth__back" routerLink="/authenticate/register">
+    <tg-icon name="arrow-left" [size]="16" />
+    Voltar para Criar conta
+  </a>
+
+  <header class="auth__header">
+    <p class="auth__eyebrow">Passo 4 · profissional</p>
+    <h1 class="auth__title">Qual é a sua área?</h1>
+    <p class="auth__lead">Escolha a categoria dos serviços que você oferece.</p>
   </header>
 
-  <div id="category-form_content">
-    @for (category of categories(); track $index) {
-      <app-card (click)="categorySelected.set(category)" [selected]="categorySelected() && categorySelected().id === category.id">
-        {{ category.name }}
-      </app-card>
-    }
-  </div>
+  @if (loadError()) {
+    <tg-alert tone="danger" title="Não foi possível carregar as categorias">
+      Verifique sua conexão e tente de novo.
+      <button tgButton tgAlertAction type="button" appearance="outline" size="sm" (click)="retry.next()">Tentar de novo</button>
+    </tg-alert>
+  } @else {
+    <tg-loading label="Carregando categorias" [loading]="loading()">
+      <ng-template tgLoadingSkeleton>
+        <div class="choice-grid">
+          @for (item of [1, 2, 3, 4, 5, 6]; track item) {
+            <tg-skeleton [height]="56" />
+          }
+        </div>
+      </ng-template>
 
-  <footer id="category-form_footer">
-    <app-button-back color="primary" />
-    <app-button [disabled]="!categorySelected()" (click)="selectCategory()" color="primary">
-      Selecionar categoria
-    </app-button>
-  </footer>
-</form>
+      <form class="auth__form" novalidate (submit)="$event.preventDefault(); selectCategory()">
+        @if (submitted() && selectedId() === null) {
+          <tg-alert tone="danger" title="Escolha uma categoria">Marque a área dos seus serviços para continuar.</tg-alert>
+        }
+        <div #list id="category-list" class="choice-grid" role="radiogroup" aria-label="Categoria">
+          @for (category of categories(); track category.id) {
+            <label tgCard indicator="control" class="choice" [id]="'category-' + category.id">
+              <input
+                type="radio"
+                name="category"
+                [value]="category.id"
+                [checked]="selectedId() === category.id"
+                (change)="select(category.id)"
+              />
+              <span class="choice__label">{{ category.name }}</span>
+            </label>
+          }
+        </div>
+        <button tgButton id="category-submit" type="submit" size="lg" fullWidth>Continuar</button>
+      </form>
+    </tg-loading>
+  }
+</div>

@@ -1,53 +1,106 @@
-import { Component, inject, OnInit, signal } from '@angular/core';
-import { ActivatedRoute, Router } from '@angular/router';
-import { map, switchMap } from 'rxjs';
-
-import { InputCheckboxComponent } from '@shared/components/forms/input-checkbox/input-checkbox.component';
-import { ButtonBackComponent } from '@shared/components/ui/button-back/button-back.component';
-import { ButtonComponent } from '@shared/components/ui/button/button.component';
-import { ISubCategory } from '@shared/service/category/category.model';
-import { CategoryService } from '@shared/service/category/category';
+import { ChangeDetectionStrategy, Component, DestroyRef, ElementRef, computed, inject, signal, viewChild } from '@angular/core';
+import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
+import { ActivatedRoute, Router, RouterLink } from '@angular/router';
+import { LiveAnnouncer } from '@angular/cdk/a11y';
+import { Subject, catchError, combineLatest, map, of, startWith, switchMap, tap } from 'rxjs';
 
 import { RegisterUser } from '@modules/auth/services/register-user/register-user';
+import { CategoryService } from '@shared/service/category/category';
+import { ISubCategory } from '@shared/service/category/category.model';
+import { TgAlertComponent } from '@shared/design-system/feedback/tg-alert.component';
+import { TgButtonComponent } from '@shared/design-system/button/tg-button.component';
+import { TgCardComponent } from '@shared/design-system/card/tg-card.component';
+import { TgIconComponent } from '@shared/design-system/icon/tg-icon.component';
+import { TgLoadingComponent, TgLoadingSkeletonDirective } from '@shared/design-system/skeleton/tg-loading.component';
+import { TgSkeletonComponent } from '@shared/design-system/skeleton/tg-skeleton.component';
 
+/** Ids dos serviços já escolhidos, para quem volta ao passo. */
+function savedServiceIds(services: unknown[]): Set<number> {
+  const ids = services
+    .map((service) => (service as Partial<ISubCategory> | null)?.id)
+    .filter((id): id is number => typeof id === 'number');
+  return new Set(ids);
+}
+
+/** Passo 4 do cadastro (profissional): os serviços da categoria escolhida. */
 @Component({
   selector: 'app-services',
-  imports: [ButtonComponent, ButtonBackComponent, InputCheckboxComponent],
+  imports: [RouterLink, TgAlertComponent, TgButtonComponent, TgCardComponent, TgIconComponent, TgLoadingComponent, TgLoadingSkeletonDirective, TgSkeletonComponent],
   templateUrl: './services.html',
-  styleUrl: './services.scss',
+  styleUrl: '../category/category.scss',
+  changeDetection: ChangeDetectionStrategy.OnPush,
 })
-export class Services implements OnInit {
-  serviceSelected = signal<Set<ISubCategory>>(new Set());
-  services = signal<ISubCategory[]>([]);
-
+export class Services {
   #categoryService = inject(CategoryService);
   #registerUser = inject(RegisterUser);
-  #activatedRouter = inject(ActivatedRoute);
+  #liveAnnouncer = inject(LiveAnnouncer);
+  #route = inject(ActivatedRoute);
   #router = inject(Router);
 
-  ngOnInit(): void {
-    this.#activatedRouter.paramMap
+  readonly categoryName = signal('');
+  readonly services = signal<ISubCategory[]>([]);
+  readonly selectedIds = signal<Set<number>>(savedServiceIds(this.#registerUser.user().services));
+  readonly loading = signal(true);
+  readonly loadError = signal(false);
+  readonly submitted = signal(false);
+  readonly retry = new Subject<void>();
+
+  /** Só conta o que é desta categoria (o rascunho pode ter outra). */
+  readonly selected = computed(() => this.services().filter((service) => this.selectedIds().has(service.id)));
+  readonly countLabel = computed(() => {
+    const count = this.selected().length;
+    return count === 1 ? '1 selecionado' : `${count} selecionados`;
+  });
+
+  readonly list = viewChild<ElementRef<HTMLElement>>('list');
+
+  constructor() {
+    // Só a consulta ativa mexe no estado: o switchMap descarta a anterior, e
+    // loading e erro são decididos pela resposta, não por finalize (que
+    // rodaria ao cancelar a consulta antiga, depois de a nova começar). A
+    // lista é limpa ao começar, para não mostrar a categoria anterior.
+    combineLatest([this.#route.paramMap.pipe(map((params) => params.get('categoryId') ?? '')), this.retry.pipe(startWith(undefined))])
       .pipe(
-        map((params) => params.get('categoryId') ?? ''),
-        switchMap((id) => this.#categoryService.getCategoryById(id)),
+        tap(() => {
+          this.loading.set(true);
+          this.loadError.set(false);
+          this.categoryName.set('');
+          this.services.set([]);
+        }),
+        switchMap(([id]) => this.#categoryService.getCategoryById(id).pipe(catchError(() => of(null)))),
+        takeUntilDestroyed(inject(DestroyRef)),
       )
-      .subscribe({
-        next: ({ subcategories }) => {
-          this.services.update(() => subcategories);
-        },
+      .subscribe((category) => {
+        this.loading.set(false);
+        if (!category) {
+          this.loadError.set(true);
+          return;
+        }
+        this.categoryName.set(category.name ?? '');
+        this.services.set(category.subcategories ?? []);
       });
   }
 
-  addSubCategory(subCategory: ISubCategory) {
-    const subCategoryList = new Set(this.serviceSelected());
-    if (subCategoryList.has(subCategory)) subCategoryList.delete(subCategory);
-    else subCategoryList.add(subCategory);
-    this.serviceSelected.update(() => subCategoryList);
+  isSelected(service: ISubCategory) {
+    return this.selectedIds().has(service.id);
+  }
+
+  toggle(service: ISubCategory) {
+    const ids = new Set(this.selectedIds());
+    if (ids.has(service.id)) ids.delete(service.id);
+    else ids.add(service.id);
+    this.selectedIds.set(ids);
   }
 
   addServiceSelected() {
-    if (!this.serviceSelected().size) return;
-    this.#registerUser.addService(this.serviceSelected());
-    this.#router.navigateByUrl('authenticate/register');
+    this.submitted.set(true);
+    const selected = this.selected();
+    if (!selected.length) {
+      this.list()?.nativeElement.querySelector<HTMLInputElement>('input[type="checkbox"]')?.focus();
+      return;
+    }
+    this.#registerUser.addService(selected);
+    this.#liveAnnouncer.announce('Serviços adicionados');
+    this.#router.navigateByUrl('/authenticate/register');
   }
 }

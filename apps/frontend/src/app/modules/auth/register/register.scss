@@ -164,3 +164,18 @@
     }
   }
 }
+
+.register__done-icon {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 56px;
+  height: 56px;
+  border-radius: var(--tg-radius-full);
+  background: var(--tg-feedback-success-bg);
+  color: var(--tg-feedback-success-text);
+}
+
+.register--done .auth__title:focus {
+  outline: none;
+}
