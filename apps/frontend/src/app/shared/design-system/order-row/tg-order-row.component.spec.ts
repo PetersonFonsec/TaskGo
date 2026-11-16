@@ -177,7 +177,7 @@ describe('TgOrderRowComponent', () => {
 
     it('prestador: links de Responder e Finalizar', () => {
       set({ status: 'AGUARDANDO_APROVACAO' }, 'provider');
-      expect(q('a.tg-order-row__action')!.getAttribute('href')).toBe('/orders/7');
+      expect(q('a.tg-order-row__action')!.getAttribute('href')).toBe('/provider/7/aprovacao');
       set({ status: 'EM_ANDAMENTO' }, 'provider');
       expect(q('a.tg-order-row__action')!.getAttribute('href')).toBe('/orders/7/finish');
     });

@@ -103,7 +103,7 @@ describe('tgOrderNextStep', () => {
   });
 
   it('prestador: Responder, Estou a caminho, Iniciar serviço e Finalizar serviço', () => {
-    expect(step('AGUARDANDO_APROVACAO', 'provider')).toEqual({ label: 'Responder', link: ['/orders', '7'] });
+    expect(step('AGUARDANDO_APROVACAO', 'provider')).toEqual({ label: 'Responder', link: ['/provider', '7', 'aprovacao'] });
     expect(step('AGENDADO', 'provider')).toEqual({ label: 'Estou a caminho', action: 'EM_DESLOCAMENTO' });
     expect(step('EM_DESLOCAMENTO', 'provider')).toEqual({ label: 'Iniciar serviço', action: 'EM_ANDAMENTO' });
     expect(step('EM_ANDAMENTO', 'provider')).toEqual({ label: 'Finalizar serviço', link: ['/orders', '7', 'finish'] });

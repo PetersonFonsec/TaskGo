@@ -2,9 +2,9 @@
   <div class="revenue-chart__plot">
     @for (item of data(); track item.month) {
       <div class="revenue-chart__column">
-        <span class="revenue-chart__value">
-          {{ item.revenue | currency: 'BRL' : 'symbol' : '1.0-0' }}
-        </span>
+        <span class="revenue-chart__value"
+          ><span>R$</span>{{ ' ' }}<span>{{ amount(item.revenue) }}</span></span
+        >
         <div class="revenue-chart__track">
           <div
             class="revenue-chart__bar"

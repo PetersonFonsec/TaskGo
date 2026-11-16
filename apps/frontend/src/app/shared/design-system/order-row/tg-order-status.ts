@@ -131,7 +131,8 @@ export function tgOrderNextStep(order: TgOrderStepInput, perspective: TgOrderPer
   }
   switch (status) {
     case 'AGUARDANDO_APROVACAO':
-      return { label: 'Responder', link: ['/orders', id] };
+      // A tela de aceite: os detalhes, Aceitar e Recusar (com motivo). O detalhe do pedido não responde.
+      return { label: 'Responder', link: ['/provider', id, 'aprovacao'] };
     case 'AGENDADO':
       return { label: 'Estou a caminho', action: 'EM_DESLOCAMENTO' };
     case 'EM_DESLOCAMENTO':
