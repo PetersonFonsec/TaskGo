@@ -132,6 +132,11 @@ export class ProviderHomePage implements OnInit {
    * sincronização dar certo: nada de repetir a troca no status antigo.
    */
   readonly syncError = signal(false);
+  /**
+   * A recarga chegou, mas ainda mostra algum pedido trocado no status de
+   * antes da troca. Ele continua bloqueado e o aviso oferece "Tentar de novo".
+   */
+  readonly syncStale = signal(false);
 
   /** Pedidos com troca de status em curso (o botão fica em carregando). */
   readonly updating = signal<ReadonlySet<string>>(new Set());
@@ -162,15 +167,26 @@ export class ProviderHomePage implements OnInit {
    * cancelada. A recarga depois de uma troca de status é silenciosa: a
    * agenda continua à vista, sem skeleton.
    */
-  readonly #ordersRequests = new Subject<{ userId: string; silent: boolean }>();
+  readonly #ordersRequests = new Subject<{ userId: string; silent: boolean; seq: number }>();
   readonly #homeRequests = new Subject<void>();
-  /** Trocas de status que deram certo e esperam a recarga para soltar o botão. */
-  #settling = new Set<string>();
+  /** Número da última consulta pedida: cada resposta sabe se foi pedida antes ou depois de uma troca. */
+  #seq = 0;
+  /**
+   * Trocas que a API aceitou e que esperam a agenda confirmar, por pedido:
+   * `from` é o status em que a troca foi pedida e `afterSeq`, a primeira
+   * consulta pedida depois da confirmação da API. O pedido só é solto
+   * quando uma resposta dessa consulta (ou posterior) o traz num status
+   * diferente de `from`. O backend só troca a partir de `from` (atualização
+   * condicional), então qualquer outro status quer dizer que o servidor já
+   * saiu dele: o esperado, um posterior ou um cancelamento. Sumir da lista
+   * não confirma nada.
+   */
+  readonly #pending = new Map<string, { from: string | null; afterSeq: number }>();
 
   constructor() {
     this.#ordersRequests
       .pipe(
-        switchMap(({ userId, silent }) => {
+        switchMap(({ userId, silent, seq }) => {
           if (!silent) {
             this.ordersLoading.set(true);
             this.ordersError.set(false);
@@ -178,12 +194,12 @@ export class ProviderHomePage implements OnInit {
           return this.#order.getOrderByProvider(userId).pipe(
             map((orders): Result<OrdersResponse> => ({ ok: true, value: orders })),
             catchError(() => of<Result<OrdersResponse>>({ ok: false })),
-            map((result) => ({ silent, result })),
+            map((result) => ({ silent, seq, result })),
           );
         }),
         takeUntilDestroyed(this.#destroyRef),
       )
-      .subscribe(({ silent, result }) => {
+      .subscribe(({ silent, seq, result }) => {
         if (!result.ok && silent) {
           // Recarga silenciosa: mantém a agenda, avisa e não solta os pedidos trocados.
           this.syncError.set(true);
@@ -193,10 +209,7 @@ export class ProviderHomePage implements OnInit {
         this.ordersError.set(!result.ok);
         this.ordersLoading.set(false);
         this.syncError.set(false);
-        // Toda resposta que chega aqui foi pedida depois das trocas que deram
-        // certo (o switchMap descarta as anteriores), então já traz o status novo.
-        this.#release([...this.#settling]);
-        this.#settling.clear();
+        if (result.ok) this.#confirm(result.value, seq);
       });
 
     this.#homeRequests
@@ -257,14 +270,19 @@ export class ProviderHomePage implements OnInit {
   advance(orderId: string, status: TgOrderStatusAction): void {
     if (this.updating().has(orderId)) return;
     this.actionError.set('');
+    const from = this.orders().find((order) => order.id === orderId)?.status ?? null;
     this.updating.update((ids) => new Set(ids).add(orderId));
     this.#order
       .updateOrderStatus(orderId, status)
       .pipe(takeUntilDestroyed(this.#destroyRef))
       .subscribe({
         next: () => {
-          this.#settling.add(orderId);
-          if (!this.#load(true)) this.#release([orderId]);
+          // Registra antes de pedir: com uma resposta síncrona, ela já encontra a espera.
+          this.#pending.set(orderId, { from, afterSeq: this.#seq + 1 });
+          if (!this.#load(true)) {
+            this.#pending.delete(orderId);
+            this.#release([orderId]);
+          }
         },
         error: (error: unknown) => {
           this.#release([orderId]);
@@ -277,7 +295,7 @@ export class ProviderHomePage implements OnInit {
   #load(silent: boolean): boolean {
     const userId = this.#userId();
     if (userId) {
-      this.#ordersRequests.next({ userId, silent });
+      this.#ordersRequests.next({ userId, silent, seq: ++this.#seq });
       return true;
     }
     this.orders.set([]);
@@ -299,6 +317,26 @@ export class ProviderHomePage implements OnInit {
       },
       { injector: this.#injector },
     );
+  }
+
+  /**
+   * Solta só os pedidos que esta resposta confirma. Uma resposta pedida
+   * antes da confirmação da API não vale como prova. Sobra algum pedido
+   * visível no status de antes: aviso com "Tentar de novo".
+   */
+  #confirm(orders: OrdersResponse, seq: number): void {
+    const confirmed: string[] = [];
+    let stale = false;
+    for (const [id, { from, afterSeq }] of this.#pending) {
+      if (seq < afterSeq) continue;
+      const order = orders.find((item) => item.id === id);
+      if (!order) continue;
+      if (from === null || order.status !== from) confirmed.push(id);
+      else stale = true;
+    }
+    for (const id of confirmed) this.#pending.delete(id);
+    this.#release(confirmed);
+    this.syncStale.set(stale);
   }
 
   #release(ids: readonly string[]): void {
