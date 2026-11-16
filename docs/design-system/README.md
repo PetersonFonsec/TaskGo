@@ -8,7 +8,7 @@ Storybook do web, em **Fundamentos**.
 
 Os tokens existem e são carregados pelos dois apps. As primeiras telas
 migradas são os inícios do cliente e do prestador no web (Etapa 9, telas
-piloto), os detalhes e o pagamento do pedido (Etapa 10). Nas demais, os tokens
+piloto), os detalhes e o pagamento do pedido e a busca de profissionais (Etapa 10). Nas demais, os tokens
 antigos (`--color-*`, `--proxi-*`, `--space-*`, `--font-size-*` e o azul do
 Ionic) continuam valendo até a migração tela a tela.
 
@@ -36,7 +36,8 @@ Ionic) continuam valendo até a migração tela a tela.
 | 9 | Piloto: início do prestador (web) | Concluído (PR #27) |
 | 10 | Migração tela a tela (web e app) | Em andamento |
 | 10 | Detalhes do pedido (web) | Concluído (PR #33) |
-| 10 | Pagamento do pedido (web) | Este PR |
+| 10 | Pagamento do pedido (web) | PR #35 |
+| 10 | Busca de profissionais (web) | Este PR |
 
 Atributos de marca: próximo, confiável, direto e caloroso sem ser infantil.
 
@@ -1375,6 +1376,33 @@ automática a cada 15 s continua; depois de pago, "Ver pedido".
 A conferência automática só roda no navegador (não no SSR) e só enquanto o
 Pix está pendente. A formatação fica em `order-payment.view.ts`
 (`orderPaymentView`), função pura com testes próprios.
+
+### Busca de profissionais (web)
+
+`modules/customer/search`, rota `customer/search`, só para o cliente. Os
+filtros continuam na URL (`categoria`, `minimumRating`, `maximumDistance`,
+`minimumPrice`, `maximumPrice`, `onlyFavorites`, `lat`/`lng`). Story:
+**Telas/Busca de profissionais** (com resultados, com filtros ativos, sem
+resultados, sem localização, carregando e falha na busca).
+
+Decisões aprovadas: (1) os filtros do painel só valem ao tocar "Ver N
+profissionais", e fechar o painel descarta o rascunho; a categoria fica
+fora, em chips, e busca na hora; (2) nota e distância são chips, e preço são
+dois campos (mínimo e máximo), sem slider nem switch novo no DS; (3) no
+celular, abas "Lista" e "Mapa"; na tela grande (a partir de 960 px), lado a
+lado; (4) a lista vem dos mais próximos para os mais distantes.
+
+| Parte | Componente | Regra |
+| --- | --- | --- |
+| Título | `h1` "Encontre um profissional" | Acima, "Perto de" e o endereço usado (ou "a região do link"). |
+| Barra | `button[tgButton]` outline e chips | "Filtros" mostra quantos filtros do painel estão em uso ("Filtros · 2"). Chips de categoria (`button` com `aria-pressed`) rolam na horizontal; "Todas" tira a categoria. |
+| Filtros | `tg-sheet` | Endereço (select nativo com tokens) e "Usar minha localização atual" mudam a origem na hora, como antes. Nota (Qualquer, 3+, 4+, 4,5+) e distância (Sem limite, 5, 10, 25 km) em chips; preço em dois `tg-field`, com erro se o máximo for menor que o mínimo; "Mostrar só meus favoritos" (checkbox nativo com `role="switch"`). Ações: "Limpar" (zera o rascunho) e "Ver N profissionais". |
+| Lista | `tg-provider-card` | Os dados do `toTgProvider` (só serviços da categoria), com a distância da busca e o coração no estado real do favorito. Prestador sem id válido fica só no mapa. |
+| Mapa | `app-proxi-map` | O mesmo componente (Leaflet), com moldura de tokens. No celular, só é criado ao abrir a aba "Mapa". |
+| Estados | `tg-loading` com skeleton; `tg-empty-state`; `tg-alert` | Sem resultado: "Ninguém com esses filtros", com "Limpar filtros" quando há filtro. Sem localização: atenção, com "Usar minha localização". Falha na busca: perigo, com "Tentar de novo". Falha ao favoritar: perigo, acima da lista. |
+
+A filtragem por nota, distância e preço continua no navegador, sobre o que a
+API devolve.
 
 ## Testes
 

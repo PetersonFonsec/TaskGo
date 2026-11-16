@@ -1,8 +1,18 @@
-import { Drawer } from '@shared/components/ui/drawer/drawer';
-import { Component, computed, inject, OnInit, signal } from '@angular/core';
+import { DOCUMENT, NgTemplateOutlet } from '@angular/common';
+import {
+  ChangeDetectionStrategy,
+  Component,
+  computed,
+  DestroyRef,
+  inject,
+  OnInit,
+  signal,
+  viewChild,
+} from '@angular/core';
 import { ActivatedRoute, Router } from '@angular/router';
 import { HttpErrorResponse } from '@angular/common/http';
 import { FormsModule } from '@angular/forms';
+import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 
 import { IFullAddress } from '@shared/service/address/address.model';
 import { Address } from '@shared/service/address/address';
@@ -26,24 +36,72 @@ import {
   switchMap,
   tap,
 } from 'rxjs';
-import { CardProvider } from '@shared/components/ui/card-provider/card-provider';
-import { FormatedProviderParamPipe } from './pipes/formated-provider-param-pipe';
 import { CategoryService } from '@shared/service/category/category';
 import { ICategory } from '@shared/service/category/category.model';
-import { ButtonComponent } from '@shared/components/ui/button/button.component';
+import { TgAlertComponent } from '@shared/design-system/feedback/tg-alert.component';
+import { TgButtonComponent } from '@shared/design-system/button/tg-button.component';
+import { TgCardComponent } from '@shared/design-system/card/tg-card.component';
+import { TgSheetComponent } from '@shared/design-system/dialog/tg-sheet.component';
+import { TgEmptyStateComponent } from '@shared/design-system/empty-state/tg-empty-state.component';
+import { TgFieldComponent } from '@shared/design-system/field/tg-field.component';
+import { TgInputDirective } from '@shared/design-system/field/tg-input.directive';
+import { TgIconComponent } from '@shared/design-system/icon/tg-icon.component';
+import { TgProviderCardComponent } from '@shared/design-system/provider-card/tg-provider-card.component';
+import { TgProvider, toTgProvider } from '@shared/design-system/provider-card/tg-provider';
+import {
+  TgLoadingComponent,
+  TgLoadingSkeletonDirective,
+} from '@shared/design-system/skeleton/tg-loading.component';
+import { TgSkeletonComponent } from '@shared/design-system/skeleton/tg-skeleton.component';
+import { TgTabComponent, TgTabsComponent } from '@shared/design-system/tabs/tg-tabs.component';
 
+/** Filtros que valem só ao tocar "Ver N profissionais" (a categoria fica fora: busca na hora). */
+export interface SearchFilters {
+  minimumRating: number;
+  maximumDistance: number;
+  minimumPrice: number | null;
+  maximumPrice: number | null;
+  onlyFavorites: boolean;
+}
+
+/** Opções fixas dos chips do painel (0 = sem filtro). */
+export const SEARCH_RATINGS = [0, 3, 4, 4.5] as const;
+export const SEARCH_DISTANCES = [0, 5, 10, 25] as const;
+/** A partir desta largura, lista e mapa lado a lado; abaixo, abas "Lista" e "Mapa". */
+export const SEARCH_WIDE_MEDIA = '(min-width: 960px)';
+
+const RATING = new Intl.NumberFormat('pt-BR', { maximumFractionDigits: 1 });
+
+/**
+ * Busca de profissionais (Etapa 10), só para o cliente. Chips de categoria
+ * buscam na hora; nota, distância, preço e favoritos ficam num `tg-sheet` e só
+ * valem ao tocar "Ver N profissionais". A lista vem dos mais próximos para os
+ * mais distantes. Na tela grande, lista e mapa lado a lado; no celular, abas.
+ */
 @Component({
   selector: 'app-search',
   imports: [
-    Drawer,
-    CardProvider,
     ProxiMapComponent,
-    FormatedProviderParamPipe,
     FormsModule,
-    ButtonComponent,
+    NgTemplateOutlet,
+    TgAlertComponent,
+    TgButtonComponent,
+    TgCardComponent,
+    TgEmptyStateComponent,
+    TgFieldComponent,
+    TgIconComponent,
+    TgInputDirective,
+    TgLoadingComponent,
+    TgLoadingSkeletonDirective,
+    TgProviderCardComponent,
+    TgSheetComponent,
+    TgSkeletonComponent,
+    TgTabComponent,
+    TgTabsComponent,
   ],
   templateUrl: './search.html',
   styleUrl: './search.scss',
+  changeDetection: ChangeDetectionStrategy.OnPush,
 })
 export class Search implements OnInit {
   #userLoggedService = inject(UserLoggedService);
@@ -53,6 +111,25 @@ export class Search implements OnInit {
   #address = inject(Address);
   #categoryService = inject(CategoryService);
   #router = inject(Router);
+  #destroyRef = inject(DestroyRef);
+
+  readonly ratings = SEARCH_RATINGS;
+  readonly distances = SEARCH_DISTANCES;
+  readonly filtersSheet = viewChild<TgSheetComponent>('filtersSheet');
+  /** Lista e mapa lado a lado (tela grande) ou em abas (celular). */
+  readonly wide = signal(false);
+  /** Aba aberta no celular. */
+  readonly resultsView = signal<'list' | 'map'>('list');
+  /** Busca em curso. */
+  readonly searching = signal(true);
+  /** Rascunho do painel de filtros; só vale ao aplicar. */
+  readonly draft = signal<SearchFilters>({
+    minimumRating: 0,
+    maximumDistance: 0,
+    minimumPrice: null,
+    maximumPrice: null,
+    onlyFavorites: false,
+  });
 
   favoritesEnabled = environment.features?.favoritesMvp ?? false;
   favoriteLoading = signal<Record<string, boolean>>({});
@@ -86,21 +163,48 @@ export class Search implements OnInit {
   minimumPrice = signal<number | null>(null);
   maximumPrice = signal<number | null>(null);
 
-  providers = computed(() =>
-    this.allProviders().filter((provider) => {
-      const rating = this.providerRating(provider);
-      const price = this.providerPrice(provider);
-      const distance = this.providerDistance(provider);
+  readonly filters = computed<SearchFilters>(() => ({
+    minimumRating: this.minimumRating(),
+    maximumDistance: this.maximumDistance(),
+    minimumPrice: this.minimumPrice(),
+    maximumPrice: this.maximumPrice(),
+    onlyFavorites: this.onlyFavorites(),
+  }));
 
-      return (
-        rating >= this.minimumRating() &&
-        (!this.maximumDistance() || (distance != null && distance <= this.maximumDistance())) &&
-        (this.minimumPrice() == null || price >= this.minimumPrice()!) &&
-        (this.maximumPrice() == null || price <= this.maximumPrice()!) &&
-        (!this.onlyFavorites() || this.isFavorite(provider?.id ?? provider?.providerId))
-      );
-    }),
+  /** Prestadores que passam nos filtros aplicados, dos mais próximos para os mais distantes. */
+  providers = computed(() => this.byDistance(this.allProviders().filter((p) => this.matches(p, this.filters()))));
+
+  /** Quantos passariam com o rascunho do painel ("Ver N profissionais"). */
+  readonly draftCount = computed(() => this.allProviders().filter((p) => this.matches(p, this.draft())).length);
+  readonly draftPriceError = computed(() => {
+    const { minimumPrice, maximumPrice } = this.draft();
+    return minimumPrice != null && maximumPrice != null && maximumPrice < minimumPrice
+      ? 'O máximo precisa ser maior que o mínimo.'
+      : '';
+  });
+  readonly applyLabel = computed(() => {
+    const count = this.draftCount();
+    return count === 1 ? 'Ver 1 profissional' : `Ver ${count} profissionais`;
+  });
+  /** Filtros do painel em uso (para o "Filtros · N"). */
+  readonly activeFilters = computed(() => {
+    const f = this.filters();
+    return [f.minimumRating > 0, f.maximumDistance > 0, f.minimumPrice != null, f.maximumPrice != null, f.onlyFavorites]
+      .filter(Boolean).length;
+  });
+  readonly filtersLabel = computed(() => (this.activeFilters() ? `Filtros · ${this.activeFilters()}` : 'Filtros'));
+  readonly resultsLabel = computed(() => {
+    const count = this.providers().length;
+    return count === 1 ? '1 profissional' : `${count} profissionais`;
+  });
+  /** Cards da lista: só prestadores com id válido (sem id não há perfil para abrir). */
+  readonly cards = computed(() =>
+    this.providers()
+      .map((provider) => this.toCard(provider))
+      .filter((card): card is TgProvider => card !== null),
   );
+  /** Primeira falha ao favoritar, para o aviso acima da lista. */
+  readonly favoriteFailure = computed(() => Object.values(this.favoriteError()).find(Boolean) ?? '');
 
   mapProviders = computed(() =>
     this.providers()
@@ -110,6 +214,16 @@ export class Search implements OnInit {
 
   private get storageAvailable() {
     return typeof window !== 'undefined' && typeof window.localStorage !== 'undefined';
+  }
+
+  constructor() {
+    const view = inject(DOCUMENT).defaultView;
+    const query = typeof view?.matchMedia === 'function' ? view.matchMedia(SEARCH_WIDE_MEDIA) : null;
+    if (!query) return;
+    this.wide.set(query.matches);
+    const update = (event: MediaQueryListEvent) => this.wide.set(event.matches);
+    query.addEventListener('change', update);
+    this.#destroyRef.onDestroy(() => query.removeEventListener('change', update));
   }
 
   ngOnInit(): void {
@@ -154,6 +268,7 @@ export class Search implements OnInit {
         ),
         switchMap(({ categoria, onlyFavorites }) => {
           this.searchError.set('');
+          this.searching.set(true);
           return this.#provider
             .findProvidersByCategorySlug(categoria, {
               ...this.searchOrigin(),
@@ -167,9 +282,11 @@ export class Search implements OnInit {
               }),
             );
         }),
+        takeUntilDestroyed(this.#destroyRef),
       )
       .subscribe({
         next: (params: any) => {
+          this.searching.set(false);
           this.allProviders.set(params);
 
           const clientId = this.#userLoggedService.user().user?.id;
@@ -184,33 +301,59 @@ export class Search implements OnInit {
     this.updateFilters({ categoria: this.category() === category ? null : category });
   }
 
-  updateMinimumRating(value: number) {
-    this.minimumRating.set(Number(value));
-    this.updateFilters({ minimumRating: value || null });
+  /** Abre o painel com o rascunho igual aos filtros em uso. */
+  openFilters() {
+    this.draft.set({ ...this.filters() });
+    this.filtersSheet()?.open();
   }
 
-  updateMaximumDistance(value: number) {
-    this.maximumDistance.set(Number(value));
-    this.updateFilters({ maximumDistance: value || null });
+  setDraft<K extends keyof SearchFilters>(key: K, value: SearchFilters[K]) {
+    this.draft.update((draft) => ({ ...draft, [key]: value }));
   }
 
-  updateMinimumPrice(value: number | null) {
-    this.minimumPrice.set(this.normalizePrice(value));
-    this.updateFilters({ minimumPrice: this.minimumPrice() });
+  setDraftPrice(key: 'minimumPrice' | 'maximumPrice', event: Event) {
+    const raw = (event.target as HTMLInputElement).value;
+    this.setDraft(key, raw === '' ? null : this.normalizePrice(Number(raw)));
   }
 
-  updateMaximumPrice(value: number | null) {
-    this.maximumPrice.set(this.normalizePrice(value));
-    this.updateFilters({ maximumPrice: this.maximumPrice() });
+  setDraftFavorites(event: Event) {
+    this.setDraft('onlyFavorites', (event.target as HTMLInputElement).checked);
   }
 
+  /** "Limpar" do painel: zera o rascunho; só vale ao aplicar. */
+  clearDraft() {
+    this.draft.set({ minimumRating: 0, maximumDistance: 0, minimumPrice: null, maximumPrice: null, onlyFavorites: false });
+  }
+
+  ratingLabel(value: number) {
+    return value ? `${RATING.format(value)}+` : 'Qualquer';
+  }
+
+  ratingName(value: number) {
+    return value ? `${RATING.format(value)} estrelas ou mais` : 'Qualquer avaliação';
+  }
+
+  distanceLabel(value: number) {
+    return value ? `Até ${value} km` : 'Sem limite';
+  }
+
+  /** "Ver N profissionais": aplica o rascunho na URL (e guarda a preferência de favoritos). */
   applyFilters() {
+    if (this.draftPriceError()) return;
+    const draft = this.draft();
+    this.minimumRating.set(draft.minimumRating);
+    this.maximumDistance.set(draft.maximumDistance);
+    this.minimumPrice.set(draft.minimumPrice);
+    this.maximumPrice.set(draft.maximumPrice);
+    this.onlyFavorites.set(draft.onlyFavorites);
+    const clientId = this.#userLoggedService.user()?.user?.id;
+    if (clientId) this.persistOnlyFavoritesPreference(String(clientId), draft.onlyFavorites);
     this.updateFilters({
-      minimumRating: this.minimumRating() || null,
-      maximumDistance: this.maximumDistance() || null,
-      minimumPrice: this.minimumPrice(),
-      maximumPrice: this.maximumPrice(),
-      onlyFavorites: this.onlyFavorites() ? 'true' : null,
+      minimumRating: draft.minimumRating || null,
+      maximumDistance: draft.maximumDistance || null,
+      minimumPrice: draft.minimumPrice,
+      maximumPrice: draft.maximumPrice,
+      onlyFavorites: draft.onlyFavorites ? 'true' : null,
     });
   }
 
@@ -233,24 +376,6 @@ export class Search implements OnInit {
     });
   }
 
-  toggleOnlyFavorites(value: boolean) {
-    this.onlyFavorites.set(value);
-
-    const clientId = this.#userLoggedService.user().user?.id;
-    if (clientId) {
-      this.persistOnlyFavoritesPreference(String(clientId), value);
-    }
-
-    this.#router.navigate([], {
-      relativeTo: this.#route,
-      queryParams: {
-        categoria: this.category(),
-        onlyFavorites: value ? 'true' : null,
-      },
-      queryParamsHandling: 'merge',
-    });
-  }
-
   private updateFilters(queryParams: Record<string, unknown>) {
     this.#router.navigate([], {
       relativeTo: this.#route,
@@ -263,6 +388,39 @@ export class Search implements OnInit {
     this.#categoryService.getCategories().subscribe({
       next: (response) => this.categories.set(response.data ?? []),
     });
+  }
+
+  /** Prestador que o card mostra; a distância é a da busca (a da API ou a calculada). */
+  private toCard(provider: unknown): TgProvider | null {
+    const card = toTgProvider(provider, { category: this.category() || null });
+    return card ? { ...card, distanceKm: this.providerDistance(provider) } : null;
+  }
+
+  private matches(provider: unknown, filters: SearchFilters): boolean {
+    const rating = this.providerRating(provider);
+    const price = this.providerPrice(provider);
+    const distance = this.providerDistance(provider);
+    const record = (provider ?? {}) as { id?: unknown; providerId?: unknown };
+    return (
+      rating >= filters.minimumRating &&
+      (!filters.maximumDistance || (distance != null && distance <= filters.maximumDistance)) &&
+      (filters.minimumPrice == null || price >= filters.minimumPrice) &&
+      (filters.maximumPrice == null || price <= filters.maximumPrice) &&
+      (!filters.onlyFavorites || this.isFavorite(record.id ?? record.providerId))
+    );
+  }
+
+  /** Mais próximos primeiro; quem não tem distância vai para o fim, na ordem da API. */
+  private byDistance<T>(providers: T[]): T[] {
+    return providers
+      .map((provider, index) => ({ provider, index, distance: this.providerDistance(provider) }))
+      .sort((a, b) => {
+        if (a.distance == null || b.distance == null) {
+          return a.distance == null && b.distance == null ? a.index - b.index : a.distance == null ? 1 : -1;
+        }
+        return a.distance - b.distance || a.index - b.index;
+      })
+      .map(({ provider }) => provider);
   }
 
   viewProviderProfile(providerId: ProxiMapProvider['id']) {
@@ -609,9 +767,5 @@ export class Search implements OnInit {
         this.favorites.set(favoritesMap);
       },
     });
-  }
-
-  redirectToProfile(profileId: string) {
-    this.#router.navigateByUrl('/customer/' + profileId);
   }
 }
