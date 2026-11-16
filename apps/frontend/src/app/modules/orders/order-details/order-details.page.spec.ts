@@ -1,7 +1,7 @@
 import { HttpErrorResponse } from '@angular/common/http';
 import { ComponentFixture, TestBed } from '@angular/core/testing';
-import { ActivatedRoute, convertToParamMap, provideRouter } from '@angular/router';
-import { Observable, of, Subject, throwError } from 'rxjs';
+import { ActivatedRoute, convertToParamMap, type ParamMap, provideRouter } from '@angular/router';
+import { BehaviorSubject, Observable, of, Subject, throwError } from 'rxjs';
 
 import { Order } from '@shared/service/order/order';
 import { OrderDetails } from '@shared/service/order/order.model';
@@ -46,16 +46,18 @@ describe('OrderDetailsPage', () => {
   let component: OrderDetailsPage;
   let el: HTMLElement;
   let orderService: jasmine.SpyObj<Order>;
+  let params: BehaviorSubject<ParamMap>;
 
   async function setup(first: Observable<OrderDetails>, type: string | undefined = 'CUSTOMER') {
     orderService = jasmine.createSpyObj<Order>('Order', ['getOrderDetails', 'updateOrderStatus']);
     orderService.getOrderDetails.and.returnValue(first);
+    params = new BehaviorSubject<ParamMap>(convertToParamMap({ id: '5' }));
     await TestBed.configureTestingModule({
       imports: [OrderDetailsPage],
       providers: [
         provideRouter([]),
         { provide: Order, useValue: orderService },
-        { provide: ActivatedRoute, useValue: { paramMap: of(convertToParamMap({ id: '5' })) } },
+        { provide: ActivatedRoute, useValue: { paramMap: params } },
         { provide: UserLoggedService, useValue: { user: () => ({ user: { type } }) } },
       ],
     }).compileComponents();
@@ -211,6 +213,140 @@ describe('OrderDetailsPage', () => {
       expect(component.updating()).toBeFalse();
       expect(text()).toContain('O pedido mudou de status.');
       expect(reloads.length).toBe(0);
+    });
+  });
+
+  describe('navegação entre pedidos', () => {
+    let update: Subject<OrderDetails>;
+    let loads: { id: string; response: Subject<OrderDetails> }[];
+    const orderB = (extra: Partial<OrderDetails> = {}) =>
+      details({ id: '6', service: { id: '4', title: 'Pintura de quarto', category: 'Pintura', estimatedPrice: 300 }, ...extra });
+
+    /** Abre A (pedido 5, agendado) como prestador; as próximas cargas e a troca ficam sob controle do teste. */
+    async function startOnA() {
+      await setup(of(details()), 'PROVIDER');
+      update = new Subject<OrderDetails>();
+      loads = [];
+      orderService.updateOrderStatus.and.returnValue(update);
+      orderService.getOrderDetails.and.callFake((id: string) => {
+        const response = new Subject<OrderDetails>();
+        loads.push({ id, response });
+        return response;
+      });
+    }
+    const navigate = (id: string) => {
+      params.next(convertToParamMap({ id }));
+      fixture.detectChanges();
+    };
+    const succeedA = () => {
+      update.next(details());
+      update.complete();
+    };
+    const showB = (load: { id: string; response: Subject<OrderDetails> }, extra: Partial<OrderDetails> = {}) => {
+      expect(load.id).toBe('6');
+      load.response.next(orderB(extra));
+      fixture.detectChanges();
+    };
+    const title = () => text(el.querySelector('h1'));
+    const syncAlert = () => el.querySelector('.order-details__sync');
+
+    it('1. A troca de A termina depois de ir para B: B não fica bloqueado nem recarrega', async () => {
+      await startOnA();
+      component.advance('EM_DESLOCAMENTO');
+      navigate('6');
+      showB(loads[0]);
+      succeedA();
+      fixture.detectChanges();
+      expect(title()).toBe('Pintura de quarto');
+      expect(component.updating()).toBeFalse();
+      expect(loads.length).toBe(1);
+      expect(syncAlert()).toBeNull();
+      // B continua utilizável: a troca de B vai para B.
+      buttonByText('Estou a caminho')!.click();
+      expect(orderService.updateOrderStatus.calls.mostRecent().args).toEqual(['6', 'EM_DESLOCAMENTO']);
+    });
+
+    it('2. erro da troca de A depois de ir para B não aparece em B', async () => {
+      await startOnA();
+      component.advance('EM_DESLOCAMENTO');
+      navigate('6');
+      showB(loads[0]);
+      update.error(new HttpErrorResponse({ status: 409, error: { message: 'O pedido mudou de status.' } }));
+      fixture.detectChanges();
+      expect(component.actionError()).toBe('');
+      expect(text()).not.toContain('O pedido mudou de status.');
+      expect(component.updating()).toBeFalse();
+      expect(buttonByText('Estou a caminho')).not.toBeNull();
+    });
+
+    it('3. respostas fora de ordem: a de A não mexe em B, e a confirmação de B exige o pedido B', async () => {
+      await startOnA();
+      component.advance('EM_DESLOCAMENTO');
+      succeedA();
+      expect(loads[0].id).toBe('5');
+      navigate('6');
+      showB(loads[1]);
+      // A recarga de A chega atrasada, já com o status novo.
+      loads[0].response.next(details({ status: 'EM_DESLOCAMENTO' }));
+      fixture.detectChanges();
+      expect(title()).toBe('Pintura de quarto');
+      expect(component.updating()).toBeFalse();
+      expect(component.syncStale()).toBeFalse();
+
+      // A troca de B só é confirmada por B: uma resposta com outro pedido não solta o botão.
+      update = new Subject<OrderDetails>();
+      orderService.updateOrderStatus.and.returnValue(update);
+      component.advance('EM_DESLOCAMENTO');
+      update.next(orderB());
+      update.complete();
+      expect(loads[2].id).toBe('6');
+      loads[2].response.next(details({ status: 'EM_DESLOCAMENTO' }));
+      expect(component.updating()).toBeTrue();
+      component.sync();
+      loads[3].response.next(orderB({ status: 'EM_DESLOCAMENTO' }));
+      fixture.detectChanges();
+      expect(component.updating()).toBeFalse();
+    });
+
+    it('4. falha de sincronização em A não segue para B', async () => {
+      await startOnA();
+      component.advance('EM_DESLOCAMENTO');
+      succeedA();
+      loads[0].response.error(new HttpErrorResponse({ status: 500 }));
+      fixture.detectChanges();
+      expect(component.syncError()).toBeTrue();
+      navigate('6');
+      expect(component.syncError()).toBeFalse();
+      expect(component.updating()).toBeFalse();
+      showB(loads[1]);
+      expect(title()).toBe('Pintura de quarto');
+      expect(syncAlert()).toBeNull();
+    });
+
+    it('8. recarga de A pendente ao ir para B: a resposta tardia de A não chega a B', async () => {
+      await startOnA();
+      component.advance('EM_DESLOCAMENTO');
+      succeedA();
+      navigate('6');
+      expect(loads[0].response.observed).toBeFalse();
+      showB(loads[1], { status: 'EM_DESLOCAMENTO' });
+      loads[0].response.next(details({ status: 'EM_DESLOCAMENTO' }));
+      loads[0].response.error(new HttpErrorResponse({ status: 500 }));
+      fixture.detectChanges();
+      expect(title()).toBe('Pintura de quarto');
+      expect(component.updating()).toBeFalse();
+      expect(component.syncError()).toBeFalse();
+      expect(syncAlert()).toBeNull();
+      expect(buttonByText('Iniciar serviço')).not.toBeNull();
+    });
+
+    it('o mesmo id de novo não reinicia a tela nem recarrega', async () => {
+      await startOnA();
+      component.advance('EM_DESLOCAMENTO');
+      navigate('5');
+      expect(loads.length).toBe(0);
+      expect(component.updating()).toBeTrue();
+      expect(title()).toBe('Instalação de chuveiro');
     });
   });
 });

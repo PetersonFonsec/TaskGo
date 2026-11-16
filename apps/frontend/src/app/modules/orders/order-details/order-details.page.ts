@@ -96,14 +96,21 @@ export class OrderDetailsPage implements OnInit {
   });
 
   #id = '';
+  /**
+   * Muda a cada troca de pedido na rota. Uma troca de status guarda a
+   * geração em que começou; se a rota mudou antes da resposta, a resposta é
+   * ignorada (não recarrega, não bloqueia nem mostra erro no pedido novo).
+   */
+  #generation = 0;
   #seq = 0;
   /**
-   * Troca aceita pela API esperando a recarga confirmar: `from` é o status
-   * em que foi pedida e `afterSeq`, a primeira consulta pedida depois da
-   * confirmação. O botão só solta quando uma resposta dessa consulta (ou
-   * posterior) traz o pedido num status diferente de `from`.
+   * Troca aceita pela API esperando a recarga confirmar: `id` é o pedido
+   * trocado, `from` o status em que foi pedida e `afterSeq`, a primeira
+   * consulta pedida depois da confirmação. O botão só solta quando uma
+   * resposta dessa consulta (ou posterior) traz esse pedido num status
+   * diferente de `from`.
    */
-  #pending: { from: string; afterSeq: number } | null = null;
+  #pending: { id: string; from: string; afterSeq: number } | null = null;
   readonly #requests = new Subject<{ id: string; silent: boolean; seq: number }>();
 
   constructor() {
@@ -147,10 +154,14 @@ export class OrderDetailsPage implements OnInit {
 
   ngOnInit(): void {
     this.#route.paramMap.pipe(takeUntilDestroyed(this.#destroyRef)).subscribe((params) => {
-      this.#id = params.get('id') ?? '';
+      const id = params.get('id') ?? '';
+      if (this.#generation > 0 && id === this.#id) return;
+      this.#id = id;
+      this.#generation++;
       this.#pending = null;
       this.order.set(null);
       this.updating.set(false);
+      this.syncError.set(false);
       this.syncStale.set(false);
       this.actionError.set('');
       this.load();
@@ -175,18 +186,21 @@ export class OrderDetailsPage implements OnInit {
   advance(action: TgOrderStatusAction): void {
     const order = this.order();
     if (!order || this.updating()) return;
-    const from = order.status;
+    const { id, status: from } = order;
+    const generation = this.#generation;
     this.actionError.set('');
     this.updating.set(true);
     this.#orders
-      .updateOrderStatus(order.id, action)
+      .updateOrderStatus(id, action)
       .pipe(takeUntilDestroyed(this.#destroyRef))
       .subscribe({
         next: () => {
-          this.#pending = { from, afterSeq: this.#seq + 1 };
+          if (generation !== this.#generation) return;
+          this.#pending = { id, from, afterSeq: this.#seq + 1 };
           this.#request(true);
         },
         error: (error: unknown) => {
+          if (generation !== this.#generation) return;
           this.updating.set(false);
           this.actionError.set(apiMessage(error) ?? 'Não foi possível atualizar o pedido. Tente de novo.');
         },
@@ -200,7 +214,7 @@ export class OrderDetailsPage implements OnInit {
   #confirm(order: OrderDetails, seq: number): void {
     const pending = this.#pending;
     if (!pending || seq < pending.afterSeq) return;
-    if (order.status !== pending.from) {
+    if (order.id === pending.id && order.status !== pending.from) {
       this.#pending = null;
       this.updating.set(false);
       this.syncStale.set(false);
