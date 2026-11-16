@@ -8,7 +8,7 @@ Storybook do web, em **Fundamentos**.
 
 Os tokens existem e são carregados pelos dois apps. As primeiras telas
 migradas são os inícios do cliente e do prestador no web (Etapa 9, telas
-piloto) e os detalhes do pedido (Etapa 10). Nas demais, os tokens
+piloto), os detalhes e o pagamento do pedido (Etapa 10). Nas demais, os tokens
 antigos (`--color-*`, `--proxi-*`, `--space-*`, `--font-size-*` e o azul do
 Ionic) continuam valendo até a migração tela a tela.
 
@@ -35,7 +35,8 @@ Ionic) continuam valendo até a migração tela a tela.
 | 9 | Piloto: início do cliente (web) | Concluído (PR #25) |
 | 9 | Piloto: início do prestador (web) | Concluído (PR #27) |
 | 10 | Migração tela a tela (web e app) | Em andamento |
-| 10 | Detalhes do pedido (web) | Este PR |
+| 10 | Detalhes do pedido (web) | Concluído (PR #33) |
+| 10 | Pagamento do pedido (web) | Este PR |
 
 Atributos de marca: próximo, confiável, direto e caloroso sem ser infantil.
 
@@ -1348,6 +1349,32 @@ avaliação). As fotos do pedido ainda não aparecem.
 
 A formatação fica em `order-details.view.ts` (`orderDetailsView` e
 `orderExpiryNotice`), funções puras com testes próprios.
+
+### Pagamento do pedido (web)
+
+`modules/orders/order-payment`, rota `orders/:id/payment`, só para o
+cliente. Story: **Telas/Pagamento do pedido** (Pix aguardando pagamento,
+antes de gerar, pago, expirado, pagamento não concluído, carregando e erro).
+
+Decisões aprovadas: (1) o resumo mostra só "Total a pagar", o valor que a
+API cobra; a taxa da plataforma já está dentro e sai da parte do prestador;
+(2) a tela é só Pix, sem aviso de cartão; (3) "Já paguei" substitui
+"Atualizar pagamento", aparece só com o Pix pendente e a conferência
+automática a cada 15 s continua; depois de pago, "Ver pedido".
+
+| Parte | Componente | Regra |
+| --- | --- | --- |
+| Voltar e título | link "Voltar ao pedido", `h1` "Pague com Pix" | Acima, "Pedido #id · Pagamento". |
+| Resumo | `tg-card` | Foto ou iniciais do prestador, serviço, prestador e quando, e "Total a pagar" (`payment.amount`; antes da cobrança, o valor final ou estimado). |
+| Sem cobrança | `button[tgButton]` "Gerar Pix" com `loading` | Um clique por vez; o backend devolve a cobrança que já existe. Erro: `tg-alert` de perigo com a mensagem da API. |
+| Pix pendente | `tg-badge` "Aguardando pagamento", QR Code, passos e código | O QR fica sobre `--tg-ink-0` para ser lido nos dois temas. "Copiar código" vira "Código copiado" (com `role=status`); se a área de transferência falhar, a tela pede para copiar à mão. "Já paguei" (outline) confere na hora e avisa se ainda não recebeu. Validade: "15:40" (hoje) ou "14/11, 15:40". |
+| Pago | `tg-badge` "Pago" | "Pagamento confirmado" e "Ver pedido". |
+| Expirado e falha | `tg-alert` de atenção ou de perigo | "O código Pix expirou" ou "O pagamento não foi concluído", com "Falar com o suporte" (o mesmo e-mail de antes). |
+| Carregando e erro | `tg-loading` com skeleton; `tg-alert` de perigo | 404: "Este pedido não foi encontrado", sem "Tentar de novo"; outras falhas, com "Tentar de novo". |
+
+A conferência automática só roda no navegador (não no SSR) e só enquanto o
+Pix está pendente. A formatação fica em `order-payment.view.ts`
+(`orderPaymentView`), função pura com testes próprios.
 
 ## Testes
 
