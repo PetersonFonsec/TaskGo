@@ -1,239 +1,154 @@
-<div id="customer-search">
-  <div class="customer-search_toolbar">
+<main class="search">
+  <header class="search__header">
+    @if (userLocation() || searchRegion()) {
+      <p class="search__eyebrow">Perto de {{ searchRegion() ? 'a região do link' : userLocationLabel() }}</p>
+    }
+    <h1 class="search__title">Encontre um profissional</h1>
+  </header>
+
+  <div class="search__toolbar">
     <button
+      tgButton
       type="button"
-      class="customer-search_open-filters"
+      appearance="outline"
+      size="sm"
+      class="search__filters-button"
       aria-haspopup="dialog"
-      [attr.aria-expanded]="filtersDrawer.isOpen()"
-      (click)="filtersDrawer.open()"
+      (click)="openFilters()"
     >
-      ☰ Filtros
+      {{ filtersLabel() }}
     </button>
-  </div>
-  <app-drawer #filtersDrawer title="Filtros">
-    <h2 drawerHeader>Filtros</h2>
-    <div drawerContent id="customer-search_filters">
-      <header class="customer-search_filters-title">
-        <button type="button" class="customer-search_clear-filters" (click)="clearFilters()">
-          Limpar filtros <span aria-hidden="true">↻</span>
-        </button>
-      </header>
-
-      <div class="customer-search_location-filter">
-        <div class="customer-search_filter-group">
-          <label for="search-address">Endereço de referência</label>
-          <select
-            id="search-address"
-            [ngModel]="selectedAddressId()"
-            (ngModelChange)="selectAddress($event)"
-            [disabled]="addressesLoading() || !addresses().length"
-          >
-            <option value="" disabled>
-              {{
-                addressesLoading()
-                  ? 'Carregando endereços…'
-                  : locationSource() === 'browser'
-                    ? 'Localização atual do aparelho'
-                    : 'Selecione um endereço'
-              }}
-            </option>
-            @for (address of addresses(); track address.id) {
-              <option [value]="address.id" [disabled]="!addressHasLocation(address)">
-                {{ addressLabel(address) }}{{ address.isDefault ? ' (Principal)' : ''
-                }}{{ !addressHasLocation(address) ? ' — Sem coordenadas' : '' }}
-              </option>
-            }
-          </select>
-        </div>
-        <app-button
-          type="button"
-          color="primary"
-          [disabled]="locationLoading() || addressesLoading()"
-          (click)="searchNearMe()"
-          >{{ locationLoading() ? 'Obtendo localização…' : 'Usar a localização atual' }}</app-button
-        >
-        <div class="customer-search_location-status" role="status">
-          @if (addressError()) {
-            <p>{{ addressError() }}</p>
-          }
-          @if (!addressesLoading() && !addresses().length && !addressError()) {
-            <p>Você ainda não possui endereços cadastrados.</p>
-          }
-          @if (locationError()) {
-            <p>{{ locationError() }}</p>
-          }
-          @if (locationSource() === 'browser') {
-            <p>Usando a localização atual do aparelho.</p>
-          }
-        </div>
-      </div>
-
-      <div class="customer-search_filter-controls">
-        <section class="customer-search_filter-group">
-          <label for="search-category">Categoria</label>
-          <select
-            id="search-category"
-            [ngModel]="category()"
-            (ngModelChange)="updateCategory($event)"
-          >
-            <option value="">Todas as categorias</option>
-            @for (item of categories(); track item.id) {
-              <option [value]="item.slug">{{ item.name }}</option>
-            }
-          </select>
-        </section>
-
-        <section class="customer-search_filter-group">
-          <h2 id="search-rating-label">Avaliação mínima</h2>
-          <div
-            class="customer-search_rating-list"
-            role="group"
-            aria-labelledby="search-rating-label"
-          >
-            @for (rating of [5, 4, 3, 2]; track rating) {
-              <button
-                type="button"
-                class="customer-search_rating-option"
-                [class.is-selected]="minimumRating() === rating"
-                [attr.aria-pressed]="minimumRating() === rating"
-                [attr.aria-label]="rating + ' estrelas ou mais'"
-                (click)="updateMinimumRating(minimumRating() === rating ? 0 : rating)"
-              >
-                <span class="customer-search_stars" aria-hidden="true">
-                  @for (star of [1, 2, 3, 4, 5]; track star) {
-                    <span [class.is-empty]="star > rating">★</span>
-                  }
-                </span>
-                @if (rating < 5) {
-                  <span class="customer-search_or-more">ou mais</span>
-                }
-              </button>
-            }
-          </div>
-        </section>
-
-        <section class="customer-search_filter-group customer-search_range-group">
-          <h2>
-            Distância
-            <strong>{{
-              maximumDistance() ? 'Até ' + maximumDistance() + ' km' : 'Sem limite'
-            }}</strong>
-          </h2>
-          <input
-            class="customer-search_range"
-            type="range"
-            min="0"
-            max="50"
-            step="5"
-            [ngModel]="maximumDistance()"
-            (ngModelChange)="updateMaximumDistance($event)"
-            aria-label="Distância máxima em quilômetros"
-          />
-          <div class="customer-search_range-labels">
-            <span>0 km</span><span>10 km</span><span>25 km</span><span>50 km+</span>
-          </div>
-        </section>
-
-        <section class="customer-search_filter-group customer-search_range-group">
-          <h2>
-            Faixa de preço
-            <strong
-              >R$ {{ minimumPrice() ?? 0 }} – R$ {{ maximumPrice() ?? 500
-              }}{{ maximumPrice() === 500 ? '+' : '' }}</strong
-            >
-          </h2>
-          <div class="customer-search_price-ranges">
-            <input
-              class="customer-search_range"
-              type="range"
-              min="0"
-              max="500"
-              step="25"
-              [ngModel]="minimumPrice() ?? 0"
-              (ngModelChange)="updateMinimumPrice($event)"
-              aria-label="Preço mínimo"
-            />
-            <input
-              class="customer-search_range"
-              type="range"
-              min="0"
-              max="500"
-              step="25"
-              [ngModel]="maximumPrice() ?? 500"
-              (ngModelChange)="updateMaximumPrice($event)"
-              aria-label="Preço máximo"
-            />
-          </div>
-          <div class="customer-search_range-labels">
-            <span>R$ 0</span><span>R$ 50</span><span>R$ 250</span><span>R$ 500+</span>
-          </div>
-        </section>
-
-        <section class="customer-search_filter-group customer-search_switches">
-          <label>
-            <span>Somente favoritos</span>
-            <input
-              type="checkbox"
-              role="switch"
-              [checked]="onlyFavorites()"
-              (change)="toggleOnlyFavorites($event.target.checked)"
-            />
-            <span class="customer-search_switch" aria-hidden="true"></span>
-          </label>
-        </section>
-      </div>
-    </div>
-    <div drawerFooter class="customer-search_filter-actions">
-      <app-button
+    <div class="search__categories" role="group" aria-label="Categoria">
+      <button
         type="button"
-        color="primary"
-        class="customer-search_apply-button"
-        (click)="applyFilters(); filtersDrawer.close()"
-        >Aplicar filtros</app-button
+        class="search__chip"
+        [attr.aria-pressed]="!category()"
+        (click)="category() && updateCategory(category())"
       >
-      <app-button type="button" color="light" (click)="filtersDrawer.close()">Cancelar</app-button>
+        Todas
+      </button>
+      @for (item of categories(); track item.id) {
+        <button
+          type="button"
+          class="search__chip"
+          [attr.aria-pressed]="category() === item.slug"
+          (click)="updateCategory(item.slug)"
+        >
+          {{ item.name }}
+        </button>
+      }
     </div>
-  </app-drawer>
+  </div>
 
-  <section id="customer-search_results">
-    <div id="customer-search_providers">
-      <header id="customer-search_providers_header">
-        <h2>{{ providers().length }} profissionais encontrados</h2>
-        <span>Ordenar por: mais próximos</span>
-      </header>
+  @if (searchRegion()) {
+    <tg-alert tone="info" title="Buscando na região do link">
+      As distâncias são calculadas a partir dessa região.
+    </tg-alert>
+  }
+  @if (!searchOrigin() && locationError()) {
+    <tg-alert tone="warning" title="Não sabemos onde buscar">
+      Permita a localização no navegador ou cadastre um endereço no perfil.
+      <button
+        tgButton
+        tgAlertAction
+        type="button"
+        appearance="outline"
+        size="sm"
+        [loading]="locationLoading()"
+        (click)="searchNearMe()"
+      >
+        Usar minha localização
+      </button>
+    </tg-alert>
+  }
+  @if (favoriteFailure()) {
+    <tg-alert tone="danger" title="Não foi possível atualizar o favorito">{{ favoriteFailure() }}</tg-alert>
+  }
+
+  @if (wide()) {
+    <div class="search__results">
+      <ng-container [ngTemplateOutlet]="list" />
+      <ng-container [ngTemplateOutlet]="map" />
+    </div>
+  } @else {
+    <tg-tabs label="Resultados" [value]="resultsView()" (valueChange)="resultsView.set($event === 'map' ? 'map' : 'list')">
+      <tg-tab value="list" label="Lista"><ng-container [ngTemplateOutlet]="list" /></tg-tab>
+      <tg-tab value="map" label="Mapa">
+        <!-- O mapa só nasce com a aba aberta: o Leaflet precisa do tamanho real. -->
+        @if (resultsView() === 'map') {
+          <ng-container [ngTemplateOutlet]="map" />
+        }
+      </tg-tab>
+    </tg-tabs>
+  }
+
+  <ng-template #list>
+    <section class="search__list" aria-labelledby="search-results-title">
+      <div class="search__count">
+        <h2 id="search-results-title" class="search__count-title">
+          {{ searching() ? 'Buscando profissionais' : searchError() ? 'Profissionais' : resultsLabel() }}
+        </h2>
+        @if (!searching() && !searchError() && cards().length > 1) {
+          <span class="search__count-order">Mais próximos primeiro</span>
+        }
+      </div>
 
       @if (searchError()) {
-        <p role="alert">{{ searchError() }}</p>
-        <app-button type="button" color="primary" (click)="retrySearch.next()"
-          >Tentar novamente</app-button
-        >
-      }
-      <ul>
-        @for (provider of providers(); track provider?.id ?? $index) {
-          <li>
-            <app-card-provider
-              [params]="provider | formatedProviderParam"
-              (favoriteToggle)="toggleFavorite(provider?.id)"
-              (clickButton)="redirectToProfile(provider?.id)"
-            />
-          </li>
-        }
-      </ul>
+        <tg-alert tone="danger" title="Não foi possível buscar os profissionais">
+          Verifique sua conexão e tente de novo.
+          <button tgButton tgAlertAction type="button" appearance="outline" size="sm" (click)="retrySearch.next()">
+            Tentar de novo
+          </button>
+        </tg-alert>
+      } @else {
+        <tg-loading label="Buscando profissionais" [loading]="searching()">
+          <ng-template tgLoadingSkeleton>
+            <div class="search__cards">
+              @for (item of [1, 2, 3]; track item) {
+                <tg-card>
+                  <div class="search__skeleton-row">
+                    <tg-skeleton shape="circle" [size]="56" />
+                    <div class="search__skeleton-lines">
+                      <tg-skeleton width="50%" />
+                      <tg-skeleton width="35%" />
+                      <tg-skeleton width="60%" />
+                    </div>
+                  </div>
+                </tg-card>
+              }
+            </div>
+          </ng-template>
 
-      @if (!providers().length && !searchError()) {
-        <p class="customer-search_empty-results text">
-          Nenhum prestador corresponde aos filtros selecionados.
-        </p>
+          @if (cards().length) {
+            <ul class="search__cards">
+              @for (card of cards(); track card.id) {
+                <li>
+                  <tg-provider-card
+                    [provider]="card"
+                    [link]="['/customer', card.id]"
+                    [favorite]="favoritesEnabled ? isFavorite(card.id) : undefined"
+                    (favoriteChange)="toggleFavorite(card.id)"
+                  />
+                </li>
+              }
+            </ul>
+          } @else {
+            <tg-empty-state icon="magnifying-glass" title="Ninguém com esses filtros" [level]="3">
+              Tente outra categoria, aumentar a distância ou tirar a nota mínima.
+              @if (activeFilters() || category()) {
+                <button tgButton tgEmptyAction type="button" appearance="outline" (click)="clearFilters()">
+                  Limpar filtros
+                </button>
+              }
+            </tg-empty-state>
+          }
+        </tg-loading>
       }
-    </div>
+    </section>
+  </ng-template>
 
-    <aside id="customer-search_map" aria-label="Mapa de prestadores próximos">
-      @if (searchRegion()) {
-        <p role="status">
-          Exibindo profissionais na região de busca do link. As distâncias são calculadas a partir
-          dessa região.
-        </p>
-      }
+  <ng-template #map>
+    <section class="search__map" aria-label="Mapa de profissionais próximos">
       <app-proxi-map
         [userLocation]="userLocation()"
         [userLocationLabel]="userLocationLabel()"
@@ -242,8 +157,160 @@
         (viewProfile)="viewProviderProfile($event)"
       />
       @if (!mapProviders().length) {
-        <p class="customer-search_empty-map text">Nenhum prestador com localização disponível.</p>
+        <p class="search__map-empty">Nenhum profissional com localização para mostrar no mapa.</p>
       }
-    </aside>
-  </section>
-</div>
+    </section>
+  </ng-template>
+
+  <tg-sheet #filtersSheet title="Filtros">
+    <div class="search__filters">
+      <section class="search__group" aria-labelledby="search-location-title">
+        <h3 id="search-location-title" class="search__group-title">Buscar perto de</h3>
+        <label class="search__select-label" for="search-address">Endereço</label>
+        <select
+          id="search-address"
+          class="search__select"
+          [ngModel]="selectedAddressId()"
+          (ngModelChange)="selectAddress($event)"
+          [disabled]="addressesLoading() || !addresses().length"
+        >
+          <option value="" disabled>
+            {{
+              addressesLoading()
+                ? 'Carregando endereços…'
+                : locationSource() === 'browser'
+                  ? 'Localização atual do aparelho'
+                  : 'Selecione um endereço'
+            }}
+          </option>
+          @for (address of addresses(); track address.id) {
+            <option [value]="address.id" [disabled]="!addressHasLocation(address)">
+              {{ addressLabel(address) }}{{ address.isDefault ? ' (Principal)' : ''
+              }}{{ !addressHasLocation(address) ? ' — Sem coordenadas' : '' }}
+            </option>
+          }
+        </select>
+        <button
+          tgButton
+          type="button"
+          appearance="ghost"
+          size="sm"
+          class="search__near-me"
+          [loading]="locationLoading()"
+          [disabled]="addressesLoading()"
+          (click)="searchNearMe()"
+        >
+          <tg-icon name="map-pin" [size]="18" />
+          Usar minha localização atual
+        </button>
+        <div class="search__location-status" role="status">
+          @if (addressError()) {
+            <p>{{ addressError() }}</p>
+          }
+          @if (!addressesLoading() && !addresses().length && !addressError()) {
+            <p>Você ainda não tem endereços cadastrados.</p>
+          }
+          @if (locationError()) {
+            <p>{{ locationError() }}</p>
+          }
+          @if (locationSource() === 'browser') {
+            <p>Usando a localização atual do aparelho.</p>
+          }
+        </div>
+      </section>
+
+      <section class="search__group" aria-labelledby="search-rating-title">
+        <h3 id="search-rating-title" class="search__group-title">Avaliação mínima</h3>
+        <div class="search__chips" role="group" aria-labelledby="search-rating-title">
+          @for (rating of ratings; track rating) {
+            <button
+              type="button"
+              class="search__chip"
+              [attr.aria-pressed]="draft().minimumRating === rating"
+              [attr.aria-label]="ratingName(rating)"
+              (click)="setDraft('minimumRating', rating)"
+            >
+              @if (rating) {
+                <tg-icon name="star" weight="fill" [size]="14" />
+              }
+              {{ ratingLabel(rating) }}
+            </button>
+          }
+        </div>
+      </section>
+
+      <section class="search__group" aria-labelledby="search-distance-title">
+        <h3 id="search-distance-title" class="search__group-title">Distância</h3>
+        <div class="search__chips" role="group" aria-labelledby="search-distance-title">
+          @for (distance of distances; track distance) {
+            <button
+              type="button"
+              class="search__chip"
+              [attr.aria-pressed]="draft().maximumDistance === distance"
+              (click)="setDraft('maximumDistance', distance)"
+            >
+              {{ distanceLabel(distance) }}
+            </button>
+          }
+        </div>
+      </section>
+
+      <section class="search__group" aria-labelledby="search-price-title">
+        <h3 id="search-price-title" class="search__group-title">Preço inicial</h3>
+        <div class="search__prices">
+          <tg-field label="Mínimo (R$)" optional>
+            <input
+              tgInput
+              id="search-price-min"
+              type="number"
+              inputmode="numeric"
+              min="0"
+              step="1"
+              placeholder="0"
+              [value]="draft().minimumPrice ?? ''"
+              (input)="setDraftPrice('minimumPrice', $event)"
+            />
+          </tg-field>
+          <tg-field label="Máximo (R$)" optional [error]="draftPriceError()">
+            <input
+              tgInput
+              id="search-price-max"
+              type="number"
+              inputmode="numeric"
+              min="0"
+              step="1"
+              placeholder="Sem limite"
+              [value]="draft().maximumPrice ?? ''"
+              (input)="setDraftPrice('maximumPrice', $event)"
+            />
+          </tg-field>
+        </div>
+      </section>
+
+      <section class="search__group">
+        <label class="search__switch">
+          <span>Mostrar só meus favoritos</span>
+          <input
+            type="checkbox"
+            role="switch"
+            [checked]="draft().onlyFavorites"
+            (change)="setDraftFavorites($event)"
+          />
+          <span class="search__switch-track" aria-hidden="true"></span>
+        </label>
+      </section>
+    </div>
+
+    <button tgButton tgSheetAction type="button" appearance="outline" (click)="clearDraft()">Limpar</button>
+    <button
+      tgButton
+      tgSheetAction
+      type="button"
+      class="search__apply"
+      [disabled]="!!draftPriceError()"
+      (click)="applyFilters(); filtersSheet.close()"
+    >
+      {{ applyLabel() }}
+    </button>
+  </tg-sheet>
+</main>

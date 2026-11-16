@@ -1,7 +1,7 @@
 import { Component, EventEmitter, Input, Output } from '@angular/core';
 import { ComponentFixture, TestBed } from '@angular/core/testing';
 import { By } from '@angular/platform-browser';
-import { ActivatedRoute, Router } from '@angular/router';
+import { ActivatedRoute, provideRouter, Router } from '@angular/router';
 import { HttpErrorResponse } from '@angular/common/http';
 import { BehaviorSubject, of, Subject, throwError } from 'rxjs';
 
@@ -31,7 +31,7 @@ class ProxiMapStubComponent {
 }
 
 const validProvider = {
-  id: 'provider-1',
+  id: '101',
   user: {
     id: 'user-provider-1',
     name: 'Ana Martins',
@@ -42,7 +42,7 @@ const validProvider = {
       verified: true,
     },
   },
-  services: [{ name: 'Encanadora', price: '120' }],
+  services: [{ id: 's1', name: 'Encanadora', title: 'Encanadora', category: 'encanadores', basePrice: 120, status: 'ATIVO' }],
   lat: '-23.55052',
   lng: '-46.633308',
   distanceKm: '3.5',
@@ -79,7 +79,7 @@ describe('Search', () => {
       removeFavorite: jasmine.createSpy('removeFavorite').and.returnValue(of(null)),
       listFavorites: jasmine
         .createSpy('listFavorites')
-        .and.returnValue(of({ items: [{ providerId: 'provider-1' }] })),
+        .and.returnValue(of({ items: [{ providerId: '101' }] })),
     };
 
     geolocalizationMock = {
@@ -106,11 +106,6 @@ describe('Search', () => {
       }),
     };
 
-    routerMock = {
-      navigate: jasmine.createSpy('navigate'),
-      navigateByUrl: jasmine.createSpy('navigateByUrl'),
-    };
-
     categoryServiceMock = {
       getCategories: jasmine.createSpy('getCategories').and.returnValue(
         of({
@@ -127,7 +122,7 @@ describe('Search', () => {
         { provide: Geolocalization, useValue: geolocalizationMock },
         { provide: UserLoggedService, useValue: userLoggedMock },
         { provide: CategoryService, useValue: categoryServiceMock },
-        { provide: Router, useValue: routerMock },
+        provideRouter([]),
         { provide: ActivatedRoute, useValue: { queryParams } },
       ],
     })
@@ -137,9 +132,23 @@ describe('Search', () => {
       })
       .compileComponents();
 
+    routerMock = TestBed.inject(Router);
+    spyOn(routerMock, 'navigate').and.resolveTo(true);
     fixture = TestBed.createComponent(Search);
     component = fixture.componentInstance;
+    // Tela grande por padrão (lista e mapa lado a lado); o celular tem testes próprios.
+    component.wide.set(true);
   });
+
+  const el = () => fixture.nativeElement as HTMLElement;
+  const text = (node: Element | null = el()) => (node?.textContent ?? '').replace(/\s+/g, ' ').trim();
+  const buttonIn = (root: Element, label: string) =>
+    [...root.querySelectorAll<HTMLButtonElement>('button')].find((b) => text(b) === label) ?? null;
+  const sheet = () => el().querySelector('tg-sheet dialog') as HTMLDialogElement;
+  const chip = (label: string) =>
+    [...sheet().querySelectorAll<HTMLButtonElement>('.search__chip')].find(
+      (b) => text(b) === label || b.getAttribute('aria-label') === label,
+    )!;
 
   afterEach(() => window.localStorage.removeItem('search.onlyFavorites.client-1'));
 
@@ -205,26 +214,20 @@ describe('Search', () => {
     expect(geolocalizationMock.getCurrentPosition).not.toHaveBeenCalled();
   });
 
-  it('opens all filters in a modal drawer and closes when applying them', () => {
+  it('opens the filters in a tg-sheet and closes when applying them', () => {
     fixture.detectChanges();
-    const dialog = fixture.nativeElement.querySelector('dialog') as HTMLDialogElement;
-    const trigger = fixture.nativeElement.querySelector(
-      '.customer-search_open-filters',
-    ) as HTMLButtonElement;
-    expect(dialog.open).toBeFalse();
+    const trigger = el().querySelector('.search__filters-button') as HTMLButtonElement;
+    expect(sheet().open).toBeFalse();
     trigger.focus();
     trigger.click();
     fixture.detectChanges();
-    expect(dialog.open).toBeTrue();
-    expect(document.body.style.overflow).toBe('hidden');
-    expect(dialog.querySelector('#search-address')).toBeTruthy();
-    expect(dialog.querySelector('.customer-search_rating-list')).toBeTruthy();
-    expect(dialog.querySelector('.drawer-footer .customer-search_apply-button')).toBeTruthy();
-    expect(dialog.querySelector('.drawer-content .customer-search_apply-button')).toBeNull();
-    expect(dialog.querySelector('.drawer-footer')?.textContent).toContain('Cancelar');
-    (dialog.querySelector('.customer-search_apply-button button') as HTMLButtonElement).click();
+    expect(sheet().open).toBeTrue();
+    expect(sheet().querySelector('#search-address')).toBeTruthy();
+    expect(sheet().querySelector('#search-rating-title')).toBeTruthy();
+    expect(buttonIn(sheet(), 'Limpar')).toBeTruthy();
+    buttonIn(sheet(), 'Ver 1 profissional')!.click();
     fixture.detectChanges();
-    expect(dialog.open).toBeFalse();
+    expect(sheet().open).toBeFalse();
     expect(document.activeElement).toBe(trigger);
   });
 
@@ -302,7 +305,7 @@ describe('Search', () => {
     expect(component.userLocationLabel()).toBe('Endereço cadastrado');
     const map = fixture.debugElement.query(By.directive(ProxiMapStubComponent)).componentInstance;
     expect(map.userLocationLabel).toBe('Endereço cadastrado');
-    expect(fixture.nativeElement.textContent).toContain('Usar a localização atual');
+    expect(fixture.nativeElement.textContent).toContain('Usar minha localização atual');
   });
 
   it('should refresh providers from the browser position when no URL region exists', () => {
@@ -397,7 +400,7 @@ describe('Search', () => {
 
     expect(component.mapProviders()).toEqual([
       jasmine.objectContaining({
-        id: 'provider-1',
+        id: '101',
         name: 'Ana Martins',
         service: 'Encanadora',
         rating: 4.8,
@@ -445,7 +448,7 @@ describe('Search', () => {
         name: 'Profissional Proxi',
         service: 'encanadores',
         rating: 0,
-        priceFrom: 0,
+        priceFrom: Number.NaN,
         premium: false,
         verified: false,
       }),
@@ -457,9 +460,9 @@ describe('Search', () => {
 
     const map = fixture.debugElement.query(By.directive(ProxiMapStubComponent))
       .componentInstance as ProxiMapStubComponent;
-    map.viewProfile.emit('provider-1');
+    map.viewProfile.emit('101');
 
-    expect(routerMock.navigate).toHaveBeenCalledWith(['/customer', 'provider-1']);
+    expect(routerMock.navigate).toHaveBeenCalledWith(['/customer', '101']);
   });
 
   it('should render the map host and the provider list together', () => {
@@ -467,10 +470,10 @@ describe('Search', () => {
 
     const map = fixture.debugElement.query(By.directive(ProxiMapStubComponent))
       .componentInstance as ProxiMapStubComponent;
-    const providerCards = fixture.debugElement.queryAll(By.css('app-card-provider'));
+    const providerCards = fixture.debugElement.queryAll(By.css('tg-provider-card'));
 
-    expect(fixture.nativeElement.querySelector('#customer-search_map')).toBeTruthy();
-    expect(fixture.nativeElement.querySelector('#customer-search_providers')).toBeTruthy();
+    expect(fixture.nativeElement.querySelector('.search__results .search__map')).toBeTruthy();
+    expect(fixture.nativeElement.querySelector('.search__results .search__list')).toBeTruthy();
     expect(map.userLocation).toEqual({ lat: -23.552, lng: -46.635 });
     expect(map.providers.length).toBe(1);
     expect(providerCards.length).toBe(1);
@@ -481,9 +484,9 @@ describe('Search', () => {
 
     fixture.detectChanges();
 
-    const emptyMessage = fixture.nativeElement.querySelector('.customer-search_empty-map');
+    const emptyMessage = fixture.nativeElement.querySelector('.search__map-empty');
 
-    expect(emptyMessage?.textContent).toContain('Nenhum prestador com localização disponível');
+    expect(emptyMessage?.textContent).toContain('Nenhum profissional com localização');
     expect(fixture.debugElement.query(By.directive(ProxiMapStubComponent))).toBeTruthy();
   });
 
@@ -491,13 +494,15 @@ describe('Search', () => {
     fixture.detectChanges();
 
     expect(providerMock.listFavorites).toHaveBeenCalledWith('client-1');
-    expect(component.isFavorite('provider-1')).toBeTrue();
+    expect(component.isFavorite('101')).toBeTrue();
   });
 
-  it('should pass onlyFavorites when the toggle is enabled', () => {
+  it('should pass onlyFavorites when the switch is on and the filters are applied', () => {
     fixture.detectChanges();
 
-    component.toggleOnlyFavorites(true);
+    component.openFilters();
+    component.setDraft('onlyFavorites', true);
+    component.applyFilters();
 
     expect(routerMock.navigate).toHaveBeenCalledWith(
       [],
@@ -507,11 +512,13 @@ describe('Search', () => {
     );
   });
 
-  it('should persist onlyFavorites preference when toggled', () => {
+  it('should persist onlyFavorites preference when the filters are applied', () => {
     spyOn(window.localStorage, 'setItem');
     fixture.detectChanges();
 
-    component.toggleOnlyFavorites(true);
+    component.openFilters();
+    component.setDraft('onlyFavorites', true);
+    component.applyFilters();
 
     expect(window.localStorage.setItem).toHaveBeenCalledWith(
       'search.onlyFavorites.client-1',
@@ -532,16 +539,16 @@ describe('Search', () => {
 
   it('should filter providers by minimum rating, distance and price range', () => {
     providersResponse = [
-      { ...validProvider, id: 'match', distanceKm: 4, services: [{ basePrice: 120 }] },
+      { ...validProvider, id: 'match', distanceKm: 4, services: [{ category: 'encanadores', basePrice: 120 }] },
       {
         ...validProvider,
         id: 'low-rating',
         user: { provider: { ratingAvg: 3.5 } },
         distanceKm: 4,
-        services: [{ basePrice: 120 }],
+        services: [{ category: 'encanadores', basePrice: 120 }],
       },
-      { ...validProvider, id: 'far-away', distanceKm: 18, services: [{ basePrice: 120 }] },
-      { ...validProvider, id: 'too-expensive', distanceKm: 4, services: [{ basePrice: 300 }] },
+      { ...validProvider, id: 'far-away', distanceKm: 18, services: [{ category: 'encanadores', basePrice: 120 }] },
+      { ...validProvider, id: 'too-expensive', distanceKm: 4, services: [{ category: 'encanadores', basePrice: 300 }] },
     ];
     fixture.detectChanges();
 
@@ -554,12 +561,12 @@ describe('Search', () => {
   });
 
   it('should filter the results locally when only favorites is enabled', () => {
-    providersResponse = [validProvider, { ...validProvider, id: 'provider-2' }];
+    providersResponse = [validProvider, { ...validProvider, id: '102' }];
     fixture.detectChanges();
 
     component.onlyFavorites.set(true);
 
-    expect(component.providers().map((provider) => provider.id)).toEqual(['provider-1']);
+    expect(component.providers().map((provider) => provider.id)).toEqual(['101']);
   });
 
   it('should calculate provider distance from coordinates when it is not supplied', () => {
@@ -567,7 +574,7 @@ describe('Search', () => {
     fixture.detectChanges();
     component.maximumDistance.set(1);
 
-    expect(component.providers().map((provider) => provider.id)).toEqual(['provider-1']);
+    expect(component.providers().map((provider) => provider.id)).toEqual(['101']);
   });
 
   it('should expose available categories and update the category query parameter', () => {
@@ -586,21 +593,21 @@ describe('Search', () => {
   it('should add a favorite when toggled on', () => {
     component.favorites.set({});
 
-    component.toggleFavorite('provider-1');
+    component.toggleFavorite('101');
 
-    expect(providerMock.addFavorite).toHaveBeenCalledWith('client-1', 'provider-1');
-    expect(component.isFavorite('provider-1')).toBeTrue();
-    expect(component.isFavoriteLoading('provider-1')).toBeFalse();
+    expect(providerMock.addFavorite).toHaveBeenCalledWith('client-1', '101');
+    expect(component.isFavorite('101')).toBeTrue();
+    expect(component.isFavoriteLoading('101')).toBeFalse();
   });
 
   it('should remove a favorite when toggled off', () => {
-    component.favorites.set({ 'provider-1': true });
+    component.favorites.set({ '101': true });
 
-    component.toggleFavorite('provider-1');
+    component.toggleFavorite('101');
 
-    expect(providerMock.removeFavorite).toHaveBeenCalledWith('client-1', 'provider-1');
-    expect(component.isFavorite('provider-1')).toBeFalse();
-    expect(component.isFavoriteLoading('provider-1')).toBeFalse();
+    expect(providerMock.removeFavorite).toHaveBeenCalledWith('client-1', '101');
+    expect(component.isFavorite('101')).toBeFalse();
+    expect(component.isFavoriteLoading('101')).toBeFalse();
   });
 
   it('should show an error message when favorite update fails', () => {
@@ -609,10 +616,364 @@ describe('Search', () => {
     );
     component.favorites.set({});
 
-    component.toggleFavorite('provider-1');
+    component.toggleFavorite('101');
 
-    expect(component.favoriteErrorMessage('provider-1')).toBe('fail');
-    expect(component.isFavorite('provider-1')).toBeFalse();
-    expect(component.isFavoriteLoading('provider-1')).toBeFalse();
+    expect(component.favoriteErrorMessage('101')).toBe('fail');
+    expect(component.isFavorite('101')).toBeFalse();
+    expect(component.isFavoriteLoading('101')).toBeFalse();
+  });
+  describe('filtros só valem ao aplicar', () => {
+    it('mudar o rascunho não busca nem filtra; "Ver N" aplica na URL', () => {
+      providersResponse = [
+        { ...validProvider, id: '201', distanceKm: 2 },
+        { ...validProvider, id: '202', distanceKm: 4, user: { name: 'Bia', provider: { ratingAvg: 3.2 } } },
+      ];
+      fixture.detectChanges();
+      component.openFilters();
+      fixture.detectChanges();
+
+      chip('4 estrelas ou mais').click();
+      fixture.detectChanges();
+      expect(routerMock.navigate).not.toHaveBeenCalled();
+      expect(component.providers().length).toBe(2);
+      expect(buttonIn(sheet(), 'Ver 1 profissional')).not.toBeNull();
+
+      buttonIn(sheet(), 'Ver 1 profissional')!.click();
+      fixture.detectChanges();
+      expect(routerMock.navigate).toHaveBeenCalledWith(
+        [],
+        jasmine.objectContaining({ queryParams: jasmine.objectContaining({ minimumRating: 4 }) }),
+      );
+      expect(component.providers().map((p) => p.id)).toEqual(['201']);
+      expect(text(el().querySelector('.search__filters-button'))).toBe('Filtros · 1');
+    });
+
+    it('fechar sem aplicar descarta o rascunho', () => {
+      fixture.detectChanges();
+      component.openFilters();
+      fixture.detectChanges();
+      chip('Até 10 km').click();
+      component.filtersSheet()!.close();
+      fixture.detectChanges();
+      expect(component.maximumDistance()).toBe(0);
+
+      component.openFilters();
+      fixture.detectChanges();
+      expect(chip('Sem limite').getAttribute('aria-pressed')).toBe('true');
+      expect(chip('Até 10 km').getAttribute('aria-pressed')).toBe('false');
+    });
+
+    it('"Limpar" zera só o rascunho', () => {
+      queryParams.next({ categoria: 'encanadores', minimumRating: '4', maximumDistance: '10' });
+      fixture.detectChanges();
+      component.openFilters();
+      fixture.detectChanges();
+      buttonIn(sheet(), 'Limpar')!.click();
+      fixture.detectChanges();
+      expect(component.draft()).toEqual({
+        minimumRating: 0,
+        maximumDistance: 0,
+        minimumPrice: null,
+        maximumPrice: null,
+        onlyFavorites: false,
+      });
+      expect(component.minimumRating()).toBe(4);
+      expect(routerMock.navigate).not.toHaveBeenCalled();
+    });
+
+    it('preço máximo menor que o mínimo: erro no campo e "Ver N" desativado', () => {
+      fixture.detectChanges();
+      component.openFilters();
+      fixture.detectChanges();
+      const min = sheet().querySelector('#search-price-min') as HTMLInputElement;
+      const max = sheet().querySelector('#search-price-max') as HTMLInputElement;
+      min.value = '200';
+      min.dispatchEvent(new Event('input'));
+      max.value = '100';
+      max.dispatchEvent(new Event('input'));
+      fixture.detectChanges();
+      expect(text(sheet())).toContain('O máximo precisa ser maior que o mínimo.');
+      expect(sheet().querySelector<HTMLButtonElement>('.search__apply')!.disabled).toBeTrue();
+      component.applyFilters();
+      expect(routerMock.navigate).not.toHaveBeenCalled();
+    });
+  });
+
+  it('chips de categoria buscam na hora; "Todas" tira a categoria', () => {
+    fixture.detectChanges();
+    const chips = [...el().querySelectorAll<HTMLButtonElement>('.search__categories .search__chip')];
+    expect(chips.map((c) => text(c))).toEqual(['Todas', 'Encanadores']);
+    expect(chips[1].getAttribute('aria-pressed')).toBe('true');
+    chips[0].click();
+    expect(routerMock.navigate).toHaveBeenCalledWith([], jasmine.objectContaining({ queryParams: { categoria: null } }));
+  });
+
+  it('lista dos mais próximos para os mais distantes; sem distância vai para o fim', () => {
+    providersResponse = [
+      { ...validProvider, id: '301', distanceKm: 8, lat: undefined, lng: undefined },
+      { ...validProvider, id: '302', distanceKm: undefined, lat: undefined, lng: undefined },
+      { ...validProvider, id: '303', distanceKm: 1.5 },
+      { ...validProvider, id: '304', distanceKm: 4 },
+    ];
+    fixture.detectChanges();
+    expect(component.providers().map((p) => p.id)).toEqual(['303', '304', '301', '302']);
+    expect(text(el().querySelector('.search__count-order'))).toBe('Mais próximos primeiro');
+  });
+
+  it('card do DS com o coração no estado real do favorito', () => {
+    providersResponse = [validProvider, { ...validProvider, id: '102', distanceKm: 9 }];
+    fixture.detectChanges();
+    const hearts = [...el().querySelectorAll('.tg-provider-card__favorite')];
+    expect(hearts.map((h) => h.getAttribute('aria-pressed'))).toEqual(['true', 'false']);
+    expect(el().querySelector('tg-provider-card a')?.getAttribute('href')).toBe('/customer/101');
+  });
+
+  it('carregando: skeleton enquanto a busca não volta', () => {
+    const response = new Subject<unknown[]>();
+    providerMock.findProvidersByCategorySlug.and.returnValue(response);
+    fixture.detectChanges();
+    expect(component.searching()).toBeTrue();
+    expect(el().querySelector('tg-provider-card')).toBeNull();
+    expect(text(el().querySelector('.search__count-title'))).toBe('Buscando profissionais');
+    response.next([validProvider]);
+    fixture.detectChanges();
+    expect(component.searching()).toBeFalse();
+    expect(el().querySelectorAll('tg-provider-card').length).toBe(1);
+  });
+
+  it('sem resultado: estado vazio com "Limpar filtros"', () => {
+    providersResponse = [];
+    fixture.detectChanges();
+    const empty = el().querySelector('tg-empty-state')!;
+    expect(text(empty)).toContain('Ninguém com esses filtros');
+    buttonIn(empty, 'Limpar filtros')!.click();
+    expect(routerMock.navigate).toHaveBeenCalledWith(
+      [],
+      jasmine.objectContaining({ queryParams: jasmine.objectContaining({ categoria: null }) }),
+    );
+  });
+
+  it('falha na busca: alerta com "Tentar de novo"', () => {
+    providerMock.findProvidersByCategorySlug.and.returnValue(throwError(() => new Error('offline')));
+    fixture.detectChanges();
+    expect(text(el().querySelector('tg-alert'))).toContain('Não foi possível buscar os profissionais');
+    providerMock.findProvidersByCategorySlug.and.returnValue(of([validProvider]));
+    buttonIn(el(), 'Tentar de novo')!.click();
+    fixture.detectChanges();
+    expect(el().querySelectorAll('tg-provider-card').length).toBe(1);
+  });
+
+  describe('preço: a mesma regra do card', () => {
+    const svc = (id: string, basePrice: unknown, extra: Record<string, unknown> = {}) => ({
+      id,
+      title: `Serviço ${id}`,
+      category: 'encanadores',
+      basePrice,
+      status: 'ATIVO',
+      ...extra,
+    });
+    const withServices = (id: string, services: unknown[]) => ({ ...validProvider, id, services });
+    const applyMax = (max: number) => {
+      component.openFilters();
+      component.setDraft('maximumPrice', max);
+    };
+
+    it('serviços de R$ 300 e R$ 100 passam no máximo de R$ 150, em qualquer ordem', () => {
+      providersResponse = [
+        withServices('401', [svc('a', 300), svc('b', 100)]),
+        withServices('402', [svc('c', 100), svc('d', 300)]),
+      ];
+      fixture.detectChanges();
+      applyMax(150);
+      expect(component.draftCount()).toBe(2);
+      component.applyFilters();
+      expect(component.providers().map((p) => p.id)).toEqual(['401', '402']);
+    });
+
+    it('serviço inativo não conta', () => {
+      providersResponse = [withServices('403', [svc('a', 300), svc('b', 100, { status: 'INATIVO' })])];
+      fixture.detectChanges();
+      applyMax(150);
+      expect(component.draftCount()).toBe(0);
+    });
+
+    it('só os serviços da categoria escolhida contam', () => {
+      providersResponse = [withServices('404', [svc('a', 300), svc('b', 100, { category: 'pintura' })])];
+      fixture.detectChanges();
+      applyMax(150);
+      expect(component.draftCount()).toBe(0);
+      queryParams.next({ categoria: 'pintura' });
+      expect(component.providers().length).toBe(1);
+      applyMax(150);
+      expect(component.draftCount()).toBe(1);
+    });
+
+    it('preço ausente, zero ou inválido não vira R$ 0: fica fora com filtro de preço e entra sem ele', () => {
+      providersResponse = [
+        withServices('405', [svc('a', null)]),
+        withServices('406', [svc('b', 0)]),
+        withServices('407', [svc('c', 'abc')]),
+        withServices('408', [svc('d', 90)]),
+      ];
+      fixture.detectChanges();
+      expect(component.providers().length).toBe(4);
+      applyMax(150);
+      expect(component.draftCount()).toBe(1);
+      component.setDraft('maximumPrice', null);
+      component.setDraft('minimumPrice', 0);
+      expect(component.draftCount()).toBe(1);
+    });
+
+    it('"Ver N profissionais" bate com o que a lista mostra depois de aplicar', () => {
+      providersResponse = [
+        withServices('409', [svc('a', 300), svc('b', 100)]),
+        withServices('410', [svc('c', 250)]),
+        withServices('411', [svc('d', 140)]),
+      ];
+      fixture.detectChanges();
+      component.openFilters();
+      fixture.detectChanges();
+      const min = sheet().querySelector('#search-price-min') as HTMLInputElement;
+      const max = sheet().querySelector('#search-price-max') as HTMLInputElement;
+      min.value = '120';
+      min.dispatchEvent(new Event('input'));
+      max.value = '200';
+      max.dispatchEvent(new Event('input'));
+      fixture.detectChanges();
+      const apply = buttonIn(sheet(), 'Ver 1 profissional')!;
+      expect(apply).not.toBeNull();
+      apply.click();
+      fixture.detectChanges();
+      expect(el().querySelectorAll('tg-provider-card').length).toBe(1);
+      expect(component.cards().map((c) => c.id)).toEqual(['411']);
+    });
+
+    it('o preço que filtra é o que o card e o mapa mostram', () => {
+      providersResponse = [withServices('412', [svc('a', 300), svc('b', 100)])];
+      fixture.detectChanges();
+      expect(component.cards()[0].priceFrom).toBe(100);
+      expect(component.mapProviders()[0].priceFrom).toBe(100);
+      applyMax(100);
+      expect(component.draftCount()).toBe(1);
+      applyMax(99);
+      expect(component.draftCount()).toBe(0);
+    });
+  });
+
+  describe('favoritos fora de ordem', () => {
+    const later = <T,>() => new Subject<T>();
+    type List = { items: { providerId: string }[] };
+
+    it('lista antiga que chega depois de favoritar não desfaz o favorito', () => {
+      providersResponse = [{ ...validProvider, id: '102' }];
+      const list = later<List>();
+      providerMock.listFavorites.and.returnValue(list);
+      fixture.detectChanges();
+      component.toggleFavorite('102');
+      expect(component.isFavorite('102')).toBeTrue();
+      list.next({ items: [] });
+      expect(component.isFavorite('102')).toBeTrue();
+    });
+
+    it('lista antiga que chega depois de desfavoritar não volta o favorito', () => {
+      const first = later<List>();
+      providerMock.listFavorites.and.returnValue(of({ items: [{ providerId: '101' }] }));
+      fixture.detectChanges();
+      expect(component.isFavorite('101')).toBeTrue();
+      providerMock.listFavorites.and.returnValue(first);
+      component.retrySearch.next();
+      component.toggleFavorite('101');
+      expect(component.isFavorite('101')).toBeFalse();
+      first.next({ items: [{ providerId: '101' }] });
+      expect(component.isFavorite('101')).toBeFalse();
+    });
+
+    it('duas listas fora de ordem: vale a mais nova', () => {
+      const a = later<List>();
+      const b = later<List>();
+      providerMock.listFavorites.and.returnValues(a, b);
+      fixture.detectChanges();
+      component.retrySearch.next();
+      b.next({ items: [{ providerId: '101' }] });
+      a.next({ items: [] });
+      expect(component.isFavorite('101')).toBeTrue();
+    });
+
+    it('lista pedida depois da troca vale normalmente', () => {
+      fixture.detectChanges();
+      component.toggleFavorite('101');
+      expect(component.isFavorite('101')).toBeFalse();
+      providerMock.listFavorites.and.returnValue(of({ items: [{ providerId: '101' }] }));
+      component.retrySearch.next();
+      expect(component.isFavorite('101')).toBeTrue();
+    });
+
+    it('falha ao favoritar: estado e carregamento coerentes, e a lista seguinte vale', () => {
+      const list = later<List>();
+      providerMock.listFavorites.and.returnValue(list);
+      providerMock.addFavorite.and.returnValue(throwError(() => new HttpErrorResponse({ status: 500 })));
+      fixture.detectChanges();
+      component.toggleFavorite('101');
+      expect(component.isFavorite('101')).toBeFalse();
+      expect(component.isFavoriteLoading('101')).toBeFalse();
+      expect(component.favoriteErrorMessage('101')).toBe('Erro ao atualizar favorito.');
+      list.next({ items: [{ providerId: '101' }] });
+      expect(component.isFavorite('101')).toBeTrue();
+    });
+
+    it('"Somente favoritos" continua certo depois de desfavoritar e de uma lista antiga', () => {
+      providersResponse = [validProvider, { ...validProvider, id: '102' }];
+      fixture.detectChanges();
+      component.openFilters();
+      component.setDraft('onlyFavorites', true);
+      component.applyFilters();
+      expect(component.providers().map((p) => p.id)).toEqual(['101']);
+      const old = later<List>();
+      providerMock.listFavorites.and.returnValue(old);
+      component.retrySearch.next();
+      component.toggleFavorite('101');
+      expect(component.providers()).toEqual([]);
+      old.next({ items: [{ providerId: '101' }] });
+      expect(component.providers()).toEqual([]);
+    });
+
+    it('lista de outro usuário (troca de sessão) não vale', () => {
+      const list = later<List>();
+      providerMock.listFavorites.and.returnValue(list);
+      fixture.detectChanges();
+      userLoggedMock.user.and.returnValue({ user: { id: 'client-2' } });
+      list.next({ items: [{ providerId: '101' }] });
+      expect(component.isFavorite('101')).toBeFalse();
+    });
+
+    it('destruir a tela cancela as consultas e trocas pendentes', () => {
+      const list = later<List>();
+      const add = later<null>();
+      providerMock.listFavorites.and.returnValue(list);
+      providerMock.addFavorite.and.returnValue(add);
+      fixture.detectChanges();
+      component.toggleFavorite('101');
+      fixture.destroy();
+      expect(list.observed).toBeFalse();
+      expect(add.observed).toBeFalse();
+    });
+  });
+
+  describe('celular', () => {
+    beforeEach(() => component.wide.set(false));
+
+    it('abas "Lista" e "Mapa": a lista abre primeiro e o mapa só nasce na aba dele', () => {
+      fixture.detectChanges();
+      const tabs = [...el().querySelectorAll<HTMLButtonElement>('[role="tab"]')];
+      expect(tabs.map((t) => text(t))).toEqual(['Lista', 'Mapa']);
+      expect(tabs[0].getAttribute('aria-selected')).toBe('true');
+      expect(el().querySelectorAll('tg-provider-card').length).toBe(1);
+      expect(fixture.debugElement.query(By.directive(ProxiMapStubComponent))).toBeNull();
+
+      tabs[1].click();
+      fixture.detectChanges();
+      expect(component.resultsView()).toBe('map');
+      expect(fixture.debugElement.query(By.directive(ProxiMapStubComponent))).not.toBeNull();
+    });
   });
 });

@@ -1,115 +1,164 @@
-<main class="payment-page">
-  @if (toast()) {
-    <div class="toast" role="status">✓ {{ toast() }}</div>
-  }
-  @if (loading()) {
-    <section class="state">
-      <span class="spinner"></span><strong>Carregando pagamento…</strong>
-    </section>
-  } @else if (order(); as current) {
-    <header>
-      <button type="button" (click)="back()" aria-label="Voltar">←</button>
-      <div>
-        <p>Pedido #{{ current.id }}</p>
-        <h1>Pagamento do serviço</h1>
-        <span>Escolha como deseja garantir seu atendimento</span>
-      </div>
-    </header>
-    @if (error()) {
-      <p class="error" role="alert">{{ error() }}</p>
-    }
-    <div class="layout">
-      <section class="card summary">
-        <h2>Resumo do pedido</h2>
-        <div class="provider">
-          <img
-            [src]="current.provider.photoUrl || 'https://dummyimage.com/96x96/ede9fe/6d28d9&text=P'"
-            [alt]="current.provider.name"
-          />
-          <div>
-            <small>Prestador</small><strong>{{ current.provider.name }}</strong
-            ><span>{{ current.service.title }}</span>
+<main class="order-payment">
+  <a class="order-payment__back" [routerLink]="orderLink()">
+    <tg-icon name="arrow-left" [size]="20" />
+    Voltar ao pedido
+  </a>
+
+  @if (loadError() === 'notFound') {
+    <tg-alert tone="danger" title="Este pedido não foi encontrado">
+      Confira o link ou volte ao início para ver seus pedidos.
+    </tg-alert>
+  } @else if (loadError() === 'failed') {
+    <tg-alert tone="danger" title="Não foi possível carregar o pagamento">
+      Verifique sua conexão e tente de novo.
+      <button tgButton tgAlertAction type="button" appearance="outline" size="sm" (click)="load()">
+        Tentar de novo
+      </button>
+    </tg-alert>
+  } @else {
+    <tg-loading label="Carregando o pagamento" [loading]="loading()">
+      <ng-template tgLoadingSkeleton>
+        <div class="order-payment__content">
+          <tg-skeleton width="35%" />
+          <tg-skeleton width="45%" height="36" />
+          <div class="order-payment__grid">
+            <div class="order-payment__skeleton-card">
+              <tg-skeleton width="60%" />
+              <tg-skeleton width="40%" height="28" />
+            </div>
+            <div class="order-payment__skeleton-card">
+              <tg-skeleton width="30%" />
+              <tg-skeleton width="180px" height="180" />
+              <tg-skeleton [lines]="3" />
+            </div>
           </div>
         </div>
-        <dl>
-          <div>
-            <dt>Data</dt>
-            <dd>{{ date(current.schedule.scheduledFor) }}</dd>
-          </div>
-          <div>
-            <dt>Valor do serviço</dt>
-            <dd>{{ money(current.payment?.finalAmount ?? current.service.estimatedPrice) }}</dd>
-          </div>
-          @if (payment(); as paid) {
-            <div>
-              <dt>Taxa da plataforma</dt>
-              <dd>{{ money(paid.platformAmount) }}</dd>
-            </div>
-          }
-        </dl>
-        <footer>
-          <span>Total</span
-          ><strong>{{
-            money(
-              payment()?.amount ?? current.payment?.finalAmount ?? current.service.estimatedPrice
-            )
-          }}</strong>
-        </footer>
-      </section>
+      </ng-template>
 
-      <section class="card checkout">
-        <h2>Forma de pagamento</h2>
-        <p>Pagamento por PIX. Cartão temporariamente indisponível.</p>
-        <button type="button" (click)="refresh()">Atualizar pagamento</button>
-        @if (
-          payment()?.method === 'PIX' &&
-          payment()?.status === 'PENDENTE' &&
-          payment()?.pix?.qrCode &&
-          !expired()
-        ) {
-          <div class="pix">
-            <span class="status">Aguardando pagamento</span>
-            @if (payment()?.pix?.qrCodeBase64; as qrImage) {
-              <img [src]="qrImage" alt="QR Code Pix" />
-            }
-            <label>Código Pix copia e cola</label
-            ><textarea readonly [value]="payment()?.pix?.qrCode"></textarea
-            ><button class="primary" type="button" (click)="copyPix()">
-              {{ copied() ? 'Código copiado!' : 'Copiar código' }}</button
-            ><small>Expira em {{ date(payment()?.pix?.expiresAt) }}</small>
+      @if (view(); as v) {
+        <div class="order-payment__content">
+          <header class="order-payment__header">
+            <p class="order-payment__eyebrow">Pedido #{{ order()?.id }} · Pagamento</p>
+            <h1 class="order-payment__title">Pague com Pix</h1>
+            <p class="order-payment__lead">O atendimento fica confirmado assim que o pagamento cair.</p>
+          </header>
+
+          @if (actionError(); as message) {
+            <tg-alert tone="danger" title="Algo deu errado">{{ message }}</tg-alert>
+          }
+
+          <div class="order-payment__grid">
+            <tg-card class="order-payment__summary" aria-label="Resumo do pedido">
+              <div class="order-payment__service">
+                <span class="order-payment__avatar">
+                  @if (v.photoUrl) {
+                    <img [src]="v.photoUrl" alt="" loading="lazy" decoding="async" />
+                  } @else {
+                    <span aria-hidden="true">{{ v.initials }}</span>
+                  }
+                </span>
+                <span class="order-payment__service-text">
+                  <span class="order-payment__service-title">{{ v.title }}</span>
+                  <span class="order-payment__service-detail">{{ v.detail }}</span>
+                </span>
+              </div>
+              @if (v.total) {
+                <p class="order-payment__total">
+                  <span>Total a pagar</span>
+                  <b>{{ v.total }}</b>
+                </p>
+              }
+            </tg-card>
+
+            <tg-card class="order-payment__pix">
+              @switch (v.pix) {
+                @case ('none') {
+                  <h2 class="order-payment__card-title">Pix</h2>
+                  <p class="order-payment__text">
+                    Gere o código e pague pelo app do seu banco. O valor é o total do pedido.
+                  </p>
+                  <div class="order-payment__actions">
+                    <button tgButton type="button" [loading]="creating()" (click)="createPix()">Gerar Pix</button>
+                  </div>
+                }
+                @case ('pending') {
+                  <div class="order-payment__pix-head">
+                    <h2 class="order-payment__card-title">Pix</h2>
+                    <tg-badge tone="waiting" icon="hourglass">Aguardando pagamento</tg-badge>
+                  </div>
+                  <div class="order-payment__pix-body">
+                    @if (v.qrImage) {
+                      <img class="order-payment__qr" [src]="v.qrImage" alt="QR Code do Pix" />
+                    }
+                    <div class="order-payment__pix-info">
+                      <ol class="order-payment__steps">
+                        <li>Abra o app do seu banco e escolha Pix.</li>
+                        <li>Leia o QR Code ou cole o código.</li>
+                        <li>Confira o valor e confirme.</li>
+                      </ol>
+                      <div class="order-payment__code">
+                        <span class="order-payment__code-label" id="pix-code-label">Pix copia e cola</span>
+                        <p class="order-payment__code-value" aria-labelledby="pix-code-label">{{ v.code }}</p>
+                      </div>
+                      <div class="order-payment__actions">
+                        <button tgButton type="button" (click)="copyCode()">
+                          {{ copyState() === 'copied' ? 'Código copiado' : 'Copiar código' }}
+                        </button>
+                        <button
+                          tgButton
+                          type="button"
+                          appearance="outline"
+                          [loading]="checking()"
+                          (click)="checkNow()"
+                        >
+                          Já paguei
+                        </button>
+                      </div>
+                      <p class="order-payment__hint" role="status">
+                        @if (copyState() === 'failed') {
+                          Não foi possível copiar. Selecione o código acima e copie.
+                        } @else if (stillPending()) {
+                          Ainda não recebemos o pagamento. Ele pode levar alguns instantes para cair.
+                        }
+                      </p>
+                      @if (v.validUntil) {
+                        <p class="order-payment__hint">
+                          O código vale até {{ v.validUntil }}. Conferimos o pagamento sozinhos enquanto esta tela
+                          estiver aberta.
+                        </p>
+                      }
+                    </div>
+                  </div>
+                }
+                @case ('paid') {
+                  <tg-badge tone="done" icon="check">Pago</tg-badge>
+                  <h2 class="order-payment__card-title">Pagamento confirmado</h2>
+                  <p class="order-payment__text">
+                    Seu atendimento está confirmado. Acompanhe as próximas etapas no pedido.
+                  </p>
+                  <div class="order-payment__actions">
+                    <a tgButton [routerLink]="orderLink()">Ver pedido</a>
+                  </div>
+                }
+                @case ('expired') {
+                  <h2 class="order-payment__card-title">Pix</h2>
+                  <tg-alert tone="warning" title="O código Pix expirou">
+                    Se você já pagou, fale com o suporte para conferirmos antes de gerar outro código.
+                    <a tgButton tgAlertAction appearance="outline" size="sm" [href]="supportLink">Falar com o suporte</a>
+                  </tg-alert>
+                }
+                @default {
+                  <h2 class="order-payment__card-title">Pix</h2>
+                  <tg-alert tone="danger" title="O pagamento não foi concluído">
+                    Fale com o suporte para resolvermos antes de uma nova cobrança.
+                    <a tgButton tgAlertAction appearance="outline" size="sm" [href]="supportLink">Falar com o suporte</a>
+                  </tg-alert>
+                }
+              }
+            </tg-card>
           </div>
-        } @else if (payment()?.status === 'AUTORIZADO' || payment()?.status === 'PAGO') {
-          <div class="success">
-            <span>✓</span>
-            <h3>
-              {{ payment()?.status === 'PAGO' ? 'Pagamento confirmado' : 'Pagamento autorizado' }}
-            </h3>
-            <p>Pagamento confirmado pelo gateway.</p>
-          </div>
-        } @else if (payment()) {
-          <p role="status">
-            {{
-              expired()
-                ? 'PIX expirado. Solicite suporte para conciliar o pagamento antes de gerar outra cobrança.'
-                : 'Pagamento não disponível. Atualize o estado ou solicite suporte.'
-            }}
-          </p>
-        } @else {
-          <div class="intro">
-            <span class="pix-symbol">PIX</span>
-            <p>Gere um QR Code para pagar pelo aplicativo do seu banco.</p>
-            <button class="primary" type="button" [disabled]="submitting()" (click)="submit()">
-              {{ submitting() ? 'Gerando…' : 'Gerar Pix' }}
-            </button>
-          </div>
-        }
-      </section>
-    </div>
-  } @else {
-    <section class="state">
-      <h1>Pagamento indisponível</h1>
-      <p>{{ error() }}</p>
-      <button (click)="back()">Voltar ao pedido</button>
-    </section>
+        </div>
+      }
+    </tg-loading>
   }
 </main>

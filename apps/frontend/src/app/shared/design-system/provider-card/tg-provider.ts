@@ -49,10 +49,8 @@ export interface TgProviderContext {
 export function toTgProvider(source: unknown, context: TgProviderContext = {}): TgProvider | null {
   if (!source || typeof source !== 'object') return null;
   const record = source as Record<string, any>;
-  // Registro de usuário com o prestador aninhado: o prestador está em `provider`.
-  const nested = isObject(record['provider']) ? (record['provider'] as Record<string, any>) : null;
-  const p = nested ?? record;
-  const user = nested ? record : obj(p['user']);
+  const p = providerPart(record);
+  const user = p !== record ? record : obj(p['user']);
   const profile = obj(user['provider']);
 
   const id = providerId(p['id']) ?? providerId(p['providerId']);
@@ -71,6 +69,21 @@ export function toTgProvider(source: unknown, context: TgProviderContext = {}): 
     priceFrom: main?.price ?? null,
     distanceKm: toNumber(p['distanceKm'] ?? p['distance']) ?? null,
   };
+}
+
+/**
+ * O preço que o card mostra ("A partir de"): o do serviço elegível mais barato,
+ * pela mesma regra de `toTgProvider` (ativo, da categoria pedida, preço maior
+ * que zero; a ordem da API não importa). Sem preço válido, `null`.
+ */
+export function tgProviderPriceFrom(source: unknown, context: TgProviderContext = {}): number | null {
+  if (!isObject(source)) return null;
+  return cheapestService(providerPart(source as Record<string, any>)['services'], context.category)?.price ?? null;
+}
+
+/** Registro de usuário com o prestador aninhado: o prestador está em `provider`. */
+function providerPart(record: Record<string, any>): Record<string, any> {
+  return isObject(record['provider']) ? (record['provider'] as Record<string, any>) : record;
 }
 
 /** Id do Provider: BigInt serializado como texto de dígitos, ou inteiro positivo. */
