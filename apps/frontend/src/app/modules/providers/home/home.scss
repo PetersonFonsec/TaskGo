@@ -120,6 +120,11 @@
   min-width: 0;
 }
 
+// "Ver todas" e "Mostrar menos", logo abaixo da lista.
+.provider-home__more {
+  align-self: flex-start;
+}
+
 .provider-home__skeleton-card,
 .provider-home__skeleton-list {
   background: var(--tg-bg-surface);

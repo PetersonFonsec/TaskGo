@@ -18,8 +18,12 @@ export interface ProviderHomeRecent {
   person: string | null;
   /** "02 nov" (com o ano se não for o atual); sem data válida, null. */
   date: string | null;
-  /** "Você recebeu R$ 72": a parte do prestador. Sem valor (> 0), null. */
-  received: string | null;
+  /**
+   * "Sua parte no serviço: R$ 72". O valor é `payment.providerAmount` (a
+   * parte do prestador) e o painel não diz se o pagamento foi confirmado nem
+   * se houve repasse, então a tela nunca diz "recebeu". Sem valor (> 0), null.
+   */
+  share: string | null;
   /** Nota de 1 a 5; sem avaliação, null. */
   rating: number | null;
 }
@@ -128,7 +132,7 @@ export function providerHomeEarnings(home: ProviderHomeData, now: Date = new Dat
       service: service.service?.trim() || 'Serviço',
       person: service.clientName?.trim() || null,
       date: shortDate(service.completedAt, now),
-      received: received(service.amount),
+      share: share(service.amount),
       rating: validRating(service.rating),
     }),
   );
@@ -162,9 +166,9 @@ export function providerHomeEarnings(home: ProviderHomeData, now: Date = new Dat
   };
 }
 
-function received(value: unknown): string | null {
+function share(value: unknown): string | null {
   const money = tgMoney(isNumber(value) ? value : null);
-  return money ? `Você recebeu ${money}` : null;
+  return money ? `Sua parte no serviço: ${money}` : null;
 }
 
 function validRating(value: unknown): number | null {

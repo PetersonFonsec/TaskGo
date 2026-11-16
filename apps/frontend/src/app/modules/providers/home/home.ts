@@ -2,13 +2,17 @@ import { HttpClient, HttpErrorResponse } from '@angular/common/http';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { RouterLink } from '@angular/router';
 import {
+  afterNextRender,
   ChangeDetectionStrategy,
   Component,
   computed,
   DestroyRef,
+  ElementRef,
   inject,
+  Injector,
   OnInit,
   signal,
+  type WritableSignal,
 } from '@angular/core';
 import { catchError, map, of, Subject, switchMap } from 'rxjs';
 import { environment } from '@environments/environment';
@@ -36,7 +40,7 @@ import {
 import { TgSkeletonComponent } from '@shared/design-system/skeleton/tg-skeleton.component';
 import { TgClock } from '@shared/design-system/tg-clock';
 import { ProviderHomeData } from './data';
-import { providerHomeAgenda } from './provider-home.agenda';
+import { PROVIDER_HOME_LIST_LIMIT, providerHomeAgenda } from './provider-home.agenda';
 import { providerHomeEarnings } from './provider-home.earnings';
 
 /**
@@ -77,6 +81,8 @@ export class ProviderHomePage implements OnInit {
   #http = inject(HttpClient);
   #clock = inject(TgClock);
   #destroyRef = inject(DestroyRef);
+  #host = inject<ElementRef<HTMLElement>>(ElementRef).nativeElement;
+  #injector = inject(Injector);
 
   readonly receiptsLink = '/provider/recebimentos';
   readonly servicesLink = '/provider/services';
@@ -103,6 +109,29 @@ export class ProviderHomePage implements OnInit {
   readonly ordersLoading = signal(true);
   readonly ordersError = signal(false);
   readonly agenda = computed(() => providerHomeAgenda(this.orders(), this.#clock.now()));
+
+  /**
+   * As listas mostram 10 linhas e abrem o resto sob demanda: o prestador
+   * não tem outra lista de pedidos no web, então nenhum pedido pode ficar
+   * fora de alcance.
+   */
+  readonly listLimit = PROVIDER_HOME_LIST_LIMIT;
+  readonly requestsExpanded = signal(false);
+  readonly upcomingExpanded = signal(false);
+  readonly visibleRequests = computed(() =>
+    this.requestsExpanded() ? this.agenda().requests : this.agenda().requests.slice(0, this.listLimit),
+  );
+  readonly visibleUpcoming = computed(() =>
+    this.upcomingExpanded() ? this.agenda().upcoming : this.agenda().upcoming.slice(0, this.listLimit),
+  );
+
+  /**
+   * A recarga depois de uma troca de status falhou. A agenda anterior fica
+   * à vista (a troca foi aceita pela API, então ela pode estar
+   * desatualizada) e os pedidos trocados continuam bloqueados até uma
+   * sincronização dar certo: nada de repetir a troca no status antigo.
+   */
+  readonly syncError = signal(false);
 
   /** Pedidos com troca de status em curso (o botão fica em carregando). */
   readonly updating = signal<ReadonlySet<string>>(new Set());
@@ -149,15 +178,23 @@ export class ProviderHomePage implements OnInit {
           return this.#order.getOrderByProvider(userId).pipe(
             map((orders): Result<OrdersResponse> => ({ ok: true, value: orders })),
             catchError(() => of<Result<OrdersResponse>>({ ok: false })),
+            map((result) => ({ silent, result })),
           );
         }),
         takeUntilDestroyed(this.#destroyRef),
       )
-      .subscribe((result) => {
-        if (result.ok) this.orders.set(result.value);
-        else this.orders.set([]);
+      .subscribe(({ silent, result }) => {
+        if (!result.ok && silent) {
+          // Recarga silenciosa: mantém a agenda, avisa e não solta os pedidos trocados.
+          this.syncError.set(true);
+          return;
+        }
+        this.orders.set(result.ok ? result.value : []);
         this.ordersError.set(!result.ok);
         this.ordersLoading.set(false);
+        this.syncError.set(false);
+        // Toda resposta que chega aqui foi pedida depois das trocas que deram
+        // certo (o switchMap descarta as anteriores), então já traz o status novo.
         this.#release([...this.#settling]);
         this.#settling.clear();
       });
@@ -189,6 +226,21 @@ export class ProviderHomePage implements OnInit {
   /** Carrega (ou recarrega, no "Tentar de novo") os pedidos de quem está logado. */
   loadOrders(): void {
     this.#load(false);
+  }
+
+  /** "Tentar de novo" depois de uma falha de sincronização: recarrega sem tirar a agenda da tela. */
+  syncOrders(): void {
+    this.#load(true);
+  }
+
+  /** Abre ou fecha as solicitações além das 10 primeiras; ao abrir, o foco vai para a primeira nova. */
+  toggleRequests(): void {
+    this.#toggle(this.requestsExpanded, '.provider-home__requests');
+  }
+
+  /** O mesmo para "Também na agenda". */
+  toggleUpcoming(): void {
+    this.#toggle(this.upcomingExpanded, '.provider-home__upcoming');
   }
 
   /** Carrega (ou recarrega) o painel de ganhos e insights. */
@@ -232,6 +284,21 @@ export class ProviderHomePage implements OnInit {
     this.ordersError.set(true);
     this.ordersLoading.set(false);
     return false;
+  }
+
+  #toggle(expanded: WritableSignal<boolean>, group: string): void {
+    const opening = !expanded();
+    expanded.set(opening);
+    if (!opening) return;
+    afterNextRender(
+      () => {
+        const first = this.#host.querySelector<HTMLElement>(
+          `${group} li:nth-child(${this.listLimit + 1}) a.tg-order-row__link`,
+        );
+        first?.focus();
+      },
+      { injector: this.#injector },
+    );
   }
 
   #release(ids: readonly string[]): void {

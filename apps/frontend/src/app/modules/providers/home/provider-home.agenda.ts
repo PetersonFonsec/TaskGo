@@ -29,18 +29,18 @@ const SCHEDULED_STATUSES: ReadonlySet<string> = new Set([
 ]);
 
 /**
- * Quantas linhas cada lista mostra. O prestador não tem outra lista de
- * pedidos no web, então o limite é o mesmo do painel antigo (10), não o 3
- * do cliente: o que some daqui não aparece em outro lugar.
+ * Quantas linhas cada lista mostra antes de "Ver todas". A agenda devolve
+ * todos os pedidos: o prestador não tem outra lista de pedidos no web, então
+ * a tela abre o resto sob demanda em vez de cortar.
  */
 export const PROVIDER_HOME_LIST_LIMIT = 10;
 
 export interface ProviderHomeAgenda {
   /** O próximo atendimento: o que pede ação do prestador ou, senão, o de data mais próxima. */
   highlight: TgAppointmentData | null;
-  /** Solicitações aguardando resposta, a data mais próxima primeiro. */
+  /** Todas as solicitações aguardando resposta, a data mais próxima primeiro. */
   requests: TgOrderRowData[];
-  /** Total de solicitações (o título mostra mesmo se a lista cortar). */
+  /** Total de solicitações (o título). */
   requestCount: number;
   /** Em análise e status desconhecido primeiro; depois os demais em curso, por data. */
   upcoming: TgOrderRowData[];
@@ -79,15 +79,13 @@ export function providerHomeAgenda(
   const byDate = sortByDate(scheduled);
   const highlight = byDate.find((order) => providerStep(order)) ?? byDate[0] ?? null;
 
-  const upcoming = [...sortByDate(review), ...byDate.filter((order) => order !== highlight)]
-    .slice(0, PROVIDER_HOME_LIST_LIMIT)
-    .map((order) => toTgOrderRow(order, 'provider'));
+  const upcoming = [...sortByDate(review), ...byDate.filter((order) => order !== highlight)].map((order) =>
+    toTgOrderRow(order, 'provider'),
+  );
 
   return {
     highlight: highlight ? toTgAppointment(highlight, 'provider') : null,
-    requests: sortByDate(requests)
-      .slice(0, PROVIDER_HOME_LIST_LIMIT)
-      .map((order) => toTgOrderRow(order, 'provider')),
+    requests: sortByDate(requests).map((order) => toTgOrderRow(order, 'provider')),
     requestCount: requests.length,
     upcoming,
     todayCount: scheduled.filter((order) => tgWhenParts(dateInput(order.scheduledFor), now)?.day === 'Hoje')

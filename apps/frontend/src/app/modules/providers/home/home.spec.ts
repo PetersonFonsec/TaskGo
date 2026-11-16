@@ -307,6 +307,236 @@ describe('ProviderHomePage', () => {
     });
   });
 
+  describe('falha ao sincronizar depois de trocar o status', () => {
+    let reload: Subject<OrdersResponse>;
+
+    async function failSync() {
+      reload = new Subject<OrdersResponse>();
+      await setup(of([order('1', 'AGENDADO'), order('2', 'AGUARDANDO_APROVACAO')]));
+      flushHome();
+      orderService.getOrderByProvider.and.returnValue(reload);
+      component.advance('1', 'EM_DESLOCAMENTO');
+      reload.error(new Error('rede'));
+      fixture.detectChanges();
+    }
+
+    const syncAlert = () => el.querySelector('.provider-home__sync');
+
+    it('não apaga a agenda já carregada', async () => {
+      await failSync();
+      expect(component.orders().map((o) => o.id)).toEqual(['1', '2']);
+      expect(el.querySelector('tg-appointment-card')).not.toBeNull();
+      expect(el.querySelectorAll('.provider-home__lists tg-order-row').length).toBe(1);
+      expect(component.ordersError()).toBeFalse();
+      expect(text(el.querySelector('section[aria-labelledby="agenda-title"]'))).not.toContain(
+        'Não foi possível carregar sua agenda',
+      );
+    });
+
+    it('avisa que a agenda pode estar desatualizada, sem anunciar sucesso', async () => {
+      await failSync();
+      expect(text(syncAlert())).toContain('Sua agenda pode estar desatualizada');
+      expect(text(syncAlert())).toContain('A mudança foi enviada');
+    });
+
+    it('mantém o pedido bloqueado: não repete a troca com o status antigo', async () => {
+      await failSync();
+      expect(component.updating().has('1')).toBeTrue();
+      component.advance('1', 'EM_DESLOCAMENTO');
+      expect(orderService.updateOrderStatus).toHaveBeenCalledTimes(1);
+    });
+
+    it('"Tentar de novo" sincroniza em silêncio e solta o pedido com o status real', async () => {
+      await failSync();
+      orderService.getOrderByProvider.and.returnValue(of([order('1', 'EM_DESLOCAMENTO')]));
+      syncAlert()!.querySelector<HTMLButtonElement>('button')!.click();
+      fixture.detectChanges();
+      expect(component.ordersLoading()).toBeFalse();
+      expect(syncAlert()).toBeNull();
+      expect(component.updating().has('1')).toBeFalse();
+      expect(text(el.querySelector('tg-appointment-card'))).toContain('Iniciar serviço');
+    });
+
+    it('uma nova falha mantém os dados e o aviso', async () => {
+      await failSync();
+      orderService.getOrderByProvider.and.returnValue(throwError(() => new Error('rede')));
+      syncAlert()!.querySelector<HTMLButtonElement>('button')!.click();
+      fixture.detectChanges();
+      expect(component.orders().length).toBe(2);
+      expect(syncAlert()).not.toBeNull();
+    });
+
+    it('a falha na carga inicial continua mostrando o erro', async () => {
+      await setup(throwError(() => new Error('down')));
+      flushHome();
+      expect(component.ordersError()).toBeTrue();
+      expect(syncAlert()).toBeNull();
+    });
+  });
+
+  describe('trocas de status simultâneas', () => {
+    let updates: Record<string, Subject<object>>;
+    let reloads: Subject<OrdersResponse>[];
+
+    async function start() {
+      updates = { A: new Subject<object>(), B: new Subject<object>() };
+      reloads = [];
+      await setup(of([order('A', 'AGENDADO', { scheduledFor: TODAY_14H }), order('B', 'EM_DESLOCAMENTO')]));
+      flushHome();
+      orderService.updateOrderStatus.and.callFake((id: string) => updates[id]);
+      orderService.getOrderByProvider.and.callFake(() => {
+        const next = new Subject<OrdersResponse>();
+        reloads.push(next);
+        return next;
+      });
+      component.advance('A', 'EM_DESLOCAMENTO');
+      component.advance('B', 'EM_ANDAMENTO');
+    }
+
+    const succeed = (id: string) => {
+      updates[id].next({});
+      updates[id].complete();
+    };
+    const busy = () => [...component.updating()].sort();
+
+    it('A e B ficam ocupados ao mesmo tempo, uma chamada cada', async () => {
+      await start();
+      expect(orderService.updateOrderStatus.calls.allArgs()).toEqual([
+        ['A', 'EM_DESLOCAMENTO'],
+        ['B', 'EM_ANDAMENTO'],
+      ]);
+      expect(busy()).toEqual(['A', 'B']);
+    });
+
+    it('B responde antes de A: a recarga de B não solta A', async () => {
+      await start();
+      succeed('B');
+      reloads[0].next([order('A', 'AGENDADO'), order('B', 'EM_ANDAMENTO')]);
+      expect(busy()).toEqual(['A']);
+      succeed('A');
+      reloads[1].next([order('A', 'EM_DESLOCAMENTO'), order('B', 'EM_ANDAMENTO')]);
+      expect(busy()).toEqual([]);
+      expect(component.orders().map((o) => o.status)).toEqual(['EM_DESLOCAMENTO', 'EM_ANDAMENTO']);
+    });
+
+    it('uma recarga cancelada por outra mais nova não sobrescreve os dados', async () => {
+      await start();
+      succeed('A');
+      succeed('B');
+      reloads[1].next([order('A', 'EM_DESLOCAMENTO'), order('B', 'EM_ANDAMENTO')]);
+      reloads[0].next([order('A', 'AGENDADO'), order('B', 'EM_DESLOCAMENTO')]);
+      expect(component.orders().map((o) => o.status)).toEqual(['EM_DESLOCAMENTO', 'EM_ANDAMENTO']);
+      expect(busy()).toEqual([]);
+    });
+
+    it('A falha enquanto B continua: só A é solto', async () => {
+      await start();
+      updates['A'].error(new Error('rede'));
+      expect(busy()).toEqual(['B']);
+      expect(component.actionError()).toBeTruthy();
+      succeed('B');
+      reloads[0].next([order('A', 'AGENDADO'), order('B', 'EM_ANDAMENTO')]);
+      expect(busy()).toEqual([]);
+    });
+
+    it('A pode tentar de novo depois do erro', async () => {
+      await start();
+      updates['A'].error(new Error('rede'));
+      updates['A'] = new Subject<object>();
+      component.advance('A', 'EM_DESLOCAMENTO');
+      expect(orderService.updateOrderStatus).toHaveBeenCalledTimes(3);
+    });
+
+    it('destruir a tela com operações pendentes cancela tudo sem erro', async () => {
+      await start();
+      succeed('A');
+      fixture.destroy();
+      expect(updates['B'].observed).toBeFalse();
+      expect(reloads[0].observed).toBeFalse();
+      expect(() => {
+        succeed('B');
+        reloads[0].next([]);
+      }).not.toThrow();
+      expect(reloads.length).toBe(1);
+    });
+  });
+
+  describe('mais de 10 solicitações', () => {
+    const requests = (n: number) =>
+      Array.from({ length: n }, (_, i) =>
+        order(`r${i + 1}`, 'AGUARDANDO_APROVACAO', {
+          scheduledFor: new Date(2026, 10, 19, 8 + i).toISOString(),
+        }),
+      );
+    const rows = () => [...el.querySelectorAll('.provider-home__requests tg-order-row')];
+    const toggle = () => el.querySelector<HTMLButtonElement>('.provider-home__requests-toggle');
+
+    it('menos de 10: todas, sem botão', async () => {
+      await setup(of(requests(3)));
+      flushHome();
+      expect(rows().length).toBe(3);
+      expect(toggle()).toBeNull();
+    });
+
+    it('exatamente 10: todas, sem botão', async () => {
+      await setup(of(requests(10)));
+      flushHome();
+      expect(rows().length).toBe(10);
+      expect(toggle()).toBeNull();
+    });
+
+    it('mais de 10: mostra 10, conta todas e abre o resto sob demanda', async () => {
+      await setup(of(requests(12)));
+      flushHome();
+      expect(text(el.querySelector('.provider-home__requests h3'))).toBe('Solicitações aguardando você (12)');
+      expect(rows().length).toBe(10);
+      const button = toggle()!;
+      expect(button.type).toBe('button');
+      expect(text(button)).toBe('Ver todas as solicitações (12)');
+      expect(button.getAttribute('aria-expanded')).toBe('false');
+      const list = el.querySelector(`#${button.getAttribute('aria-controls')}`);
+      expect(list?.matches('ul.tg-order-list')).toBeTrue();
+
+      button.click();
+      fixture.detectChanges();
+      await fixture.whenStable();
+      expect(rows().length).toBe(12);
+      // Mesma ordem da agenda: a data mais próxima primeiro.
+      expect(rows().map((r) => text(r.querySelector('a.tg-order-row__link')))).toEqual(
+        requests(12).map((o) => o.service!.title),
+      );
+      expect(button.getAttribute('aria-expanded')).toBe('true');
+      expect(text(button)).toBe('Mostrar menos');
+      // O foco vai para a primeira solicitação que apareceu.
+      expect(document.activeElement).toBe(rows()[10].querySelector('a.tg-order-row__link'));
+      expect(rows()[11].querySelector('a.tg-order-row__action')!.getAttribute('href')).toBe('/provider/r12/aprovacao');
+
+      button.click();
+      fixture.detectChanges();
+      expect(rows().length).toBe(10);
+      expect(button.getAttribute('aria-expanded')).toBe('false');
+    });
+  });
+
+  describe('mais de 10 atendimentos em "Também na agenda"', () => {
+    it('mostra 10 e abre o resto sob demanda', async () => {
+      const many = Array.from({ length: 13 }, (_, i) =>
+        order(`p${i + 1}`, 'AGUARDANDO_PAGAMENTO', { scheduledFor: new Date(2026, 10, 20, 7 + i).toISOString() }),
+      );
+      await setup(of(many));
+      flushHome();
+      const rows = () => el.querySelectorAll('.provider-home__upcoming tg-order-row');
+      // Um vai para o destaque; 12 ficam na lista, 10 à vista.
+      expect(rows().length).toBe(10);
+      const button = el.querySelector<HTMLButtonElement>('.provider-home__upcoming-toggle')!;
+      expect(text(button)).toBe('Ver todos os atendimentos (12)');
+      button.click();
+      fixture.detectChanges();
+      expect(rows().length).toBe(12);
+      expect(button.getAttribute('aria-expanded')).toBe('true');
+    });
+  });
+
   describe('ganhos', () => {
     it('mostra os 4 indicadores, a nota sobre o repasse e o gráfico', async () => {
       await setup();
@@ -324,7 +554,7 @@ describe('ProviderHomePage', () => {
       expect(el.querySelector('app-provider-revenue-chart')).not.toBeNull();
     });
 
-    it('últimos serviços com o que o prestador recebeu e a nota', async () => {
+    it('últimos serviços com a parte do prestador (sem dizer que recebeu) e a nota', async () => {
       await setup();
       flushHome();
       const rows = [...el.querySelectorAll('.provider-home__recent')];
@@ -332,7 +562,8 @@ describe('ProviderHomePage', () => {
       expect(text(rows[0])).toContain('Conserto de tomada');
       expect(text(rows[0])).toContain('Carlos Lima');
       expect(text(rows[0])).toContain('02 nov');
-      expect(text(rows[0])).toContain('Você recebeu R$ 72');
+      expect(text(rows[0])).toContain('Sua parte no serviço: R$ 72');
+      expect(el.textContent).not.toContain('Você recebeu');
       expect(rows[0].querySelector('[role="img"]')!.getAttribute('aria-label')).toBe('Nota 5');
       expect(rows[0].querySelector('a')!.getAttribute('href')).toBe('/orders/90');
       expect(text(rows[1])).toContain('sem avaliação');

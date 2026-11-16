@@ -86,11 +86,14 @@ describe('providerHomeAgenda', () => {
     expect(ids(agenda.requests)).toEqual(['a1', 'a2', 'b', 'x']);
   });
 
-  it(`corta as listas em ${PROVIDER_HOME_LIST_LIMIT}, mas conta todas as solicitações`, () => {
+  it(`não corta as listas: a tela mostra ${PROVIDER_HOME_LIST_LIMIT} e abre o resto sob demanda`, () => {
     const many = Array.from({ length: 12 }, (_, i) => order('r' + i, 'AGUARDANDO_APROVACAO'));
-    const agenda = providerHomeAgenda(many, NOW);
-    expect(agenda.requests.length).toBe(PROVIDER_HOME_LIST_LIMIT);
+    const more = Array.from({ length: 12 }, (_, i) => order('a' + i, 'AGUARDANDO_PAGAMENTO'));
+    const agenda = providerHomeAgenda([...many, ...more], NOW);
+    expect(agenda.requests.length).toBe(12);
     expect(agenda.requestCount).toBe(12);
+    // Um vai para o destaque; os outros 11 ficam na lista.
+    expect(agenda.upcoming.length).toBe(11);
   });
 
   it('conta os atendimentos em curso marcados para hoje (sem solicitações nem encerrados)', () => {

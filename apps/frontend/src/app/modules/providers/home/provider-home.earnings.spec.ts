@@ -67,11 +67,41 @@ describe('providerHomeEarnings', () => {
       }),
       NOW,
     );
-    expect(recent.map((r) => ({ ...r, received: plain(r.received) }))).toEqual([
-      { id: '1', service: 'Conserto', person: 'Carlos Lima', date: '02 nov', received: 'Você recebeu R$ 72', rating: 5 },
-      { id: '2', service: 'Serviço', person: null, date: '30 dez 2025', received: null, rating: null },
-      { id: '3', service: 'Y', person: 'X', date: null, received: 'Você recebeu R$ 99,50', rating: null },
+    expect(recent.map((r) => ({ ...r, share: plain(r.share) }))).toEqual([
+      { id: '1', service: 'Conserto', person: 'Carlos Lima', date: '02 nov', share: 'Sua parte no serviço: R$ 72', rating: 5 },
+      { id: '2', service: 'Serviço', person: null, date: '30 dez 2025', share: null, rating: null },
+      { id: '3', service: 'Y', person: 'X', date: null, share: 'Sua parte no serviço: R$ 99,50', rating: null },
     ]);
+  });
+
+  it('a parte do prestador nunca vira "recebeu": o painel não diz se o pagamento foi confirmado', () => {
+    // recentServices.amount é payment.providerAmount (a parte prevista); o painel não manda o status do pagamento.
+    const shares = providerHomeEarnings(
+      data({
+        recentServices: [
+          { id: 'pago', clientName: 'A', service: 'S', completedAt: '2026-11-02T15:00:00', amount: 72, rating: 5 },
+          { id: 'sem-confirmacao', clientName: 'B', service: 'S', completedAt: '2026-11-02T15:00:00', amount: 40, rating: null },
+          { id: 'zero', clientName: 'C', service: 'S', completedAt: '2026-11-02T15:00:00', amount: 0, rating: null },
+          { id: 'ausente', clientName: 'D', service: 'S', completedAt: '2026-11-02T15:00:00', amount: undefined as unknown as number, rating: null },
+          { id: 'nan', clientName: 'E', service: 'S', completedAt: '2026-11-02T15:00:00', amount: Number.NaN, rating: null },
+          { id: 'negativo', clientName: 'F', service: 'S', completedAt: '2026-11-02T15:00:00', amount: -10, rating: null },
+          { id: 'texto', clientName: 'G', service: 'S', completedAt: '2026-11-02T15:00:00', amount: '72' as unknown as number, rating: null },
+          { id: 'infinito', clientName: 'H', service: 'S', completedAt: '2026-11-02T15:00:00', amount: Number.POSITIVE_INFINITY, rating: null },
+        ],
+      }),
+      NOW,
+    ).recent.map((r) => plain(r.share));
+    expect(shares).toEqual([
+      'Sua parte no serviço: R$ 72',
+      'Sua parte no serviço: R$ 40',
+      null,
+      null,
+      null,
+      null,
+      null,
+      null,
+    ]);
+    expect(shares.join(' ')).not.toContain('recebeu');
   });
 
   it('insights com "Sem dados" quando o painel não tem', () => {

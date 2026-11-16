@@ -22,6 +22,27 @@
       </div>
     </header>
 
+    @if (syncError()) {
+      <tg-alert
+        class="provider-home__sync"
+        tone="warning"
+        title="Sua agenda pode estar desatualizada"
+      >
+        A mudança foi enviada, mas não conseguimos carregar a agenda de novo. Os atendimentos
+        alterados ficam bloqueados até a agenda atualizar.
+        <button
+          tgButton
+          tgAlertAction
+          type="button"
+          appearance="outline"
+          size="sm"
+          (click)="syncOrders()"
+        >
+          Tentar de novo
+        </button>
+      </tg-alert>
+    }
+
     @if (actionError(); as message) {
       <tg-alert tone="danger" title="Não foi possível atualizar o atendimento">{{
         message
@@ -80,24 +101,42 @@
             @if (agenda().requests.length || agenda().upcoming.length) {
               <div class="provider-home__lists">
                 @if (agenda().requests.length) {
-                  <div class="provider-home__group">
+                  <div class="provider-home__group provider-home__requests">
                     <h3 class="provider-home__subtitle">
                       Solicitações aguardando você ({{ agenda().requestCount }})
                     </h3>
-                    <ul tgOrderList>
-                      @for (order of agenda().requests; track order.id) {
+                    <ul tgOrderList id="provider-home-requests">
+                      @for (order of visibleRequests(); track order.id) {
                         <li><tg-order-row perspective="provider" [order]="order" /></li>
                       }
                     </ul>
+                    @if (agenda().requests.length > listLimit) {
+                      <button
+                        tgButton
+                        type="button"
+                        appearance="ghost"
+                        size="sm"
+                        class="provider-home__more provider-home__requests-toggle"
+                        aria-controls="provider-home-requests"
+                        [attr.aria-expanded]="requestsExpanded()"
+                        (click)="toggleRequests()"
+                      >
+                        {{
+                          requestsExpanded()
+                            ? 'Mostrar menos'
+                            : 'Ver todas as solicitações (' + agenda().requestCount + ')'
+                        }}
+                      </button>
+                    }
                   </div>
                 }
                 @if (agenda().upcoming.length) {
-                  <div class="provider-home__group">
+                  <div class="provider-home__group provider-home__upcoming">
                     <h3 class="provider-home__subtitle">
                       {{ agenda().highlight ? 'Também na agenda' : 'Na agenda' }}
                     </h3>
-                    <ul tgOrderList>
-                      @for (order of agenda().upcoming; track order.id) {
+                    <ul tgOrderList id="provider-home-upcoming">
+                      @for (order of visibleUpcoming(); track order.id) {
                         <li>
                           <tg-order-row
                             perspective="provider"
@@ -108,6 +147,24 @@
                         </li>
                       }
                     </ul>
+                    @if (agenda().upcoming.length > listLimit) {
+                      <button
+                        tgButton
+                        type="button"
+                        appearance="ghost"
+                        size="sm"
+                        class="provider-home__more provider-home__upcoming-toggle"
+                        aria-controls="provider-home-upcoming"
+                        [attr.aria-expanded]="upcomingExpanded()"
+                        (click)="toggleUpcoming()"
+                      >
+                        {{
+                          upcomingExpanded()
+                            ? 'Mostrar menos'
+                            : 'Ver todos os atendimentos (' + agenda().upcoming.length + ')'
+                        }}
+                      </button>
+                    }
                   </div>
                 }
               </div>
@@ -245,8 +302,8 @@
                     <span>sem avaliação</span>
                   }
                 </p>
-                @if (service.received) {
-                  <p class="provider-home__recent-amount">{{ service.received }}</p>
+                @if (service.share) {
+                  <p class="provider-home__recent-amount">{{ service.share }}</p>
                 }
               </li>
             }
