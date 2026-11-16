@@ -1,4 +1,4 @@
-import { ChangeDetectionStrategy, Component, DestroyRef, OnInit, computed, inject, signal } from '@angular/core';
+import { ChangeDetectionStrategy, Component, DestroyRef, computed, inject, signal } from '@angular/core';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { HttpErrorResponse } from '@angular/common/http';
 import { Router, RouterLink } from '@angular/router';
@@ -48,7 +48,7 @@ const PROVIDER_STEP: RegisterStep = {
   styleUrl: './register.scss',
   changeDetection: ChangeDetectionStrategy.OnPush,
 })
-export class Register implements OnInit {
+export class Register {
   #liveAnnouncer = inject(LiveAnnouncer);
   #registerUser = inject(RegisterUser);
   #userStorage = inject(UserStorage);
@@ -63,7 +63,8 @@ export class Register implements OnInit {
   ];
 
   readonly completeSteps = this.#registerUser.completeSteps;
-  readonly userType = signal<Roles>(this.#userStorage.type());
+  /** Tipo de conta escolhido; vale para os passos e para o pedido de cadastro. */
+  readonly userType = this.#userStorage.type.asReadonly();
   readonly showModal = signal(false);
   readonly loading = signal(false);
   readonly error = signal('');
@@ -72,18 +73,12 @@ export class Register implements OnInit {
   readonly doneCount = computed(() => this.steps().filter((step) => this.isDone(step)).length);
   readonly allDone = computed(() => this.doneCount() === this.steps().length);
 
-  ngOnInit(): void {
-    this.#theme.change
-      .pipe(takeUntilDestroyed(this.#destroyRef))
-      .subscribe((role) => this.userType.set(role));
-  }
-
   isDone(step: RegisterStep): boolean {
     return !!this.completeSteps()[step.key];
   }
 
   changeTheme(role: Roles) {
-    this.userType.set(role);
+    this.#userStorage.type.set(role);
     this.#theme.setTheme(role);
   }
 

@@ -177,7 +177,7 @@ export class TgTabsComponent implements AfterContentChecked {
       this.measure();
       // A aba focada saiu (ou foi movida) e o foco caiu na página: devolve
       // à selecionada. Só nesse caso; nunca puxa o foco de fora.
-      if (this.#focusWasOnTab && !this.#focusOnTab()) this.#button(selected)?.focus();
+      if (this.#focusWasOnTab && !this.#focusOnTab()) this.#button(selected)?.focus({ preventScroll: true });
     });
 
     if (isDevMode()) {
@@ -232,7 +232,8 @@ export class TgTabsComponent implements AfterContentChecked {
     if (!next) return;
     event.preventDefault();
     this.select(next);
-    this.#button(next)?.focus();
+    // Sem rolar a página: só a barra rola, em #reveal.
+    this.#button(next)?.focus({ preventScroll: true });
   }
 
   protected measure() {

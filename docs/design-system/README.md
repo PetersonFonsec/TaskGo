@@ -1423,7 +1423,7 @@ os erros aparecem ao enviar, e não com o botão desabilitado.
 
 | Parte | Componente | Regra |
 | --- | --- | --- |
-| Casca | painel da marca e `router-outlet` | A partir de 960 px, lado a lado: "TaskGo", "Serviços de casa, perto de você." e três destaques com `check`. No celular, uma faixa ("TaskGo · Serviços perto de você"). Liga o tema do cliente e mantém o tipo do cadastro em sincronia com o tema. |
+| Casca | painel da marca e `router-outlet` | A partir de 960 px, lado a lado: "TaskGo", "Serviços de casa, perto de você." e três destaques com `check`. No celular, uma faixa ("TaskGo · Serviços perto de você"). O tema segue a rota ativa a cada navegação: entrada, entrar, recuperar e nova senha usam sempre o do cliente; as rotas do cadastro (`data.accountTheme`) usam o tipo de conta escolhido, que só muda pela escolha no cadastro. |
 | Entrada | `h1` "Boas-vindas ao TaskGo", `a[tgButton]` | "Entrar" (solid) e "Criar conta" (outline, volta ao tema do cliente). |
 | Entrar | `tg-field` com `tgInput` e `tg-password-toggle` | "Esqueci minha senha" na linha do rótulo da senha. "Entrar" sempre ativo: ao enviar, cada campo mostra o erro, o foco vai ao primeiro inválido e o erro some ao corrigir. Durante o pedido, `loading` e um envio por vez. Erro da API: `tg-alert` de perigo. Rodapé: "Ainda não tem conta? Criar conta". |
 | Recuperar acesso | `tg-field` e "Enviar link" | "Voltar para entrar" no topo. Enviado, o formulário dá lugar a "Confira seu e-mail" (`tg-alert` de sucesso, com o e-mail) e "Voltar para entrar". |

@@ -253,6 +253,24 @@ describe('TgTabsComponent', () => {
       fixture.detectChanges();
       expect((root().querySelector('.tg-tabs__bar') as HTMLElement).classList).toContain('tg-tabs__bar--fade-start');
     });
+
+    it('não rola a página nem com a barra encostada no fim da janela', async () => {
+      // O que estiver acima do componente na página (aqui, um espaçador)
+      // deixa a barra só em parte à vista: trocar de aba não pode rolar a página.
+      const spacer = document.createElement('div');
+      spacer.style.height = `${window.innerHeight - root().getBoundingClientRect().top - 20}px`;
+      fixture.nativeElement.before(spacer);
+      try {
+        const pageY = window.scrollY;
+        await key(buttons()[0], 'End');
+        await new Promise((resolve) => requestAnimationFrame(resolve));
+        expect(document.activeElement).toBe(buttons()[3]);
+        expect(window.scrollY).toBe(pageY);
+      } finally {
+        spacer.remove();
+        window.scrollTo(0, 0);
+      }
+    });
   });
 
   it('avisa em desenvolvimento quando falta valor ou rótulo', async () => {
