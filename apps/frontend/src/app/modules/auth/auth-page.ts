@@ -1,77 +1,63 @@
+import { ChangeDetectionStrategy, Component, DestroyRef, inject, OnInit, signal } from '@angular/core';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
-import { Component, DestroyRef, inject, OnInit, signal, viewChild } from '@angular/core';
-import { Router, RouterModule } from '@angular/router';
-
+import { ActivatedRoute, NavigationEnd, Router, RouterLink, RouterOutlet } from '@angular/router';
+import { filter } from 'rxjs';
+import { TgButtonComponent } from '@shared/design-system/button/tg-button.component';
+import { TgIconComponent } from '@shared/design-system/icon/tg-icon.component';
 import { Roles } from '@shared/enums/roles.enum';
-
-import { LayoutSliderItem } from './components/layout-slider-item/layout-slider-item';
-import { LayoutSlider } from './components/layout-slider/layout-slider';
 import { Theme } from '@shared/service/theme/theme';
 import { UserStorage } from '@shared/service/users/user-storage';
+
+/** Rotas do cadastro: usam o tema do tipo de conta escolhido. */
+export const ACCOUNT_THEME = 'accountTheme';
+
+/**
+ * Casca da autenticação (Etapa 10): o painel da marca e, ao lado, a tela da
+ * rota filha (entrar, recuperar acesso, cadastro). Sem rota filha, a entrada:
+ * "Entrar" e "Criar conta".
+ *
+ * O Angular reaproveita esta casca entre as rotas filhas, então o tema segue
+ * a rota ativa a cada navegação, não só ao abrir: as rotas do cadastro
+ * (`data.accountTheme`) usam o tipo de conta escolhido (`UserStorage.type`);
+ * as demais (entrada, entrar, recuperar e nova senha), sempre o do cliente.
+ * O tipo de conta só muda pela escolha no cadastro.
+ */
 @Component({
   selector: 'app-auth-page',
-  imports: [LayoutSlider, LayoutSliderItem, RouterModule],
+  imports: [RouterOutlet, RouterLink, TgButtonComponent, TgIconComponent],
   templateUrl: './auth-page.html',
-  styleUrls: ['./auth-page.scss'],
+  styleUrl: './auth-page.scss',
+  changeDetection: ChangeDetectionStrategy.OnPush,
 })
 export class AuthPage implements OnInit {
-  #destroyRef = inject(DestroyRef);
-  #currentUser = signal<Roles | null>(null);
-  #userStorage = inject(UserStorage);
-  #router = inject(Router);
-  #theme = inject(Theme);
+  readonly #destroyRef = inject(DestroyRef);
+  readonly #router = inject(Router);
+  readonly #route = inject(ActivatedRoute);
+  readonly #theme = inject(Theme);
+  readonly #userStorage = inject(UserStorage);
 
-  disabledaActions = signal(false);
-  slider = viewChild<LayoutSlider>(LayoutSlider);
-  userType = Roles;
+  /** Há uma tela filha aberta (sem ela, aparece a entrada). */
+  readonly hasChild = signal(false);
+  readonly highlights = [
+    'Profissionais avaliados por quem já contratou',
+    'Pagamento pelo app, com Pix',
+    'Acompanhe cada pedido do início ao fim',
+  ];
 
   ngOnInit(): void {
-    this.#theme.change.pipe(takeUntilDestroyed(this.#destroyRef)).subscribe((role) => {
-      this.#currentUser.set(role);
-      this.#userStorage.type.set(role);
-      if (this.disabledaActions()) return;
-      const slider = this.slider();
-      if (!slider) return;
-
-      const { canScrollLeft, canScrollRight } = slider;
-
-      if (role == Roles.CUSTOMER && canScrollRight()) slider.scrollRight();
-      if (role == Roles.PROVIDER && canScrollLeft()) slider.scrollLeft();
-    });
+    this.#applyTheme();
+    this.#router.events
+      .pipe(
+        filter((event) => event instanceof NavigationEnd),
+        takeUntilDestroyed(this.#destroyRef),
+      )
+      .subscribe(() => this.#applyTheme());
   }
 
-  goToCreateAccountForm(userType: Roles) {
-    this.#currentUser.set(userType);
-    this.#userStorage.type.set(userType);
-    this.#router.navigateByUrl('/authenticate/register');
-  }
-
-  goToLoging(userType: Roles) {
-    this.#currentUser.set(userType);
-    this.#userStorage.type.set(userType);
-    this.#router.navigateByUrl('/authenticate/login');
-  }
-
-  onActivate(event: any) {
-    this.disabledaActions.set(true);
-  }
-
-  updateTheme(event: any) {
-    if (this.disabledaActions()) return;
-    const { canScrollRight, canScrollLeft } = event;
-
-    if (canScrollLeft && !canScrollRight) {
-      this.#theme.setTheme(Roles.CUSTOMER);
-      this.#currentUser.set(Roles.CUSTOMER);
-      this.#userStorage.type.set(Roles.CUSTOMER);
-      return;
-    }
-
-    if (!canScrollLeft && canScrollRight) {
-      this.#theme.setTheme(Roles.PROVIDER);
-      this.#currentUser.set(Roles.PROVIDER);
-      this.#userStorage.type.set(Roles.PROVIDER);
-      return;
-    }
+  #applyTheme(): void {
+    let route = this.#route;
+    while (route.firstChild) route = route.firstChild;
+    const accountTheme = route.snapshot.data[ACCOUNT_THEME] === true;
+    this.#theme.setTheme(accountTheme ? this.#userStorage.type() : Roles.CUSTOMER);
   }
 }

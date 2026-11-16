@@ -100,10 +100,11 @@ function registerThroughUi(role: Role, user: ReturnType<typeof buildUser>) {
     cy.visit('/authenticate');
     register.toFormRegisterButton.click();
     cy.url().should('include', '/authenticate/register');
-    register.providerBadge.should('have.class', 'selected');
+    register.providerChoice.click();
+    register.providerChoice.find('input').should('be.checked');
   } else {
     cy.visit('/authenticate/register');
-    register.customerBadge.click();
+    register.customerChoice.click();
   }
 
   fillProfile(user);
@@ -156,7 +157,7 @@ describe('Autenticação contra a API real', () => {
     loginThroughUi({ email: client.email, password: 'senha-errada-123' })
       .its('response.statusCode')
       .should('eq', 403);
-    cy.get('.alert').should('contain.text', 'Email ou senha incorretos');
+    cy.get('tg-alert').should('contain.text', 'Email ou senha incorretos');
     cy.location('pathname').should('eq', '/authenticate/login');
     cy.window().its('localStorage').invoke('getItem', '@ODIN/TOKEN').should('be.null');
   });
@@ -179,7 +180,7 @@ describe('Autenticação contra a API real', () => {
     cy.intercept('POST', `${apiUrl}/auth/register`).as('duplicate');
     const register = new RegisterElements(client);
     cy.visit('/authenticate/register');
-    register.customerBadge.click();
+    register.customerChoice.click();
     fillProfile({ ...client, cpf: generateCpf() });
     fillContact();
     fillAddress();

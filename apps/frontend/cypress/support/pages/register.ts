@@ -3,27 +3,28 @@ export default class RegisterElements {
   constructor(private readonly user: any) { }
 
   get toFormLoginButton() {
-    return cy.get('#PROVIDER-login-button-button');
+    return cy.get('#auth-login-link');
   }
 
   get toFormRegisterButton() {
-    return cy.get('#PROVIDER-register-button-button');
+    return cy.get('#auth-register-link');
   }
 
   get toCustomerFormLoginButton() {
-    return cy.get('#CUSTOMER-login-button-button');
+    return cy.get('#auth-login-link');
   }
 
   get toCustomerFormRegisterButton() {
-    return cy.get('#CUSTOMER-register-button-button');
+    return cy.get('#auth-register-link');
   }
 
-  get providerBadge() {
-    return cy.get('#badge-provider .badge');
+  /** Card de escolha (label com o rádio dentro): clicar marca o tipo de conta. */
+  get providerChoice() {
+    return cy.get('#account-type-provider');
   }
 
-  get customerBadge() {
-    return cy.get('#badge-customer .badge');
+  get customerChoice() {
+    return cy.get('#account-type-customer');
   }
 
   get emailInput() {
@@ -43,11 +44,11 @@ export default class RegisterElements {
   }
 
   get registerButton() {
-    return cy.get('#register-form_footer_button button');
+    return cy.get('#register-submit');
   }
 
   get loginLink() {
-    return cy.get('#register-form_footer_link');
+    return cy.get('#register-login-link');
   }
 
   get profileStep() {
@@ -67,6 +68,6 @@ export default class RegisterElements {
   }
 
   get alertComponent() {
-    return cy.get('.alert');
+    return cy.get('tg-alert');
   }
 }

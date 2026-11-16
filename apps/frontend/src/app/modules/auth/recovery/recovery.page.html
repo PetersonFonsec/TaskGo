@@ -1,0 +1,83 @@
+<div class="recovery">
+  @if (resetMode) {
+    <header class="auth__header">
+      <h1 class="auth__title">Criar nova senha</h1>
+      @if (token && !passwordSaved()) {
+        <p class="auth__lead">Escolha uma senha nova para a sua conta.</p>
+      }
+    </header>
+
+    @if (!token) {
+      <tg-alert tone="danger" title="Link inválido ou vencido">
+        Peça um novo link de recuperação.
+        <a tgButton tgAlertAction appearance="outline" size="sm" routerLink="/authenticate/forgot-password">
+          Pedir novo link
+        </a>
+      </tg-alert>
+    } @else if (passwordSaved()) {
+      <tg-alert tone="success" title="Senha atualizada">Entre novamente com a nova senha.</tg-alert>
+      <a tgButton size="lg" fullWidth routerLink="/authenticate/login">Entrar</a>
+    } @else {
+      @if (error()) {
+        <tg-alert tone="danger" title="Não foi possível salvar a senha">{{ error() }}</tg-alert>
+      }
+      <form class="recovery__form" novalidate (submit)="$event.preventDefault(); submit()">
+        <tg-field label="Nova senha" hint="Pelo menos 10 caracteres." [error]="passwordError()">
+          <input
+            #field
+            tgInput
+            id="recovery-password"
+            name="password"
+            type="password"
+            autocomplete="new-password"
+            maxlength="72"
+            [value]="password()"
+            (input)="setValue('password', $event)"
+          />
+          <tg-password-toggle tgSuffix />
+        </tg-field>
+        <button tgButton type="submit" size="lg" fullWidth [loading]="busy()">Salvar nova senha</button>
+      </form>
+    }
+  } @else {
+    <a class="recovery__back" routerLink="/authenticate/login">
+      <tg-icon name="arrow-left" [size]="16" />
+      Voltar para entrar
+    </a>
+
+    <header class="auth__header">
+      <h1 class="auth__title">Recuperar acesso</h1>
+      @if (!sentTo()) {
+        <p class="auth__lead">Informe o e-mail da sua conta. Enviaremos um link para criar uma nova senha.</p>
+      }
+    </header>
+
+    @if (sentTo()) {
+      <tg-alert tone="success" title="Confira seu e-mail">
+        Se houver uma conta com {{ sentTo() }}, o link chega em alguns minutos. Veja também a caixa de spam.
+      </tg-alert>
+      <a tgButton size="lg" appearance="outline" fullWidth routerLink="/authenticate/login">Voltar para entrar</a>
+    } @else {
+      @if (error()) {
+        <tg-alert tone="danger" title="Não foi possível enviar o link">{{ error() }}</tg-alert>
+      }
+      <form class="recovery__form" novalidate (submit)="$event.preventDefault(); submit()">
+        <tg-field label="E-mail" [error]="emailError()">
+          <input
+            #field
+            tgInput
+            id="recovery-email"
+            name="email"
+            type="email"
+            inputmode="email"
+            autocomplete="email"
+            placeholder="nome@email.com"
+            [value]="email()"
+            (input)="setValue('email', $event)"
+          />
+        </tg-field>
+        <button tgButton type="submit" size="lg" fullWidth [loading]="busy()">Enviar link</button>
+      </form>
+    }
+  }
+</div>

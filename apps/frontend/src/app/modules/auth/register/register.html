@@ -1,44 +1,87 @@
-<form id="register-form">
-  <header id="register-form_header">
-    <h2 class="main-title">Criar a sua conta</h2>
-    <p class="text">Que tipo de conta você gostaria de criar? como profissional ou cliente?</p>
+<div class="register">
+  <header class="auth__header">
+    <h1 class="auth__title">Criar conta</h1>
+    <p class="auth__lead">Escolha o tipo de conta e complete os passos.</p>
   </header>
 
-  <div id="register-form_content">
-    <div class="row">
-      <app-badge id="badge-provider" [selected]="userType == roles.PROVIDER" (click)="changeTheme(roles.PROVIDER)">Profissional</app-badge>
-      <app-badge id="badge-customer" [selected]="userType == roles.CUSTOMER" (click)="changeTheme(roles.CUSTOMER)">Cliente</app-badge>
-    </div>
-
-    <app-steps-lines #registerSteps title="Passos para completar seu cadastro">
-      <app-step id="profile-step" routerLink="/authenticate/profile" [complete]="completeSteps.profile">Perfil</app-step>
-      <app-step id="contact-step" routerLink="/authenticate/contact" [complete]="completeSteps.contact">Contato</app-step>
-      <app-step id="address-step" routerLink="/authenticate/address" [complete]="completeSteps.address">Localização</app-step>
-
-      @if (userType == roles.PROVIDER) {
-      <app-step id="category-step" routerLink="/authenticate/category" [complete]="completeSteps.service">
-        Anunciar um serviço
-      </app-step>
+  <fieldset class="register__types">
+    <legend class="register__legend">Tipo de conta</legend>
+    <div class="register__type-list" role="radiogroup" aria-label="Tipo de conta">
+      @for (type of accountTypes; track type.role) {
+        <label tgCard indicator="control" class="register__type" [id]="type.id">
+          <input
+            type="radio"
+            name="account-type"
+            [value]="type.role"
+            [checked]="userType() === type.role"
+            (change)="changeTheme(type.role)"
+          />
+          <span class="register__type-icon" aria-hidden="true"><tg-icon [name]="type.icon" [size]="22" /></span>
+          <span class="register__type-text">
+            <strong>{{ type.title }}</strong>
+            <span>{{ type.text }}</span>
+          </span>
+        </label>
       }
-    </app-steps-lines>
-  </div>
+    </div>
+  </fieldset>
+
+  <section class="register__steps" aria-labelledby="register-steps-title">
+    <div class="register__steps-header">
+      <h2 id="register-steps-title" class="register__subtitle">Passos para completar seu cadastro</h2>
+      <span class="register__progress">{{ doneCount() }} de {{ steps().length }}</span>
+    </div>
+    <ol class="register__step-list">
+      @for (step of steps(); track step.key; let index = $index) {
+        <li>
+          <a tgCard dense class="register__step" [id]="step.id" [routerLink]="step.link">
+            <span class="register__step-marker" [class.register__step-marker--done]="isDone(step)" aria-hidden="true">
+              @if (isDone(step)) {
+                <tg-icon name="check" [size]="16" />
+              } @else {
+                {{ index + 1 }}
+              }
+            </span>
+            <span class="register__step-label">{{ step.label }}</span>
+            <tg-badge [tone]="isDone(step) ? 'done' : 'waiting'">{{ isDone(step) ? 'Feito' : 'Pendente' }}</tg-badge>
+            <tg-icon class="register__step-arrow" name="arrow-right" [size]="18" />
+          </a>
+        </li>
+      }
+    </ol>
+  </section>
 
   @if (error()) {
-  <alert>
-    {{ error()}}
-  </alert>
+    <tg-alert tone="danger" title="Não foi possível criar a conta">{{ error() }}</tg-alert>
   }
 
-  <footer id="register-form_footer">
-    <a id="register-form_footer_link" class="text color-primary" routerLink="/authenticate/login">
-      Já tenho uma conta
-    </a>
-
-    <app-button id="register-form_footer_button" [disabled]="!registerSteps.allStepsCompletes()" (click)="register()" color="primary">
+  <div class="register__footer">
+    @if (!allDone()) {
+      <p class="register__hint" id="register-hint">Complete todos os passos para criar a conta.</p>
+    }
+    <button
+      tgButton
+      id="register-submit"
+      type="button"
+      size="lg"
+      fullWidth
+      [loading]="loading()"
+      [disabled]="!allDone()"
+      [attr.aria-describedby]="allDone() ? null : 'register-hint'"
+      (click)="register()"
+    >
       Criar sua conta
-    </app-button>
-  </footer>
-</form>
+    </button>
+    <p class="register__login">
+      Já tem conta?
+      <a id="register-login-link" routerLink="/authenticate/login">Entrar</a>
+    </p>
+  </div>
+</div>
 
-<app-full-modal (closeModal)="goToHome()" [showModal]="showModal()" title="Perfil Criado!!"
-  message="Seu perfil foi criado com sucesso agora é possível anunciar os seus serviços" />
+<app-full-modal
+  (closeModal)="goToHome()"
+  [showModal]="showModal()"
+  title="Perfil Criado!!"
+  message="Seu perfil foi criado com sucesso agora é possível anunciar os seus serviços"
+/>
