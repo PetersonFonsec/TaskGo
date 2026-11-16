@@ -1,14 +1,86 @@
-:host { display: block; }
-.timeline { margin-top: 20px; }
-li { display: grid; grid-template-columns: 32px 1fr; gap: 14px; min-height: 84px; position: relative; }
-li:not(.last)::before { background: #ddd6fe; content: ''; height: calc(100% - 28px); left: 15px; position: absolute; top: 28px; width: 2px; }
-.marker { align-items: center; background: #6d28d9; border: 4px solid #ede9fe; border-radius: 50%; color: white; display: flex; font-size: 11px; font-weight: 800; height: 32px; justify-content: center; position: relative; width: 32px; z-index: 1; }
-.pending .marker { background: white; border-color: #e2e8f0; }
-.event-copy { padding: 3px 0 20px; }
-.event-heading { align-items: start; display: flex; gap: 16px; justify-content: space-between; }
-strong { color: #1e293b; font-size: 14px; }
-time, p { color: #64748b; font-size: 12px; }
-p { line-height: 1.5; margin-top: 6px; }
-.timeline-empty { align-items: center; color: #64748b; display: flex; flex-direction: column; gap: 10px; padding: 38px 16px; text-align: center; }
-.timeline-empty span { font-size: 28px; }
-@media (max-width: 520px) { .event-heading { flex-direction: column; gap: 4px; } }
+// Linha do tempo do pedido (Etapa 10). Só tokens --tg-*; o tema troca os valores.
+:host {
+  display: block;
+}
+
+.timeline {
+  margin: 0;
+  padding: var(--tg-space-4) 0 0;
+  list-style: none;
+  border-top: 1px solid var(--tg-border-default);
+}
+
+li {
+  position: relative;
+  display: grid;
+  grid-template-columns: 24px minmax(0, 1fr);
+  gap: var(--tg-space-3);
+  padding-bottom: var(--tg-space-5);
+}
+
+li.last {
+  padding-bottom: 0;
+}
+
+li:not(.last)::before {
+  content: '';
+  position: absolute;
+  top: 28px;
+  bottom: 4px;
+  left: 11px;
+  width: 2px;
+  background: var(--tg-border-default);
+}
+
+.marker {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  box-sizing: border-box;
+  width: 24px;
+  height: 24px;
+  border-radius: var(--tg-radius-full);
+  background: var(--tg-status-done-bg);
+  color: var(--tg-status-done-text);
+}
+
+.pending .marker {
+  background: transparent;
+  border: 2px dashed var(--tg-border-strong);
+}
+
+.event-copy {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
+}
+
+strong {
+  color: var(--tg-text-primary);
+  font-size: var(--tg-type-body-size);
+  line-height: var(--tg-type-body-line);
+  font-weight: var(--tg-font-weight-bold);
+  overflow-wrap: anywhere;
+}
+
+.pending strong {
+  color: var(--tg-text-secondary);
+}
+
+time,
+p {
+  margin: 0;
+  color: var(--tg-text-secondary);
+  font-size: var(--tg-type-body-sm-size);
+  line-height: var(--tg-type-body-sm-line);
+}
+
+.timeline-empty {
+  margin: 0;
+  padding-top: var(--tg-space-4);
+  border-top: 1px solid var(--tg-border-default);
+  color: var(--tg-text-secondary);
+  font-size: var(--tg-type-body-size);
+  line-height: var(--tg-type-body-line);
+}
