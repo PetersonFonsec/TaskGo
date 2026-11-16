@@ -129,4 +129,18 @@ describe('AuthPage', () => {
     expect(TestBed.inject(Title).getTitle()).toBe('Criar conta');
     expect(TestBed.inject(Router).url).toBe('/authenticate/register');
   });
+
+  it('titles each register step like its heading', async () => {
+    const titles: [string, string][] = [
+      ['/authenticate/profile', 'Seu perfil'],
+      ['/authenticate/contact', 'Contato e redes'],
+      ['/authenticate/address', 'Onde você está'],
+      ['/authenticate/category', 'Qual é a sua área?'],
+      ['/authenticate/category/1/service', 'O que você faz?'],
+    ];
+    for (const [url, title] of titles) {
+      await go(url);
+      expect(TestBed.inject(Title).getTitle()).withContext(url).toBe(title);
+    }
+  });
 });

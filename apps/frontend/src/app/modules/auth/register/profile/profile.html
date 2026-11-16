@@ -1,95 +1,97 @@
-<form #form="ngForm" (submit)="saveProfile()" id="profile-form">
-  <header id="profile-form_header">
-    <h2 class="main-title">Seu perfil</h2>
-    <p class="text">
-      Muitos clientes antes de contratar um produto pesquisam referências sobre o profissional
-    </p>
+<div class="auth__screen">
+  <a class="auth__back" routerLink="/authenticate/register">
+    <tg-icon name="arrow-left" [size]="16" />
+    Voltar para Criar conta
+  </a>
+
+  <header class="auth__header">
+    <p class="auth__eyebrow">Passo 1</p>
+    <h1 class="auth__title">Seu perfil</h1>
+    <p class="auth__lead">Seus dados de acesso e de contato. O CPF não aparece para ninguém.</p>
   </header>
 
-  <div id="profile-form_content">
-    <app-input-text
-      name="name"
-      id="name"
-      type="text"
-      label="Nome"
-      [autofocus]="true"
-      [required]="true"
-      placeholder="Informe o seu nome"
-      #email="ngModel"
-      [(ngModel)]="payload.name"
-    />
+  <form class="auth__form" novalidate (submit)="$event.preventDefault(); saveProfile()">
+    <tg-field label="Nome completo" [error]="errors().name">
+      <input #nameInput tgInput id="name-input" name="name" placeholder="Ana Souza" autocomplete="name" [ngModel]="name()" (ngModelChange)="name.set($event)" />
+    </tg-field>
 
-    <app-input-text
-      name="phone"
-      id="phone"
-      type="text"
-      label="Telefone"
-      [autofocus]="true"
-      [required]="true"
-      placeholder="Informe o seu telefone"
-      mask="(00) 0 0000-0000"
-      #email="ngModel"
-      [(ngModel)]="payload.phone"
-    />
+    <tg-field label="E-mail" [error]="errors().email">
+      <input
+        #emailInput
+        tgInput
+        id="email-input"
+        name="email"
+        type="email"
+        inputmode="email"
+        autocomplete="email"
+        placeholder="nome@email.com"
+        [ngModel]="email()"
+        (ngModelChange)="email.set($event)"
+      />
+    </tg-field>
 
-    <app-input-text
-      name="email"
-      id="email"
-      type="email"
-      [email]="true"
-      label="Email"
-      [required]="true"
-      placeholder="Informe o seu email"
-      #email="ngModel"
-      [(ngModel)]="payload.email"
-    />
+    <tg-field label="Celular" [error]="errors().phone">
+      <input
+        #phoneInput
+        tgInput
+        id="phone-input"
+        name="phone"
+        type="tel"
+        inputmode="tel"
+        autocomplete="tel-national"
+        mask="(00) 0 0000-0000"
+        placeholder="(11) 9 1234-5678"
+        [ngModel]="phone()"
+        (ngModelChange)="phone.set($event)"
+      />
+    </tg-field>
 
-    <app-input-text
-      name="password"
-      id="password"
-      [(ngModel)]="payload.password"
-      type="password"
-      label="Senha"
-      #password="ngModel"
-      [required]="true"
-      placeholder="Informe a sua senha"
-    />
+    <tg-field label="CPF" [error]="errors().cpf">
+      <input
+        #cpfInput
+        tgInput
+        id="documentNumber-input"
+        name="cpf"
+        inputmode="numeric"
+        mask="000.000.000-00"
+        placeholder="000.000.000-00"
+        [ngModel]="cpf()"
+        (ngModelChange)="cpf.set($event)"
+      />
+    </tg-field>
 
-    <app-input-text
-      name="confirmPassword"
-      id="confirmPassword"
-      [(ngModel)]="payload.confirmPassword"
-      type="password"
-      label="Confirmar Senha"
-      #password="ngModel"
-      [required]="true"
-      placeholder="Informe a sua senha novamente"
-    />
+    <tg-field label="Senha" [hint]="'Pelo menos ' + passwordMin + ' caracteres.'" [error]="errors().password">
+      <input
+        #passwordInput
+        tgInput
+        id="password-input"
+        name="password"
+        placeholder="Crie uma senha"
+        type="password"
+        autocomplete="new-password"
+        maxlength="72"
+        [ngModel]="password()"
+        (ngModelChange)="password.set($event)"
+      />
+      <tg-password-toggle tgSuffix />
+    </tg-field>
 
-    <app-input-text
-      name="documentNumber"
-      id="documentNumber"
-      [(ngModel)]="payload.cpf"
-      type="text"
-      label="CPF"
-      [required]="true"
-      mask="000.000.000-00"
-      placeholder="Informe o seu cpf"
-    />
-  </div>
+    <tg-field label="Confirmar senha" [error]="errors().confirmPassword">
+      <input
+        #confirmInput
+        tgInput
+        id="confirmPassword-input"
+        name="confirmPassword"
+        placeholder="Digite a senha de novo"
+        type="password"
+        autocomplete="new-password"
+        maxlength="72"
+        [ngModel]="confirmPassword()"
+        (ngModelChange)="confirmPassword.set($event)"
+      />
+      <tg-password-toggle tgSuffix />
+    </tg-field>
 
-  @if (payload.confirmPassword && payload.password !== payload.confirmPassword) {
-    <p role="alert">As senhas devem ser iguais.</p>
-  }
-
-  <footer id="profile-form_footer">
-    <app-button-back id="profile-form_footer_back" color="primary" />
-    <app-button
-      id="profile-form_footer_submit"
-      [disabled]="!!form.invalid || payload.password !== payload.confirmPassword"
-      type="submit"
-      color="primary"
-      >Salvar</app-button
-    >
-  </footer>
-</form>
+    <button tgButton id="profile-submit" type="submit" size="lg" fullWidth>Salvar e voltar</button>
+  </form>
+</div>

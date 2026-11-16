@@ -39,7 +39,7 @@ function buildUser(role: Role) {
     email: `e2e.${role}.${id}@taskgo.test`,
     password: 'senha-e2e-123',
     cpf: generateCpf(),
-    phone: '(11) 91234-5678',
+    phone: '(11) 9 1234-5678',
   };
 }
 
@@ -48,15 +48,15 @@ function fillProfile(user: ReturnType<typeof buildUser>) {
   cy.get('#profile-step').click();
   cy.url().should('include', '/authenticate/profile');
   profile.fillForm();
-  profile.submitButton.should('be.enabled').click();
+  profile.submitButton.click();
   cy.url().should('include', '/authenticate/register');
 }
 
 function fillContact() {
   cy.get('#contact-step').click();
   cy.url().should('include', '/authenticate/contact');
-  cy.get('#whatsapp-input').type('11 11 99999-9999');
-  cy.contains('#social-form_footer button', 'Salvar').click();
+  cy.get('#whatsapp-input').type('11999999999');
+  cy.get('#social-submit').click();
   cy.url().should('include', '/authenticate/register');
 }
 
@@ -76,7 +76,7 @@ function fillAddress() {
   cy.get('#zipcode-input').type('01001-000').blur();
   cy.wait('@getCep');
   cy.get('#number-input').type('100');
-  cy.contains('#address-form_footer button', 'Criar endereço').should('be.enabled').click();
+  cy.get('#address-submit').click();
   cy.url().should('include', '/authenticate/register');
 }
 
@@ -84,11 +84,11 @@ function selectFirstSeededService() {
   cy.intercept('GET', `${apiUrl}/categories*`).as('getCategories');
   cy.get('#category-step').click();
   cy.wait('@getCategories').its('response.statusCode').should('be.oneOf', [200, 304]);
-  cy.get('#category-form_content app-card').first().click();
-  cy.contains('#category-form_footer button', 'Selecionar categoria').should('be.enabled').click();
+  cy.get('#category-list label').first().click();
+  cy.get('#category-submit').click();
   cy.url().should('match', /\/authenticate\/category\/\d+\/service/);
-  cy.get('#service-form_content label.checkbox').first().click();
-  cy.contains('#service-form_footer button', 'Adicionar serviços').should('be.enabled').click();
+  cy.get('#service-list label').first().click();
+  cy.get('#services-submit').click();
   cy.url().should('include', '/authenticate/register');
 }
 
@@ -115,8 +115,8 @@ function registerThroughUi(role: Role, user: ReturnType<typeof buildUser>) {
   register.registerButton.should('be.enabled').click();
   cy.wait('@register').its('response.statusCode').should('eq', 201);
 
-  cy.contains('.full-modal', 'Perfil Criado!!').should('be.visible');
-  cy.contains('.full-modal button', 'Acessar Plataforma').click();
+  cy.contains('h1', 'Conta criada').should('be.visible');
+  cy.get('#register-done-home').click();
   cy.location('pathname').should('eq', homeByRole[role]);
   cy.window().its('localStorage').invoke('getItem', '@ODIN/TOKEN').should('be.a', 'string');
 }
@@ -188,7 +188,7 @@ describe('Autenticação contra a API real', () => {
 
     cy.wait('@duplicate').its('response.statusCode').should('be.within', 400, 499);
     register.alertComponent.should('be.visible');
-    cy.get('.full-modal').should('not.exist');
+    cy.contains('h1', 'Conta criada').should('not.exist');
     cy.window().its('localStorage').invoke('getItem', '@ODIN/TOKEN').should('be.null');
   });
 });

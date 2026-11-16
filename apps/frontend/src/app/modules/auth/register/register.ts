@@ -1,11 +1,10 @@
-import { ChangeDetectionStrategy, Component, DestroyRef, computed, inject, signal } from '@angular/core';
+import { ChangeDetectionStrategy, Component, DestroyRef, ElementRef, afterNextRender, computed, inject, signal, viewChild, Injector } from '@angular/core';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { HttpErrorResponse } from '@angular/common/http';
-import { Router, RouterLink } from '@angular/router';
+import { RouterLink } from '@angular/router';
 import { LiveAnnouncer } from '@angular/cdk/a11y';
 import { finalize } from 'rxjs';
 
-import { FullModal } from '@shared/components/ui/full-modal/full-modal';
 import { TgAlertComponent } from '@shared/design-system/feedback/tg-alert.component';
 import { TgBadgeComponent } from '@shared/design-system/badge/tg-badge.component';
 import { TgButtonComponent } from '@shared/design-system/button/tg-button.component';
@@ -43,7 +42,7 @@ const PROVIDER_STEP: RegisterStep = {
 /** Criar conta (Etapa 10): tipo de conta em cards de escolha e passos em cards-link. */
 @Component({
   selector: 'app-register',
-  imports: [RouterLink, FullModal, TgAlertComponent, TgBadgeComponent, TgButtonComponent, TgCardComponent, TgIconComponent],
+  imports: [RouterLink, TgAlertComponent, TgBadgeComponent, TgButtonComponent, TgCardComponent, TgIconComponent],
   templateUrl: './register.html',
   styleUrl: './register.scss',
   changeDetection: ChangeDetectionStrategy.OnPush,
@@ -52,7 +51,6 @@ export class Register {
   #liveAnnouncer = inject(LiveAnnouncer);
   #registerUser = inject(RegisterUser);
   #userStorage = inject(UserStorage);
-  #router = inject(Router);
   #theme = inject(Theme);
   #destroyRef = inject(DestroyRef);
 
@@ -65,7 +63,12 @@ export class Register {
   readonly completeSteps = this.#registerUser.completeSteps;
   /** Tipo de conta escolhido; vale para os passos e para o pedido de cadastro. */
   readonly userType = this.#userStorage.type.asReadonly();
-  readonly showModal = signal(false);
+  /** Conta criada: a tela mostra o sucesso no lugar dos passos. */
+  readonly created = signal(false);
+  readonly firstName = computed(() => this.#registerUser.user().name.trim().split(/\s+/)[0] ?? '');
+  readonly home = computed(() => Utils.getRouteByRole(this.userType()));
+  readonly doneTitle = viewChild<ElementRef<HTMLElement>>('doneTitle');
+  #injector = inject(Injector);
   readonly loading = signal(false);
   readonly error = signal('');
 
@@ -95,7 +98,9 @@ export class Register {
       .subscribe({
         next: () => {
           this.#liveAnnouncer.announce('Conta criada com sucesso');
-          this.showModal.set(true);
+          this.created.set(true);
+          // O foco vai ao título do sucesso, que substitui os passos.
+          afterNextRender(() => this.doneTitle()?.nativeElement.focus(), { injector: this.#injector });
         },
         error: (error: HttpErrorResponse) => {
           this.#liveAnnouncer.announce('Houve um erro ao criar a sua conta');
@@ -104,9 +109,6 @@ export class Register {
       });
   }
 
-  goToHome() {
-    this.#router.navigateByUrl(Utils.getRouteByRole(this.userType()));
-  }
 }
 
 export function registerErrorMessage(error: HttpErrorResponse): string {

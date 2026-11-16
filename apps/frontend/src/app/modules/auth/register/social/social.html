@@ -1,34 +1,69 @@
-<form #form="ngForm" (submit)="saveSocial()" id="social-form">
-  <header id="social-form_header">
-    <h2 class="main-title">
-      Aproveite e divulgue
-      suas redes sociais
-    </h2>
-    <p class="text">
-      Muitos clientes antes de contratar um produto
-      pesquisam referências sobre o profissional
-    </p>
+<div class="auth__screen">
+  <a class="auth__back" routerLink="/authenticate/register">
+    <tg-icon name="arrow-left" [size]="16" />
+    Voltar para Criar conta
+  </a>
+
+  <header class="auth__header">
+    <p class="auth__eyebrow">Passo 2</p>
+    <h1 class="auth__title">Contato e redes</h1>
+    <p class="auth__lead">Ajuda quem vai te contratar (ou atender) a te conhecer. Tudo aqui é opcional.</p>
   </header>
 
-  <div id="social-form_content">
-    <h3 class="subtitle">Contato</h3>
+  <form class="auth__form" novalidate (submit)="$event.preventDefault(); saveSocial()">
+    <tg-field label="WhatsApp" optional [error]="whatsappError()">
+      <input
+        #whatsappInput
+        tgInput
+        id="whatsapp-input"
+        name="whatsapp"
+        type="tel"
+        inputmode="tel"
+        autocomplete="tel-national"
+        mask="(00) 0 0000-0000"
+        placeholder="(11) 9 1234-5678"
+        [ngModel]="whatsapp()"
+        (ngModelChange)="whatsapp.set($event)"
+      />
+    </tg-field>
 
-    <app-input-text name="whatsapp" id="whatsapp" type="text" label="WhatsApp" [autofocus]="true"
-      placeholder="Informe o seu WhatsApp" #whatsapp="ngModel" [(ngModel)]="payload.whatsapp"
-      mask="00 00 00000-0000" />
+    <tg-field label="Instagram" optional>
+      <span tgPrefix aria-hidden="true">&#64;</span>
+      <input
+        tgInput
+        id="instagram-input"
+        name="instagram"
+        autocapitalize="none"
+        placeholder="seu.perfil"
+        [ngModel]="instagram()"
+        (ngModelChange)="instagram.set(handle($event))"
+      />
+    </tg-field>
 
-    <app-input-text name="instagram" id="instagram" type="text" label="Instagram" placeholder="Informe o seu arrouba no Instagram"
-      #instagram="ngModel" [(ngModel)]="payload.instagram" />
+    <tg-field label="Facebook" optional>
+      <input
+        tgInput
+        id="facebook-input"
+        name="facebook"
+        autocapitalize="none"
+        placeholder="facebook.com/seu.perfil"
+        [ngModel]="facebook()"
+        (ngModelChange)="facebook.set($event)"
+      />
+    </tg-field>
 
-    <app-input-text name="facebook" id="facebook" type="text" label="Facebook" placeholder="Informe o seu Facebook"
-      #facebook="ngModel" [(ngModel)]="payload.facebook" />
+    <tg-field label="LinkedIn" optional>
+      <input
+        tgInput
+        id="linkedin-input"
+        name="linkedin"
+        autocapitalize="none"
+        placeholder="linkedin.com/in/seu-perfil"
+        [ngModel]="linkedin()"
+        (ngModelChange)="linkedin.set($event)"
+      />
+    </tg-field>
 
-    <app-input-text name="linkedin" id="linkedin" type="text" label="LinkedIn" placeholder="Informe o seu LinkedIn"
-      #linkdin="ngModel" [(ngModel)]="payload.linkdin" />
-  </div>
-
-  <footer id="social-form_footer">
-    <app-button-back color="primary" />
-    <app-button [disabled]="!!form.invalid" type="submit" color="primary">Salvar</app-button>
-  </footer>
-</form>
+    <button tgButton id="social-submit" type="submit" size="lg" fullWidth>Salvar e voltar</button>
+  </form>
+</div>

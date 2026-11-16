@@ -25,12 +25,13 @@ export default class RegisterProfileFormElements {
     return cy.get('#documentNumber-input');
   }
 
+  /** "Salvar e voltar": sempre habilitado; os erros aparecem ao enviar. */
   get submitButton() {
-    return cy.get('#profile-form_footer_submit button');
+    return cy.get('#profile-submit');
   }
 
-  get backButton() {
-    return cy.get('#profile-form_footer_back button');
+  get backLink() {
+    return cy.contains('a.auth__back', 'Voltar para Criar conta');
   }
 
   fillForm() {

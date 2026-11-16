@@ -1,29 +1,45 @@
-<form id="service-form">
-  <header id="service-form_header">
-    <h2 class="main-title">Quais são suas especialidades?</h2>
-    <p class="text">
-      Depois do cadastro, configure preço e horários das suas ofertas antes de ativá-las.
-    </p>
+<div class="auth__screen">
+  <a class="auth__back" routerLink="/authenticate/category">
+    <tg-icon name="arrow-left" [size]="16" />
+    Voltar para categorias
+  </a>
+
+  <header class="auth__header">
+    <p class="auth__eyebrow">Passo 4 · profissional</p>
+    <h1 class="auth__title">{{ categoryName() ? categoryName() + ': o que você faz?' : 'O que você faz?' }}</h1>
+    <p class="auth__lead">Marque um ou mais. Preço e horários você define depois, antes de ativar.</p>
   </header>
 
-  <h3 class="subtitle">Serviços</h3>
-  <div id="service-form_content">
-    @for (service of services(); track $index) {
-      <app-input-checkbox
-        [id]="'service-' + service.id"
-        [name]="'service-' + service.id"
-        [value]="service.id.toString()"
-        (change)="addSubCategory(service)"
-      >
-        {{ service.name }}
-      </app-input-checkbox>
-    }
-  </div>
+  @if (loadError()) {
+    <tg-alert tone="danger" title="Não foi possível carregar os serviços">
+      Verifique sua conexão e tente de novo.
+      <button tgButton tgAlertAction type="button" appearance="outline" size="sm" (click)="retry.next()">Tentar de novo</button>
+    </tg-alert>
+  } @else {
+    <tg-loading label="Carregando serviços" [loading]="loading()">
+      <ng-template tgLoadingSkeleton>
+        <div class="choice-list">
+          @for (item of [1, 2, 3, 4]; track item) {
+            <tg-skeleton [height]="56" />
+          }
+        </div>
+      </ng-template>
 
-  <footer id="service-form_footer">
-    <app-button-back color="primary" />
-    <app-button [disabled]="!serviceSelected().size" (click)="addServiceSelected()" color="primary">
-      Adicionar serviços
-    </app-button>
-  </footer>
-</form>
+      <form class="auth__form" novalidate (submit)="$event.preventDefault(); addServiceSelected()">
+        @if (submitted() && !selected().length) {
+          <tg-alert tone="danger" title="Escolha pelo menos um serviço">Marque o que você faz para continuar.</tg-alert>
+        }
+        <div #list id="service-list" class="choice-list" role="group" aria-label="Serviços">
+          @for (service of services(); track service.id) {
+            <label tgCard indicator="control" class="choice" [id]="'service-' + service.id">
+              <input type="checkbox" [name]="'service-' + service.id" [checked]="isSelected(service)" (change)="toggle(service)" />
+              <span class="choice__label">{{ service.name }}</span>
+            </label>
+          }
+        </div>
+        <p class="auth__muted" role="status">{{ countLabel() }}</p>
+        <button tgButton id="services-submit" type="submit" size="lg" fullWidth>Adicionar serviços</button>
+      </form>
+    </tg-loading>
+  }
+</div>
