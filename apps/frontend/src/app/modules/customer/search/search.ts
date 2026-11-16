@@ -47,7 +47,7 @@ import { TgFieldComponent } from '@shared/design-system/field/tg-field.component
 import { TgInputDirective } from '@shared/design-system/field/tg-input.directive';
 import { TgIconComponent } from '@shared/design-system/icon/tg-icon.component';
 import { TgProviderCardComponent } from '@shared/design-system/provider-card/tg-provider-card.component';
-import { TgProvider, toTgProvider } from '@shared/design-system/provider-card/tg-provider';
+import { TgProvider, tgProviderPriceFrom, toTgProvider } from '@shared/design-system/provider-card/tg-provider';
 import {
   TgLoadingComponent,
   TgLoadingSkeletonDirective,
@@ -112,6 +112,15 @@ export class Search implements OnInit {
   #categoryService = inject(CategoryService);
   #router = inject(Router);
   #destroyRef = inject(DestroyRef);
+  /**
+   * Ordem dos eventos de favoritos: cada consulta da lista e cada troca
+   * concluída recebem um número. Uma lista vale só se for a mais nova que já
+   * chegou, e não desfaz uma troca concluída depois de ela ter sido pedida.
+   */
+  #favoritesSeq = 0;
+  #favoritesAppliedSeq = 0;
+  /** Troca concluída mais recente de cada prestador (número da ordem acima). */
+  #favoriteEdits = new Map<string, number>();
 
   readonly ratings = SEARCH_RATINGS;
   readonly distances = SEARCH_DISTANCES;
@@ -399,13 +408,16 @@ export class Search implements OnInit {
   private matches(provider: unknown, filters: SearchFilters): boolean {
     const rating = this.providerRating(provider);
     const price = this.providerPrice(provider);
+    const priceFilter = filters.minimumPrice != null || filters.maximumPrice != null;
     const distance = this.providerDistance(provider);
     const record = (provider ?? {}) as { id?: unknown; providerId?: unknown };
     return (
       rating >= filters.minimumRating &&
       (!filters.maximumDistance || (distance != null && distance <= filters.maximumDistance)) &&
-      (filters.minimumPrice == null || price >= filters.minimumPrice) &&
-      (filters.maximumPrice == null || price <= filters.maximumPrice) &&
+      // Com filtro de preço, quem não tem preço válido fica de fora (não vira R$ 0).
+      (!priceFilter || price != null) &&
+      (filters.minimumPrice == null || (price != null && price >= filters.minimumPrice)) &&
+      (filters.maximumPrice == null || (price != null && price <= filters.maximumPrice)) &&
       (!filters.onlyFavorites || this.isFavorite(record.id ?? record.providerId))
     );
   }
@@ -567,7 +579,8 @@ export class Search implements OnInit {
       name: provider?.user?.name ?? provider?.name ?? 'Profissional Proxi',
       service: this.resolveProviderService(provider),
       rating: this.providerRating(provider),
-      priceFrom: this.providerPrice(provider),
+      // Sem preço válido, o mapa mostra "Preço sob consulta" (como o card).
+      priceFrom: this.providerPrice(provider) ?? Number.NaN,
       lat: location.lat,
       lng: location.lng,
       distanceKm: this.providerDistance(provider) ?? undefined,
@@ -626,14 +639,9 @@ export class Search implements OnInit {
     );
   }
 
-  private providerPrice(provider: any) {
-    return this.toNumber(
-      provider?.priceFrom ??
-        provider?.price ??
-        provider?.services?.[0]?.basePrice ??
-        provider?.services?.[0]?.price,
-      0,
-    );
+  /** O mesmo preço que o card mostra: o serviço elegível mais barato da categoria. */
+  private providerPrice(provider: unknown): number | null {
+    return tgProviderPriceFrom(provider, { category: this.category() || null });
   }
 
   private providerDistance(provider: any): number | null {
@@ -732,9 +740,12 @@ export class Search implements OnInit {
             [providerKey]: false,
           }));
         }),
+        takeUntilDestroyed(this.#destroyRef),
       )
       .subscribe({
         next: () => {
+          if (!this.#sameClient(clientId)) return;
+          this.#favoriteEdits.set(providerKey, ++this.#favoritesSeq);
           this.favorites.update((state) => ({
             ...state,
             [providerKey]: nextState,
@@ -750,8 +761,12 @@ export class Search implements OnInit {
   }
 
   private loadFavorites(clientId: string) {
-    this.#provider.listFavorites(clientId).subscribe({
+    const seq = ++this.#favoritesSeq;
+    this.#provider.listFavorites(clientId).pipe(takeUntilDestroyed(this.#destroyRef)).subscribe({
       next: (response: any) => {
+        // Lista de outro usuário, ou mais velha que uma já aplicada: não vale.
+        if (!this.#sameClient(clientId) || seq < this.#favoritesAppliedSeq) return;
+        this.#favoritesAppliedSeq = seq;
         const items = response?.items ?? response ?? [];
         const favoritesMap = (items as any[]).reduce(
           (acc, item) => {
@@ -764,8 +779,16 @@ export class Search implements OnInit {
           {} as Record<string, boolean>,
         );
 
+        // Trocas concluídas depois do pedido desta lista ganham da lista.
+        for (const [id, editSeq] of this.#favoriteEdits) {
+          if (editSeq > seq) favoritesMap[id] = !!this.favorites()[id];
+        }
         this.favorites.set(favoritesMap);
       },
     });
+  }
+
+  #sameClient(clientId: string | number) {
+    return String(this.#userLoggedService.user()?.user?.id ?? '') === String(clientId);
   }
 }

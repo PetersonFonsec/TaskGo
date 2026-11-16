@@ -42,7 +42,7 @@ const validProvider = {
       verified: true,
     },
   },
-  services: [{ name: 'Encanadora', price: '120' }],
+  services: [{ id: 's1', name: 'Encanadora', title: 'Encanadora', category: 'encanadores', basePrice: 120, status: 'ATIVO' }],
   lat: '-23.55052',
   lng: '-46.633308',
   distanceKm: '3.5',
@@ -448,7 +448,7 @@ describe('Search', () => {
         name: 'Profissional Proxi',
         service: 'encanadores',
         rating: 0,
-        priceFrom: 0,
+        priceFrom: Number.NaN,
         premium: false,
         verified: false,
       }),
@@ -539,16 +539,16 @@ describe('Search', () => {
 
   it('should filter providers by minimum rating, distance and price range', () => {
     providersResponse = [
-      { ...validProvider, id: 'match', distanceKm: 4, services: [{ basePrice: 120 }] },
+      { ...validProvider, id: 'match', distanceKm: 4, services: [{ category: 'encanadores', basePrice: 120 }] },
       {
         ...validProvider,
         id: 'low-rating',
         user: { provider: { ratingAvg: 3.5 } },
         distanceKm: 4,
-        services: [{ basePrice: 120 }],
+        services: [{ category: 'encanadores', basePrice: 120 }],
       },
-      { ...validProvider, id: 'far-away', distanceKm: 18, services: [{ basePrice: 120 }] },
-      { ...validProvider, id: 'too-expensive', distanceKm: 4, services: [{ basePrice: 300 }] },
+      { ...validProvider, id: 'far-away', distanceKm: 18, services: [{ category: 'encanadores', basePrice: 120 }] },
+      { ...validProvider, id: 'too-expensive', distanceKm: 4, services: [{ category: 'encanadores', basePrice: 300 }] },
     ];
     fixture.detectChanges();
 
@@ -761,6 +761,202 @@ describe('Search', () => {
     buttonIn(el(), 'Tentar de novo')!.click();
     fixture.detectChanges();
     expect(el().querySelectorAll('tg-provider-card').length).toBe(1);
+  });
+
+  describe('preço: a mesma regra do card', () => {
+    const svc = (id: string, basePrice: unknown, extra: Record<string, unknown> = {}) => ({
+      id,
+      title: `Serviço ${id}`,
+      category: 'encanadores',
+      basePrice,
+      status: 'ATIVO',
+      ...extra,
+    });
+    const withServices = (id: string, services: unknown[]) => ({ ...validProvider, id, services });
+    const applyMax = (max: number) => {
+      component.openFilters();
+      component.setDraft('maximumPrice', max);
+    };
+
+    it('serviços de R$ 300 e R$ 100 passam no máximo de R$ 150, em qualquer ordem', () => {
+      providersResponse = [
+        withServices('401', [svc('a', 300), svc('b', 100)]),
+        withServices('402', [svc('c', 100), svc('d', 300)]),
+      ];
+      fixture.detectChanges();
+      applyMax(150);
+      expect(component.draftCount()).toBe(2);
+      component.applyFilters();
+      expect(component.providers().map((p) => p.id)).toEqual(['401', '402']);
+    });
+
+    it('serviço inativo não conta', () => {
+      providersResponse = [withServices('403', [svc('a', 300), svc('b', 100, { status: 'INATIVO' })])];
+      fixture.detectChanges();
+      applyMax(150);
+      expect(component.draftCount()).toBe(0);
+    });
+
+    it('só os serviços da categoria escolhida contam', () => {
+      providersResponse = [withServices('404', [svc('a', 300), svc('b', 100, { category: 'pintura' })])];
+      fixture.detectChanges();
+      applyMax(150);
+      expect(component.draftCount()).toBe(0);
+      queryParams.next({ categoria: 'pintura' });
+      expect(component.providers().length).toBe(1);
+      applyMax(150);
+      expect(component.draftCount()).toBe(1);
+    });
+
+    it('preço ausente, zero ou inválido não vira R$ 0: fica fora com filtro de preço e entra sem ele', () => {
+      providersResponse = [
+        withServices('405', [svc('a', null)]),
+        withServices('406', [svc('b', 0)]),
+        withServices('407', [svc('c', 'abc')]),
+        withServices('408', [svc('d', 90)]),
+      ];
+      fixture.detectChanges();
+      expect(component.providers().length).toBe(4);
+      applyMax(150);
+      expect(component.draftCount()).toBe(1);
+      component.setDraft('maximumPrice', null);
+      component.setDraft('minimumPrice', 0);
+      expect(component.draftCount()).toBe(1);
+    });
+
+    it('"Ver N profissionais" bate com o que a lista mostra depois de aplicar', () => {
+      providersResponse = [
+        withServices('409', [svc('a', 300), svc('b', 100)]),
+        withServices('410', [svc('c', 250)]),
+        withServices('411', [svc('d', 140)]),
+      ];
+      fixture.detectChanges();
+      component.openFilters();
+      fixture.detectChanges();
+      const min = sheet().querySelector('#search-price-min') as HTMLInputElement;
+      const max = sheet().querySelector('#search-price-max') as HTMLInputElement;
+      min.value = '120';
+      min.dispatchEvent(new Event('input'));
+      max.value = '200';
+      max.dispatchEvent(new Event('input'));
+      fixture.detectChanges();
+      const apply = buttonIn(sheet(), 'Ver 1 profissional')!;
+      expect(apply).not.toBeNull();
+      apply.click();
+      fixture.detectChanges();
+      expect(el().querySelectorAll('tg-provider-card').length).toBe(1);
+      expect(component.cards().map((c) => c.id)).toEqual(['411']);
+    });
+
+    it('o preço que filtra é o que o card e o mapa mostram', () => {
+      providersResponse = [withServices('412', [svc('a', 300), svc('b', 100)])];
+      fixture.detectChanges();
+      expect(component.cards()[0].priceFrom).toBe(100);
+      expect(component.mapProviders()[0].priceFrom).toBe(100);
+      applyMax(100);
+      expect(component.draftCount()).toBe(1);
+      applyMax(99);
+      expect(component.draftCount()).toBe(0);
+    });
+  });
+
+  describe('favoritos fora de ordem', () => {
+    const later = <T,>() => new Subject<T>();
+    type List = { items: { providerId: string }[] };
+
+    it('lista antiga que chega depois de favoritar não desfaz o favorito', () => {
+      providersResponse = [{ ...validProvider, id: '102' }];
+      const list = later<List>();
+      providerMock.listFavorites.and.returnValue(list);
+      fixture.detectChanges();
+      component.toggleFavorite('102');
+      expect(component.isFavorite('102')).toBeTrue();
+      list.next({ items: [] });
+      expect(component.isFavorite('102')).toBeTrue();
+    });
+
+    it('lista antiga que chega depois de desfavoritar não volta o favorito', () => {
+      const first = later<List>();
+      providerMock.listFavorites.and.returnValue(of({ items: [{ providerId: '101' }] }));
+      fixture.detectChanges();
+      expect(component.isFavorite('101')).toBeTrue();
+      providerMock.listFavorites.and.returnValue(first);
+      component.retrySearch.next();
+      component.toggleFavorite('101');
+      expect(component.isFavorite('101')).toBeFalse();
+      first.next({ items: [{ providerId: '101' }] });
+      expect(component.isFavorite('101')).toBeFalse();
+    });
+
+    it('duas listas fora de ordem: vale a mais nova', () => {
+      const a = later<List>();
+      const b = later<List>();
+      providerMock.listFavorites.and.returnValues(a, b);
+      fixture.detectChanges();
+      component.retrySearch.next();
+      b.next({ items: [{ providerId: '101' }] });
+      a.next({ items: [] });
+      expect(component.isFavorite('101')).toBeTrue();
+    });
+
+    it('lista pedida depois da troca vale normalmente', () => {
+      fixture.detectChanges();
+      component.toggleFavorite('101');
+      expect(component.isFavorite('101')).toBeFalse();
+      providerMock.listFavorites.and.returnValue(of({ items: [{ providerId: '101' }] }));
+      component.retrySearch.next();
+      expect(component.isFavorite('101')).toBeTrue();
+    });
+
+    it('falha ao favoritar: estado e carregamento coerentes, e a lista seguinte vale', () => {
+      const list = later<List>();
+      providerMock.listFavorites.and.returnValue(list);
+      providerMock.addFavorite.and.returnValue(throwError(() => new HttpErrorResponse({ status: 500 })));
+      fixture.detectChanges();
+      component.toggleFavorite('101');
+      expect(component.isFavorite('101')).toBeFalse();
+      expect(component.isFavoriteLoading('101')).toBeFalse();
+      expect(component.favoriteErrorMessage('101')).toBe('Erro ao atualizar favorito.');
+      list.next({ items: [{ providerId: '101' }] });
+      expect(component.isFavorite('101')).toBeTrue();
+    });
+
+    it('"Somente favoritos" continua certo depois de desfavoritar e de uma lista antiga', () => {
+      providersResponse = [validProvider, { ...validProvider, id: '102' }];
+      fixture.detectChanges();
+      component.openFilters();
+      component.setDraft('onlyFavorites', true);
+      component.applyFilters();
+      expect(component.providers().map((p) => p.id)).toEqual(['101']);
+      const old = later<List>();
+      providerMock.listFavorites.and.returnValue(old);
+      component.retrySearch.next();
+      component.toggleFavorite('101');
+      expect(component.providers()).toEqual([]);
+      old.next({ items: [{ providerId: '101' }] });
+      expect(component.providers()).toEqual([]);
+    });
+
+    it('lista de outro usuário (troca de sessão) não vale', () => {
+      const list = later<List>();
+      providerMock.listFavorites.and.returnValue(list);
+      fixture.detectChanges();
+      userLoggedMock.user.and.returnValue({ user: { id: 'client-2' } });
+      list.next({ items: [{ providerId: '101' }] });
+      expect(component.isFavorite('101')).toBeFalse();
+    });
+
+    it('destruir a tela cancela as consultas e trocas pendentes', () => {
+      const list = later<List>();
+      const add = later<null>();
+      providerMock.listFavorites.and.returnValue(list);
+      providerMock.addFavorite.and.returnValue(add);
+      fixture.detectChanges();
+      component.toggleFavorite('101');
+      fixture.destroy();
+      expect(list.observed).toBeFalse();
+      expect(add.observed).toBeFalse();
+    });
   });
 
   describe('celular', () => {

@@ -245,6 +245,48 @@ describe('OrderPaymentPage', () => {
       expect(text()).toContain('Ainda não recebemos o pagamento');
     });
 
+    it('consulta antiga que volta "Pago" depois de uma nova "Pendente": vale o "Pago" (estado final)', async () => {
+      await setup(of(details()), of(pix()));
+      const older = new Subject<OrderPaymentResponse>();
+      const newer = new Subject<OrderPaymentResponse>();
+      orders.getOrderPayment.and.returnValues(older, newer);
+      jasmine.clock().tick(15_000);
+      button('Já paguei')!.click();
+
+      newer.next(pix());
+      fixture.detectChanges();
+      older.next(pix({ status: 'PAGO' }));
+      fixture.detectChanges();
+
+      expect(text()).toContain('Pagamento confirmado');
+      expect(text()).not.toContain('Ainda não recebemos o pagamento');
+    });
+
+    it('depois de "Pago", uma leitura mais nova "Pendente" não faz voltar', async () => {
+      await setup(of(details()), of(pix()));
+      const older = new Subject<OrderPaymentResponse>();
+      const newer = new Subject<OrderPaymentResponse>();
+      orders.getOrderPayment.and.returnValues(older, newer);
+      jasmine.clock().tick(15_000);
+      button('Já paguei')!.click();
+
+      older.next(pix({ status: 'PAGO' }));
+      fixture.detectChanges();
+      newer.next(pix());
+      fixture.detectChanges();
+
+      expect(text()).toContain('Pagamento confirmado');
+      expect(page().stillPending()).toBeFalse();
+    });
+
+    it('de "Pago" para "Reembolsado" (também final) a leitura mais nova vale', async () => {
+      await setup(of(details()), of(pix({ status: 'PAGO' })));
+      orders.getOrderPayment.and.returnValue(of(pix({ status: 'REEMBOLSADO' })));
+      page().load();
+      fixture.detectChanges();
+      expect(text()).toContain('O pagamento não foi concluído');
+    });
+
     it('não abre outra conferência automática enquanto uma está em curso', async () => {
       await setup(of(details()), of(pix()));
       orders.getOrderPayment.and.returnValue(new Subject<OrderPaymentResponse>());

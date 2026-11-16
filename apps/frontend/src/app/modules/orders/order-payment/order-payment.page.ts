@@ -264,8 +264,13 @@ export class OrderPaymentPage implements OnInit {
 
   /** Aplica uma leitura do pagamento se ela for mais nova que a última aplicada. */
   #applyPayment(seq: number, payment: OrderPaymentResponse | null): boolean {
-    if (seq <= this.#appliedSeq) return false;
-    this.#appliedSeq = seq;
+    // O backend nunca tira um pagamento de pago ou encerrado (reconcilePayment). Então uma
+    // leitura final vale mesmo se chegar fora de ordem, e uma não final nunca desfaz uma final.
+    const current = isFinal(this.payment());
+    const incoming = isFinal(payment);
+    if (current && !incoming) return false;
+    if (seq <= this.#appliedSeq && !(incoming && !current)) return false;
+    this.#appliedSeq = Math.max(this.#appliedSeq, seq);
     this.now.set(new Date());
     this.payment.set(payment);
     return true;
@@ -275,6 +280,13 @@ export class OrderPaymentPage implements OnInit {
     if (this.#copyTimer !== null) clearTimeout(this.#copyTimer);
     this.#copyTimer = null;
   }
+}
+
+/** Pago ou encerrado no backend (paidStatuses e terminalStatuses de payments/payment-state.ts). */
+const FINAL_STATUSES = new Set(['PAGO', 'CAPTURED', 'RELEASED', 'CANCELADO', 'CANCELED', 'REEMBOLSADO', 'REFUNDED']);
+
+function isFinal(payment: OrderPaymentResponse | null): boolean {
+  return !!payment && FINAL_STATUSES.has(payment.status);
 }
 
 function isNotFound(error: unknown): boolean {
