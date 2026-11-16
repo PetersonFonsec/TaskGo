@@ -133,8 +133,9 @@ export class ProviderHomePage implements OnInit {
    */
   readonly syncError = signal(false);
   /**
-   * A recarga chegou, mas ainda mostra algum pedido trocado no status de
-   * antes da troca. Ele continua bloqueado e o aviso oferece "Tentar de novo".
+   * A recarga chegou, mas não confirma algum pedido trocado: ele ainda está
+   * no status de antes ou não veio na lista. Ele continua bloqueado e o
+   * aviso oferece "Tentar de novo".
    */
   readonly syncStale = signal(false);
 
@@ -321,8 +322,9 @@ export class ProviderHomePage implements OnInit {
 
   /**
    * Solta só os pedidos que esta resposta confirma. Uma resposta pedida
-   * antes da confirmação da API não vale como prova. Sobra algum pedido
-   * visível no status de antes: aviso com "Tentar de novo".
+   * antes da confirmação da API não vale como prova (nem acende o aviso).
+   * Uma resposta que valia como prova e não confirmou algum pedido (ainda
+   * no status de antes ou fora da lista): aviso com "Tentar de novo".
    */
   #confirm(orders: OrdersResponse, seq: number): void {
     const confirmed: string[] = [];
@@ -330,8 +332,7 @@ export class ProviderHomePage implements OnInit {
     for (const [id, { from, afterSeq }] of this.#pending) {
       if (seq < afterSeq) continue;
       const order = orders.find((item) => item.id === id);
-      if (!order) continue;
-      if (from === null || order.status !== from) confirmed.push(id);
+      if (order && (from === null || order.status !== from)) confirmed.push(id);
       else stale = true;
     }
     for (const id of confirmed) this.#pending.delete(id);

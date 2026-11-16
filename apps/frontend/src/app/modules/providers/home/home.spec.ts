@@ -635,6 +635,72 @@ describe('ProviderHomePage', () => {
       // Uma recarga inicial + uma depois da troca.
       expect(orderService.getOrderByProvider).toHaveBeenCalledTimes(2);
     });
+
+    it('9. pedido ausente numa consulta posterior à troca mantém o aviso e o "Tentar de novo"', async () => {
+      await start([order('A', 'AGENDADO')]);
+      component.advance('A', 'EM_DESLOCAMENTO');
+      succeed('A');
+      reloads[0].next([]);
+      fixture.detectChanges();
+      expect(busy()).toEqual(['A']);
+      expect(component.syncStale()).toBeTrue();
+      expect(text(syncAlert())).toContain('Sua agenda pode estar desatualizada');
+      expect(syncAlert()!.querySelector('button')?.textContent).toContain('Tentar de novo');
+    });
+
+    it('10. o pedido ausente reaparece no "Tentar de novo": solto, sem aviso, com o status novo', async () => {
+      await start([order('A', 'AGENDADO')]);
+      component.advance('A', 'EM_DESLOCAMENTO');
+      succeed('A');
+      reloads[0].next([]);
+      fixture.detectChanges();
+
+      retry();
+      reloads[1].next([order('A', 'EM_DESLOCAMENTO')]);
+      fixture.detectChanges();
+      expect(busy()).toEqual([]);
+      expect(component.syncStale()).toBeFalse();
+      expect(syncAlert()).toBeNull();
+      expect(text(el.querySelector('tg-appointment-card'))).toContain('Iniciar serviço');
+    });
+
+    it('11. confirmação parcial: A atualizado, B ausente; A solto, B bloqueado com aviso até voltar', async () => {
+      await start([order('A', 'AGENDADO', { scheduledFor: TODAY_14H }), order('B', 'EM_DESLOCAMENTO')]);
+      component.advance('A', 'EM_DESLOCAMENTO');
+      component.advance('B', 'EM_ANDAMENTO');
+      succeed('A');
+      succeed('B');
+      reloads[1].next([order('A', 'EM_DESLOCAMENTO', { scheduledFor: TODAY_14H })]);
+      fixture.detectChanges();
+      expect(busy()).toEqual(['B']);
+      expect(syncAlert()).not.toBeNull();
+
+      retry();
+      reloads[2].next([order('A', 'EM_DESLOCAMENTO', { scheduledFor: TODAY_14H }), order('B', 'EM_ANDAMENTO')]);
+      fixture.detectChanges();
+      expect(busy()).toEqual([]);
+      expect(component.syncStale()).toBeFalse();
+      expect(syncAlert()).toBeNull();
+    });
+
+    it('12. consulta pedida antes da confirmação de B não confirma B nem acende o aviso por ele', async () => {
+      await start([order('A', 'AGENDADO', { scheduledFor: TODAY_14H }), order('B', 'EM_DESLOCAMENTO')]);
+      component.advance('A', 'EM_DESLOCAMENTO');
+      component.advance('B', 'EM_ANDAMENTO');
+      succeed('A');
+      // A consulta 0 foi pedida antes da API confirmar B: B ausente ou antigo nela não prova nada.
+      reloads[0].next([order('A', 'EM_DESLOCAMENTO', { scheduledFor: TODAY_14H })]);
+      fixture.detectChanges();
+      expect(busy()).toEqual(['B']);
+      expect(component.syncStale()).toBeFalse();
+      expect(syncAlert()).toBeNull();
+
+      succeed('B');
+      reloads[1].next([order('A', 'EM_DESLOCAMENTO', { scheduledFor: TODAY_14H }), order('B', 'EM_ANDAMENTO')]);
+      fixture.detectChanges();
+      expect(busy()).toEqual([]);
+      expect(syncAlert()).toBeNull();
+    });
   });
 
   describe('mais de 10 solicitações', () => {
