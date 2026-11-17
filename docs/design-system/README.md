@@ -660,6 +660,45 @@ de quem está na sessão. O `main` tem
   da barra do topo funcionar.
 - "Pedidos" leva a `/general/:id/history`, a tela de pedidos (abaixo).
 
+#### Ganhos (web)
+
+Os ganhos do profissional, em `/provider/recebimentos` (título "Ganhos",
+como no menu), dentro do shell logado com o tema do prestador. Story:
+**Telas/Ganhos**. Endpoints sem mudança: `GET` e `PUT
+/payments/payout-destination`, `GET /payments/payout-destination/settlements`
+(até 50 repasses) e, para o gráfico, `GET /auth/provider-home` (o mesmo da
+home).
+
+Decisões aprovadas: (1) resumo com "Recebido" (repasses pagos) e "A receber"
+(os ainda não pagos, sem os que falharam), somados sobre os repasses
+listados; (2) o mesmo gráfico da home, "Ganhos nos últimos 6 meses"
+(`app-provider-revenue-chart`); (3) a chave PIX num `tg-card` com tipo,
+chave e "Alterar chave", e a edição num `tg-sheet`; (4) repasses em linhas
+com o pedido (link para o detalhe), a data de pagamento, o valor e um
+`tg-badge` (Pago, Em processamento, Enviando, Aguardando envio, Em análise,
+Falhou); (5) profissional que ainda não ganhou nada vê um estado vazio.
+
+Regras:
+
+- Sem ganhos: sem histórico no painel (mesma regra da home) e sem
+  repasses. O resumo, o gráfico e os repasses dão lugar ao `tg-empty-state`
+  "Seus ganhos aparecem aqui", com "Ver meus serviços"; a chave PIX fica,
+  para cadastrar antes do primeiro repasse. Falha do painel não conta como
+  "sem ganhos": o gráfico mostra o erro.
+- Sem chave PIX: `tg-alert` de atenção "Cadastre sua chave PIX para
+  receber", com o botão que abre o cadastro.
+- A chave é validada com as regras da API antes de enviar (CPF com 11
+  números, CNPJ com 14, celular com DDD, e-mail e chave aleatória), com o
+  erro abaixo do campo. Salvando: um envio por vez; falha mostra o motivo
+  da API no painel; sucesso fecha o painel e mostra a chave como a API
+  devolveu (normalizada).
+- Algum repasse com falha: `tg-alert` de perigo pedindo para conferir a
+  chave e falar com o suporte.
+- Carregando: skeletons. Cada parte (chave, gráfico, repasses) tem o seu
+  alerta de falha com "Tentar de novo", que recarrega as três.
+- Valores em reais e datas no horário de São Paulo, com `Intl` (o app não
+  registra o locale pt-BR do Angular).
+
 #### Pedidos (web)
 
 Todos os pedidos de quem está logado, em `/general/:id/history`, numa tela

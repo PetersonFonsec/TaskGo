@@ -1,0 +1,171 @@
+<div class="payout">
+  <header>
+    <h1 class="payout__title">Ganhos</h1>
+    <p class="payout__lead">Sua chave PIX e os repasses dos serviços concluídos.</p>
+  </header>
+
+  <div class="payout__status" role="status">
+    @if (message(); as text) {
+      <tg-alert tone="success" dismissible (closed)="message.set('')">{{ text }}</tg-alert>
+    }
+  </div>
+
+  @if (noEarnings()) {
+    <tg-card>
+      <tg-empty-state icon="wallet" title="Seus ganhos aparecem aqui" [level]="2">
+        Depois do primeiro serviço concluído e confirmado pelo cliente, você acompanha aqui quanto recebeu, o gráfico
+        dos últimos meses e cada repasse.
+        <a tgButton tgEmptyAction appearance="outline" size="sm" routerLink="/provider/services">Ver meus serviços</a>
+      </tg-empty-state>
+    </tg-card>
+  } @else {
+    <section class="payout__summary" aria-label="Resumo dos repasses">
+      <tg-card class="stat">
+        <p class="stat__label">Recebido</p>
+        @if (settlementsLoading()) {
+          <tg-skeleton width="60%" height="32" />
+        } @else {
+          <p class="stat__value">{{ money(totals().paid) }}</p>
+        }
+      </tg-card>
+      <tg-card class="stat">
+        <p class="stat__label">A receber</p>
+        @if (settlementsLoading()) {
+          <tg-skeleton width="60%" height="32" />
+        } @else {
+          <p class="stat__value">{{ money(totals().incoming) }}</p>
+        }
+      </tg-card>
+    </section>
+
+    <tg-card class="chart">
+      <h2 class="payout__heading">Ganhos nos últimos 6 meses</h2>
+      @if (chartError()) {
+        <tg-alert tone="danger" title="Não foi possível carregar o gráfico">
+          Verifique sua conexão e tente de novo.
+          <button tgButton tgAlertAction type="button" appearance="outline" size="sm" (click)="load()">Tentar de novo</button>
+        </tg-alert>
+      } @else if (chartLoading()) {
+        <tg-skeleton width="100%" height="180" />
+      } @else {
+        <app-provider-revenue-chart [data]="revenue()" />
+        <p class="chart__note">Sua parte nos serviços pagos, mês a mês.</p>
+      }
+    </tg-card>
+  }
+
+  <section class="payout__section" aria-labelledby="pix-title">
+    <h2 id="pix-title" class="payout__heading">Chave PIX</h2>
+    @if (destinationError()) {
+      <tg-alert tone="danger" title="Não foi possível carregar sua chave PIX">
+        Verifique sua conexão e tente de novo.
+        <button tgButton tgAlertAction type="button" appearance="outline" size="sm" (click)="load()">Tentar de novo</button>
+      </tg-alert>
+    } @else if (destinationLoading()) {
+      <tg-card><tg-skeleton width="50%" /><tg-skeleton width="70%" /></tg-card>
+    } @else if (destination()?.key) {
+      <tg-card class="pix">
+        <div class="pix__body">
+          <p class="pix__type">{{ typeInfo(destination()!.type).label }}</p>
+          <p class="pix__key">{{ destination()!.key }}</p>
+          <p class="pix__hint">O repasse sai depois que o cliente confirma a conclusão do serviço.</p>
+        </div>
+        <button tgButton type="button" appearance="outline" size="sm" (click)="openEdit()">Alterar chave</button>
+      </tg-card>
+    } @else {
+      <tg-alert tone="warning" title="Cadastre sua chave PIX para receber">
+        Sem a chave, os repasses dos serviços concluídos ficam parados.
+        <button tgButton tgAlertAction type="button" size="sm" (click)="openEdit()">Cadastrar chave PIX</button>
+      </tg-alert>
+    }
+  </section>
+
+  @if (!noEarnings()) {
+    <section class="payout__section" aria-labelledby="settlements-title">
+      <h2 id="settlements-title" class="payout__heading">Repasses</h2>
+      @if (settlementsError()) {
+        <tg-alert tone="danger" title="Não foi possível carregar seus repasses">
+          Verifique sua conexão e tente de novo.
+          <button tgButton tgAlertAction type="button" appearance="outline" size="sm" (click)="load()">Tentar de novo</button>
+        </tg-alert>
+      } @else {
+        @if (hasFailed()) {
+          <tg-alert tone="danger" title="Um repasse falhou">
+            Confira sua chave PIX e fale com o suporte para reenviar.
+          </tg-alert>
+        }
+        <tg-loading label="Carregando seus repasses" [loading]="settlementsLoading()">
+          <ng-template tgLoadingSkeleton>
+            <tg-card>
+              <div class="settlements__skeleton">
+                @for (i of [1, 2, 3]; track i) {
+                  <tg-skeleton width="100%" height="40" />
+                }
+              </div>
+            </tg-card>
+          </ng-template>
+          @if (settlements().length) {
+            <tg-card class="settlements">
+              <ul class="settlements__list">
+                @for (item of settlements(); track item.orderId + item.status + item.completedAt) {
+                  <li class="settlement">
+                    <div class="settlement__main">
+                      <a class="settlement__order" [routerLink]="['/orders', item.orderId]">Pedido #{{ item.orderId }}</a>
+                      <span class="settlement__date">
+                        @if (item.completedAt) {
+                          Pago em {{ paidAt(item.completedAt) }}
+                        } @else {
+                          Ainda não pago
+                        }
+                      </span>
+                    </div>
+                    <div class="settlement__side">
+                      <b class="settlement__amount">{{ money(item.amount) }}</b>
+                      <tg-badge [tone]="status(item.status).tone">{{ status(item.status).label }}</tg-badge>
+                    </div>
+                  </li>
+                }
+              </ul>
+            </tg-card>
+          } @else {
+            <tg-empty-state icon="wallet" title="Nenhum repasse ainda">
+              Quando um cliente confirmar a conclusão de um serviço seu, o repasse aparece aqui.
+            </tg-empty-state>
+          }
+        </tg-loading>
+      }
+    </section>
+  }
+</div>
+
+<tg-sheet #sheet [title]="destination()?.key ? 'Alterar chave PIX' : 'Cadastrar chave PIX'" [busy]="saving()">
+  <form id="pix-form" class="form" novalidate (ngSubmit)="save()">
+    @if (saveError(); as text) {
+      <tg-alert tone="danger" title="Não deu para salvar">{{ text }}</tg-alert>
+    }
+    <div class="form__select">
+      <label class="form__label" for="pix-type">Tipo da chave</label>
+      <select id="pix-type" name="type" class="form__control" [(ngModel)]="draft.type">
+        @for (type of pixTypes; track type.value) {
+          <option [value]="type.value">{{ type.label }}</option>
+        }
+      </select>
+    </div>
+    <tg-field label="Chave PIX" [hint]="typeInfo(draft.type).hint" [error]="keyError()">
+      <input
+        tgInput
+        name="key"
+        maxlength="254"
+        autocomplete="off"
+        [attr.inputmode]="typeInfo(draft.type).inputmode"
+        [placeholder]="typeInfo(draft.type).placeholder"
+        [(ngModel)]="draft.key"
+      />
+    </tg-field>
+    <p class="form__hint">
+      Use uma chave da sua titularidade. A troca vale para os próximos repasses; os já pagos ficam com a chave anterior.
+    </p>
+  </form>
+  <button tgButton tgSheetAction type="button" appearance="outline" [disabled]="saving()" (click)="sheet.close()">Cancelar</button>
+  <button tgButton tgSheetAction type="submit" form="pix-form" [loading]="saving()">Salvar chave</button>
+</tg-sheet>
