@@ -1,60 +1,59 @@
-import { Component, signal } from '@angular/core';
-import { FaIconComponent } from '@fortawesome/angular-fontawesome';
-import { IconDefinition } from '@fortawesome/fontawesome-svg-core';
-import {
-  faArrowRight,
-  faCalendarDays,
-  faHeadset,
-  faHeart,
-  faHome,
-  faMagnifyingGlass,
-  faUser,
-} from '@fortawesome/free-solid-svg-icons';
-import { RouterLink } from '@angular/router';
+import { Location } from '@angular/common';
+import { ChangeDetectionStrategy, Component, computed, effect, inject } from '@angular/core';
+import { Router, RouterLink } from '@angular/router';
+
 import { Page } from '@shared/components/ui/page/page';
+import { TgButtonComponent } from '@shared/design-system/button/tg-button.component';
+import { normalizeNavigationRole } from '@shared/components/ui/header/navigation.constant';
+import { UrlBase } from '@shared/enums/base-url.enum';
+import { Theme } from '@shared/service/theme/theme';
+import { TokenService } from '@shared/service/token/token.service';
+import { UserLoggedService } from '@shared/service/user-logged/user-logged.service';
+import { Utils } from '@shared/service/utils/utils.service';
 
-interface NotFoundShortcut {
-  title: string;
-  description: string;
-  link: string;
-  icon: IconDefinition;
-}
-
+/**
+ * Página 404 (rota curinga). Vale para visitante, cliente e prestador: o
+ * "Ir para o início" leva ao início de quem está na sessão, com a mesma
+ * regra do `userLoggedGuard` (token e tipo de usuário: `/customer` ou
+ * `/provider`); sem sessão, à entrada (`/authenticate`). O tema segue o
+ * modo de quem está na sessão, como no shell logado.
+ */
 @Component({
   selector: 'app-not-found',
-  imports: [Page, RouterLink, FaIconComponent],
+  imports: [Page, RouterLink, TgButtonComponent],
+  changeDetection: ChangeDetectionStrategy.OnPush,
   templateUrl: './not-found.html',
   styleUrl: './not-found.scss',
 })
 export class NotFound {
-  readonly homeIcon = signal(faHome);
-  readonly arrowIcon = signal(faArrowRight);
-  readonly supportIcon = signal(faHeadset);
+  readonly #router = inject(Router);
+  readonly #location = inject(Location);
+  readonly #token = inject(TokenService);
+  readonly #session = inject(UserLoggedService);
+  readonly #theme = inject(Theme);
 
-  readonly shortcuts = signal<NotFoundShortcut[]>([
-    {
-      title: 'Buscar serviços',
-      description: 'Encontre o serviço que você precisa',
-      link: '/customer/search',
-      icon: faMagnifyingGlass,
-    },
-    {
-      title: 'Meus agendamentos',
-      description: 'Veja seus próximos agendamentos',
-      link: '/customer',
-      icon: faCalendarDays,
-    },
-    {
-      title: 'Favoritos',
-      description: 'Confira seus prestadores favoritos',
-      link: '/customer/favorites',
-      icon: faHeart,
-    },
-    {
-      title: 'Para prestadores',
-      description: 'Seja um prestador e cresça com o Proxi',
-      link: '/provider',
-      icon: faUser,
-    },
-  ]);
+  /** Papel de quem está na sessão (com token), ou null para visitante. */
+  readonly role = computed(() => {
+    const role = normalizeNavigationRole(this.#session.user()?.user?.type);
+    return role && this.#token.token ? role : null;
+  });
+
+  /** Início de quem está na sessão; a entrada, para visitante. */
+  readonly home = computed(() => {
+    const role = this.role();
+    return role ? Utils.getRouteByRoleBack(role) : `/${UrlBase.AUTHENTICATE}`;
+  });
+
+  constructor() {
+    effect(() => this.#theme.setTheme(this.role() ?? 'CUSTOMER'));
+  }
+
+  /** Volta para a tela anterior do app; aberta direto pelo endereço, vai ao início. */
+  back(): void {
+    if (this.#router.lastSuccessfulNavigation()?.previousNavigation) {
+      this.#location.back();
+      return;
+    }
+    void this.#router.navigateByUrl(this.home());
+  }
 }
