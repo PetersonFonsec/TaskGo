@@ -2,7 +2,7 @@ import { HttpErrorResponse } from '@angular/common/http';
 import { ChangeDetectionStrategy, Component, computed, DestroyRef, inject, signal } from '@angular/core';
 import { takeUntilDestroyed, toObservable, toSignal } from '@angular/core/rxjs-interop';
 import { ActivatedRoute, Router, RouterLink } from '@angular/router';
-import { catchError, EMPTY, map, type Observable, of, startWith, Subject, type Subscription, switchMap } from 'rxjs';
+import { catchError, EMPTY, map, type Observable, of, startWith, Subject, type Subscription, switchMap, tap, timer } from 'rxjs';
 
 import { normalizeNavigationRole } from '@shared/components/ui/header/navigation.constant';
 import { sessionUserId } from '@shared/guards/session-user/session-user.guard';
@@ -28,6 +28,20 @@ interface EmptyCopy {
   /** Leva à busca (só no cliente). */
   search?: boolean;
 }
+
+/**
+ * Status que mostram que a troca ainda não chegou à lista: o de antes da
+ * ação. Qualquer outro (o esperado, um posterior ou um cancelamento) vale
+ * como lista em dia para aquele pedido.
+ */
+const STATUS_BEFORE: Record<TgOrderStatusAction, readonly string[]> = {
+  EM_DESLOCAMENTO: ['AGENDADO'],
+  EM_ANDAMENTO: ['AGENDADO', 'EM_DESLOCAMENTO'],
+};
+
+/** Quantas listas conferem uma troca antes de desistir, e a espera antes de cada nova tentativa. */
+export const RECONCILE_ATTEMPTS = 3;
+export const RECONCILE_RETRY_MS: readonly number[] = [1000, 2000];
 
 const EMPTY_COPY: Record<string, EmptyCopy> = {
   ativos: {
@@ -131,15 +145,23 @@ export class History {
    */
   readonly updating = signal<ReadonlySet<string>>(new Set());
   readonly actionError = signal('');
+  /**
+   * A API confirmou a troca, mas a lista seguiu mostrando o status antigo
+   * depois de todas as tentativas. O alerta oferece recarregar a lista.
+   */
+  readonly reconcileFailed = signal(false);
 
   /** Trocas de status com a chamada à API em curso, por pedido. */
   readonly #inFlight = new Map<string, Subscription>();
   /**
-   * Trocas que a API aceitou, por pedido: o número da primeira lista pedida
-   * depois da confirmação. Qualquer resposta dessa lista (ou de uma mais
-   * nova) solta o pedido; uma mais velha, não.
+   * Trocas que a API aceitou e que a lista ainda não mostra, por pedido. Só
+   * uma lista pedida depois da confirmação (`afterSeq` ou mais nova) pode
+   * soltar o pedido, e só se trouxer o pedido sem o status antigo. Cada lista
+   * assim que ainda traz o status antigo (ou falha) conta uma tentativa.
    */
-  readonly #awaiting = new Map<string, number>();
+  readonly #awaiting = new Map<string, PendingReconciliation>();
+  /** Nova consulta agendada para conferir trocas pendentes. */
+  #retry: Subscription | null = null;
   /** Número da última lista pedida. */
   #seq = 0;
   readonly #loads = new Subject<{ silent: boolean }>();
@@ -161,6 +183,8 @@ export class History {
           return this.#loads.pipe(
             startWith({ silent: false }),
             map(({ silent }) => ({ silent, seq: ++this.#seq })),
+            // Uma lista nova já confere as trocas pendentes: a agendada sai.
+            tap(() => this.#cancelRetry()),
             switchMap(({ silent, seq }) => {
               if (!silent) {
                 this.loading.set(true);
@@ -182,6 +206,7 @@ export class History {
 
   /** Recarrega (no "Tentar de novo") os pedidos da sessão atual. */
   load(): void {
+    this.reconcileFailed.set(false);
     this.#loads.next({ silent: false });
   }
 
@@ -198,7 +223,9 @@ export class History {
    * "Estou a caminho" ou "Iniciar serviço". Pedidos diferentes podem trocar
    * ao mesmo tempo; o mesmo pedido, não (outro clique enquanto corre é
    * ignorado). Deu certo: pede a lista em silêncio e o botão só solta
-   * quando ela chega. Falhou: solta só este pedido e mostra o motivo.
+   * quando ela mostrar o pedido sem o status antigo (ou depois de
+   * `RECONCILE_ATTEMPTS` tentativas, com aviso). Falhou: solta só este
+   * pedido e mostra o motivo.
    */
   advance(orderId: string, status: TgOrderStatusAction): void {
     if (this.updating().has(orderId) || !this.#identity()) return;
@@ -208,7 +235,7 @@ export class History {
       next: () => {
         this.#inFlight.delete(orderId);
         // Registra antes de pedir: a lista pedida agora recebe o número #seq + 1.
-        this.#awaiting.set(orderId, this.#seq + 1);
+        this.#awaiting.set(orderId, { expected: status, afterSeq: this.#seq + 1, attempts: 0 });
         this.#loads.next({ silent: true });
       },
       error: (error: unknown) => {
@@ -235,15 +262,47 @@ export class History {
     }
     this.loading.set(false);
 
-    // Solta só os pedidos que esta lista confirma (pedida depois da troca deles).
-    const settled = [...this.#awaiting].filter(([, seq]) => result.seq >= seq).map(([id]) => id);
-    for (const id of settled) {
-      this.#awaiting.delete(id);
-      this.#mark(id, false);
+    this.#reconcile(result);
+  }
+
+  /**
+   * Confere as trocas pendentes com esta lista. Lista pedida antes da
+   * confirmação de um pedido não conta para ele. Lista que mostra o pedido
+   * sem o status antigo solta o pedido. Lista com o status antigo, ou que
+   * falhou, gasta uma tentativa: sobrando tentativas, agenda outra consulta;
+   * sem tentativas, solta o pedido e avisa, com a opção de recarregar.
+   */
+  #reconcile(result: LoadResult): void {
+    let retryAfter = -1;
+    let gaveUp = false;
+    for (const [id, pending] of [...this.#awaiting]) {
+      if (result.seq < pending.afterSeq) continue;
+      if (result.ok && reflects(result.orders, id, pending.expected)) {
+        this.#awaiting.delete(id);
+        this.#mark(id, false);
+        continue;
+      }
+      pending.attempts += 1;
+      if (pending.attempts >= RECONCILE_ATTEMPTS) {
+        this.#awaiting.delete(id);
+        this.#mark(id, false);
+        gaveUp = true;
+      } else {
+        retryAfter = Math.max(retryAfter, RECONCILE_RETRY_MS[pending.attempts - 1] ?? 0);
+      }
     }
-    if (!result.ok && result.silent && settled.length) {
-      this.actionError.set('O atendimento foi atualizado, mas a lista não. Recarregue a página para ver o status novo.');
+    if (gaveUp) this.reconcileFailed.set(true);
+    if (retryAfter >= 0 && !this.#retry) {
+      this.#retry = timer(retryAfter).subscribe(() => {
+        this.#retry = null;
+        this.#loads.next({ silent: true });
+      });
     }
+  }
+
+  #cancelRetry(): void {
+    this.#retry?.unsubscribe();
+    this.#retry = null;
   }
 
   #mark(orderId: string, busy: boolean): void {
@@ -259,6 +318,7 @@ export class History {
     for (const request of this.#inFlight.values()) request.unsubscribe();
     this.#inFlight.clear();
     this.#awaiting.clear();
+    this.#cancelRetry();
   }
 
   /** Nova sessão: nada da anterior fica à vista nem em curso. */
@@ -266,6 +326,7 @@ export class History {
     this.#cancelUpdates();
     this.updating.set(new Set());
     this.actionError.set('');
+    this.reconcileFailed.set(false);
     this.orders.set([]);
     this.loading.set(true);
     this.error.set(false);
@@ -275,6 +336,26 @@ export class History {
 interface Identity {
   userId: string;
   perspective: TgOrderPerspective;
+}
+
+/** Troca aceita pela API, à espera de aparecer na lista. */
+interface PendingReconciliation {
+  /** O status pedido. */
+  expected: TgOrderStatusAction;
+  /** Número da primeira lista pedida depois da confirmação. */
+  afterSeq: number;
+  /** Listas (dessa em diante) que ainda não mostraram a troca. */
+  attempts: number;
+}
+
+/**
+ * A lista já mostra a troca do pedido: ele não está mais no status de antes
+ * da ação. Pedido fora da lista também conta, porque não há status antigo à
+ * vista para corrigir.
+ */
+function reflects(orders: OrdersResponse, orderId: string, expected: TgOrderStatusAction): boolean {
+  const order = orders.find((item) => item.id === orderId);
+  return !order || !STATUS_BEFORE[expected].includes(order.status);
 }
 
 type LoadResult =
