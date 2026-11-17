@@ -41,6 +41,7 @@ Ionic) continuam valendo até a migração tela a tela.
 | 10 | Entrar, recuperar acesso e Criar conta (web) | Concluído (PR #37) |
 | 10 | Passos do cadastro e conta criada (web) | Concluído (PR #38) |
 | 10 | Shell logado: topo, abas, conta e rodapé (web) | Este PR |
+| 10 | Pedidos (web) | Este PR |
 
 Atributos de marca: próximo, confiável, direto e caloroso sem ser infantil.
 
@@ -654,8 +655,39 @@ e o `tg-account-menu` com o nome, a foto (ou as iniciais) e o modo
   fundo escuro. Sai quando nenhuma tela usar `--proxi-*`.
 - O `body` usa `overflow-x: clip` (não `hidden`), para o `position: sticky`
   da barra do topo funcionar.
-- "Pedidos" leva a `/general/:id/history`, que ainda é um esboço; a tela de
-  pedidos é a próxima migração.
+- "Pedidos" leva a `/general/:id/history`, a tela de pedidos (abaixo).
+
+#### Pedidos (web)
+
+Todos os pedidos de quem está logado, em `/general/:id/history`, numa tela
+própria do shell (sem o cabeçalho de perfil da conta). Título "Pedidos", uma
+linha de apoio e as abas do mapa de "Abas"; cada aba é uma lista
+`ul[tgOrderList]` com `tg-order-row`.
+
+| Modo | Abas | O que entra |
+| --- | --- | --- |
+| Cliente | Ativos (com contagem), Concluídos, Cancelados | Ativos: tudo que não encerrou, inclusive em análise e status desconhecido. Cancelados: cancelados e recusados. |
+| Prestador | Solicitações (com contagem), Agendados, Histórico | Solicitações: `AGUARDANDO_APROVACAO`, com "Responder". Agendados: os demais em curso, inclusive em análise e desconhecido. Histórico: concluídos, cancelados e recusados. |
+
+Regras:
+
+- A aba fica na URL (`?aba=concluidos`), trocada sem nova entrada no
+  histórico; sem ela, ou com uma que não existe, vale a primeira.
+- Em curso: primeiro o que pede ação de quem vê (Pagar, Confirmar
+  conclusão, Responder, Estou a caminho…), depois a data mais próxima; sem
+  data no fim. Encerrados: o encerramento mais recente primeiro (as mesmas
+  datas do histórico do início). Nenhum pedido fica de fora.
+- Aba sem pedidos: `tg-empty-state` com o texto da aba; em Ativos do
+  cliente, a ação é "Buscar serviço". O cliente vê "Buscar serviço" também
+  no topo, mas só quando tem algum pedido (sem nenhum, a busca fica só no
+  estado vazio).
+- Carregando: skeleton das abas e das linhas. Falha: alerta com "Tentar de
+  novo". Cada carga cancela a anterior.
+- "Estou a caminho" e "Iniciar serviço" trocam o status na própria linha: o
+  botão fica em carregando, sem repetir o pedido, até a lista nova chegar.
+  Erro da API: alerta com a mensagem dela. A troca deu certo e a recarga
+  falhou: a lista fica e o alerta pede para recarregar.
+- No desktop, a tela tem até 880 px, centralizada.
 
 ### Abas
 

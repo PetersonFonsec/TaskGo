@@ -6,6 +6,12 @@ import { Profile } from './profile/profile';
 import { Home } from './profile/home/home';
 
 export const GeneralRoutes: Routes = [
+  // Pedidos é uma tela própria do shell, sem o cabeçalho de perfil da conta.
+  {
+    path: ':userId/history',
+    title: 'Pedidos',
+    component: History,
+  },
   {
     path: ':userId',
     title: `Seja bem vindo ao TaskGo`,
@@ -37,10 +43,6 @@ export const GeneralRoutes: Routes = [
             redirectTo: 'view',
           },
         ],
-      },
-      {
-        path: 'history',
-        component: History,
       },
       {
         path: 'addresses',
