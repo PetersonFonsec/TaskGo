@@ -102,6 +102,31 @@ export const ComFalhaNoRepasse: Story = {
   ],
 };
 
+/** Dois repasses com falha (alerta no plural) e valores em análise e bloqueados, fora de "A receber". */
+export const RepassesRetidos: Story = {
+  name: 'Repasses em análise e com falha',
+  decorators: [
+    applicationConfig({
+      providers: screen(
+        later({ type: 'CPF', key: '12345678901' }),
+        later([
+          { orderId: '1061', amount: 140, status: 'FAILED', completedAt: null },
+          { orderId: '1060', amount: 95, status: 'FAILED', completedAt: null },
+          { orderId: '1058', amount: 210, status: 'REVIEW', completedAt: null },
+          { orderId: '1055', amount: 80, status: 'BLOCKED', completedAt: null },
+          ...SETTLEMENTS,
+        ]),
+      ),
+    }),
+  ],
+};
+
+/** Só os repasses falham: os indicadores ficam indisponíveis, sem R$ 0,00. */
+export const FalhaNosRepasses: Story = {
+  name: 'Falha só nos repasses',
+  decorators: [applicationConfig({ providers: screen(later({ type: 'EMAIL', key: 'bruno.lima@email.com' }), failing()) })],
+};
+
 export const Carregando: Story = {
   decorators: [applicationConfig({ providers: screen(NEVER, NEVER, NEVER) })],
 };

@@ -56,20 +56,57 @@ export const PIX_TYPES: readonly PixTypeInfo[] = [
   },
 ];
 
-/** Status do repasse: o texto para o profissional e o tom do selo. */
-const SETTLEMENT_STATUS: Record<string, { label: string; tone: TgBadgeTone }> = {
-  READY: { label: 'Aguardando envio', tone: 'waiting' },
-  SUBMITTING: { label: 'Enviando', tone: 'progress' },
-  PENDING: { label: 'Em processamento', tone: 'progress' },
-  SUCCEEDED: { label: 'Pago', tone: 'done' },
-  FAILED: { label: 'Falhou', tone: 'cancelled' },
-  REVIEW: { label: 'Em análise', tone: 'waiting' },
-  BLOCKED: { label: 'Em análise', tone: 'waiting' },
+/**
+ * Em que total o repasse entra. `received`: pago. `incoming`: na fila ou
+ * em envio, sem nada que o segure. `held`: em análise ou bloqueado, sem
+ * previsão; não entra em nenhum total. `failed`: não entra em nenhum.
+ */
+export type SettlementGroup = 'received' | 'incoming' | 'held' | 'failed';
+
+interface SettlementInfo {
+  group: SettlementGroup;
+  label: string;
+  tone: TgBadgeTone;
+}
+
+/**
+ * Os status do repasse (`PaymentSettlement.status`), como o backend os usa
+ * (`settlement.service.ts`): READY entra na fila de envio; SUBMITTING e
+ * PENDING estão no gateway; SUCCEEDED é o PIX concluído; FAILED é a recusa
+ * do gateway; REVIEW segue na fila, mas aguardando conciliação; BLOCKED é o
+ * repasse barrado por pagamento, confirmação ou disputa, e não sai sem ação
+ * da operação. Por isso REVIEW e BLOCKED ficam fora de "A receber".
+ */
+export const SETTLEMENT_STATUS: Readonly<Record<string, SettlementInfo>> = {
+  READY: { group: 'incoming', label: 'Aguardando envio', tone: 'waiting' },
+  SUBMITTING: { group: 'incoming', label: 'Enviando', tone: 'progress' },
+  PENDING: { group: 'incoming', label: 'Em processamento', tone: 'progress' },
+  SUCCEEDED: { group: 'received', label: 'Pago', tone: 'done' },
+  FAILED: { group: 'failed', label: 'Falhou', tone: 'cancelled' },
+  REVIEW: { group: 'held', label: 'Em análise', tone: 'waiting' },
+  BLOCKED: { group: 'held', label: 'Bloqueado', tone: 'cancelled' },
 };
+/** Status que a tela não conhece: nunca soma em nada e aparece como em análise. */
+const UNKNOWN_STATUS: SettlementInfo = { group: 'held', label: 'Em análise', tone: 'neutral' };
+
+export function settlementInfo(status: string): SettlementInfo {
+  return Object.prototype.hasOwnProperty.call(SETTLEMENT_STATUS, status) ? SETTLEMENT_STATUS[status] : UNKNOWN_STATUS;
+}
+
+/** Somas em centavos (sem erro de ponto flutuante), devolvidas em reais. */
+export function settlementTotals(items: readonly Settlement[]): { received: number; incoming: number; held: number } {
+  const cents = { received: 0, incoming: 0, held: 0 };
+  for (const item of items) {
+    const group = settlementInfo(item.status).group;
+    const amount = Number(item.amount);
+    if (group === 'failed' || !Number.isFinite(amount)) continue;
+    cents[group] += Math.round(amount * 100);
+  }
+  return { received: cents.received / 100, incoming: cents.incoming / 100, held: cents.held / 100 };
+}
 const MONEY = new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' });
 const DAY = new Intl.DateTimeFormat('pt-BR', { day: '2-digit', month: '2-digit', year: 'numeric', timeZone: 'America/Sao_Paulo' });
 const TIME = new Intl.DateTimeFormat('pt-BR', { hour: '2-digit', minute: '2-digit', timeZone: 'America/Sao_Paulo' });
-const UNKNOWN_STATUS = { label: 'Em análise', tone: 'waiting' as TgBadgeTone };
 
 /**
  * Ganhos do profissional (Etapa 10), em `/provider/recebimentos`: a chave
@@ -122,16 +159,13 @@ export class ProviderPayoutPage {
   readonly settlementsLoading = signal(true);
   readonly settlementsError = signal(false);
 
-  /** Totais dos repasses listados: pagos e ainda a caminho (sem os que falharam). */
-  readonly totals = computed(() => {
-    let paid = 0;
-    let incoming = 0;
-    for (const item of this.settlements()) {
-      if (item.status === 'SUCCEEDED') paid += item.amount;
-      else if (item.status !== 'FAILED') incoming += item.amount;
-    }
-    return { paid, incoming };
-  });
+  /**
+   * Totais dos repasses listados (ver `SETTLEMENT_STATUS`). Na falha ou
+   * enquanto carrega, null: a tela nunca mostra R$ 0,00 sem dados.
+   */
+  readonly totals = computed(() =>
+    this.settlementsLoading() || this.settlementsError() ? null : settlementTotals(this.settlements()),
+  );
   /**
    * Profissional que ainda não ganhou nada: sem histórico no painel e sem
    * repasses. A tela troca resumo, gráfico e lista por um estado vazio.
@@ -145,7 +179,7 @@ export class ProviderPayoutPage {
       !this.settlementsError() &&
       this.settlements().length === 0,
   );
-  readonly hasFailed = computed(() => this.settlements().some((item) => item.status === 'FAILED'));
+  readonly failedCount = computed(() => this.settlements().filter((item) => item.status === 'FAILED').length);
 
   readonly sheet = viewChild.required<TgSheetComponent>('sheet');
   draft: PixDestination = { key: '', type: 'CPF' };
@@ -154,13 +188,16 @@ export class ProviderPayoutPage {
   readonly saveError = signal('');
   readonly message = signal('');
 
-  readonly #loads = new Subject<void>();
+  // Uma fila por recurso: cada "Tentar de novo" recarrega só o seu, e o
+  // switchMap descarta a resposta de uma consulta antiga do mesmo recurso.
+  readonly #destinationLoads = new Subject<void>();
+  readonly #revenueLoads = new Subject<void>();
+  readonly #settlementLoads = new Subject<void>();
 
   constructor() {
-    const loads = this.#loads.pipe(startWith(undefined));
-
-    loads
+    this.#destinationLoads
       .pipe(
+        startWith(undefined),
         switchMap(() => {
           this.destinationLoading.set(true);
           this.destinationError.set(false);
@@ -177,8 +214,9 @@ export class ProviderPayoutPage {
         this.destinationLoading.set(false);
       });
 
-    loads
+    this.#revenueLoads
       .pipe(
+        startWith(undefined),
         switchMap(() => {
           this.chartLoading.set(true);
           this.chartError.set(false);
@@ -196,8 +234,9 @@ export class ProviderPayoutPage {
         this.chartLoading.set(false);
       });
 
-    loads
+    this.#settlementLoads
       .pipe(
+        startWith(undefined),
         switchMap(() => {
           this.settlementsLoading.set(true);
           this.settlementsError.set(false);
@@ -215,8 +254,16 @@ export class ProviderPayoutPage {
       });
   }
 
-  load(): void {
-    this.#loads.next();
+  loadDestination(): void {
+    this.#destinationLoads.next();
+  }
+
+  loadRevenue(): void {
+    this.#revenueLoads.next();
+  }
+
+  loadSettlements(): void {
+    this.#settlementLoads.next();
   }
 
   money(value: number): string {
@@ -234,8 +281,8 @@ export class ProviderPayoutPage {
     return PIX_TYPES.find((item) => item.value === type) ?? PIX_TYPES[0];
   }
 
-  status(status: string): { label: string; tone: TgBadgeTone } {
-    return SETTLEMENT_STATUS[status] ?? UNKNOWN_STATUS;
+  status(status: string): SettlementInfo {
+    return settlementInfo(status);
   }
 
   openEdit(): void {
@@ -259,7 +306,8 @@ export class ProviderPayoutPage {
     this.saveError.set('');
     if (validatePix(this.draft)) return;
 
-    const payload: PixDestination = { type: this.draft.type, key: this.draft.key.trim() };
+    // Envia a chave já normalizada, do jeito que a API guarda.
+    const payload: PixDestination = { type: this.draft.type, key: normalizePix(this.draft) };
     this.saving.set(true);
     this.#http
       .put<Partial<PixDestination>>(this.#url, payload)
@@ -286,21 +334,44 @@ function toDestination(value: Partial<PixDestination> | null | undefined): PixDe
   return { key: typeof value?.key === 'string' ? value.key : '', type };
 }
 
-/** As mesmas regras da API (`normalizePixDestination`), com o texto que diz como corrigir. */
-export function validatePix({ key, type }: PixDestination): string | null {
-  const digits = ['CPF', 'CNPJ', 'PHONE'].includes(type) ? key.replace(/[\s().+\-/]/g, '') : key.trim();
-  if (!digits) return 'Informe a chave PIX.';
-  switch (type) {
+/**
+ * A chave como a API a guarda (`normalizePixDestination`): CPF, CNPJ e
+ * celular sem espaços, parênteses, pontos, traços e "+"; e-mail e chave
+ * aleatória sem espaços nas pontas. A barra do CNPJ também sai aqui: a API
+ * a recusaria, e ela só aparece porque é como o CNPJ costuma ser copiado.
+ */
+export function normalizePix({ key, type }: PixDestination): string {
+  if (type === 'CNPJ') return key.replace(/[\s().+\-/]/g, '');
+  if (type === 'CPF' || type === 'PHONE') return key.replace(/[\s().+-]/g, '');
+  return key.trim();
+}
+
+/** Limites do DTO da API (`@MinLength(3) @MaxLength(254)`), aplicados à chave enviada. */
+export const PIX_KEY_MIN = 3;
+export const PIX_KEY_MAX = 254;
+
+/**
+ * As regras da API para a chave já normalizada (as mesmas expressões de
+ * `normalizePixDestination` e os limites do DTO), com o texto que diz como
+ * corrigir. O que passa aqui a API aceita.
+ */
+export function validatePix(destination: PixDestination): string | null {
+  const key = normalizePix(destination);
+  if (!key) return 'Informe a chave PIX.';
+  if (key.length > PIX_KEY_MAX) return `Use até ${PIX_KEY_MAX} caracteres.`;
+  switch (destination.type) {
     case 'CPF':
-      return /^\d{11}$/.test(digits) ? null : 'O CPF tem 11 números.';
+      return /^\d{11}$/.test(key) ? null : 'O CPF tem 11 números.';
     case 'CNPJ':
-      return /^\d{14}$/.test(digits) ? null : 'O CNPJ tem 14 números.';
+      return /^\d{14}$/.test(key) ? null : 'O CNPJ tem 14 números.';
     case 'PHONE':
-      return /^(?:55)?\d{10,11}$/.test(digits) ? null : 'Informe o celular com DDD.';
+      return /^(?:55)?\d{10,11}$/.test(key) ? null : 'Informe o celular com DDD.';
     case 'EMAIL':
-      return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(digits) && digits.length <= 254 ? null : 'Informe um e-mail válido.';
+      return key.length >= PIX_KEY_MIN && /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(key) ? null : 'Informe um e-mail válido.';
     case 'RANDOM':
-      return /^[a-f\d]{8}-(?:[a-f\d]{4}-){3}[a-f\d]{12}$/i.test(digits) ? null : 'A chave aleatória tem 32 letras e números, com traços.';
+      return /^[a-f\d]{8}-(?:[a-f\d]{4}-){3}[a-f\d]{12}$/i.test(key)
+        ? null
+        : 'A chave aleatória tem 32 letras e números, com traços.';
   }
 }
 

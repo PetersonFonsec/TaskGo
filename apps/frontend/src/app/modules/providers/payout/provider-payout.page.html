@@ -24,16 +24,25 @@
         <p class="stat__label">Recebido</p>
         @if (settlementsLoading()) {
           <tg-skeleton width="60%" height="32" />
+        } @else if (totals(); as total) {
+          <p class="stat__value">{{ money(total.received) }}</p>
         } @else {
-          <p class="stat__value">{{ money(totals().paid) }}</p>
+          <p class="stat__value stat__value--unavailable">Indisponível</p>
+          <p class="stat__note">Não foi possível carregar os repasses.</p>
         }
       </tg-card>
       <tg-card class="stat">
         <p class="stat__label">A receber</p>
         @if (settlementsLoading()) {
           <tg-skeleton width="60%" height="32" />
+        } @else if (totals(); as total) {
+          <p class="stat__value">{{ money(total.incoming) }}</p>
+          @if (total.held > 0) {
+            <p class="stat__note">Fora {{ money(total.held) }} em análise ou bloqueados.</p>
+          }
         } @else {
-          <p class="stat__value">{{ money(totals().incoming) }}</p>
+          <p class="stat__value stat__value--unavailable">Indisponível</p>
+          <p class="stat__note">Não foi possível carregar os repasses.</p>
         }
       </tg-card>
     </section>
@@ -43,7 +52,7 @@
       @if (chartError()) {
         <tg-alert tone="danger" title="Não foi possível carregar o gráfico">
           Verifique sua conexão e tente de novo.
-          <button tgButton tgAlertAction type="button" appearance="outline" size="sm" (click)="load()">Tentar de novo</button>
+          <button tgButton tgAlertAction type="button" appearance="outline" size="sm" (click)="loadRevenue()">Tentar de novo</button>
         </tg-alert>
       } @else if (chartLoading()) {
         <tg-skeleton width="100%" height="180" />
@@ -59,7 +68,7 @@
     @if (destinationError()) {
       <tg-alert tone="danger" title="Não foi possível carregar sua chave PIX">
         Verifique sua conexão e tente de novo.
-        <button tgButton tgAlertAction type="button" appearance="outline" size="sm" (click)="load()">Tentar de novo</button>
+        <button tgButton tgAlertAction type="button" appearance="outline" size="sm" (click)="loadDestination()">Tentar de novo</button>
       </tg-alert>
     } @else if (destinationLoading()) {
       <tg-card><tg-skeleton width="50%" /><tg-skeleton width="70%" /></tg-card>
@@ -86,12 +95,12 @@
       @if (settlementsError()) {
         <tg-alert tone="danger" title="Não foi possível carregar seus repasses">
           Verifique sua conexão e tente de novo.
-          <button tgButton tgAlertAction type="button" appearance="outline" size="sm" (click)="load()">Tentar de novo</button>
+          <button tgButton tgAlertAction type="button" appearance="outline" size="sm" (click)="loadSettlements()">Tentar de novo</button>
         </tg-alert>
       } @else {
-        @if (hasFailed()) {
-          <tg-alert tone="danger" title="Um repasse falhou">
-            Confira sua chave PIX e fale com o suporte para reenviar.
+        @if (failedCount(); as count) {
+          <tg-alert tone="danger" [title]="count === 1 ? 'Um repasse falhou' : count + ' repasses falharam'">
+            Confira sua chave PIX e fale com o suporte para {{ count === 1 ? 'reenviar' : 'reenviá-los' }}.
           </tg-alert>
         }
         <tg-loading label="Carregando seus repasses" [loading]="settlementsLoading()">

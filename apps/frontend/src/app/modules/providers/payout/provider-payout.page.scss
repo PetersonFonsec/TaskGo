@@ -234,3 +234,14 @@
   font-size: var(--tg-type-body-sm-size);
   line-height: var(--tg-type-body-sm-line);
 }
+
+.stat__value--unavailable {
+  color: var(--tg-text-secondary);
+}
+
+.stat__note {
+  margin: var(--tg-space-1) 0 0;
+  color: var(--tg-text-secondary);
+  font-size: var(--tg-type-body-sm-size);
+  line-height: var(--tg-type-body-sm-line);
+}
