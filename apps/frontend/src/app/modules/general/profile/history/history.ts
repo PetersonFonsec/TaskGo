@@ -1,10 +1,11 @@
 import { HttpErrorResponse } from '@angular/common/http';
-import { ChangeDetectionStrategy, Component, computed, DestroyRef, inject, OnInit, signal } from '@angular/core';
-import { takeUntilDestroyed, toSignal } from '@angular/core/rxjs-interop';
+import { ChangeDetectionStrategy, Component, computed, DestroyRef, inject, signal } from '@angular/core';
+import { takeUntilDestroyed, toObservable, toSignal } from '@angular/core/rxjs-interop';
 import { ActivatedRoute, Router, RouterLink } from '@angular/router';
-import { catchError, map, of, Subject, switchMap } from 'rxjs';
+import { catchError, EMPTY, map, type Observable, of, startWith, Subject, type Subscription, switchMap } from 'rxjs';
 
 import { normalizeNavigationRole } from '@shared/components/ui/header/navigation.constant';
+import { sessionUserId } from '@shared/guards/session-user/session-user.guard';
 import { RolesBack } from '@shared/enums/roles.enum';
 import { Order } from '@shared/service/order/order';
 import { OrdersResponse } from '@shared/service/order/order.model';
@@ -28,7 +29,7 @@ interface EmptyCopy {
   search?: boolean;
 }
 
-const EMPTY: Record<string, EmptyCopy> = {
+const EMPTY_COPY: Record<string, EmptyCopy> = {
   ativos: {
     icon: 'calendar-blank',
     title: 'Nenhum pedido em andamento',
@@ -71,23 +72,30 @@ const EMPTY: Record<string, EmptyCopy> = {
   styleUrl: './history.scss',
   changeDetection: ChangeDetectionStrategy.OnPush,
 })
-export class History implements OnInit {
+export class History {
   readonly #order = inject(Order);
   readonly #session = inject(UserLoggedService);
   readonly #route = inject(ActivatedRoute);
   readonly #router = inject(Router);
-  readonly #destroyRef = inject(DestroyRef);
 
   readonly searchLink = '/customer/search';
-  readonly empty = EMPTY;
-
-  readonly #userId = computed(() => {
-    const id: unknown = this.#session.user()?.user?.id;
-    return (typeof id === 'string' && id.trim()) || (typeof id === 'number' && Number.isFinite(id)) ? String(id) : null;
-  });
+  readonly empty = EMPTY_COPY;
 
   readonly perspective = computed<TgOrderPerspective>(() =>
     normalizeNavigationRole(this.#session.user()?.user?.type) === RolesBack.PROVIDER ? 'provider' : 'customer',
+  );
+
+  /**
+   * Quem está na sessão: o id (nunca o da URL) e o modo. Muda quando a
+   * sessão muda (outra conta, cliente/prestador, logout); a igualdade por
+   * valor evita recarregar quando a sessão é regravada com os mesmos dados.
+   */
+  readonly #identity = computed<Identity | null>(
+    () => {
+      const userId = sessionUserId(this.#session.user());
+      return userId ? { userId, perspective: this.perspective() } : null;
+    },
+    { equal: (a, b) => a?.userId === b?.userId && a?.perspective === b?.perspective },
   );
 
   readonly lead = computed(() =>
@@ -115,61 +123,66 @@ export class History implements OnInit {
     return this.tabs().some((tab) => tab.value === value) ? value! : this.tabs()[0].value;
   });
 
-  /** Pedidos com troca de status em curso (o botão fica em carregando). */
+  /**
+   * Pedidos com troca de status em curso (o botão fica em carregando). Cada
+   * pedido tem o seu estado: ele entra ao pedir a troca e só sai pela
+   * própria falha ou por uma lista pedida depois da própria confirmação.
+   * A conclusão de um pedido nunca solta outro.
+   */
   readonly updating = signal<ReadonlySet<string>>(new Set());
   readonly actionError = signal('');
 
-  /** Cada carga cancela a anterior: uma resposta antiga nunca sobrescreve a atual. */
-  readonly #requests = new Subject<{ userId: string; perspective: TgOrderPerspective; silent: boolean }>();
+  /** Trocas de status com a chamada à API em curso, por pedido. */
+  readonly #inFlight = new Map<string, Subscription>();
+  /**
+   * Trocas que a API aceitou, por pedido: o número da primeira lista pedida
+   * depois da confirmação. Qualquer resposta dessa lista (ou de uma mais
+   * nova) solta o pedido; uma mais velha, não.
+   */
+  readonly #awaiting = new Map<string, number>();
+  /** Número da última lista pedida. */
+  #seq = 0;
+  readonly #loads = new Subject<{ silent: boolean }>();
 
   constructor() {
-    this.#requests
+    // Uma carga por sessão. Trocar de sessão cancela a lista e as trocas de
+    // status da anterior e limpa os pedidos dela antes de pedir os novos.
+    // Dentro da sessão, cada lista cancela a anterior (switchMap): uma
+    // resposta antiga nunca sobrescreve a atual.
+    toObservable(this.#identity)
       .pipe(
-        switchMap(({ userId, perspective, silent }) => {
-          if (!silent) {
-            this.loading.set(true);
-            this.error.set(false);
+        switchMap((identity) => {
+          this.#resetSession();
+          if (!identity) {
+            this.error.set(true);
+            this.loading.set(false);
+            return EMPTY;
           }
-          const request =
-            perspective === 'provider' ? this.#order.getOrderByProvider(userId) : this.#order.getOrderByClient(userId);
-          return request.pipe(
-            map((orders) => ({ ok: true as const, orders, silent })),
-            catchError(() => of({ ok: false as const, silent })),
+          return this.#loads.pipe(
+            startWith({ silent: false }),
+            map(({ silent }) => ({ silent, seq: ++this.#seq })),
+            switchMap(({ silent, seq }) => {
+              if (!silent) {
+                this.loading.set(true);
+                this.error.set(false);
+              }
+              return this.#fetch(identity).pipe(
+                map((orders): LoadResult => ({ ok: true, orders, silent, seq })),
+                catchError(() => of<LoadResult>({ ok: false, silent, seq })),
+              );
+            }),
           );
         }),
-        takeUntilDestroyed(this.#destroyRef),
+        takeUntilDestroyed(),
       )
-      .subscribe((result) => {
-        if (result.ok) {
-          this.orders.set(result.orders);
-          this.error.set(false);
-        } else if (!result.silent) {
-          this.orders.set([]);
-          this.error.set(true);
-        } else {
-          this.actionError.set('O atendimento foi atualizado, mas a lista não. Recarregue a página para ver o status novo.');
-        }
-        this.loading.set(false);
-        // A recarga terminou: a linha já mostra o status novo (ou o aviso explica).
-        this.updating.set(new Set());
-      });
+      .subscribe((result) => this.#applyLoad(result));
+
+    inject(DestroyRef).onDestroy(() => this.#cancelUpdates());
   }
 
-  ngOnInit(): void {
-    this.load();
-  }
-
-  /** Carrega (ou recarrega, no "Tentar de novo") os pedidos de quem está logado. */
-  load(silent = false): boolean {
-    const userId = this.#userId();
-    if (userId) {
-      this.#requests.next({ userId, perspective: this.perspective(), silent });
-      return true;
-    }
-    this.orders.set([]);
-    this.error.set(true);
-    this.loading.set(false);
-    return false;
+  /** Recarrega (no "Tentar de novo") os pedidos da sessão atual. */
+  load(): void {
+    this.#loads.next({ silent: false });
   }
 
   selectTab(value: string | undefined): void {
@@ -181,33 +194,92 @@ export class History implements OnInit {
     });
   }
 
-  /** "Estou a caminho" ou "Iniciar serviço": um pedido por vez; o botão só solta com a lista nova. */
+  /**
+   * "Estou a caminho" ou "Iniciar serviço". Pedidos diferentes podem trocar
+   * ao mesmo tempo; o mesmo pedido, não (outro clique enquanto corre é
+   * ignorado). Deu certo: pede a lista em silêncio e o botão só solta
+   * quando ela chega. Falhou: solta só este pedido e mostra o motivo.
+   */
   advance(orderId: string, status: TgOrderStatusAction): void {
-    if (this.updating().has(orderId)) return;
+    if (this.updating().has(orderId) || !this.#identity()) return;
     this.actionError.set('');
-    this.updating.update((ids) => new Set(ids).add(orderId));
-    this.#order
-      .updateOrderStatus(orderId, status)
-      .pipe(takeUntilDestroyed(this.#destroyRef))
-      .subscribe({
-        next: () => {
-          if (!this.load(true)) this.#release(orderId);
-        },
-        error: (error: unknown) => {
-          this.#release(orderId);
-          this.actionError.set(apiMessage(error) ?? 'Não foi possível atualizar o atendimento. Tente de novo.');
-        },
-      });
+    this.#mark(orderId, true);
+    const request = this.#order.updateOrderStatus(orderId, status).subscribe({
+      next: () => {
+        this.#inFlight.delete(orderId);
+        // Registra antes de pedir: a lista pedida agora recebe o número #seq + 1.
+        this.#awaiting.set(orderId, this.#seq + 1);
+        this.#loads.next({ silent: true });
+      },
+      error: (error: unknown) => {
+        this.#inFlight.delete(orderId);
+        this.#mark(orderId, false);
+        this.actionError.set(apiMessage(error) ?? 'Não foi possível atualizar o atendimento. Tente de novo.');
+      },
+    });
+    // Uma resposta síncrona já terminou acima; só guarda a chamada que segue em curso.
+    if (!request.closed) this.#inFlight.set(orderId, request);
   }
 
-  #release(orderId: string): void {
+  #fetch({ userId, perspective }: Identity): Observable<OrdersResponse> {
+    return perspective === 'provider' ? this.#order.getOrderByProvider(userId) : this.#order.getOrderByClient(userId);
+  }
+
+  #applyLoad(result: LoadResult): void {
+    if (result.ok) {
+      this.orders.set(result.orders);
+      this.error.set(false);
+    } else if (!result.silent) {
+      this.orders.set([]);
+      this.error.set(true);
+    }
+    this.loading.set(false);
+
+    // Solta só os pedidos que esta lista confirma (pedida depois da troca deles).
+    const settled = [...this.#awaiting].filter(([, seq]) => result.seq >= seq).map(([id]) => id);
+    for (const id of settled) {
+      this.#awaiting.delete(id);
+      this.#mark(id, false);
+    }
+    if (!result.ok && result.silent && settled.length) {
+      this.actionError.set('O atendimento foi atualizado, mas a lista não. Recarregue a página para ver o status novo.');
+    }
+  }
+
+  #mark(orderId: string, busy: boolean): void {
     this.updating.update((ids) => {
       const next = new Set(ids);
-      next.delete(orderId);
+      if (busy) next.add(orderId);
+      else next.delete(orderId);
       return next;
     });
   }
+
+  #cancelUpdates(): void {
+    for (const request of this.#inFlight.values()) request.unsubscribe();
+    this.#inFlight.clear();
+    this.#awaiting.clear();
+  }
+
+  /** Nova sessão: nada da anterior fica à vista nem em curso. */
+  #resetSession(): void {
+    this.#cancelUpdates();
+    this.updating.set(new Set());
+    this.actionError.set('');
+    this.orders.set([]);
+    this.loading.set(true);
+    this.error.set(false);
+  }
 }
+
+interface Identity {
+  userId: string;
+  perspective: TgOrderPerspective;
+}
+
+type LoadResult =
+  | { ok: true; orders: OrdersResponse; silent: boolean; seq: number }
+  | { ok: false; silent: boolean; seq: number };
 
 /** A mensagem que a API manda no erro (`{ message }`), quando é um texto. */
 function apiMessage(error: unknown): string | null {

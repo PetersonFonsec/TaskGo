@@ -69,6 +69,16 @@ describe('Header (shell logado)', () => {
     expect(logout).toHaveBeenCalledTimes(1);
   });
 
+  it('não mostra o botão de notificações, que ainda não tem funcionalidade', () => {
+    const el = render();
+    expect(el.querySelector('app-notification')).toBeNull();
+    expect(el.textContent).not.toContain('Notificações');
+    const names = Array.from(el.querySelectorAll('button, a')).map(
+      (control) => control.getAttribute('aria-label') ?? control.textContent?.trim() ?? '',
+    );
+    expect(names.some((name) => /notifica/i.test(name))).toBeFalse();
+  });
+
   it('sem sessão mostra só a marca', () => {
     user.set({});
     const el = render();

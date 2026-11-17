@@ -568,7 +568,6 @@ embaixo, com a Conta como última aba.
 ```html
 <tg-app-bar homeLink="/customer">
   <tg-nav [items]="destinos" [account]="{ label: 'Conta', icon: 'user-circle', link: perfil }" />
-  <app-notification />
   <tg-account-menu [name]="usuario.nome" detail="Cliente" [links]="linksDaConta" (signOut)="sair()" />
 </tg-app-bar>
 <main id="conteudo" class="tg-nav-offset">…</main>
@@ -625,7 +624,9 @@ Acessibilidade:
   botão; clique fora, escolher um link ou o foco sair do menu também
   fecham.
 - Alvos de pelo menos 44 px e o mesmo anel de foco do botão.
-- O botão de notificações é da tela; o nome inclui a contagem, como
+- Sem botão de notificações por enquanto: a funcionalidade não existe, e o
+  topo não oferece ação que não funciona. Quando existir, o botão entra ao
+  lado do menu da conta (`app-notification`), com a contagem no nome, como
   "Notificações, 2 novas".
 
 No app, a navegação é `ion-tabs` com `ion-tab-bar slot="bottom"`, os mesmos
@@ -635,12 +636,14 @@ destinos e os ícones Phosphor, estilizada pelos tokens na migração da home.
 O `app-authenticated-shell` envolve as telas de cliente, prestador e conta
 (`/customer`, `/provider`, `/general`). O `app-header` monta o `tg-app-bar`
 com os destinos do modo (`resolveShellNavigation`, em
-`shared/components/ui/header/navigation.constant.ts`), o `app-notification`
-e o `tg-account-menu` com o nome, a foto (ou as iniciais) e o modo
-("Cliente" ou "Profissional") de quem está na sessão. O `main` tem
+`shared/components/ui/header/navigation.constant.ts`) e o `tg-account-menu`
+com o nome, a foto (ou as iniciais) e o modo ("Cliente" ou "Profissional")
+de quem está na sessão. O `main` tem
 `id="conteudo"` (alvo do "Pular para o conteúdo"), e o shell inteiro usa
 `tg-nav-offset`, para o rodapé também ficar acima da barra de abas.
 
+- Rodapé: a marca, os links institucionais que existem e o copyright. Sem
+  razão social nem CNPJ até haver uma fonte confirmada.
 - Fundo `bg-canvas` e texto `text-primary`: no modo prestador, o shell é
   escuro, como as telas migradas esperam.
 - A aba "Conta" (abaixo de 1024 px) leva a `/general/:id/home`, com
@@ -683,10 +686,21 @@ Regras:
   estado vazio).
 - Carregando: skeleton das abas e das linhas. Falha: alerta com "Tentar de
   novo". Cada carga cancela a anterior.
-- "Estou a caminho" e "Iniciar serviço" trocam o status na própria linha: o
-  botão fica em carregando, sem repetir o pedido, até a lista nova chegar.
-  Erro da API: alerta com a mensagem dela. A troca deu certo e a recarga
-  falhou: a lista fica e o alerta pede para recarregar.
+- "Estou a caminho" e "Iniciar serviço" trocam o status na própria linha.
+  Pedidos diferentes podem trocar ao mesmo tempo, cada um com o seu
+  carregando; o mesmo pedido não repete a chamada. O botão só solta pela
+  própria falha (alerta com a mensagem da API) ou quando chega uma lista
+  pedida depois da própria confirmação; a lista de outro pedido nunca o
+  solta. A troca deu certo e a recarga falhou: a lista fica, o botão solta e
+  o alerta pede para recarregar.
+- A lista acompanha a sessão: outra conta, troca entre cliente e prestador
+  ou logout cancelam a consulta e as trocas em curso, limpam os pedidos na
+  hora e (com sessão) buscam os novos. Sessão sem id: alerta de erro, sem
+  consultar.
+- Rota com `unauthorizedGuard` (sem login vai para o login, com a volta) e
+  `sessionUserGuard`: o id da URL nunca é fonte de identidade; diferente do
+  da sessão, a URL é corrigida para o da sessão, mantendo a aba. A
+  autorização real é do backend.
 - No desktop, a tela tem até 880 px, centralizada.
 
 ### Abas

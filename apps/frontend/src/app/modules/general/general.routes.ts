@@ -1,5 +1,8 @@
 import { Routes } from '@angular/router';
 
+import { sessionUserGuard } from '@shared/guards/session-user/session-user.guard';
+import { unauthorizedGuard } from '@shared/guards/unauthorized/unauthorized.guard';
+
 import { History } from './profile/history/history';
 import { Address } from './profile/address/address';
 import { Profile } from './profile/profile';
@@ -7,9 +10,11 @@ import { Home } from './profile/home/home';
 
 export const GeneralRoutes: Routes = [
   // Pedidos é uma tela própria do shell, sem o cabeçalho de perfil da conta.
+  // Só com login; o id da URL é corrigido para o da sessão (a tela nunca usa o da URL).
   {
     path: ':userId/history',
     title: 'Pedidos',
+    canActivate: [unauthorizedGuard, sessionUserGuard],
     component: History,
   },
   {
