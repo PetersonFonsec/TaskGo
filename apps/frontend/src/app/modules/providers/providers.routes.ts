@@ -3,7 +3,7 @@ import { Routes } from '@angular/router';
 export const ProvidersRoutes: Routes = [
   {
     path: 'recebimentos',
-    title: 'Recebimentos',
+    title: 'Ganhos',
     loadComponent: () => import('./payout/provider-payout.page').then((c) => c.ProviderPayoutPage),
   },
   {

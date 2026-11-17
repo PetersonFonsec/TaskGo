@@ -660,6 +660,58 @@ de quem está na sessão. O `main` tem
   da barra do topo funcionar.
 - "Pedidos" leva a `/general/:id/history`, a tela de pedidos (abaixo).
 
+#### Ganhos (web)
+
+Os ganhos do profissional, em `/provider/recebimentos` (título "Ganhos",
+como no menu), dentro do shell logado com o tema do prestador. Story:
+**Telas/Ganhos**. Endpoints sem mudança: `GET` e `PUT
+/payments/payout-destination`, `GET /payments/payout-destination/settlements`
+(até 50 repasses) e, para o gráfico, `GET /auth/provider-home` (o mesmo da
+home).
+
+Decisões aprovadas: (1) resumo com "Recebido" e "A receber", somados em
+centavos sobre os repasses listados (ver a classificação abaixo); (2) o mesmo gráfico da home, "Ganhos nos últimos 6 meses"
+(`app-provider-revenue-chart`); (3) a chave PIX num `tg-card` com tipo,
+chave e "Alterar chave", e a edição num `tg-sheet`; (4) repasses em linhas
+com o pedido (link para o detalhe), a data de pagamento, o valor e um
+`tg-badge` (Pago, Em processamento, Enviando, Aguardando envio, Em análise,
+Falhou); (5) profissional que ainda não ganhou nada vê um estado vazio.
+
+Regras:
+
+- Sem ganhos: sem histórico no painel (mesma regra da home) e sem
+  repasses. O resumo, o gráfico e os repasses dão lugar ao `tg-empty-state`
+  "Seus ganhos aparecem aqui", com "Ver meus serviços"; a chave PIX fica,
+  para cadastrar antes do primeiro repasse. Falha do painel não conta como
+  "sem ganhos": o gráfico mostra o erro.
+- Sem chave PIX: `tg-alert` de atenção "Cadastre sua chave PIX para
+  receber", com o botão que abre o cadastro.
+- A chave é normalizada como a API faz (`normalizePixDestination`: CPF,
+  CNPJ e celular sem espaços, parênteses, pontos, traços e "+"; e-mail e
+  chave aleatória sem espaços nas pontas; a barra do CNPJ também sai) e
+  validada com as mesmas expressões e o limite de 254 caracteres do DTO,
+  com o erro abaixo do campo. A tela envia a chave já normalizada. Salvando: um envio por vez; falha mostra o motivo
+  da API no painel; sucesso fecha o painel e mostra a chave como a API
+  devolveu (normalizada).
+- Classificação dos status (`PaymentSettlement.status`, como o
+  `settlement.service.ts` os usa): SUCCEEDED entra só em "Recebido";
+  READY, SUBMITTING e PENDING (fila e gateway) entram só em "A receber";
+  FAILED não entra em nenhum. REVIEW (aguardando conciliação) e BLOCKED
+  (barrado por pagamento, confirmação ou disputa) não têm previsão de
+  pagamento: ficam fora dos dois totais e aparecem numa nota abaixo de "A
+  receber" ("Fora R$ X em análise ou bloqueados"). Status desconhecido é
+  tratado do mesmo jeito, com o selo neutro "Em análise".
+- Falha ou carregamento dos repasses nunca vira R$ 0,00: os indicadores
+  mostram skeleton enquanto carregam e "Indisponível" na falha. R$ 0,00 só
+  com a lista carregada e valores zero.
+- Repasses com falha: `tg-alert` de perigo, "Um repasse falhou" ou "N
+  repasses falharam", pedindo para conferir a chave e falar com o suporte.
+- Carregando: skeletons. Cada parte (chave, gráfico, repasses) tem o seu
+  alerta de falha com "Tentar de novo", que recarrega só aquela parte; uma
+  resposta antiga da mesma parte é descartada.
+- Valores em reais e datas no horário de São Paulo, com `Intl` (o app não
+  registra o locale pt-BR do Angular).
+
 #### Pedidos (web)
 
 Todos os pedidos de quem está logado, em `/general/:id/history`, numa tela
