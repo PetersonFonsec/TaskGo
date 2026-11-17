@@ -39,7 +39,9 @@ Ionic) continuam valendo até a migração tela a tela.
 | 10 | Pagamento do pedido (web) | Concluído (PR #35) |
 | 10 | Busca de profissionais (web) | Concluído (PR #35) |
 | 10 | Entrar, recuperar acesso e Criar conta (web) | Concluído (PR #37) |
-| 10 | Passos do cadastro e conta criada (web) | Este PR |
+| 10 | Passos do cadastro e conta criada (web) | Concluído (PR #38) |
+| 10 | Shell logado: topo, abas, conta e rodapé (web) | Este PR |
+| 10 | Pedidos (web) | Este PR |
 
 Atributos de marca: próximo, confiável, direto e caloroso sem ser infantil.
 
@@ -566,7 +568,6 @@ embaixo, com a Conta como última aba.
 ```html
 <tg-app-bar homeLink="/customer">
   <tg-nav [items]="destinos" [account]="{ label: 'Conta', icon: 'user-circle', link: perfil }" />
-  <app-notification />
   <tg-account-menu [name]="usuario.nome" detail="Cliente" [links]="linksDaConta" (signOut)="sair()" />
 </tg-app-bar>
 <main id="conteudo" class="tg-nav-offset">…</main>
@@ -623,14 +624,84 @@ Acessibilidade:
   botão; clique fora, escolher um link ou o foco sair do menu também
   fecham.
 - Alvos de pelo menos 44 px e o mesmo anel de foco do botão.
-- O botão de notificações é da tela; o nome inclui a contagem, como
+- Sem botão de notificações por enquanto: a funcionalidade não existe, e o
+  topo não oferece ação que não funciona. Quando existir, o botão entra ao
+  lado do menu da conta (`app-notification`), com a contagem no nome, como
   "Notificações, 2 novas".
 
 No app, a navegação é `ion-tabs` com `ion-tab-bar slot="bottom"`, os mesmos
 destinos e os ícones Phosphor, estilizada pelos tokens na migração da home.
-O `app-header` do web (que ainda mostra a marca antiga "Proxi") e o
-`app-profile-header` (com nome e foto fixos no código) convivem com estes
-componentes até a migração do shell autenticado.
+#### Shell logado (web)
+
+O `app-authenticated-shell` envolve as telas de cliente, prestador e conta
+(`/customer`, `/provider`, `/general`). O `app-header` monta o `tg-app-bar`
+com os destinos do modo (`resolveShellNavigation`, em
+`shared/components/ui/header/navigation.constant.ts`) e o `tg-account-menu`
+com o nome, a foto (ou as iniciais) e o modo ("Cliente" ou "Profissional")
+de quem está na sessão. O `main` tem
+`id="conteudo"` (alvo do "Pular para o conteúdo"), e o shell inteiro usa
+`tg-nav-offset`, para o rodapé também ficar acima da barra de abas.
+
+- Rodapé: a marca, os links institucionais que existem e o copyright. Sem
+  razão social nem CNPJ até haver uma fonte confirmada.
+- Fundo `bg-canvas` e texto `text-primary`: no modo prestador, o shell é
+  escuro, como as telas migradas esperam.
+- A aba "Conta" (abaixo de 1024 px) leva a `/general/:id/home`, com
+  "Dados pessoais", "Endereços" e "Sair da conta" (no celular não há o
+  menu da conta).
+- Rodapé `app-footer`: marca, links institucionais que existem
+  (`/institutional/about`, `faq`, `support`) e a linha legal.
+- Ponte temporária: no modo prestador, o shell aponta os tokens antigos
+  `--proxi-surface`, `--proxi-background`, `--proxi-text`,
+  `--proxi-text-muted`, `--proxi-border` e `--proxi-primary-soft` para os
+  do Design System, para as telas ainda não migradas ficarem legíveis no
+  fundo escuro. Sai quando nenhuma tela usar `--proxi-*`.
+- O `body` usa `overflow-x: clip` (não `hidden`), para o `position: sticky`
+  da barra do topo funcionar.
+- "Pedidos" leva a `/general/:id/history`, a tela de pedidos (abaixo).
+
+#### Pedidos (web)
+
+Todos os pedidos de quem está logado, em `/general/:id/history`, numa tela
+própria do shell (sem o cabeçalho de perfil da conta). Título "Pedidos", uma
+linha de apoio e as abas do mapa de "Abas"; cada aba é uma lista
+`ul[tgOrderList]` com `tg-order-row`.
+
+| Modo | Abas | O que entra |
+| --- | --- | --- |
+| Cliente | Ativos (com contagem), Concluídos, Cancelados | Ativos: tudo que não encerrou, inclusive em análise e status desconhecido. Cancelados: cancelados e recusados. |
+| Prestador | Solicitações (com contagem), Agendados, Histórico | Solicitações: `AGUARDANDO_APROVACAO`, com "Responder". Agendados: os demais em curso, inclusive em análise e desconhecido. Histórico: concluídos, cancelados e recusados. |
+
+Regras:
+
+- A aba fica na URL (`?aba=concluidos`), trocada sem nova entrada no
+  histórico; sem ela, ou com uma que não existe, vale a primeira.
+- Em curso: primeiro o que pede ação de quem vê (Pagar, Confirmar
+  conclusão, Responder, Estou a caminho…), depois a data mais próxima; sem
+  data no fim. Encerrados: o encerramento mais recente primeiro (as mesmas
+  datas do histórico do início). Nenhum pedido fica de fora.
+- Aba sem pedidos: `tg-empty-state` com o texto da aba; em Ativos do
+  cliente, a ação é "Buscar serviço". O cliente vê "Buscar serviço" também
+  no topo, mas só quando tem algum pedido (sem nenhum, a busca fica só no
+  estado vazio).
+- Carregando: skeleton das abas e das linhas. Falha: alerta com "Tentar de
+  novo". Cada carga cancela a anterior.
+- "Estou a caminho" e "Iniciar serviço" trocam o status na própria linha.
+  Pedidos diferentes podem trocar ao mesmo tempo, cada um com o seu
+  carregando; o mesmo pedido não repete a chamada. O botão só solta pela
+  própria falha (alerta com a mensagem da API) ou quando chega uma lista
+  pedida depois da própria confirmação; a lista de outro pedido nunca o
+  solta. A troca deu certo e a recarga falhou: a lista fica, o botão solta e
+  o alerta pede para recarregar.
+- A lista acompanha a sessão: outra conta, troca entre cliente e prestador
+  ou logout cancelam a consulta e as trocas em curso, limpam os pedidos na
+  hora e (com sessão) buscam os novos. Sessão sem id: alerta de erro, sem
+  consultar.
+- Rota com `unauthorizedGuard` (sem login vai para o login, com a volta) e
+  `sessionUserGuard`: o id da URL nunca é fonte de identidade; diferente do
+  da sessão, a URL é corrigida para o da sessão, mantendo a aba. A
+  autorização real é do backend.
+- No desktop, a tela tem até 880 px, centralizada.
 
 ### Abas
 

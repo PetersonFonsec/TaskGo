@@ -1,9 +1,6 @@
-<button class="notification" type="button" aria-label="Notificações">
-    <fa-icon [icon]="notificationIcon()" class="notification__icon" />
-
-    @if (notificationCount() > 0) {
-        <span class="notification_badge">
-            {{ notificationCount() }}
-        </span>
-    }
+<button class="notification" type="button" [attr.aria-label]="label()">
+  <tg-icon name="bell" [size]="24" />
+  @if (notificationCount() > 0) {
+    <span class="notification__badge" aria-hidden="true">{{ badge() }}</span>
+  }
 </button>

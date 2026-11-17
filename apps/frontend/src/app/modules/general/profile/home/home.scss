@@ -1,15 +1,74 @@
-@use "mixins/grid";
+// Conta. Só tokens --tg-*; o tema troca os valores.
+:host {
+  display: block;
+}
 
-.home {
-  @include grid.directionColumn();
+.account {
+  display: flex;
+  flex-direction: column;
   align-items: flex-start;
-  gap: var(--space-19);
+  gap: var(--tg-space-6);
+  max-width: 640px;
+  color: var(--tg-text-primary);
+  font-family: var(--tg-font-sans);
+}
 
-  &_container {
-    width: 100%;
+.account__title {
+  margin: 0;
+  font-size: var(--tg-type-title-2-size);
+  font-weight: var(--tg-font-weight-extrabold);
+  letter-spacing: -0.02em;
+}
 
-    ul {
-      @include grid.grid(288px, var(--space-4));
-    }
-  }
+.account__list {
+  display: flex;
+  flex-direction: column;
+  gap: var(--tg-space-3);
+  width: 100%;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.account__item {
+  display: flex;
+  align-items: center;
+  gap: var(--tg-space-4);
+  color: inherit;
+  text-decoration: none;
+}
+
+.account__icon {
+  display: inline-flex;
+  flex: none;
+  align-items: center;
+  justify-content: center;
+  width: 44px;
+  height: 44px;
+  border-radius: var(--tg-radius-full);
+  background: var(--tg-action-subtle);
+  color: var(--tg-action-subtle-text);
+}
+
+.account__text {
+  display: flex;
+  flex: 1;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
+}
+
+.account__label {
+  font-size: var(--tg-type-body-size);
+  font-weight: var(--tg-font-weight-bold);
+}
+
+.account__description {
+  color: var(--tg-text-secondary);
+  font-size: var(--tg-type-body-sm-size);
+}
+
+.account__chevron {
+  flex: none;
+  color: var(--tg-text-secondary);
 }

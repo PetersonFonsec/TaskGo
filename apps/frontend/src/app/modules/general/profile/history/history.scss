@@ -1,0 +1,62 @@
+// Pedidos (Etapa 10). Só tokens --tg-*.
+:host {
+  display: block;
+}
+
+.orders {
+  display: flex;
+  flex-direction: column;
+  gap: var(--tg-space-6);
+  margin: 0 auto;
+  max-width: 880px;
+  color: var(--tg-text-primary);
+  font-family: var(--tg-font-sans);
+}
+
+.orders__header {
+  display: flex;
+  align-items: flex-end;
+  justify-content: space-between;
+  gap: var(--tg-space-3);
+  flex-wrap: wrap;
+}
+
+.orders__title {
+  margin: 0;
+  font-size: var(--tg-type-title-1-size);
+  line-height: var(--tg-type-title-1-line);
+  font-weight: var(--tg-font-weight-extrabold);
+  letter-spacing: -0.03em;
+}
+
+.orders__lead {
+  margin: var(--tg-space-1) 0 0;
+  color: var(--tg-text-secondary);
+  font-size: var(--tg-type-body-size);
+  line-height: var(--tg-type-body-line);
+}
+
+.orders__list,
+.orders__empty {
+  margin-top: var(--tg-space-4);
+}
+
+.orders__skeleton {
+  display: flex;
+  flex-direction: column;
+  gap: var(--tg-space-4);
+}
+
+.orders__skeleton-tabs {
+  display: flex;
+  gap: var(--tg-space-6);
+  padding-bottom: var(--tg-space-3);
+  border-bottom: 1px solid var(--tg-border-default);
+}
+
+.orders__skeleton-row {
+  display: flex;
+  flex-direction: column;
+  gap: var(--tg-space-2);
+  padding: var(--tg-space-3) 0;
+}

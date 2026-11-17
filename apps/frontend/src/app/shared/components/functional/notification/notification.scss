@@ -1,26 +1,48 @@
-.notification {
-  align-items: center;
-  background: var(--proxi-background);
-  border: 1px solid var(--proxi-border);
-  border-radius: 12px;
-  color: #475569;
-  cursor: pointer;
-  display: flex;
-  font-size: 16px;
-  height: 40px;
-  justify-content: center;
-  position: relative;
-  width: 40px;
+// Só tokens --tg-*; o tema (cliente ou prestador) troca os valores.
+:host {
+  display: inline-flex;
+}
 
-  &_badge {
-    background: #ef4444;
-    border: 2px solid #fff;
-    border-radius: 50%;
-    color: #fff;
-    font-size: 9px;
-    font-weight: 700;
-    position: absolute;
-    right: -5px;
-    top: -5px;
+.notification {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 44px;
+  height: 44px;
+  padding: 0;
+  border: 0;
+  border-radius: var(--tg-radius-sm);
+  background: transparent;
+  color: var(--tg-text-secondary);
+  cursor: pointer;
+
+  &:hover {
+    background: var(--tg-action-subtle);
+    color: var(--tg-text-primary);
   }
+
+  &:focus-visible {
+    outline: 2px solid var(--tg-focus-ring);
+    outline-offset: 2px;
+  }
+}
+
+.notification__badge {
+  position: absolute;
+  top: 4px;
+  right: 2px;
+  min-width: 18px;
+  height: 18px;
+  padding: 0 4px;
+  box-sizing: border-box;
+  border: 2px solid var(--tg-bg-surface);
+  border-radius: 9px;
+  background: var(--tg-action-danger);
+  color: var(--tg-text-on-danger);
+  font-family: var(--tg-font-sans);
+  font-size: 10px;
+  line-height: 14px;
+  font-weight: var(--tg-font-weight-bold);
+  text-align: center;
 }

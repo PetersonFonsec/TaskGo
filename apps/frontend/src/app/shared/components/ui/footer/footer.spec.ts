@@ -1,24 +1,23 @@
 import { provideRouter } from '@angular/router';
-import { ComponentFixture, TestBed } from '@angular/core/testing';
+import { TestBed } from '@angular/core/testing';
 
 import { Footer } from './footer';
 
 describe('Footer', () => {
-  let component: Footer;
-  let fixture: ComponentFixture<Footer>;
-
-  beforeEach(async () => {
+  it('mostra a marca TaskGo e só links institucionais que existem', async () => {
     await TestBed.configureTestingModule({
       imports: [Footer],
       providers: [provideRouter([])],
     }).compileComponents();
-
-    fixture = TestBed.createComponent(Footer);
-    component = fixture.componentInstance;
+    const fixture = TestBed.createComponent(Footer);
     fixture.detectChanges();
-  });
-
-  it('should create', () => {
-    expect(component).toBeTruthy();
+    const el = fixture.nativeElement as HTMLElement;
+    expect(el.textContent).toContain('TaskGo');
+    expect(el.textContent).not.toContain('Proxi');
+    const hrefs = Array.from(el.querySelectorAll('a')).map((a) => a.getAttribute('href'));
+    expect(hrefs).toEqual(['/institutional/about', '/institutional/faq', '/institutional/support']);
+    // Razão social e CNPJ só com fonte confirmada; nenhum dado legal fixo no rodapé.
+    expect(el.querySelector('.footer__legal')?.textContent?.trim()).toMatch(/^© \d{4} TaskGo\. Todos os direitos reservados\.$/);
+    expect(el.textContent).not.toMatch(/CNPJ|S\.A\.|Ltda/);
   });
 });

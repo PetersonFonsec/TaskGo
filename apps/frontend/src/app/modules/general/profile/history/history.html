@@ -1,1 +1,82 @@
-<p>history works!</p>
+<div class="orders">
+  <header class="orders__header">
+    <div>
+      <h1 class="orders__title">Pedidos</h1>
+      <p class="orders__lead">{{ lead() }}</p>
+    </div>
+    <!-- Sem nenhum pedido, a busca fica só no estado vazio (uma ação por vez). -->
+    @if (showSearch()) {
+      <a tgButton appearance="outline" size="sm" iconStart="magnifying-glass" [routerLink]="searchLink">
+        Buscar serviço
+      </a>
+    }
+  </header>
+
+  @if (actionError(); as message) {
+    <tg-alert tone="danger" title="Não deu para atualizar" dismissible (closed)="actionError.set('')">
+      {{ message }}
+    </tg-alert>
+  }
+
+  @if (error()) {
+    <tg-alert tone="danger" title="Não foi possível carregar seus pedidos">
+      Verifique sua conexão e tente de novo.
+      <button tgButton tgAlertAction type="button" appearance="outline" size="sm" (click)="load()">
+        Tentar de novo
+      </button>
+    </tg-alert>
+  } @else {
+    <tg-loading label="Carregando seus pedidos" [loading]="loading()">
+      <ng-template tgLoadingSkeleton>
+        <div class="orders__skeleton">
+          <div class="orders__skeleton-tabs">
+            @for (i of [1, 2, 3]; track i) {
+              <tg-skeleton width="88px" height="20" />
+            }
+          </div>
+          @for (i of [1, 2, 3, 4]; track i) {
+            <div class="orders__skeleton-row">
+              <tg-skeleton width="45%" />
+              <tg-skeleton width="70%" />
+            </div>
+          }
+        </div>
+      </ng-template>
+
+      <tg-tabs label="Pedidos" [value]="tab()" (valueChange)="selectTab($event)">
+        @for (group of tabs(); track group.value) {
+          <tg-tab
+            [value]="group.value"
+            [label]="group.label"
+            [count]="group.counted ? group.orders.length : null"
+          >
+            @if (group.orders.length) {
+              <ul tgOrderList class="orders__list">
+                @for (order of group.orders; track order.id) {
+                  <li>
+                    <tg-order-row
+                      [perspective]="perspective()"
+                      [order]="order"
+                      [busy]="updating().has(order.id)"
+                      (statusAction)="advance(order.id, $event)"
+                    />
+                  </li>
+                }
+              </ul>
+            } @else {
+              @let copy = empty[group.value];
+              <tg-empty-state class="orders__empty" [icon]="copy.icon" [title]="copy.title">
+                {{ copy.text }}
+                @if (copy.search) {
+                  <a tgButton tgEmptyAction appearance="outline" size="sm" [routerLink]="searchLink">
+                    Buscar serviço
+                  </a>
+                }
+              </tg-empty-state>
+            }
+          </tg-tab>
+        }
+      </tg-tabs>
+    </tg-loading>
+  }
+</div>

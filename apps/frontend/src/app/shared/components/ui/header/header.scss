@@ -1,86 +1,10 @@
-@use 'variables/breakpoints';
-
-.header {
-  align-items: center;
-  background: rgba(255, 255, 255, 0.94);
-  border-bottom: 1px solid var(--proxi-border);
-  display: flex;
-  min-height: 64px;
-  flex-wrap: wrap;
-  gap: 8px 20px;
-  justify-content: space-between;
-  padding: 0 clamp(16px, 3vw, 40px);
-
-  &_leading,
-  &_content {
-    align-items: center;
-    display: flex;
-  }
-
-  &_leading {
-    gap: 10px;
-  }
-
-  &_brand {
-    align-items: center;
-    background: transparent;
-    border: 0;
-    color: var(--proxi-text);
-    cursor: pointer;
-    display: flex;
-    font: inherit;
-    font-size: 20px;
-    font-weight: 800;
-    gap: 10px;
-    letter-spacing: -0.04em;
-  }
-
-  &_brand-mark {
-    align-items: center;
-    background: var(--proxi-primary);
-    border-radius: 10px;
-    color: #fff;
-    display: flex;
-    font-size: 16px;
-    height: 34px;
-    justify-content: center;
-    width: 34px;
-  }
-
-  &_brand-name {
-    display: none;
-  }
-
-  &_content {
-    gap: 20px;
-  }
-
-  @media (min-width: breakpoints.$tablet) {
-    min-height: 72px;
-
-    &_brand-name {
-      display: inline;
-    }
-  }
+// Só tokens --tg-*; a barra em si vem do tg-app-bar.
+:host {
+  display: contents;
 }
 
-.header_navigation {
-  order: 3;
-  flex: 0 0 100%;
-  min-width: 0;
-  padding: 6px 0;
-
-  ul {
-    display: flex;
-    flex-wrap: wrap;
-    gap: 4px;
-    list-style: none;
-    margin: 0;
-    padding: 0;
-  }
-
-  @media (min-width: breakpoints.$tablet) {
-    order: 0;
-    flex: 1;
-  }
+.header__actions {
+  display: flex;
+  align-items: center;
+  gap: var(--tg-space-2);
 }
