@@ -1,22 +1,78 @@
-<section class="account" aria-labelledby="account-title">
-  <h2 id="account-title" class="account__title">Conta</h2>
+<div class="account">
+  <h1 class="account__title">Conta</h1>
 
-  <ul class="account__list">
-    @for (item of links; track item.link) {
-      <li>
-        <a tgCard class="account__item" [routerLink]="item.link">
-          <span class="account__icon"><tg-icon [name]="item.icon" [size]="24" /></span>
-          <span class="account__text">
-            <strong class="account__label">{{ item.label }}</strong>
-            <span class="account__description">{{ item.description }}</span>
-          </span>
-          <tg-icon class="account__chevron" name="arrow-right" [size]="20" />
-        </a>
-      </li>
+  @switch (profile().kind) {
+    @case ('error') {
+      @if (expired()) {
+        <tg-alert tone="danger" title="Sua sessão expirou">
+          Para continuar com segurança, entre novamente na sua conta.
+          <button tgButton tgAlertAction type="button" appearance="outline" size="sm" (click)="login()">
+            Entrar novamente
+          </button>
+        </tg-alert>
+      } @else {
+        <tg-alert tone="danger" title="Não foi possível carregar seus dados">
+          Verifique sua conexão e tente de novo.
+          <button tgButton tgAlertAction type="button" appearance="outline" size="sm" (click)="retry()">
+            Tentar de novo
+          </button>
+        </tg-alert>
+      }
     }
-  </ul>
+    @default {
+      <tg-loading label="Carregando seus dados" [loading]="profile().kind === 'loading'">
+        <ng-template tgLoadingSkeleton>
+          <tg-card class="account__identity">
+            <tg-skeleton shape="circle" [size]="56" />
+            <div class="account__who">
+              <tg-skeleton width="160px" height="20" />
+              <tg-skeleton width="200px" />
+            </div>
+          </tg-card>
+        </ng-template>
+
+        @if (user(); as user) {
+          <tg-card class="account__identity">
+            <span class="account__avatar" aria-hidden="true">
+              @if (user.photoUrl) {
+                <img [src]="user.photoUrl" alt="" width="56" height="56" />
+              } @else {
+                {{ initials() }}
+              }
+            </span>
+            <div class="account__who">
+              <p class="account__name">{{ user.name }}</p>
+              @if (user.email) {
+                <p class="account__email">{{ user.email }}</p>
+              }
+              <tg-badge class="account__mode">{{ modeLabel() }}</tg-badge>
+            </div>
+          </tg-card>
+        }
+      </tg-loading>
+    }
+  }
+
+  @if (links().length) {
+    <nav class="account__nav" aria-label="Sua conta">
+      <ul class="account__list">
+        @for (item of links(); track item.label) {
+          <li>
+            <a tgCard class="account__item" [routerLink]="item.link">
+              <span class="account__icon"><tg-icon [name]="item.icon" [size]="24" /></span>
+              <span class="account__text">
+                <span class="account__label">{{ item.label }}</span>
+                <span class="account__description">{{ item.description }}</span>
+              </span>
+              <tg-icon class="account__chevron" name="arrow-right" [size]="20" />
+            </a>
+          </li>
+        }
+      </ul>
+    </nav>
+  }
 
   <button tgButton type="button" appearance="outline" tone="danger" iconStart="sign-out" (click)="signOut()">
     Sair da conta
   </button>
-</section>
+</div>
