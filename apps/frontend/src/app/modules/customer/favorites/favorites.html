@@ -1,41 +1,71 @@
-<div id="customer-favorites">
-  <section id="customer-favorites_header">
-    <h1 class="main-title">Meus favoritos</h1>
-    <p class="text">Gerencie seus profissionais favoritos e remova quem não for mais relevante.</p>
-  </section>
-
-  <section *ngIf="!favoritesEnabled" id="customer-favorites_disabled">
-    <p class="text">A funcionalidade de favoritos ainda não está disponível.</p>
-  </section>
-
-  <section *ngIf="favoritesEnabled">
-    <p *ngIf="isLoading()" class="text">Carregando profissionais favoritos...</p>
-
-    <div *ngIf="!isLoading() && providers().length === 0" id="customer-favorites_empty">
-      <h2 class="subtitle">Você não possui nenhum profissional favoritado.</h2>
-      <p class="text">Use a busca para selecionar prestadores e adicioná-los aos favoritos.</p>
-    </div>
-
-    <ul *ngIf="!isLoading() && providers().length > 0" id="customer-favorites_list">
-      @for (provider of providers(); track $index) {
-      <li>
-        <article class="customer-favorites_card">
-          <div>
-            <h2 class="subtitle">{{ provider.user?.name || provider.name || 'Profissional favorito' }}</h2>
-            <p class="text">{{ provider.user?.phone || provider.phone || 'Contato não informado' }}</p>
-          </div>
-
-          <button
-            type="button"
-            class="card-detail_favorite"
-            [disabled]="isFavoriteLoading(provider.id)"
-            (click)="toggleFavorite(provider.id)"
-          >
-            Remover dos favoritos
-          </button>
-        </article>
-      </li>
+<div class="favorites">
+  <header class="favorites__header">
+    <h1 class="favorites__title">Favoritos</h1>
+    <p class="favorites__lead">
+      @if (!loading() && !error() && providers().length) {
+        {{ summary() }}
+      } @else {
+        Os profissionais que você salvou para contratar de novo.
       }
-    </ul>
-  </section>
+    </p>
+  </header>
+
+  @if (!favoritesEnabled) {
+    <tg-empty-state icon="heart" title="Favoritos ainda não está disponível">
+      Em breve você vai poder salvar profissionais para contratar de novo.
+    </tg-empty-state>
+  } @else if (error()) {
+    <tg-alert tone="danger" title="Não foi possível carregar seus favoritos">
+      Verifique sua conexão e tente de novo.
+      <button tgButton tgAlertAction type="button" appearance="outline" size="sm" (click)="load()">
+        Tentar de novo
+      </button>
+    </tg-alert>
+  } @else {
+    @if (actionError(); as message) {
+      <tg-alert tone="danger" title="Não deu para atualizar" dismissible (closed)="actionError.set('')">
+        {{ message }}
+      </tg-alert>
+    }
+
+    <tg-loading label="Carregando seus favoritos" [loading]="loading()">
+      <ng-template tgLoadingSkeleton>
+        <div class="favorites__cards">
+          @for (i of [1, 2, 3]; track i) {
+            <tg-card>
+              <div class="favorites__skeleton">
+                <tg-skeleton shape="circle" [size]="56" />
+                <div class="favorites__skeleton-lines">
+                  <tg-skeleton width="50%" />
+                  <tg-skeleton width="35%" />
+                  <tg-skeleton width="60%" />
+                </div>
+              </div>
+            </tg-card>
+          }
+        </div>
+      </ng-template>
+
+      @if (providers().length) {
+        <ul class="favorites__cards">
+          @for (card of providers(); track card.id) {
+            <li>
+              <tg-provider-card
+                [provider]="card"
+                [link]="['/customer', card.id]"
+                [headingLevel]="2"
+                [favorite]="favorite()[card.id] !== false"
+                (favoriteChange)="toggle(card.id, $event)"
+              />
+            </li>
+          }
+        </ul>
+      } @else {
+        <tg-empty-state icon="heart" title="Nenhum favorito ainda">
+          Na busca, toque no coração de um profissional para salvá-lo aqui.
+          <a tgButton tgEmptyAction appearance="outline" size="sm" [routerLink]="searchLink">Buscar profissionais</a>
+        </tg-empty-state>
+      }
+    </tg-loading>
+  }
 </div>

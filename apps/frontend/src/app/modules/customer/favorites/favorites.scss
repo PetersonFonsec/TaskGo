@@ -1,15 +1,65 @@
-#customer-favorites {
-  display: grid;
-  gap: 20px;
+// Favoritos (Etapa 10). Só tokens --tg-*.
+:host {
+  display: block;
+  container: favorites / inline-size;
 }
 
-#customer-favorites_list {
+.favorites {
+  display: flex;
+  flex-direction: column;
+  gap: var(--tg-space-6);
+  margin: 0 auto;
+  max-width: 1120px;
+  color: var(--tg-text-primary);
+  font-family: var(--tg-font-sans);
+}
+
+.favorites__title {
+  margin: 0;
+  font-size: var(--tg-type-title-1-size);
+  line-height: var(--tg-type-title-1-line);
+  font-weight: var(--tg-font-weight-extrabold);
+  letter-spacing: -0.03em;
+}
+
+.favorites__lead {
+  margin: var(--tg-space-1) 0 0;
+  color: var(--tg-text-secondary);
+  font-size: var(--tg-type-body-size);
+  line-height: var(--tg-type-body-line);
+}
+
+.favorites__cards {
   display: grid;
-  gap: 18px;
+  grid-template-columns: minmax(0, 1fr);
+  gap: var(--tg-space-3);
+  margin: 0;
   padding: 0;
   list-style: none;
 }
 
-#customer-favorites_empty {
-  margin-top: 20px;
+@container favorites (min-width: 720px) {
+  .favorites__cards {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: var(--tg-space-4);
+  }
+}
+
+@container favorites (min-width: 1040px) {
+  .favorites__cards {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
+}
+
+.favorites__skeleton {
+  display: flex;
+  gap: var(--tg-space-3);
+  align-items: center;
+}
+
+.favorites__skeleton-lines {
+  display: flex;
+  flex: 1;
+  flex-direction: column;
+  gap: var(--tg-space-2);
 }

@@ -40,8 +40,9 @@ Ionic) continuam valendo até a migração tela a tela.
 | 10 | Busca de profissionais (web) | Concluído (PR #35) |
 | 10 | Entrar, recuperar acesso e Criar conta (web) | Concluído (PR #37) |
 | 10 | Passos do cadastro e conta criada (web) | Concluído (PR #38) |
-| 10 | Shell logado: topo, abas, conta e rodapé (web) | Este PR |
-| 10 | Pedidos (web) | Este PR |
+| 10 | Shell logado: topo, abas, conta e rodapé (web) | Concluído (PR #41) |
+| 10 | Pedidos (web) | Concluído (PR #41) |
+| 10 | Favoritos (web) | Este PR |
 
 Atributos de marca: próximo, confiável, direto e caloroso sem ser infantil.
 
@@ -702,6 +703,34 @@ Regras:
   da sessão, a URL é corrigida para o da sessão, mantendo a aba. A
   autorização real é do backend.
 - No desktop, a tela tem até 880 px, centralizada.
+
+#### Favoritos (web)
+
+Os profissionais que o cliente salvou, em `/customer/favorites`, com o
+`tg-provider-card` da busca (`toTgProvider`, sem distância, que a lista não
+traz). Título "Favoritos" e, abaixo, a contagem ("4 profissionais salvos").
+Story: **Telas/Favoritos**.
+
+Decisões aprovadas: (1) tirar o coração tira dos favoritos, mas o card fica
+na tela com o coração vazio até a pessoa sair, e outro toque devolve; (2) a
+API devolve só os 20 mais recentes: com mais, a contagem diz "mostrando os
+20 mais recentes" (paginação na #51).
+
+Regras:
+
+- Uma coluna no celular, duas a partir de 720 px e três a partir de 1040 px
+  de largura da tela (container query), até 1120 px. O favorito mais recente
+  primeiro, na ordem da API; o card leva ao perfil (`/customer/:id`).
+- O telefone saiu: a API pública do profissional não o traz.
+- Coração: um pedido por profissional por vez; cada um solta só o próprio
+  estado. Falha: alerta de perigo com o motivo da API, e o coração volta ao
+  que era.
+- Carregando: skeleton dos cards. Sem favoritos: `tg-empty-state` "Nenhum
+  favorito ainda", com "Buscar profissionais". Falha: alerta com "Tentar de
+  novo". Flag de favoritos desligada: estado vazio "Favoritos ainda não está
+  disponível".
+- A lista acompanha a sessão: outra conta ou logout cancelam a consulta e
+  as trocas em curso e limpam a lista na hora.
 
 ### Abas
 
