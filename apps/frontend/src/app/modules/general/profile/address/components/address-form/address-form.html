@@ -1,98 +1,98 @@
-<form [id]="formId" #form="ngForm" (ngSubmit)="form.valid && createAddress()" class="address-form">
-  @if (showHeader()) {
-    <header class="address-form_header">
-      <h2>{{ initialAddress() ? 'Editar endereço' : 'Adicionar endereço' }}</h2>
-    </header>
-  }
-  <div class="address-form_content">
-    <app-input-text
-      name="label"
-      id="address-label"
-      label="Nome do endereço"
-      [(ngModel)]="payload.label"
-      [required]="true"
-    />
-    <app-input-text
-      name="cep"
-      id="address-cep"
-      label="CEP"
-      [ngModel]="payload.cep"
-      (ngModelChange)="onCepChange($event)"
-      mask="00000-000"
-      placeholder="00000-000"
-      pattern="[0-9]{5}-?[0-9]{3}"
-      [required]="true"
-    />
-    <app-input-text
-      name="street"
-      id="address-street"
-      label="Rua"
-      [(ngModel)]="payload.street"
-      [required]="true"
-    />
-    <app-input-text
-      name="number"
-      id="address-number"
-      label="Número"
-      [(ngModel)]="payload.number"
-      [required]="true"
-    />
-    <app-input-text
-      name="complement"
-      id="address-complement"
-      label="Complemento"
-      [(ngModel)]="payload.complement"
-    />
-    <app-input-text
-      name="neighborhood"
-      id="address-neighborhood"
-      label="Bairro"
-      [(ngModel)]="payload.neighborhood"
-    />
-    <app-input-text
-      name="city"
-      id="address-city"
-      label="Cidade"
-      [(ngModel)]="payload.city"
-      [required]="true"
-    />
-    <app-input-text
-      name="state"
-      id="address-state"
-      label="Estado"
-      [(ngModel)]="payload.state"
-      [required]="true"
-    />
-  </div>
-  <label class="address-form_default">
-    <input type="checkbox" name="isDefault" [(ngModel)]="payload.isDefault" [disabled]="saving()" />
-    Usar como endereço padrão
-  </label>
-  @if (lookingUpCep()) {
-    <p role="status">Buscando endereço pelo CEP...</p>
-  }
-  @if (cepError()) {
-    <p role="alert">{{ cepError() }}</p>
-  }
-  <ng-template #actions>
-    <div class="address-form_footer">
-      <app-button
-        type="submit"
-        [form]="formId"
-        [disabled]="!!form.invalid || saving() || lookingUpCep()"
-        color="primary"
-        >{{ saving() ? 'Salvando...' : 'Salvar endereço' }}</app-button
-      >
-      <app-button
-        type="button"
-        color="light"
-        [disabled]="saving()"
-        (click)="!saving() && cancel.emit()"
-        >Cancelar</app-button
-      >
+<form [id]="formId()" class="address-form" novalidate (ngSubmit)="submit()">
+  <fieldset class="address-form__fields" [disabled]="saving()">
+    <legend class="address-form__sr">Dados do endereço</legend>
+
+    <tg-field label="Nome do endereço" [error]="errors().label">
+      <input
+        tgInput
+        id="address-label-input"
+        name="label"
+        autocomplete="off"
+        placeholder="Casa, Trabalho…"
+        [(ngModel)]="payload.label"
+      />
+    </tg-field>
+
+    <tg-field label="CEP" [error]="errors().cep" [hint]="lookingUpCep() ? 'Buscando o endereço pelo CEP…' : ''">
+      <input
+        tgInput
+        id="address-cep-input"
+        name="cep"
+        inputmode="numeric"
+        autocomplete="postal-code"
+        mask="00000-000"
+        placeholder="00000-000"
+        [ngModel]="payload.cep"
+        (ngModelChange)="onCepChange($event)"
+      />
+    </tg-field>
+
+    @if (cepError(); as message) {
+      <tg-alert tone="warning">{{ message }}</tg-alert>
+    }
+
+    <tg-field label="Rua" [error]="errors().street">
+      <input
+        tgInput
+        id="address-street-input"
+        name="street"
+        autocomplete="address-line1"
+        placeholder="Rua das Flores"
+        [(ngModel)]="payload.street"
+      />
+    </tg-field>
+
+    <div class="address-form__row address-form__row--number">
+      <tg-field label="Número" [error]="errors().number">
+        <input
+          tgInput
+          id="address-number-input"
+          name="number"
+          placeholder="123"
+          [(ngModel)]="payload.number"
+        />
+      </tg-field>
+      <tg-field label="Complemento" optional>
+        <input
+          tgInput
+          id="address-complement-input"
+          name="complement"
+          autocomplete="address-line2"
+          placeholder="Apto 12, bloco B"
+          [(ngModel)]="payload.complement"
+        />
+      </tg-field>
     </div>
-  </ng-template>
-  @if (showActions()) {
-    <ng-container [ngTemplateOutlet]="actions" />
-  }
+
+    <div class="address-form__row address-form__row--city">
+      <tg-field label="Cidade" [error]="errors().city">
+        <input
+          tgInput
+          id="address-city-input"
+          name="city"
+          autocomplete="address-level2"
+          placeholder="São Paulo"
+          [(ngModel)]="payload.city"
+        />
+      </tg-field>
+      <tg-field label="Estado" [error]="errors().state">
+        <input
+          tgInput
+          id="address-state-input"
+          name="state"
+          autocomplete="address-level1"
+          placeholder="SP"
+          [(ngModel)]="payload.state"
+        />
+      </tg-field>
+    </div>
+
+    <label class="address-form__default">
+      <input type="checkbox" name="isDefault" [(ngModel)]="payload.isDefault" />
+      <span>
+        <span class="address-form__default-title">Usar como endereço principal</span>
+        <span class="address-form__default-hint">Ele vem escolhido quando você busca e contrata serviços.</span>
+      </span>
+    </label>
+  </fieldset>
 </form>

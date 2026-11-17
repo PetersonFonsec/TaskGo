@@ -1,46 +1,78 @@
-@use 'mixins/grid';
-@use 'mixins/position';
-@use 'variables/breakpoints';
-
+// Formulário de endereço (Etapa 10). Só tokens --tg-*.
 :host {
   display: block;
-  margin-bottom: var(--space-6);
 }
 
-.address-form {
-  @include grid.directionColumn();
-  gap: 22px;
+.address-form__fields {
+  display: flex;
+  flex-direction: column;
+  gap: var(--tg-space-5);
+  min-width: 0;
+  margin: 0;
+  padding: 0;
+  border: 0;
+}
 
-  &_header {
-    margin-bottom: 24px;
-    width: 100%;
-  }
+.address-form__sr {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  clip-path: inset(50%);
+  white-space: nowrap;
+}
 
-  &_content {
-    @include grid.grid(min(280px, 100%), var(--space-6));
-    width: 100%;
-    gap: 22px;
-  }
+// Número estreito e UF curta: o vizinho ganha a largura, como no cadastro.
+.address-form__row {
+  display: grid;
+  gap: var(--tg-space-3);
+  align-items: start;
+}
 
-  &_default {
-    display: flex;
-    align-items: center;
-    gap: 12px;
-    cursor: pointer;
+.address-form__row--number {
+  grid-template-columns: 96px minmax(0, 1fr);
+}
 
-    input {
-      width: 20px;
-      height: 20px;
-      flex-shrink: 0;
+.address-form__row--city {
+  grid-template-columns: minmax(0, 1fr) 88px;
+}
+
+.address-form__default {
+  display: flex;
+  align-items: flex-start;
+  gap: var(--tg-space-3);
+  cursor: pointer;
+  color: var(--tg-text-primary);
+
+  input {
+    flex-shrink: 0;
+    width: var(--tg-space-5);
+    height: var(--tg-space-5);
+    margin: var(--tg-space-1) 0 0;
+    accent-color: var(--tg-action-primary);
+    cursor: inherit;
+
+    &:focus-visible {
+      outline: 2px solid var(--tg-focus-ring);
+      outline-offset: 2px;
     }
   }
+}
 
-  &_footer {
-    align-items: flex-start;
-    display: flex;
-    flex-wrap: wrap;
-    gap: 12px;
-    margin-right: auto;
-    width: 100%;
-  }
+.address-form__default > span {
+  display: flex;
+  flex-direction: column;
+  gap: var(--tg-space-1);
+}
+
+.address-form__default-title {
+  font-size: var(--tg-type-body-size);
+  line-height: var(--tg-type-body-line);
+  font-weight: var(--tg-font-weight-bold);
+}
+
+.address-form__default-hint {
+  color: var(--tg-text-secondary);
+  font-size: var(--tg-type-body-sm-size);
+  line-height: var(--tg-type-body-sm-line);
 }
