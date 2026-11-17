@@ -689,10 +689,13 @@ Regras:
 - "Estou a caminho" e "Iniciar serviço" trocam o status na própria linha.
   Pedidos diferentes podem trocar ao mesmo tempo, cada um com o seu
   carregando; o mesmo pedido não repete a chamada. O botão só solta pela
-  própria falha (alerta com a mensagem da API) ou quando chega uma lista
-  pedida depois da própria confirmação; a lista de outro pedido nunca o
-  solta. A troca deu certo e a recarga falhou: a lista fica, o botão solta e
-  o alerta pede para recarregar.
+  própria falha (alerta com a mensagem da API) ou quando uma lista pedida
+  depois da própria confirmação mostra o pedido fora do status de antes da
+  troca (o esperado ou um posterior); a lista de outro pedido nunca o solta.
+  Lista com o status antigo, ou recarga que falha, gasta uma tentativa e
+  consulta de novo em silêncio (depois de 1 s e de 2 s). Após 3 tentativas,
+  o botão solta e um alerta de atenção ("A lista ainda não mostra o status
+  novo") oferece "Recarregar lista"; a lista que estava à vista fica.
 - A lista acompanha a sessão: outra conta, troca entre cliente e prestador
   ou logout cancelam a consulta e as trocas em curso, limpam os pedidos na
   hora e (com sessão) buscam os novos. Sessão sem id: alerta de erro, sem

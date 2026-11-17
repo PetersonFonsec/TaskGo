@@ -18,6 +18,13 @@
     </tg-alert>
   }
 
+  @if (reconcileFailed()) {
+    <tg-alert tone="warning" title="A lista ainda não mostra o status novo" dismissible (closed)="reconcileFailed.set(false)">
+      O atendimento foi atualizado, mas a lista continua com o status anterior.
+      <button tgButton tgAlertAction type="button" appearance="outline" size="sm" (click)="load()">Recarregar lista</button>
+    </tg-alert>
+  }
+
   @if (error()) {
     <tg-alert tone="danger" title="Não foi possível carregar seus pedidos">
       Verifique sua conexão e tente de novo.

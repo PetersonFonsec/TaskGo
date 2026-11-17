@@ -367,16 +367,149 @@ describe('History (Pedidos)', () => {
       expect(reloads.length).toBe(0);
     });
 
-    it('a troca deu certo mas a recarga falhou: mantém a lista, solta o botão e avisa', async () => {
-      await provider();
-      component.advance('A', 'EM_DESLOCAMENTO');
-      component.advance('B', 'EM_DESLOCAMENTO');
-      ok('A');
-      reloads[0].error(new Error('offline'));
-      expect(component.orders().length).toBe(2);
-      expect(component.error()).toBeFalse();
-      expect(busy()).toEqual(['B']);
-      expect(component.actionError()).toContain('Recarregue a página');
+    describe('reconciliação com a lista', () => {
+      const stale = () => [order('A', 'AGENDADO'), order('B', 'AGENDADO')];
+      const fresh = () => [order('A', 'EM_DESLOCAMENTO'), order('B', 'AGENDADO')];
+      /** Avança o relógio até a próxima consulta agendada. */
+      const wait = (ms: number) => jasmine.clock().tick(ms);
+
+      beforeEach(() => jasmine.clock().install());
+      afterEach(() => jasmine.clock().uninstall());
+
+      it('lista mais nova com o status antigo não solta o pedido e consulta de novo', async () => {
+        await provider();
+        component.advance('A', 'EM_DESLOCAMENTO');
+        ok('A');
+        reloads[0].next(stale());
+        expect(busy()).toEqual(['A']);
+        expect(component.reconcileFailed()).toBeFalse();
+
+        wait(999);
+        expect(reloads.length).toBe(1);
+        wait(1);
+        expect(reloads.length).toBe(2);
+        reloads[1].next(fresh());
+        expect(busy()).toEqual([]);
+        expect(component.reconcileFailed()).toBeFalse();
+        expect(component.actionError()).toBe('');
+      });
+
+      it('a lista com um status posterior ao pedido também solta o pedido', async () => {
+        await provider();
+        component.advance('A', 'EM_DESLOCAMENTO');
+        ok('A');
+        reloads[0].next([order('A', 'EM_ANDAMENTO'), order('B', 'AGENDADO')]);
+        expect(busy()).toEqual([]);
+      });
+
+      it('a lista com o status antigo de outro pedido não solta este nem gasta tentativa dele', async () => {
+        await provider();
+        component.advance('A', 'EM_DESLOCAMENTO');
+        component.advance('B', 'EM_DESLOCAMENTO');
+        ok('A');
+        reloads[0].next(fresh());
+        expect(busy()).toEqual(['B']);
+        ok('B');
+        reloads[1].next([order('A', 'EM_DESLOCAMENTO'), order('B', 'EM_DESLOCAMENTO')]);
+        expect(busy()).toEqual([]);
+        wait(5000);
+        expect(reloads.length).toBe(2);
+      });
+
+      it('esgotadas as tentativas: solta o pedido e avisa, com "Recarregar lista"', async () => {
+        await provider();
+        component.advance('A', 'EM_DESLOCAMENTO');
+        ok('A');
+        reloads[0].next(stale());
+        wait(1000);
+        reloads[1].next(stale());
+        expect(busy()).toEqual(['A']);
+        wait(2000);
+        reloads[2].next(stale());
+
+        expect(busy()).toEqual([]);
+        expect(component.reconcileFailed()).toBeTrue();
+        wait(10000);
+        expect(reloads.length).toBe(3);
+
+        fixture.detectChanges();
+        const alert = Array.from(el.querySelectorAll('tg-alert')).find((a) => a.textContent?.includes('status novo'));
+        expect(alert?.textContent).toContain('A lista ainda não mostra o status novo');
+        const reload = Array.from(alert?.querySelectorAll('button') ?? []).find((b) => b.textContent?.includes('Recarregar lista'));
+        reload?.click();
+        expect(reloads.length).toBe(4);
+        expect(component.reconcileFailed()).toBeFalse();
+        reloads[3].next(fresh());
+        expect(component.orders()[0].status).toBe('EM_DESLOCAMENTO');
+      });
+
+      it('a recarga que falha gasta uma tentativa, mantém a lista e consulta de novo', async () => {
+        await provider();
+        component.advance('A', 'EM_DESLOCAMENTO');
+        ok('A');
+        reloads[0].error(new Error('offline'));
+        expect(component.orders().length).toBe(2);
+        expect(component.error()).toBeFalse();
+        expect(busy()).toEqual(['A']);
+
+        wait(1000);
+        reloads[1].next(fresh());
+        expect(busy()).toEqual([]);
+        expect(component.reconcileFailed()).toBeFalse();
+      });
+
+      it('recargas que falham em todas as tentativas: solta o pedido e avisa', async () => {
+        await provider();
+        component.advance('A', 'EM_DESLOCAMENTO');
+        ok('A');
+        reloads[0].error(new Error('offline'));
+        wait(1000);
+        reloads[1].error(new Error('offline'));
+        wait(2000);
+        reloads[2].error(new Error('offline'));
+        expect(busy()).toEqual([]);
+        expect(component.reconcileFailed()).toBeTrue();
+        expect(component.orders().length).toBe(2);
+      });
+
+      it('outra lista pedida antes da consulta agendada substitui a agendada', async () => {
+        await provider();
+        component.advance('A', 'EM_DESLOCAMENTO');
+        component.advance('B', 'EM_DESLOCAMENTO');
+        ok('A');
+        reloads[0].next(stale());
+        ok('B');
+        expect(reloads.length).toBe(2);
+        reloads[1].next([order('A', 'EM_DESLOCAMENTO'), order('B', 'EM_DESLOCAMENTO')]);
+        expect(busy()).toEqual([]);
+        wait(5000);
+        expect(reloads.length).toBe(2);
+      });
+
+      it('trocar de sessão cancela a consulta agendada', async () => {
+        await provider();
+        component.advance('A', 'EM_DESLOCAMENTO');
+        ok('A');
+        reloads[0].next(stale());
+        orderService.getOrderByProvider.and.returnValue(of([]));
+        session.set({ user: { id: 'user-2', type: 'PRESTADOR' } });
+        TestBed.tick();
+        orderService.getOrderByProvider.calls.reset();
+        wait(5000);
+        expect(orderService.getOrderByProvider).not.toHaveBeenCalled();
+        expect(busy()).toEqual([]);
+        expect(component.reconcileFailed()).toBeFalse();
+      });
+
+      it('destruir a tela cancela a consulta agendada', async () => {
+        await provider();
+        component.advance('A', 'EM_DESLOCAMENTO');
+        ok('A');
+        reloads[0].next(stale());
+        fixture.destroy();
+        wait(5000);
+        expect(reloads.length).toBe(1);
+      });
     });
 
     it('duplo clique no mesmo pedido não repete a chamada', async () => {
