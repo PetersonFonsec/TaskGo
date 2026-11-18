@@ -1,0 +1,157 @@
+<main class="report">
+  <a class="report__back" [routerLink]="['/orders', id()]">
+    <tg-icon name="arrow-left" [size]="20" />
+    Voltar ao pedido
+  </a>
+
+  @if (loadError() === 'notFound') {
+    <h1 class="report__title">Reportar problema</h1>
+    <tg-alert tone="danger" title="Este pedido não foi encontrado">
+      Confira o link ou abra o pedido pela lista dos seus pedidos.
+    </tg-alert>
+  } @else if (loadError() === 'failed') {
+    <h1 class="report__title">Reportar problema</h1>
+    <tg-alert tone="danger" title="Não foi possível carregar o pedido">
+      Verifique sua conexão e tente de novo.
+      <button tgButton tgAlertAction type="button" appearance="outline" size="sm" (click)="load()">
+        Tentar de novo
+      </button>
+    </tg-alert>
+  } @else {
+    <tg-loading label="Carregando o pedido" [loading]="loading()">
+      <ng-template tgLoadingSkeleton>
+        <div class="report__skeleton">
+          <tg-skeleton width="35%" />
+          <tg-skeleton width="55%" height="36" />
+          <tg-skeleton [lines]="2" />
+          <div class="report__skeleton-card">
+            <tg-skeleton width="20%" />
+            <tg-skeleton width="100%" height="44" />
+            <tg-skeleton width="30%" />
+            <tg-skeleton width="100%" height="140" />
+            <tg-skeleton width="40%" height="44" />
+          </div>
+        </div>
+      </ng-template>
+
+      @if (order()) {
+        <div class="report__content">
+          <header class="report__header">
+            <p class="report__eyebrow">{{ eyebrow() }}</p>
+            <h1 class="report__title">Reportar problema</h1>
+            @if (!blocked()) {
+              <p class="report__lead">
+                Descreva o ocorrido. A confirmação da conclusão fica bloqueada enquanto o caso estiver aberto. Abrir
+                um caso não solicita reembolso automático.
+              </p>
+            }
+          </header>
+
+          <div class="report__status" role="status">
+            @if (message(); as text) {
+              <tg-alert tone="success" title="Problema enviado" dismissible (closed)="message.set('')">{{ text }}</tg-alert>
+            }
+          </div>
+
+          @if (openCase(); as current) {
+            @if (!message()) {
+              <tg-alert tone="info" title="Já existe um problema em análise neste pedido">
+              Caso #{{ current.id }}, aberto {{ openedBy(current) }} em {{ when(current.createdAt) }}. Enquanto ele
+              estiver aberto, não é possível abrir outro.
+              <a tgButton tgAlertAction appearance="outline" size="sm" [href]="supportLink">Falar com o suporte</a>
+              </tg-alert>
+            }
+          } @else if (blocked(); as reason) {
+            <tg-card>
+              <tg-empty-state icon="warning-circle" [title]="reason.title" [level]="2">
+                {{ reason.body }}
+                <a tgButton tgEmptyAction appearance="outline" size="sm" [href]="supportLink">Falar com o suporte</a>
+              </tg-empty-state>
+            </tg-card>
+          } @else {
+            <tg-card class="report__form-card">
+              <form id="problem-form" class="report__form" novalidate (ngSubmit)="submit()">
+                <h2 class="report__heading">Conte o que aconteceu</h2>
+                @if (sendError(); as text) {
+                  <tg-alert tone="danger" title="Não foi possível enviar o problema">{{ text }}</tg-alert>
+                }
+                <tg-field label="Motivo" hint="Um resumo curto, como “Serviço incompleto”." [error]="error('reason')">
+                  <input
+                    tgInput
+                    name="reason"
+                    autocomplete="off"
+                    [attr.maxlength]="reasonMax"
+                    [disabled]="sending()"
+                    [(ngModel)]="draft.reason"
+                  />
+                </tg-field>
+                <div class="report__description">
+                  <tg-field
+                    label="O que aconteceu?"
+                    hint="Diga o que deu errado, quando e o que você esperava. Pelo menos 10 caracteres."
+                    [error]="error('description')"
+                  >
+                    <textarea
+                      tgInput
+                      name="description"
+                      rows="6"
+                      [attr.maxlength]="descriptionMax"
+                      [disabled]="sending()"
+                      [(ngModel)]="draft.description"
+                      (ngModelChange)="descriptionLength.set($event.length)"
+                    ></textarea>
+                  </tg-field>
+                  <p class="report__counter" aria-hidden="true">
+                    {{ descriptionLength() }}/{{ descriptionMax }}
+                  </p>
+                </div>
+                <div class="report__actions">
+                  <button tgButton type="submit" [loading]="sending()">Enviar para análise</button>
+                  <a tgButton appearance="ghost" [routerLink]="['/orders', id()]">Cancelar</a>
+                </div>
+              </form>
+            </tg-card>
+          }
+
+          @if (cases().length) {
+            <section class="report__section" aria-labelledby="cases-title">
+              <h2 id="cases-title" class="report__heading">Problemas reportados</h2>
+              <ul class="report__cases">
+                @for (item of cases(); track item.id) {
+                  <li>
+                    <tg-card class="case">
+                      <div class="case__top">
+                        <div class="case__heading">
+                          <h3 class="case__title">{{ item.reason }}</h3>
+                          <p class="case__meta">
+                            Caso #{{ item.id }} · aberto {{ openedBy(item) }}
+                            @if (when(item.createdAt); as date) {
+                              em {{ date }}
+                            }
+                          </p>
+                        </div>
+                        <tg-badge [tone]="status(item.status).tone">{{ status(item.status).label }}</tg-badge>
+                      </div>
+                      <p class="case__description">{{ item.description }}</p>
+                      @if (item.resolution) {
+                        <div class="case__resolution">
+                          <p class="case__resolution-label">
+                            Resposta da equipe
+                            @if (when(item.resolvedAt); as date) {
+                              <span class="case__resolution-date">· {{ date }}</span>
+                            }
+                          </p>
+                          <p class="case__resolution-text">{{ item.resolution }}</p>
+                        </div>
+                      }
+                    </tg-card>
+                  </li>
+                }
+              </ul>
+            </section>
+          }
+        </div>
+      }
+    </tg-loading>
+  }
+</main>
