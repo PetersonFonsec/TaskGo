@@ -1,0 +1,140 @@
+// Leitura longa dos documentos institucionais. Só tokens --tg-*.
+:host {
+  display: block;
+  min-width: 0;
+}
+
+.doc {
+  display: flex;
+  flex-direction: column;
+  gap: var(--tg-space-8);
+  // Cerca de 70 caracteres por linha no corpo.
+  max-width: 68ch;
+  color: var(--tg-text-primary);
+  font-family: var(--tg-font-sans);
+}
+
+.doc__header {
+  display: flex;
+  flex-direction: column;
+  gap: var(--tg-space-2);
+}
+
+.doc__title {
+  margin: 0;
+  font-size: var(--tg-type-title-1-size);
+  line-height: var(--tg-type-title-1-line);
+  font-weight: var(--tg-font-weight-extrabold);
+  letter-spacing: var(--tg-tracking-display);
+  overflow-wrap: anywhere;
+}
+
+.doc__lead {
+  margin: 0;
+  color: var(--tg-text-secondary);
+  font-size: var(--tg-type-body-lg-size);
+  line-height: var(--tg-type-body-lg-line);
+}
+
+.doc__toc {
+  padding: var(--tg-space-4) var(--tg-space-5);
+  border: 1px solid var(--tg-border-default);
+  border-radius: var(--tg-radius-lg);
+  background: var(--tg-bg-surface);
+}
+
+.doc__toc-title {
+  margin: 0 0 var(--tg-space-2);
+  color: var(--tg-text-secondary);
+  font-size: var(--tg-type-overline-size);
+  line-height: var(--tg-type-overline-line);
+  font-weight: var(--tg-font-weight-bold);
+  letter-spacing: var(--tg-tracking-overline);
+  text-transform: uppercase;
+}
+
+.doc__toc-list {
+  display: flex;
+  flex-direction: column;
+  margin: 0;
+  padding: 0;
+  // Sem marcador: os títulos do texto já trazem a numeração, se houver.
+  list-style: none;
+  font-size: var(--tg-type-body-sm-size);
+  line-height: var(--tg-type-body-sm-line);
+}
+
+.doc__toc-link {
+  display: inline-block;
+  padding: var(--tg-space-1) 0;
+  border-radius: var(--tg-radius-sm);
+  color: var(--tg-text-primary);
+  font-weight: var(--tg-font-weight-medium);
+  text-decoration: underline;
+  text-decoration-color: var(--tg-border-strong);
+  text-underline-offset: 3px;
+  overflow-wrap: anywhere;
+
+  &:hover {
+    text-decoration-color: currentColor;
+  }
+
+  &:focus-visible {
+    outline: 2px solid var(--tg-focus-ring);
+    outline-offset: 2px;
+  }
+}
+
+.doc__body {
+  display: flex;
+  flex-direction: column;
+  gap: var(--tg-space-8);
+}
+
+.doc__section {
+  display: flex;
+  flex-direction: column;
+  gap: var(--tg-space-4);
+}
+
+.doc__heading {
+  margin: 0;
+  // A barra do topo é fixa: a âncora não fica embaixo dela.
+  scroll-margin-top: calc(var(--tg-space-16) + var(--tg-space-6));
+  font-size: var(--tg-type-title-2-size);
+  line-height: var(--tg-type-title-2-line);
+  font-weight: var(--tg-font-weight-bold);
+  letter-spacing: var(--tg-tracking-title);
+  overflow-wrap: anywhere;
+
+  &:focus {
+    outline: none;
+  }
+
+  &:focus-visible {
+    outline: 2px solid var(--tg-focus-ring);
+    outline-offset: 4px;
+    border-radius: var(--tg-radius-sm);
+  }
+}
+
+.doc__paragraph,
+.doc__list {
+  margin: 0;
+  font-size: var(--tg-type-body-lg-size);
+  line-height: var(--tg-type-body-lg-line);
+  overflow-wrap: anywhere;
+}
+
+.doc__list {
+  display: flex;
+  flex-direction: column;
+  gap: var(--tg-space-2);
+  padding-left: var(--tg-space-6);
+  // O reset global tira os marcadores; aqui eles voltam.
+  list-style: disc;
+
+  li::marker {
+    color: var(--tg-text-secondary);
+  }
+}

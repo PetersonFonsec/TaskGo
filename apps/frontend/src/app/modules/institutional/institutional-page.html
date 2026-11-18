@@ -1,1 +1,35 @@
-<p>institutional-page works!</p>
+<div class="institutional">
+  <tg-app-bar [homeLink]="home()">
+    @if (navigation()) {
+      <a tgButton appearance="ghost" size="sm" iconStart="arrow-left" [routerLink]="home()">Voltar ao app</a>
+    } @else {
+      <a tgButton appearance="outline" size="sm" [routerLink]="signIn">Entrar</a>
+    }
+  </tg-app-bar>
+
+  <main id="conteudo" class="institutional__main">
+    <div class="institutional__layout">
+      <nav class="institutional__nav" aria-labelledby="institutional-nav-title">
+        <p class="institutional__nav-title" id="institutional-nav-title">Documentos</p>
+        <ul class="institutional__nav-list">
+          @for (page of pages; track page.path) {
+            <li>
+              <a
+                class="institutional__nav-link"
+                [routerLink]="page.link"
+                routerLinkActive="institutional__nav-link--active"
+                ariaCurrentWhenActive="page"
+              >{{ page.label }}</a>
+            </li>
+          }
+        </ul>
+      </nav>
+
+      <div class="institutional__content">
+        <router-outlet />
+      </div>
+    </div>
+  </main>
+
+  <app-footer />
+</div>

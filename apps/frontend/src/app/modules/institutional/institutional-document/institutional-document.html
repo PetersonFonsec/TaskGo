@@ -1,0 +1,48 @@
+<article class="doc" [attr.aria-labelledby]="slug()">
+  <header class="doc__header">
+    <h1 class="doc__title" [id]="slug()">{{ heading() }}</h1>
+    @if (lead()) {
+      <p class="doc__lead">{{ lead() }}</p>
+    }
+  </header>
+
+  @if (sections().length === 0) {
+    <tg-card>
+      <tg-empty-state icon="hourglass" title="Texto ainda não publicado" [level]="2">
+        A versão completa deste documento será publicada nesta página.
+      </tg-empty-state>
+    </tg-card>
+  } @else {
+    @if (showToc()) {
+      <nav class="doc__toc" [attr.aria-labelledby]="tocId()">
+        <h2 class="doc__toc-title" [id]="tocId()">Nesta página</h2>
+        <ul class="doc__toc-list">
+          @for (section of sections(); track section.id) {
+            <li>
+              <a class="doc__toc-link" [href]="href(section.id)" (click)="goTo($event, section.id)">{{ section.title }}</a>
+            </li>
+          }
+        </ul>
+      </nav>
+    }
+
+    <div class="doc__body">
+      @for (section of sections(); track section.id) {
+        <section class="doc__section" [attr.aria-labelledby]="section.id">
+          <h2 class="doc__heading" [id]="section.id" tabindex="-1">{{ section.title }}</h2>
+          @for (block of section.blocks; track $index) {
+            @if (isList(block)) {
+              <ul class="doc__list">
+                @for (item of block.items; track $index) {
+                  <li>{{ item }}</li>
+                }
+              </ul>
+            } @else {
+              <p class="doc__paragraph">{{ block }}</p>
+            }
+          }
+        </section>
+      }
+    </div>
+  }
+</article>

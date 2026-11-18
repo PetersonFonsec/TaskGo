@@ -1,0 +1,124 @@
+// Casca das páginas institucionais. Só tokens --tg-*; o tema troca os valores.
+@use 'taskgo-tokens' as tg;
+
+:host {
+  display: block;
+}
+
+.institutional {
+  display: flex;
+  flex-direction: column;
+  min-height: 100dvh;
+  background: var(--tg-bg-canvas);
+  color: var(--tg-text-primary);
+  font-family: var(--tg-font-sans);
+}
+
+.institutional__main {
+  flex: 1;
+  min-width: 0;
+
+  &:focus {
+    outline: none;
+  }
+}
+
+.institutional__layout {
+  display: flex;
+  flex-direction: column;
+  gap: var(--tg-space-6);
+  box-sizing: border-box;
+  max-width: var(--tg-content-max);
+  margin: 0 auto;
+  padding: var(--tg-space-6) var(--tg-space-4) var(--tg-space-12);
+
+  @include tg.tg-from(expanded) {
+    flex-direction: row;
+    align-items: flex-start;
+    gap: var(--tg-space-12);
+    padding: var(--tg-space-10) var(--tg-space-6) var(--tg-space-16);
+  }
+}
+
+.institutional__nav {
+  flex: none;
+
+  @include tg.tg-from(expanded) {
+    position: sticky;
+    // Abaixo da barra do topo (72 px) com folga.
+    top: calc(var(--tg-space-16) + var(--tg-space-8));
+    width: calc(var(--tg-space-16) * 4);
+  }
+}
+
+.institutional__nav-title {
+  margin: 0 0 var(--tg-space-2);
+  color: var(--tg-text-secondary);
+  font-size: var(--tg-type-overline-size);
+  line-height: var(--tg-type-overline-line);
+  font-weight: var(--tg-font-weight-bold);
+  letter-spacing: var(--tg-tracking-overline);
+  text-transform: uppercase;
+}
+
+// Abaixo de 1024 px, duas colunas de pílulas; acima, uma lista ao lado do texto.
+.institutional__nav-list {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: var(--tg-space-2);
+  margin: 0;
+  padding: 0;
+  list-style: none;
+
+  @include tg.tg-from(expanded) {
+    grid-template-columns: minmax(0, 1fr);
+    gap: var(--tg-space-1);
+  }
+}
+
+.institutional__nav-link {
+  display: flex;
+  align-items: center;
+  box-sizing: border-box;
+  min-height: var(--tg-control-md);
+  padding: var(--tg-space-2) var(--tg-space-4);
+  border: 1px solid var(--tg-border-default);
+  border-radius: var(--tg-radius-full);
+  background: var(--tg-bg-surface);
+  color: var(--tg-text-secondary);
+  font-size: var(--tg-type-label-size);
+  line-height: var(--tg-type-label-line);
+  font-weight: var(--tg-font-weight-medium);
+  text-decoration: none;
+  overflow-wrap: anywhere;
+  transition: background var(--tg-duration-fast) var(--tg-ease-standard);
+
+  &:hover {
+    background: var(--tg-bg-subtle);
+    color: var(--tg-text-primary);
+  }
+
+  &:focus-visible {
+    outline: 2px solid var(--tg-focus-ring);
+    outline-offset: 2px;
+  }
+
+  @include tg.tg-from(expanded) {
+    border-color: transparent;
+    background: transparent;
+  }
+}
+
+// Atual: pílula action-subtle e texto em negrito, como na navegação do app.
+.institutional__nav-link--active,
+.institutional__nav-link--active:hover {
+  border-color: transparent;
+  background: var(--tg-action-subtle);
+  color: var(--tg-action-subtle-text);
+  font-weight: var(--tg-font-weight-bold);
+}
+
+.institutional__content {
+  flex: 1;
+  min-width: 0;
+}
