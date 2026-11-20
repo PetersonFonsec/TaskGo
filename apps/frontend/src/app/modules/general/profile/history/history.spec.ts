@@ -416,6 +416,49 @@ describe('History (Pedidos)', () => {
         expect(reloads.length).toBe(2);
       });
 
+      it('lista sem o pedido não solta o pedido e consulta de novo', async () => {
+        await provider();
+        component.advance('A', 'EM_DESLOCAMENTO');
+        ok('A');
+        reloads[0].next([order('B', 'AGENDADO')]);
+        expect(busy()).toEqual(['A']);
+        expect(component.reconcileFailed()).toBeFalse();
+
+        wait(1000);
+        expect(reloads.length).toBe(2);
+        reloads[1].next(fresh());
+        expect(busy()).toEqual([]);
+        expect(component.reconcileFailed()).toBeFalse();
+      });
+
+      it('lista sem o pedido em todas as tentativas: solta o pedido e avisa', async () => {
+        await provider();
+        component.advance('A', 'EM_DESLOCAMENTO');
+        ok('A');
+        reloads[0].next([order('B', 'AGENDADO')]);
+        wait(1000);
+        reloads[1].next([order('B', 'AGENDADO')]);
+        expect(busy()).toEqual(['A']);
+        wait(2000);
+        reloads[2].next([order('B', 'AGENDADO')]);
+
+        expect(busy()).toEqual([]);
+        expect(component.reconcileFailed()).toBeTrue();
+        wait(10000);
+        expect(reloads.length).toBe(3);
+      });
+
+      it('lista com o pedido cancelado por outra pessoa solta o pedido (não há status antigo à vista)', async () => {
+        await provider();
+        component.advance('A', 'EM_DESLOCAMENTO');
+        ok('A');
+        reloads[0].next([order('A', 'CANCELADO'), order('B', 'AGENDADO')]);
+        expect(busy()).toEqual([]);
+        expect(component.reconcileFailed()).toBeFalse();
+        wait(5000);
+        expect(reloads.length).toBe(1);
+      });
+
       it('esgotadas as tentativas: solta o pedido e avisa, com "Recarregar lista"', async () => {
         await provider();
         component.advance('A', 'EM_DESLOCAMENTO');
