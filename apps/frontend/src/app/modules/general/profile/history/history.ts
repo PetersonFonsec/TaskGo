@@ -157,7 +157,8 @@ export class History {
    * Trocas que a API aceitou e que a lista ainda não mostra, por pedido. Só
    * uma lista pedida depois da confirmação (`afterSeq` ou mais nova) pode
    * soltar o pedido, e só se trouxer o pedido sem o status antigo. Cada lista
-   * assim que ainda traz o status antigo (ou falha) conta uma tentativa.
+   * assim que ainda traz o status antigo, não traz o pedido ou falha conta uma
+   * tentativa.
    */
   readonly #awaiting = new Map<string, PendingReconciliation>();
   /** Nova consulta agendada para conferir trocas pendentes. */
@@ -349,13 +350,13 @@ interface PendingReconciliation {
 }
 
 /**
- * A lista já mostra a troca do pedido: ele não está mais no status de antes
- * da ação. Pedido fora da lista também conta, porque não há status antigo à
- * vista para corrigir.
+ * A lista já mostra a troca do pedido: ele está nela e não mais no status de
+ * antes da ação. Pedido fora da lista não confirma nada (a lista traz todos
+ * os pedidos da pessoa): gasta uma tentativa, como o status antigo.
  */
 function reflects(orders: OrdersResponse, orderId: string, expected: TgOrderStatusAction): boolean {
   const order = orders.find((item) => item.id === orderId);
-  return !order || !STATUS_BEFORE[expected].includes(order.status);
+  return !!order && !STATUS_BEFORE[expected].includes(order.status);
 }
 
 type LoadResult =
