@@ -1,31 +1,113 @@
-.profile-edit {
-  padding: 1.5rem;
+// Editar dados pessoais (Etapa 10). Só tokens --tg-*.
+:host {
+  display: block;
+  container: personal-edit / inline-size;
 }
 
-form {
-  display: grid;
-  gap: 1rem;
-}
-
-.status-line {
-  color: #b76e79;
-  font-size: 0.95rem;
-}
-
-.form-messages {
-  display: grid;
-  gap: 0.5rem;
-}
-
-.success {
-  color: #148a08;
-}
-
-.error {
-  color: #b73333;
-}
-
-.actions {
+.personal {
   display: flex;
-  gap: 1rem;
+  flex-direction: column;
+  gap: var(--tg-space-6);
+  margin: 0 auto;
+  max-width: 640px;
+  color: var(--tg-text-primary);
+  font-family: var(--tg-font-sans);
+}
+
+.personal__back {
+  display: inline-flex;
+  align-items: center;
+  align-self: flex-start;
+  gap: var(--tg-space-2);
+  min-height: 44px;
+  margin-bottom: calc(-1 * var(--tg-space-3));
+  color: var(--tg-action-subtle-text);
+  font-size: var(--tg-type-body-size);
+  line-height: var(--tg-type-body-line);
+  font-weight: var(--tg-font-weight-bold);
+  text-decoration: none;
+
+  &:hover {
+    text-decoration: underline;
+  }
+
+  &:focus-visible {
+    outline: 2px solid var(--tg-focus-ring);
+    outline-offset: 2px;
+    border-radius: var(--tg-radius-sm);
+  }
+}
+
+.personal__title {
+  margin: 0;
+  font-size: var(--tg-type-title-1-size);
+  line-height: var(--tg-type-title-1-line);
+  font-weight: var(--tg-font-weight-extrabold);
+  letter-spacing: -0.03em;
+}
+
+.personal__lead {
+  margin: var(--tg-space-1) 0 0;
+  color: var(--tg-text-secondary);
+  font-size: var(--tg-type-body-size);
+  line-height: var(--tg-type-body-line);
+}
+
+.form {
+  display: flex;
+  flex-direction: column;
+  gap: var(--tg-space-5);
+}
+
+.form__skeleton-field {
+  display: flex;
+  flex-direction: column;
+  gap: var(--tg-space-2);
+}
+
+.photo {
+  display: flex;
+  align-items: flex-start;
+  gap: var(--tg-space-4);
+}
+
+.photo__field {
+  flex: 1;
+  min-width: 0;
+}
+
+.avatar {
+  flex: none;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  overflow: hidden;
+  width: 64px;
+  height: 64px;
+  border-radius: var(--tg-radius-full);
+  background: var(--tg-action-subtle);
+  color: var(--tg-action-subtle-text);
+  font-size: var(--tg-type-title-3-size);
+  line-height: var(--tg-type-title-3-line);
+  font-weight: var(--tg-font-weight-bold);
+
+  img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+  }
+}
+
+.form__actions {
+  display: flex;
+  flex-direction: column-reverse;
+  gap: var(--tg-space-3);
+  padding-top: var(--tg-space-2);
+}
+
+@container personal-edit (min-width: 480px) {
+  .form__actions {
+    flex-direction: row;
+    justify-content: flex-end;
+  }
 }
