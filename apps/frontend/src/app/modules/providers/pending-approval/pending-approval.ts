@@ -10,9 +10,9 @@ import {
   signal,
   viewChild,
 } from '@angular/core';
-import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
+import { takeUntilDestroyed, toObservable } from '@angular/core/rxjs-interop';
 import { ActivatedRoute, RouterLink } from '@angular/router';
-import { catchError, map, Observable, of, Subject, switchMap } from 'rxjs';
+import { catchError, EMPTY, map, Observable, of, Subject, type Subscription, switchMap, timer } from 'rxjs';
 
 import { orderExpiryNotice } from '@modules/orders/order-details/order-details.view';
 import { TgButtonComponent } from '@shared/design-system/button/tg-button.component';
@@ -52,10 +52,28 @@ export interface PendingApprovalOutcome {
 }
 
 /**
+ * Status (`OrderStatus` do backend) a que o pedido só chega depois do aceite
+ * do prestador: `confirm-order-by-provider` leva de AGUARDANDO_APROVACAO para
+ * AGUARDANDO_PAGAMENTO, e o fluxo segue daí. A disputa só abre com o serviço
+ * em andamento ou à espera de confirmação.
+ */
+const ACCEPTED_STATUSES: readonly string[] = [
+  'AGUARDANDO_PAGAMENTO',
+  'AGENDADO',
+  'EM_DESLOCAMENTO',
+  'EM_ANDAMENTO',
+  'AGUARDANDO_CONFIRMACAO_CLIENTE',
+  'CONCLUIDO',
+  'DISPUTA',
+];
+
+/**
  * O desfecho de uma solicitação que já não aguarda resposta, pelo que a API
  * manda (`get-order-details.handler.ts`): a expiração automática cancela o
  * pedido e registra o evento EXPIRED na linha do tempo; a recusa cancela com
- * o motivo em `cancellation`; o aceite leva o pedido adiante.
+ * o motivo em `cancellation`; o aceite leva o pedido a um dos
+ * `ACCEPTED_STATUSES`. Status fora dessas listas não afirma nada: só diz que
+ * a solicitação não aguarda resposta e aponta os detalhes.
  */
 export function pendingApprovalOutcome(order: OrderDetails): PendingApprovalOutcome | null {
   if (order.status === 'AGUARDANDO_APROVACAO') return null;
@@ -83,12 +101,22 @@ export function pendingApprovalOutcome(order: OrderDetails): PendingApprovalOutc
       body: 'Ela não pode mais ser respondida.',
     };
   }
+  if (ACCEPTED_STATUSES.includes(order.status)) {
+    return {
+      tone: 'success',
+      title: 'Você aceitou esta solicitação',
+      body: 'Acompanhe os próximos passos nos detalhes do pedido.',
+    };
+  }
   return {
-    tone: 'success',
-    title: 'Você aceitou esta solicitação',
-    body: 'Acompanhe os próximos passos nos detalhes do pedido.',
+    tone: 'info',
+    title: 'Esta solicitação não aguarda mais resposta',
+    body: 'Veja a situação atual nos detalhes do pedido.',
   };
 }
+
+/** Maior espera que um timer do navegador aceita (setTimeout, ~24,8 dias). */
+const MAX_TIMER_MS = 2_147_483_647;
 
 const MONEY = new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' });
 const PERCENT = new Intl.NumberFormat('pt-BR', { style: 'percent', maximumFractionDigits: 1 });
@@ -174,7 +202,10 @@ export class PendingApproval implements OnInit {
   readonly reason = signal<OrderCancellationReason | null>(null);
   readonly reasonError = signal('');
   readonly note = signal('');
-  /** Hora de referência de "recebida há" e do prazo, renovada a cada carga. */
+  /**
+   * Hora de referência de "recebida há" e do prazo: renovada a cada carga e,
+   * com a solicitação aguardando resposta, no instante em que o prazo termina.
+   */
   readonly now = signal(new Date());
 
   readonly declineDialog = viewChild.required<TgDialogComponent>('declineDialog');
@@ -198,9 +229,37 @@ export class PendingApproval implements OnInit {
   #orderId = '';
   /** Abrir a recusa assim que a solicitação carregar (`?recusar` no link). */
   #declineOnLoad = false;
+  /** Pedido para o qual o diálogo de recusa foi aberto. */
+  #declineFor: string | null = null;
+  /** Resposta (aceite ou recusa) em curso, ligada ao pedido que a enviou. */
+  #response: Subscription | null = null;
   readonly #loads = new Subject<void>();
 
+  /**
+   * Quando o prazo da solicitação aguardando resposta termina, em ms; nulo
+   * sem prazo, já vencido ou longe demais para um timer.
+   */
+  readonly #deadline = computed(() => {
+    const order = this.order();
+    if (!order || !this.awaitingApproval()) return null;
+    const expires = validDate(order.expiresAt)?.getTime() ?? null;
+    if (expires === null) return null;
+    const wait = expires - this.now().getTime();
+    return wait > 0 && wait <= MAX_TIMER_MS ? expires : null;
+  });
+
   constructor() {
+    // Um timer por prazo: renova `now` quando o prazo termina, para o aviso
+    // passar a "O prazo terminou" sem recarregar. Não consulta a API: quem
+    // diz se o pedido expirou é a próxima carga. Trocar de pedido, responder
+    // ou destruir a tela cancela o timer (switchMap / takeUntilDestroyed).
+    toObservable(this.#deadline)
+      .pipe(
+        switchMap((deadline) => (deadline === null ? EMPTY : timer(Math.max(0, deadline - Date.now())))),
+        takeUntilDestroyed(this.#destroyRef),
+      )
+      .subscribe(() => this.now.set(new Date()));
+
     this.#loads
       .pipe(
         switchMap(() => {
@@ -237,7 +296,12 @@ export class PendingApproval implements OnInit {
   ngOnInit(): void {
     this.#declineOnLoad = this.#route.snapshot.queryParamMap.has('recusar');
     this.#route.params.pipe(takeUntilDestroyed(this.#destroyRef)).subscribe((params) => {
-      this.#orderId = String(params['orderId'] ?? '');
+      const orderId = String(params['orderId'] ?? '');
+      if (this.#orderId && orderId !== this.#orderId) {
+        this.#leaveOrder();
+        this.#declineOnLoad = this.#route.snapshot.queryParamMap.has('recusar');
+      }
+      this.#orderId = orderId;
       this.order.set(null);
       this.answered.set(null);
       this.actionError.set(null);
@@ -252,6 +316,7 @@ export class PendingApproval implements OnInit {
   }
 
   accept(): void {
+    if (!this.awaitingApproval()) return;
     this.#respond(
       'accept',
       this.#orders.confirmOrder(this.#orderId, this.#providerId()),
@@ -264,11 +329,10 @@ export class PendingApproval implements OnInit {
   }
 
   openDecline(): void {
-    if (this.submitting()) return;
+    if (this.submitting() || !this.awaitingApproval()) return;
     this.actionError.set(null);
-    this.reasonError.set('');
-    this.reason.set(null);
-    this.note.set('');
+    this.#clearDecline();
+    this.#declineFor = this.#orderId;
     this.declineDialog().open();
   }
 
@@ -293,6 +357,8 @@ export class PendingApproval implements OnInit {
   }
 
   decline(): void {
+    // A recusa vale só para o pedido em que o diálogo foi aberto, se ele ainda aguarda resposta.
+    if (this.#declineFor !== this.#orderId || !this.awaitingApproval()) return;
     const reason = this.reason();
     if (!reason) {
       this.reasonError.set('Escolha o motivo da recusa.');
@@ -376,6 +442,26 @@ export class PendingApproval implements OnInit {
     return String(this.#session.user()?.user?.id ?? '');
   }
 
+  /**
+   * Saiu do pedido (outro `orderId` na mesma tela): para de ouvir a resposta
+   * em curso, fecha a recusa e esquece o que foi preenchido nela. Parar de
+   * ouvir não desfaz nada no backend; ao voltar, a carga mostra como ficou.
+   */
+  #leaveOrder(): void {
+    this.#response?.unsubscribe();
+    this.#response = null;
+    this.submitting.set(null);
+    if (this.declineDialog().isOpen()) this.closeDecline();
+    this.#clearDecline();
+    this.#declineFor = null;
+  }
+
+  #clearDecline(): void {
+    this.reason.set(null);
+    this.reasonError.set('');
+    this.note.set('');
+  }
+
   #respond(
     kind: 'accept' | 'decline',
     request: Observable<unknown>,
@@ -384,14 +470,20 @@ export class PendingApproval implements OnInit {
     if (this.submitting()) return;
     this.actionError.set(null);
     this.submitting.set(kind);
-    request.pipe(takeUntilDestroyed(this.#destroyRef)).subscribe({
+    const orderId = this.#orderId;
+    const response = request.pipe(takeUntilDestroyed(this.#destroyRef)).subscribe({
       next: () => {
+        // A tela já mostra outro pedido: esta resposta não mexe nele.
+        if (orderId !== this.#orderId) return;
+        this.#response = null;
         this.submitting.set(null);
         this.answered.set(success);
         if (kind === 'decline') this.declineDialog().close();
         this.#announcer.announce(success.title);
       },
       error: (error: unknown) => {
+        if (orderId !== this.#orderId) return;
+        this.#response = null;
         this.submitting.set(null);
         const status = error instanceof HttpErrorResponse ? error.status : 0;
         // 400: o pedido já saiu de "aguardando aprovação" (aceito, recusado ou expirado).
@@ -413,5 +505,7 @@ export class PendingApproval implements OnInit {
         );
       },
     });
+    // Uma resposta síncrona já terminou acima; só guarda a que segue em curso.
+    if (!response.closed) this.#response = response;
   }
 }

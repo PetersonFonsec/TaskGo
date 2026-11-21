@@ -2,7 +2,7 @@ import { provideHttpClient } from '@angular/common/http';
 import { HttpTestingController, provideHttpClientTesting } from '@angular/common/http/testing';
 import { ComponentFixture, TestBed } from '@angular/core/testing';
 import { ActivatedRoute, convertToParamMap, provideRouter } from '@angular/router';
-import { of } from 'rxjs';
+import { BehaviorSubject } from 'rxjs';
 
 import { environment } from '@environments/environment';
 import { OrderDetails } from '@shared/service/order/order.model';
@@ -52,7 +52,13 @@ describe('PendingApproval', () => {
   let http: HttpTestingController;
   let el: HTMLElement;
 
+  /** O `orderId` da rota; `next` simula a navegação para outro pedido na mesma tela. */
+  let params: BehaviorSubject<{ orderId: string }>;
+  let snapshot: { queryParamMap: ReturnType<typeof convertToParamMap> };
+
   async function setup(queryParams: Record<string, string> = {}) {
+    params = new BehaviorSubject({ orderId: '5' });
+    snapshot = { queryParamMap: convertToParamMap(queryParams) };
     await TestBed.configureTestingModule({
       imports: [PendingApproval],
       providers: [
@@ -62,8 +68,10 @@ describe('PendingApproval', () => {
         {
           provide: ActivatedRoute,
           useValue: {
-            params: of({ orderId: '5' }),
-            snapshot: { queryParamMap: convertToParamMap(queryParams) },
+            params,
+            get snapshot() {
+              return snapshot;
+            },
           },
         },
         {
@@ -336,6 +344,214 @@ describe('PendingApproval', () => {
     expect(button('Aceitar serviço')).toBeNull();
   });
 
+  describe('troca de pedido na mesma tela', () => {
+    const B_URL = `${environment.url}/orders/6`;
+    const B_CONFIRM_URL = `${environment.url}/order/6/provider/17/confirm`;
+    const B_CANCEL_URL = `${environment.url}/order/6/provider/17/cancel`;
+
+    /** Vai para o pedido B (id 6) e carrega a resposta dada. */
+    async function goToB(order: OrderDetails = details({ id: '6' }), queryParams: Record<string, string> = {}) {
+      snapshot = { queryParamMap: convertToParamMap(queryParams) };
+      params.next({ orderId: '6' });
+      await render();
+      http.expectOne(B_URL).flush(order);
+      await render();
+    }
+
+    it('o aceite de A em curso não marca B como aceito', async () => {
+      await setup();
+      await load();
+      button('Aceitar serviço')!.click();
+      await render();
+      const acceptA = http.expectOne(CONFIRM_URL);
+
+      await goToB();
+
+      // A tela parou de ouvir A: nem sucesso nem erro de A chegam a B.
+      expect(acceptA.cancelled).toBeTrue();
+      expect(component.submitting()).toBeNull();
+      expect(component.answered()).toBeNull();
+      expect(component.actionError()).toBeNull();
+      expect(text()).not.toContain('Solicitação aceita');
+      expect(button('Aceitar serviço')).not.toBeNull();
+      expect(button('Recusar')).not.toBeNull();
+    });
+
+    it('a falha de A em curso não aparece em B', async () => {
+      await setup();
+      await load();
+      component.accept();
+      const acceptA = http.expectOne(CONFIRM_URL);
+      await goToB();
+      expect(acceptA.cancelled).toBeTrue();
+      expect(component.acceptError()).toBeNull();
+      expect(el.querySelector('tg-alert[role="alert"]')).toBeNull();
+    });
+
+    it('B pendente aceita normalmente depois da troca, uma vez só', async () => {
+      await setup();
+      await load();
+      component.accept();
+      http.expectOne(CONFIRM_URL);
+      await goToB();
+
+      button('Aceitar serviço')!.click();
+      component.accept();
+      http.expectOne(B_CONFIRM_URL).flush({});
+      await render();
+      expect(text()).toContain('Solicitação aceita');
+      expect(button('Ver detalhes do pedido')?.getAttribute('href')).toBe('/orders/6');
+    });
+
+    it('a recusa aberta em A fecha ao ir para B e não leva motivo nem observação', async () => {
+      await setup();
+      await load();
+      component.openDecline();
+      component.chooseReason('OTHER');
+      component.note.set('Agenda cheia');
+      await render();
+      expect(dialog().open).toBeTrue();
+
+      await goToB();
+
+      expect(dialog().open).toBeFalse();
+      expect(component.reason()).toBeNull();
+      expect(component.note()).toBe('');
+      expect(component.reasonError()).toBe('');
+      // Confirmar a recusa aberta para A não envia nada para B.
+      component.decline();
+      http.expectNone(B_CANCEL_URL);
+      http.expectNone(CANCEL_URL);
+    });
+
+    it('a recusa de A em curso para de ser ouvida e o diálogo fecha ao ir para B', async () => {
+      await setup();
+      await load();
+      component.openDecline();
+      component.chooseReason('NO_AVAILABILITY');
+      component.decline();
+      await render();
+      expect(component.submitting()).toBe('decline');
+      expect(dialog().getAttribute('aria-busy')).toBe('true');
+      const declineA = http.expectOne(CANCEL_URL);
+
+      await goToB();
+
+      expect(declineA.cancelled).toBeTrue();
+      expect(dialog().open).toBeFalse();
+      expect(component.submitting()).toBeNull();
+      expect(button('Recusar')).not.toBeNull();
+    });
+
+    it('`?recusar` no link de B abre a recusa de B quando B aguarda resposta', async () => {
+      await setup();
+      await load();
+      await goToB(details({ id: '6' }), { recusar: '1' });
+      expect(dialog().open).toBeTrue();
+      component.chooseReason('OUT_OF_AREA');
+      component.decline();
+      http.expectOne(B_CANCEL_URL).flush({});
+      await render();
+      expect(text()).toContain('Solicitação recusada');
+    });
+
+    it('`?recusar` no link de B não abre a recusa se B já foi respondido', async () => {
+      await setup();
+      await load();
+      await goToB(details({ id: '6', status: 'AGENDADO' }), { recusar: '1' });
+      expect(dialog().open).toBeFalse();
+    });
+  });
+
+  it('não aceita nem abre a recusa antes de a solicitação carregar', async () => {
+    await setup();
+    component.accept();
+    component.openDecline();
+    http.expectNone(CONFIRM_URL);
+    expect(component.submitting()).toBeNull();
+    expect(dialog().open).toBeFalse();
+    http.expectOne(DETAILS_URL).flush(details());
+  });
+
+  it('não aceita uma solicitação que já foi respondida', async () => {
+    await setup();
+    await load(details({ status: 'AGENDADO' }));
+    component.accept();
+    component.decline();
+    http.expectNone(CONFIRM_URL);
+    http.expectNone(CANCEL_URL);
+    expect(component.submitting()).toBeNull();
+  });
+
+  describe('prazo para responder', () => {
+    const base = new Date('2026-11-21T15:00:00.000Z');
+
+    beforeEach(() => {
+      jasmine.clock().install();
+      jasmine.clock().mockDate(base);
+    });
+    afterEach(() => jasmine.clock().uninstall());
+
+    const expiring = (ms: number) => details({ expiresAt: new Date(base.getTime() + ms).toISOString() });
+
+    it('vira "O prazo terminou" quando o prazo passa, sem recarregar e sem afirmar que expirou', async () => {
+      await setup();
+      await load(expiring(60_000));
+      // O horário segue o fuso do navegador (issue #60); aqui só importa o estado.
+      expect(text()).toContain('Responda até');
+
+      jasmine.clock().tick(59_999);
+      await render();
+      expect(text()).toContain('Responda até');
+      expect(text()).not.toContain('O prazo terminou');
+
+      jasmine.clock().tick(1);
+      await render();
+      expect(text()).toContain('O prazo terminou');
+      expect(text()).not.toContain('Responda até');
+      // Só a API diz que expirou: as ações seguem e nenhuma consulta nova sai.
+      expect(text()).not.toContain('Esta solicitação expirou');
+      expect(button('Aceitar serviço')).not.toBeNull();
+      http.expectNone(DETAILS_URL);
+    });
+
+    it('recarregar não cria um segundo timer para o mesmo prazo', async () => {
+      await setup();
+      await load(expiring(60_000));
+      component.load();
+      http.expectOne(DETAILS_URL).flush(expiring(60_000));
+      await render();
+
+      const set = spyOn(component.now, 'set').and.callThrough();
+      jasmine.clock().tick(60_000);
+      await render();
+      expect(set).toHaveBeenCalledTimes(1);
+      jasmine.clock().tick(10 * 60_000);
+      expect(set).toHaveBeenCalledTimes(1);
+    });
+
+    it('responder cancela o timer do prazo', async () => {
+      await setup();
+      await load(expiring(60_000));
+      component.accept();
+      http.expectOne(CONFIRM_URL).flush({});
+      await render();
+
+      const set = spyOn(component.now, 'set').and.callThrough();
+      jasmine.clock().tick(60_000);
+      expect(set).not.toHaveBeenCalled();
+    });
+
+    it('destruir a tela cancela o timer do prazo', async () => {
+      await setup();
+      await load(expiring(60_000));
+      const set = spyOn(component.now, 'set').and.callThrough();
+      fixture.destroy();
+      jasmine.clock().tick(60_000);
+      expect(set).not.toHaveBeenCalled();
+    });
+  });
+
   it('mostra a solicitação expirada', async () => {
     await setup();
     await load(
@@ -378,5 +594,35 @@ describe('pendingApprovalOutcome', () => {
       'Esta solicitação foi cancelada',
     );
     expect(pendingApprovalOutcome(details({ status: 'AGUARDANDO_PAGAMENTO' }))?.tone).toBe('success');
+  });
+
+  it('só afirma o aceite para status a que o pedido chega depois dele', () => {
+    for (const status of [
+      'AGUARDANDO_PAGAMENTO',
+      'AGENDADO',
+      'EM_DESLOCAMENTO',
+      'EM_ANDAMENTO',
+      'AGUARDANDO_CONFIRMACAO_CLIENTE',
+      'CONCLUIDO',
+      'DISPUTA',
+    ]) {
+      expect(pendingApprovalOutcome(details({ status }))).withContext(status).toEqual(
+        jasmine.objectContaining({ tone: 'success', title: 'Você aceitou esta solicitação' }),
+      );
+    }
+  });
+
+  it('REJEITADO sem motivo é tratado como cancelado', () => {
+    expect(pendingApprovalOutcome(details({ status: 'REJEITADO' }))).toEqual(
+      jasmine.objectContaining({ tone: 'info', title: 'Esta solicitação foi cancelada' }),
+    );
+  });
+
+  it('status desconhecido não afirma aceite: aviso neutro', () => {
+    expect(pendingApprovalOutcome(details({ status: 'ALGO_NOVO' }))).toEqual({
+      tone: 'info',
+      title: 'Esta solicitação não aguarda mais resposta',
+      body: 'Veja a situação atual nos detalhes do pedido.',
+    });
   });
 });
