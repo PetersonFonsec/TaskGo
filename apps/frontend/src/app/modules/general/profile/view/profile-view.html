@@ -1,154 +1,193 @@
-<div class="profile-view">
-  @if (loading()) {
-    <div class="loading" role="status">Carregando perfil...</div>
-  } @else if (user(); as profile) {
-    <section class="profile-summary">
-      <div class="identity">
-        @if (profile.photoUrl) {
-          <img [src]="profile.photoUrl" alt="Foto do perfil" class="profile-photo" />
-        } @else {
-          <span class="profile-photo avatar-placeholder" aria-label="Perfil sem foto">{{
-            profile.name.charAt(0)
-          }}</span>
-        }
-        <div>
-          <p class="eyebrow">
-            Minha conta · {{ isProvider() ? 'Prestador' : isCustomer() ? 'Cliente' : 'Perfil' }}
-          </p>
-          <h2 data-cy="profile-name">{{ profile.name }}</h2>
-          <p class="muted">Seus dados e atalhos, em um só lugar.</p>
-        </div>
-      </div>
-      <dl class="profile-details">
-        <div>
-          <dt>E-mail</dt>
-          <dd data-cy="profile-email">{{ profile.email || 'Não informado' }}</dd>
-          @if (profile.emailVerified !== undefined) {
-            <span class="contact-status">{{
-              profile.emailVerified ? 'E-mail verificado' : 'E-mail pendente de verificação'
-            }}</span>
-          }
-        </div>
-        <div>
-          <dt>Telefone</dt>
-          <dd data-cy="profile-phone">{{ profile.phone || 'Não informado' }}</dd>
-          @if (profile.phoneVerified !== undefined) {
-            <span class="contact-status">{{
-              profile.phoneVerified ? 'Telefone verificado' : 'Telefone pendente de verificação'
-            }}</span>
-          }
-        </div>
-      </dl>
-      <app-button type="button" data-cy="edit-profile" (click)="goToEdit()"
-        >Editar perfil</app-button
-      >
-    </section>
-
-    <div class="account-grid">
-      <section class="account-card completion-card" aria-labelledby="completion-title">
-        <div class="section-heading">
-          <h2 id="completion-title">
-            {{ completion() === 100 ? 'Cadastro completo' : 'Complete seu cadastro' }}
-          </h2>
-          <strong>{{ completion() }}%</strong>
-        </div>
-        <p class="muted">{{ completed() }} de {{ checklist().length }} etapas concluídas</p>
-        <progress
-          [value]="completed()"
-          [max]="checklist().length"
-          aria-label="Progresso do cadastro"
-        ></progress>
-        <ul class="checklist">
-          @for (item of checklist(); track item.label) {
-            <li>
-              <span
-                ><span class="check" [class.done]="item.done" aria-hidden="true">{{
-                  item.done ? '✓' : '○'
-                }}</span
-                >{{ item.label }}</span
-              >
-              @if (item.done) {
-                <span class="muted">Concluído</span>
-              } @else {
-                <a [routerLink]="item.link">{{ item.action }} <span aria-hidden="true">→</span></a>
-              }
-            </li>
-          }
-        </ul>
-      </section>
-
-      <section class="account-card" aria-labelledby="shortcuts-title">
-        <h2 id="shortcuts-title">Acessos rápidos</h2>
-        <nav class="shortcuts" aria-label="Atalhos da conta">
-          <a [routerLink]="['/general', profile.id, 'history']"
-            ><strong>Histórico de serviços <span aria-hidden="true">↗</span></strong
-            ><span>Acompanhe seus atendimentos.</span></a
-          >
-          @if (isCustomer()) {
-            <a routerLink="/customer/favorites"
-              ><strong>Profissionais favoritos <span aria-hidden="true">↗</span></strong
-              ><span>Encontre novamente quem você salvou.</span></a
-            >
-          }
-          @if (isProvider()) {
-            <a routerLink="/provider/recebimentos"
-              ><strong>Recebimentos PIX</strong
-              ><span>Cadastre sua chave e acompanhe os repasses.</span></a
-            >
-            <a routerLink="/provider/services"
-              ><strong>Meus serviços <span aria-hidden="true">↗</span></strong
-              ><span>Gerencie os serviços que você oferece.</span></a
-            >
-          }
-          <a [routerLink]="addressesLink()"
-            ><strong>Meus endereços <span aria-hidden="true">↗</span></strong
-            ><span>Cadastre e atualize seus locais.</span></a
-          >
-        </nav>
-      </section>
-
-      <section class="account-card profile-addresses" aria-labelledby="address-title">
-        <h2 id="address-title">
-          {{
-            primaryAddress()?.isPrimary || primaryAddress()?.isDefault
-              ? 'Endereço principal'
-              : 'Endereço cadastrado'
-          }}
-        </h2>
-        @if (primaryAddress(); as address) {
-          <div data-cy="profile-address-item" class="address-summary">
-            <strong>{{ address.label || 'Endereço de atendimento' }}</strong>
-            <span>{{ address.street }}{{ address.number ? ', ' + address.number : '' }}</span>
-            @if (address.complement) {
-              <span>{{ address.complement }}</span>
-            }
-            <span>{{ address.city }} · {{ address.state }}</span>
-          </div>
-        } @else {
-          <p class="muted">
-            Nenhum endereço cadastrado. Adicione um local para facilitar seus próximos serviços.
-          </p>
-        }
-        <a [routerLink]="addressesLink()"
-          >{{ primaryAddress() ? 'Gerenciar endereços' : 'Adicionar endereço' }}
-          <span aria-hidden="true">→</span></a
-        >
-      </section>
-
-      @if (isProvider()) {
-        <section class="account-card professional-card" aria-labelledby="public-title">
-          <p class="eyebrow">Seu perfil profissional</p>
-          <h2 id="public-title">Veja como você se apresenta</h2>
-          <p class="muted">
-            Confira os serviços, a apresentação e as avaliações exibidos aos clientes.
-          </p>
-          <a [routerLink]="['/provider/profile', profile.id]"
-            >Ver meu perfil público <span aria-hidden="true">→</span></a
-          >
-        </section>
-      }
+<div class="personal">
+  <header class="personal__header">
+    <div>
+      <h1 class="personal__title">Dados pessoais</h1>
+      <p class="personal__lead">Seu nome, contato e foto, do jeito que aparecem no TaskGo.</p>
     </div>
+    @if (profile()) {
+      <a tgButton size="sm" data-cy="edit-profile" [routerLink]="editLink()">Editar dados</a>
+    }
+  </header>
+
+  <div class="personal__status" role="status">
+    @if (saved()) {
+      <tg-alert tone="success" dismissible (closed)="saved.set(false)">Dados salvos.</tg-alert>
+    }
+  </div>
+
+  @if (loadError() === 'session') {
+    <tg-alert tone="danger" title="Sua sessão expirou">
+      Para ver seus dados com segurança, entre de novo na sua conta.
+      <button tgButton tgAlertAction type="button" size="sm" (click)="login()">Entrar de novo</button>
+    </tg-alert>
+  } @else if (loadError() === 'noUser') {
+    <tg-alert tone="danger" title="Não encontramos sua conta">
+      Entre de novo para ver seus dados.
+      <button tgButton tgAlertAction type="button" size="sm" (click)="login()">Entrar de novo</button>
+    </tg-alert>
+  } @else if (loadError() === 'failed') {
+    <tg-alert tone="danger" title="Não foi possível carregar seus dados">
+      Verifique sua conexão e tente de novo.
+      <button tgButton tgAlertAction type="button" appearance="outline" size="sm" (click)="reload()">Tentar de novo</button>
+    </tg-alert>
   } @else {
-    <div class="error" role="alert">{{ error() }}</div>
+    <tg-loading label="Carregando seus dados" [loading]="loading()">
+      <ng-template tgLoadingSkeleton>
+        <div class="personal__skeleton">
+          <tg-card>
+            <div class="identity">
+              <tg-skeleton shape="circle" size="64" />
+              <div class="identity__text">
+                <tg-skeleton width="50%" height="20" />
+                <tg-skeleton width="24%" height="14" />
+              </div>
+            </div>
+            <div class="facts facts--skeleton">
+              <tg-skeleton width="70%" lines="2" />
+              <tg-skeleton width="60%" lines="2" />
+            </div>
+          </tg-card>
+          <div class="personal__grid">
+            <tg-card><tg-skeleton lines="4" /></tg-card>
+            <tg-card><tg-skeleton lines="4" /></tg-card>
+          </div>
+        </div>
+      </ng-template>
+
+      @if (profile(); as user) {
+        <tg-card class="identity-card">
+          <div class="identity">
+            <span class="avatar">
+              @if (user.photoUrl) {
+                <img [src]="user.photoUrl" alt="" width="64" height="64" />
+              } @else {
+                <span aria-hidden="true">{{ initials() }}</span>
+              }
+            </span>
+            <div class="identity__text">
+              <h2 class="identity__name" data-cy="profile-name">{{ user.name || 'Sem nome' }}</h2>
+              <tg-badge tone="neutral">{{ roleLabel() }}</tg-badge>
+            </div>
+          </div>
+
+          <dl class="facts">
+            <div class="fact">
+              <dt>E-mail</dt>
+              <dd data-cy="profile-email">{{ user.email || 'Não informado' }}</dd>
+              @if (user.email && user.emailVerified !== undefined) {
+                <dd>
+                  @if (user.emailVerified) {
+                    <tg-badge tone="done" icon="check">Verificado</tg-badge>
+                  } @else {
+                    <tg-badge tone="waiting">Não verificado</tg-badge>
+                  }
+                </dd>
+              }
+            </div>
+            <div class="fact">
+              <dt>Telefone</dt>
+              <dd data-cy="profile-phone">{{ phone() || 'Não informado' }}</dd>
+              @if (user.phone && user.phoneVerified !== undefined) {
+                <dd>
+                  @if (user.phoneVerified) {
+                    <tg-badge tone="done" icon="check">Verificado</tg-badge>
+                  } @else {
+                    <tg-badge tone="waiting">Não verificado</tg-badge>
+                  }
+                </dd>
+              }
+            </div>
+          </dl>
+        </tg-card>
+
+        <div class="personal__grid">
+          <tg-card class="section">
+            <div class="section__heading">
+              <h2 id="completion-title" class="section__title">
+                {{ completion() === 100 ? 'Cadastro completo' : 'Complete seu cadastro' }}
+              </h2>
+              <span class="section__value">{{ completion() }}%</span>
+            </div>
+            <p class="section__text">{{ completed() }} de {{ checklist().length }} etapas concluídas</p>
+            <progress
+              class="progress"
+              [value]="completed()"
+              [max]="checklist().length"
+              aria-labelledby="completion-title"
+            ></progress>
+            <ul class="rows">
+              @for (item of checklist(); track item.label) {
+                <li class="row">
+                  <span class="row__label">{{ item.label }}</span>
+                  @if (item.done) {
+                    <tg-badge tone="done" icon="check">Feito</tg-badge>
+                  } @else {
+                    <a class="link" [routerLink]="item.link">
+                      {{ item.action }}
+                      <tg-icon name="arrow-right" [size]="16" />
+                    </a>
+                  }
+                </li>
+              }
+            </ul>
+          </tg-card>
+
+          <tg-card class="section">
+            <h2 class="section__title">Acessos rápidos</h2>
+            <nav aria-label="Atalhos da conta">
+              <ul class="rows">
+                @for (item of shortcuts(); track item.label) {
+                  <li class="row">
+                    <a class="shortcut" [routerLink]="item.link">
+                      <span class="shortcut__text">
+                        <span class="shortcut__label">{{ item.label }}</span>
+                        <span class="shortcut__hint">{{ item.text }}</span>
+                      </span>
+                      <tg-icon name="arrow-right" [size]="20" />
+                    </a>
+                  </li>
+                }
+              </ul>
+            </nav>
+          </tg-card>
+
+          <tg-card class="section">
+            <h2 class="section__title">
+              {{ primaryAddress()?.isPrimary || primaryAddress()?.isDefault ? 'Endereço principal' : 'Endereço' }}
+            </h2>
+            @if (primaryAddress(); as address) {
+              <div class="address" data-cy="profile-address-item">
+                <span class="address__label">{{ address.label || 'Endereço de atendimento' }}</span>
+                <span>{{ address.street }}{{ address.number ? ', ' + address.number : '' }}</span>
+                @if (address.complement) {
+                  <span>{{ address.complement }}</span>
+                }
+                <span>{{ address.city }} · {{ address.state }}</span>
+              </div>
+              <a class="link" [routerLink]="addressesLink()">
+                Gerenciar endereços
+                <tg-icon name="arrow-right" [size]="16" />
+              </a>
+            } @else {
+              <tg-empty-state compact icon="map-pin" title="Nenhum endereço cadastrado" [level]="3">
+                Adicione um local para agilizar seus próximos pedidos.
+                <a tgButton tgEmptyAction appearance="outline" size="sm" [routerLink]="addressesLink()">Adicionar endereço</a>
+              </tg-empty-state>
+            }
+          </tg-card>
+
+          @if (role() === 'provider') {
+            <tg-card class="section" appearance="subtle">
+              <h2 class="section__title">Seu perfil profissional</h2>
+              <p class="section__text">Confira os serviços, a apresentação e as avaliações que os clientes veem.</p>
+              <a class="link" [routerLink]="['/provider/profile', user.id]">
+                Ver meu perfil público
+                <tg-icon name="arrow-right" [size]="16" />
+              </a>
+            </tg-card>
+          }
+        </div>
+      }
+    </tg-loading>
   }
 </div>
