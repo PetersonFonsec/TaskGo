@@ -17,6 +17,29 @@ export const GeneralRoutes: Routes = [
     canActivate: [unauthorizedGuard, sessionUserGuard],
     component: History,
   },
+  // Dados pessoais também é tela própria do shell, sem o cabeçalho de perfil
+  // da conta, com as mesmas guardas de Pedidos.
+  {
+    path: ':userId/profile',
+    canActivate: [unauthorizedGuard, sessionUserGuard],
+    children: [
+      {
+        path: 'view',
+        title: 'Dados pessoais',
+        loadComponent: () => import('@modules/general/profile/view/profile-view').then(m => m.ProfileView),
+      },
+      {
+        path: 'edit',
+        title: 'Editar dados pessoais',
+        loadComponent: () => import('@modules/general/profile/edit/profile-edit').then(m => m.ProfileEdit),
+      },
+      {
+        path: '',
+        pathMatch: 'full',
+        redirectTo: 'view',
+      },
+    ],
+  },
   // Conta também é uma tela própria do shell (destino da aba "Conta"), com as
   // mesmas regras de sessão de Pedidos.
   {
@@ -35,24 +58,6 @@ export const GeneralRoutes: Routes = [
     title: `Seja bem vindo ao TaskGo`,
     component: Profile,
     children: [
-      {
-        path: 'profile',
-        children: [
-          {
-            path: 'view',
-            loadComponent: () => import('@modules/general/profile/view/profile-view').then(m => m.ProfileView),
-          },
-          {
-            path: 'edit',
-            loadComponent: () => import('@modules/general/profile/edit/profile-edit').then(m => m.ProfileEdit),
-          },
-          {
-            path: '',
-            pathMatch: 'full',
-            redirectTo: 'view',
-          },
-        ],
-      },
       {
         path: 'addresses',
         component: Address,

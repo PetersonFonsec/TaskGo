@@ -28,7 +28,7 @@ export const ProvidersRoutes: Routes = [
   {
     path: ':orderId/aprovacao',
     pathMatch: 'full',
-    title: `Seja bem vindo ao TaskGo`,
+    title: 'Responder solicitação',
     loadComponent: () =>
       import('@modules/providers/pending-approval/pending-approval').then((c) => c.PendingApproval),
   },

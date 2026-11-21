@@ -1,56 +1,141 @@
-<div class="profile-edit">
-  <div *ngIf="loading()">Carregando...</div>
+<div class="personal">
+  <a class="personal__back" [routerLink]="viewLink()">
+    <tg-icon name="arrow-left" [size]="20" />
+    Voltar para dados pessoais
+  </a>
 
-  <div *ngIf="!loading() && user()">
-    <h1>Editar perfil</h1>
+  <header>
+    <h1 class="personal__title">Editar dados pessoais</h1>
+    <p class="personal__lead">As mudanças valem para os seus próximos pedidos e para quem atende você.</p>
+  </header>
 
-    <form #form="ngForm" (ngSubmit)="save(form)">
-      <app-input-text
-        name="photoUrl"
-        label="Link da foto de perfil (HTTPS)"
-        type="text"
-        [(ngModel)]="photoUrlValue"
-      ></app-input-text>
-      <p>Use o link de uma imagem. Deixe vazio para remover a foto.</p>
-      <app-input-text
-        name="name"
-        label="Nome"
-        [(ngModel)]="nameValue"
-        [required]="true"
-      ></app-input-text>
+  @if (loadError() === 'session') {
+    <tg-alert tone="danger" title="Sua sessão expirou">
+      Para editar seus dados com segurança, entre de novo na sua conta.
+      <button tgButton tgAlertAction type="button" size="sm" (click)="login()">Entrar de novo</button>
+    </tg-alert>
+  } @else if (loadError() === 'noUser') {
+    <tg-alert tone="danger" title="Não encontramos sua conta">
+      Entre de novo para editar seus dados.
+      <button tgButton tgAlertAction type="button" size="sm" (click)="login()">Entrar de novo</button>
+    </tg-alert>
+  } @else if (loadError() === 'failed') {
+    <tg-alert tone="danger" title="Não foi possível carregar seus dados">
+      Verifique sua conexão e tente de novo.
+      <button tgButton tgAlertAction type="button" appearance="outline" size="sm" (click)="reload()">Tentar de novo</button>
+    </tg-alert>
+  } @else {
+    <tg-loading label="Carregando seus dados" [loading]="loading()">
+      <ng-template tgLoadingSkeleton>
+        <tg-card>
+          <div class="form">
+            <div class="photo">
+              <tg-skeleton shape="circle" size="64" />
+              <tg-skeleton width="100%" height="44" radius="md" />
+            </div>
+            @for (i of [1, 2, 3]; track i) {
+              <div class="form__skeleton-field">
+                <tg-skeleton width="30%" height="14" />
+                <tg-skeleton width="100%" height="44" radius="md" />
+              </div>
+            }
+          </div>
+        </tg-card>
+      </ng-template>
 
-      <app-input-text
-        name="email"
-        label="Email"
-        type="text"
-        [(ngModel)]="emailValue"
-        [required]="true"
-      ></app-input-text>
+      @if (profile()) {
+        <tg-card>
+          <form id="profile-form" class="form" novalidate (submit)="$event.preventDefault(); save()">
+            @if (saveError(); as text) {
+              <tg-alert tone="danger" title="Não deu para salvar">{{ text }}</tg-alert>
+            }
+            @if (unchanged()) {
+              <tg-alert tone="info" dismissible (closed)="unchanged.set(false)">
+                Nada mudou desde a última vez. Altere algum campo para salvar.
+              </tg-alert>
+            }
 
-      <app-input-text
-        name="phone"
-        label="Telefone"
-        type="text"
-        [(ngModel)]="phoneValue"
-        [required]="true"
-      ></app-input-text>
+            <div class="photo">
+              <span class="avatar">
+                @if (preview()) {
+                  <img [src]="preview()" alt="" width="64" height="64" />
+                } @else {
+                  <span aria-hidden="true">{{ initials() }}</span>
+                }
+              </span>
+              <tg-field
+                class="photo__field"
+                label="Link da foto"
+                optional
+                hint="Um link HTTPS de imagem. Deixe vazio para tirar a foto."
+                [error]="errors().photoUrl"
+              >
+                <input
+                  #photoInput
+                  tgInput
+                  id="photo-url-input"
+                  name="photoUrl"
+                  type="url"
+                  inputmode="url"
+                  autocomplete="photo"
+                  placeholder="https://"
+                  [attr.maxlength]="photoUrlMax"
+                  [ngModel]="photoUrl()"
+                  (ngModelChange)="photoUrl.set($event)"
+                />
+              </tg-field>
+            </div>
 
-      <div class="status-line" *ngIf="user()?.emailVerified === false">
-        Email atual pendente de verificação
-      </div>
-      <div class="status-line" *ngIf="user()?.phoneVerified === false">
-        Telefone atual pendente de verificação
-      </div>
+            <tg-field label="Nome completo" [error]="errors().name">
+              <input
+                #nameInput
+                tgInput
+                id="name-input"
+                name="name"
+                autocomplete="name"
+                [attr.maxlength]="nameMax"
+                [ngModel]="name()"
+                (ngModelChange)="name.set($event)"
+              />
+            </tg-field>
 
-      <div class="form-messages">
-        <p class="success" *ngIf="success()">{{ success() }}</p>
-        <p class="error" *ngIf="error()">{{ error() }}</p>
-      </div>
+            <tg-field label="E-mail" [hint]="emailHint()" [error]="errors().email">
+              <input
+                #emailInput
+                tgInput
+                id="email-input"
+                name="email"
+                type="email"
+                inputmode="email"
+                autocomplete="email"
+                placeholder="nome@email.com"
+                [ngModel]="email()"
+                (ngModelChange)="email.set($event)"
+              />
+            </tg-field>
 
-      <div class="actions">
-        <button app-button type="button" (click)="cancel()">Cancelar</button>
-        <button app-button type="submit">Salvar</button>
-      </div>
-    </form>
-  </div>
+            <tg-field label="Telefone" [hint]="phoneHint()" [error]="errors().phone">
+              <input
+                #phoneInput
+                tgInput
+                id="phone-input"
+                name="phone"
+                type="tel"
+                inputmode="tel"
+                autocomplete="tel"
+                placeholder="(11) 91234-5678"
+                [ngModel]="phone()"
+                (ngModelChange)="phone.set($event)"
+              />
+            </tg-field>
+
+            <div class="form__actions">
+              <a tgButton appearance="outline" [routerLink]="viewLink()">Cancelar</a>
+              <button tgButton type="submit" data-cy="save-profile" [loading]="saving()">Salvar dados</button>
+            </div>
+          </form>
+        </tg-card>
+      }
+    </tg-loading>
+  }
 </div>
