@@ -10,7 +10,7 @@
   </header>
 
   <div class="personal__status" role="status">
-    @if (saved()) {
+    @if (saved() && profile()) {
       <tg-alert tone="success" dismissible (closed)="saved.set(false)">Dados salvos.</tg-alert>
     }
   </div>

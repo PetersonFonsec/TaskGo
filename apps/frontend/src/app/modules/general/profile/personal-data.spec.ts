@@ -5,6 +5,7 @@ import {
   formatPhone,
   hasErrors,
   initials,
+  isApiEmail,
   NAME_MAX,
   PHOTO_URL_MAX,
   profileChanges,
@@ -64,6 +65,63 @@ describe('Dados pessoais: regras', () => {
       expect(validatePersonalData({ ...valid, email: '' }).email).toBe('Informe seu e-mail.');
       expect(validatePersonalData({ ...valid, email: 'bad-email' }).email).toContain('e-mail válido');
       expect(validatePersonalData({ ...valid, email: ' ana@email.com ' }).email).toBe('');
+    });
+
+    // Regressão: a tela usava só a expressão de `Email.isValid`, mas o
+    // `@IsEmail()` do UpdateUserDto recusa antes estes casos (conferidos
+    // com o class-validator 0.14.2 / validator 13.15.15 do backend).
+    it('recusa o que o @IsEmail() da API recusa e a expressão sozinha aceitava', () => {
+      for (const email of [
+        'ana@empresa.c',
+        'ana@empresa.c0m',
+        'ana@empresa.123',
+        'ana@1.2.3.4',
+        'ana@[1.2.3.4]',
+        'ana..souza@empresa.com',
+        '.ana@empresa.com',
+        'ana.@empresa.com',
+        'ana@empresa..com',
+        'ana@-empresa.com',
+        'ana@empresa-.com',
+        'ana@emp_resa.com',
+        'ana@empresa.com.',
+        'ana(x)@empresa.com',
+        'ana,b@empresa.com',
+        'ana;b@empresa.com',
+        'ana@empresa,com.br',
+        'a'.repeat(65) + '@empresa.com',
+        'ana@' + 'a'.repeat(64) + '.com',
+      ]) {
+        expect(isApiEmail(email)).withContext(email).toBeFalse();
+        expect(validatePersonalData({ ...valid, email }).email).withContext(email).toContain('e-mail válido');
+      }
+    });
+
+    it('continua aceitando os e-mails que a API aceita', () => {
+      for (const email of [
+        'ana@email.com',
+        'ana@empresa.com.br',
+        'ana.souza+tag@empresa.co',
+        'ANA@EMPRESA.COM',
+        'a@b.cd',
+        'ana#x@empresa.com',
+        '"ana"@empresa.com',
+        'ãna@empresa.com',
+        'ana@empresá.com',
+        'ana@empresa.xn--p1ai',
+        'a'.repeat(64) + '@empresa.com',
+        'ana@' + 'a'.repeat(63) + '.com',
+      ]) {
+        expect(isApiEmail(email)).withContext(email).toBeTrue();
+        expect(validatePersonalData({ ...valid, email }).email).withContext(email).toBe('');
+      }
+    });
+
+    it('recusa e-mail vazio, sem @ ou com espaço no meio', () => {
+      expect(validatePersonalData({ ...valid, email: '   ' }).email).toBe('Informe seu e-mail.');
+      expect(validatePersonalData({ ...valid, email: 'ana.empresa.com' }).email).toContain('e-mail válido');
+      expect(validatePersonalData({ ...valid, email: 'ana souza@empresa.com' }).email).toContain('e-mail válido');
+      expect(validatePersonalData({ ...valid, email: 'ana@empresa .com' }).email).toContain('e-mail válido');
     });
 
     // Regressão: antes a tela aceitava 8 e 9 dígitos (a API recusa) e

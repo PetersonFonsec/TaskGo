@@ -65,6 +65,7 @@ describe('ProfileEdit (Editar dados pessoais)', () => {
   const el = () => harness.routeNativeElement as HTMLElement;
   const page = () => harness.routeDebugElement!.componentInstance as ProfileEdit;
   const text = () => (el().textContent ?? '').replace(/\s+/g, ' ');
+  const sessionUser = () => (session() as { user: { name: string } }).user;
   const input = (id: string) => el().querySelector<HTMLInputElement>('#' + id)!;
   const render = async () => {
     harness.detectChanges();
@@ -194,6 +195,107 @@ describe('ProfileEdit (Editar dados pessoais)', () => {
     expect(input('email-input').value).toBe('nova@email.com');
     expect(page().saving()).toBeFalse();
     expect(setUserLogged).not.toHaveBeenCalled();
+  });
+
+  // Regressão: a expressão do login deixava passar `ana@empresa.c`, que o
+  // @IsEmail() da API recusa (400).
+  it('recusa um e-mail que a API recusaria, foca o campo e não chama a API', async () => {
+    await load();
+    await type('email-input', 'ana@empresa.c');
+    await submit();
+    expect(text()).toContain('Informe um e-mail válido, como nome@email.com.');
+    expect(document.activeElement).toBe(input('email-input'));
+    expect(input('email-input').getAttribute('aria-invalid')).toBe('true');
+    http.expectNone((r) => r.method === 'PATCH');
+
+    await type('email-input', ' ana@empresa.com.br ');
+    await submit();
+    const request = http.expectOne((r) => r.method === 'PATCH' && r.url === URL);
+    expect(request.request.body).toEqual({ email: 'ana@empresa.com.br' });
+    spyOn(router, 'navigate').and.resolveTo(true);
+    request.flush({ ...PROFILE, email: 'ana@empresa.com.br', emailVerified: false });
+    await render();
+  });
+
+  it('dois cliques em salvar mandam um PATCH só', async () => {
+    await load();
+    await type('name-input', 'Ana Clara');
+    const button = el().querySelector<HTMLButtonElement>('[data-cy="save-profile"]')!;
+    button.click();
+    button.click();
+    await render();
+    const request = http.expectOne((r) => r.method === 'PATCH');
+    expect(request.request.body).toEqual({ name: 'Ana Clara' });
+    spyOn(router, 'navigate').and.resolveTo(true);
+    request.flush({ ...PROFILE, name: 'Ana Clara' });
+    await render();
+  });
+
+  describe('a sessão troca de conta com o PATCH em curso', () => {
+    const URL_B = environment.url + '/user/43';
+    const PROFILE_B: PublicUserProfile = { ...PROFILE, id: '43', name: 'Bruno Lima', email: 'bruno@email.com' };
+    const switchToB = () => session.set({ user: { id: '43', type: 'CLIENTE', name: 'Bruno Lima', photoUrl: '' } });
+
+    async function startSaveForA() {
+      await load();
+      await type('name-input', 'Ana Clara');
+      await submit();
+      return http.expectOne((r) => r.method === 'PATCH' && r.url === URL);
+    }
+    async function loadB() {
+      await render();
+      http.expectOne((r) => r.method === 'GET' && r.url === URL_B).flush(PROFILE_B);
+      await render();
+    }
+
+    it('a resposta de A que chega depois da troca não navega, não confirma e não mexe na sessão de B', async () => {
+      const request = await startSaveForA();
+      const navigate = spyOn(router, 'navigate').and.resolveTo(true);
+      switchToB();
+      request.flush({ ...PROFILE, name: 'Ana Clara' });
+
+      expect(navigate).not.toHaveBeenCalled();
+      expect(setUserLogged).not.toHaveBeenCalled();
+      expect(page().saving()).toBeFalse();
+      expect(sessionUser().name).toBe('Bruno Lima');
+
+      await loadB();
+      expect(input('name-input').value).toBe('Bruno Lima');
+      expect(navigate).not.toHaveBeenCalled();
+    });
+
+    it('a falha de A que chega depois da troca não aparece para B', async () => {
+      const request = await startSaveForA();
+      switchToB();
+      request.flush('erro', { status: 400, statusText: 'Bad Request' });
+      expect(page().saveError()).toBe('');
+      expect(page().saving()).toBeFalse();
+      await loadB();
+      expect(page().saveError()).toBe('');
+      expect(text()).not.toContain('Não deu para salvar');
+      expect(el().querySelector('[role="alert"]')).toBeNull();
+      expect(page().saving()).toBeFalse();
+    });
+
+    it('a troca para de ouvir o PATCH de A e B salva normalmente', async () => {
+      const request = await startSaveForA();
+      switchToB();
+      await loadB();
+      expect(request.cancelled).toBeTrue();
+      expect(page().saving()).toBeFalse();
+
+      await type('name-input', 'Bruno Lima Souza');
+      await submit();
+      const navigate = spyOn(router, 'navigate').and.resolveTo(true);
+      http.expectOne((r) => r.method === 'PATCH' && r.url === URL_B).flush({ ...PROFILE_B, name: 'Bruno Lima Souza' });
+      await render();
+      expect(navigate).toHaveBeenCalledOnceWith(['/general', '43', 'profile', 'view'], {
+        state: { [PROFILE_SAVED_STATE]: true },
+      });
+      expect(setUserLogged).toHaveBeenCalledWith(
+        jasmine.objectContaining({ user: jasmine.objectContaining({ id: '43', name: 'Bruno Lima Souza' }) }),
+      );
+    });
   });
 
   it('falha ao carregar mostra "Tentar de novo"', async () => {

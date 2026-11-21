@@ -207,4 +207,74 @@ describe('ProfileView (Dados pessoais)', () => {
     await respond(CUSTOMER);
     expect(text()).not.toContain('Dados salvos.');
   });
+
+  describe('confirmação de salvamento', () => {
+    const page = () => harness.routeDebugElement!.componentInstance as ProfileView;
+    const savedAlert = () =>
+      [...el().querySelectorAll('tg-alert')].find((alert) => alert.textContent?.includes('Dados salvos.'));
+
+    it('aparece quando o PATCH deu certo e o GET também', async () => {
+      await open({ [PROFILE_SAVED_STATE]: true });
+      expect(savedAlert()).toBeUndefined(); // ainda carregando
+      await respond(CUSTOMER);
+      expect(savedAlert()).toBeTruthy();
+      expect(text()).toContain('Ana Souza');
+    });
+
+    it('não aparece junto com a falha do GET (500); volta quando os dados carregam', async () => {
+      await open({ [PROFILE_SAVED_STATE]: true });
+      await respond('error');
+      expect(text()).toContain('Não foi possível carregar seus dados');
+      expect(savedAlert()).toBeUndefined();
+
+      [...el().querySelectorAll('button')].find((b) => b.textContent?.includes('Tentar de novo'))!.click();
+      harness.detectChanges();
+      await respond(CUSTOMER);
+      expect(savedAlert()).toBeTruthy();
+    });
+
+    it('não aparece com a sessão vencida (401)', async () => {
+      await open({ [PROFILE_SAVED_STATE]: true });
+      await respond(401);
+      expect(text()).toContain('Sua sessão expirou');
+      expect(text()).toContain('Entrar de novo');
+      expect(savedAlert()).toBeUndefined();
+    });
+
+    it('não aparece numa navegação comum', async () => {
+      await open();
+      await respond(CUSTOMER);
+      expect(savedAlert()).toBeUndefined();
+    });
+
+    it('fechada, some e não volta ao recarregar a tela', async () => {
+      await open({ [PROFILE_SAVED_STATE]: true });
+      await respond(CUSTOMER);
+      savedAlert()!.querySelector<HTMLButtonElement>('.tg-alert__close')!.click();
+      harness.detectChanges();
+      await harness.fixture.whenStable();
+      expect(page().saved()).toBeFalse();
+      expect(savedAlert()).toBeUndefined();
+
+      page().reload();
+      await respond(CUSTOMER);
+      expect(savedAlert()).toBeUndefined();
+    });
+
+    it('não passa para outra conta que entre na sessão', async () => {
+      await open({ [PROFILE_SAVED_STATE]: true });
+      await respond(CUSTOMER);
+      expect(savedAlert()).toBeTruthy();
+
+      session.set({ user: { id: '43', type: 'CLIENTE', name: 'Bruno Lima' } });
+      harness.detectChanges();
+      await harness.fixture.whenStable();
+      const request = http.expectOne(environment.url + '/user/43');
+      request.flush({ ...CUSTOMER, id: '43', name: 'Bruno Lima' });
+      harness.detectChanges();
+      await harness.fixture.whenStable();
+      expect(text()).toContain('Bruno Lima');
+      expect(savedAlert()).toBeUndefined();
+    });
+  });
 });

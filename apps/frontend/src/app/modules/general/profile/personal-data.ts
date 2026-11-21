@@ -72,10 +72,46 @@ export function draftFrom(profile: PublicUserProfile): PersonalDataDraft {
   };
 }
 
+/** Uma parte do domínio, como o `isFQDN` do validator (sem sublinhado e sem hífen nas pontas). */
+const DOMAIN_LABEL = /^[a-z\u00a1-\uffff0-9-]+$/i;
+const DOMAIN_TLD = /^([a-z\u00A1-\u00A8\u00AA-\uD7FF\uF900-\uFDCF\uFDF0-\uFFEF]{2,}|xn[a-z0-9-]{2,})$/i;
+const EMAIL_USER_PART = /^[a-z\d!#$%&'*+\-/=?^_`{|}~\u00A1-\uD7FF\uF900-\uFDCF\uFDF0-\uFFEF]+$/i;
+const EMAIL_QUOTED_USER =
+  /^([\s\x01-\x08\x0b\x0c\x0e-\x1f\x7f\x21\x23-\x5b\x5d-\x7e\u00A0-\uD7FF\uF900-\uFDCF\uFDF0-\uFFEF]|(\\[\x01-\x09\x0b\x0c\x0d-\x7f\u00A0-\uD7FF\uF900-\uFDCF\uFDF0-\uFFEF]))*$/i;
+const byteLength = (value: string) => new TextEncoder().encode(value).length;
+
+/**
+ * O e-mail que o PATCH /user/:id aceita. A API confere duas vezes: o
+ * `@IsEmail()` do `UpdateUserDto` (class-validator, `isEmail` do validator
+ * com as opções padrão) e o `Email.isValid` do domínio, a mesma expressão do
+ * login. Só a expressão deixaria passar, por exemplo, `ana@empresa.c`,
+ * `ana..souza@empresa.com` e `ana@empresa-.com`, que a API recusa. Aqui ficam
+ * as regras do `isEmail` padrão: até 254 caracteres, usuário até 64 bytes,
+ * domínio com terminação de letras (2 ou mais), partes até 63 caracteres,
+ * sem sublinhado nem hífen nas pontas, e usuário sem ponto nas pontas nem
+ * ponto duplo.
+ */
+export function isApiEmail(email: string): boolean {
+  if (!EMAIL_PATTERN.test(email) || email.length > 254) return false;
+  const at = email.lastIndexOf('@');
+  const user = email.slice(0, at);
+  const domain = email.slice(at + 1);
+  if (byteLength(user) > 64 || byteLength(domain) > 254) return false;
+
+  const labels = domain.split('.');
+  if (labels.length < 2 || !DOMAIN_TLD.test(labels[labels.length - 1])) return false;
+  const validLabel = (label: string) =>
+    label.length <= 63 && DOMAIN_LABEL.test(label) && !/[\uff01-\uff5e]/.test(label) && !/^-|-$/.test(label);
+  if (!labels.every(validLabel)) return false;
+
+  if (user.startsWith('"') && user.endsWith('"')) return EMAIL_QUOTED_USER.test(user.slice(1, -1));
+  return user.split('.').every((part) => EMAIL_USER_PART.test(part));
+}
+
 /**
  * Os erros de cada campo, com o texto que diz como corrigir. O que passa
- * aqui a API aceita: nome até 150 caracteres, e-mail com a mesma expressão
- * de `Email.isValid`, telefone com 10 a 13 dígitos (`Phone.isValid`) e foto
+ * aqui a API aceita: nome até 150 caracteres, e-mail que passa no
+ * `@IsEmail()` e no `Email.isValid` (`isApiEmail`), telefone com 10 a 13 dígitos (`Phone.isValid`) e foto
  * até 2048 caracteres. Nome obrigatório e foto só em HTTPS são regras da
  * tela, que já existiam.
  */
@@ -86,7 +122,7 @@ export function validatePersonalData(draft: PersonalDataDraft): PersonalDataErro
   const photo = draft.photoUrl.trim();
   return {
     name: !name ? 'Informe seu nome.' : name.length > NAME_MAX ? `Use até ${NAME_MAX} caracteres.` : '',
-    email: !email ? 'Informe seu e-mail.' : EMAIL_PATTERN.test(email) ? '' : 'Informe um e-mail válido, como nome@email.com.',
+    email: !email ? 'Informe seu e-mail.' : isApiEmail(email) ? '' : 'Informe um e-mail válido, como nome@email.com.',
     phone: !phone
       ? 'Informe o telefone com DDD.'
       : phone.length < PHONE_MIN_DIGITS || phone.length > PHONE_MAX_DIGITS || /[^\d\s()+.-]/.test(draft.phone)
