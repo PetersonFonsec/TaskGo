@@ -1,1 +1,139 @@
-<app-list-card-address class="address_container" [userId]="user.id" />
+<section class="addresses" aria-labelledby="addresses-title">
+  <header class="addresses__header">
+    <div>
+      <h2 id="addresses-title" class="addresses__title">Endereços</h2>
+      <p class="addresses__lead">{{ lead() }}</p>
+    </div>
+    @if (showAdd()) {
+      <button tgButton type="button" size="sm" iconStart="plus" (click)="openForm()">Adicionar endereço</button>
+    }
+  </header>
+
+  <div class="addresses__status" role="status">
+    @if (message(); as text) {
+      <tg-alert tone="success" dismissible (closed)="message.set('')">{{ text }}</tg-alert>
+    }
+  </div>
+
+  @if (loadError()) {
+    <tg-alert tone="danger" title="Não foi possível carregar seus endereços">
+      Verifique sua conexão e tente de novo.
+      <button tgButton tgAlertAction type="button" appearance="outline" size="sm" (click)="load()">Tentar de novo</button>
+    </tg-alert>
+  } @else {
+    <tg-loading label="Carregando seus endereços" [loading]="loading()">
+      <ng-template tgLoadingSkeleton>
+        <div class="addresses__list">
+          @for (i of [1, 2]; track i) {
+            <tg-card>
+              <div class="addresses__skeleton">
+                <tg-skeleton width="40%" height="20" />
+                <tg-skeleton [lines]="2" />
+                <tg-skeleton width="30%" />
+              </div>
+            </tg-card>
+          }
+        </div>
+      </ng-template>
+
+      @if (count()) {
+        <ul class="addresses__list">
+          @for (item of addresses(); track item.id) {
+            <li>
+              <tg-card class="address">
+                <div class="address__head">
+                  <span class="address__icon"><tg-icon [name]="item.isDefault ? 'house' : 'map-pin'" [size]="20" /></span>
+                  <h3 class="address__label" [id]="'address-' + item.id">{{ item.label || 'Endereço' }}</h3>
+                  @if (item.isDefault) {
+                    <tg-badge>Principal</tg-badge>
+                  }
+                </div>
+                <div class="address__body">
+                  <p class="address__street">{{ item.street }}, {{ item.number }}</p>
+                  @if (item.complement) {
+                    <p class="address__line">{{ item.complement }}</p>
+                  }
+                  @if (place(item); as where) {
+                    <p class="address__line">{{ where }}</p>
+                  }
+                  @if (item.cep) {
+                    <p class="address__line">CEP {{ formatCep(item.cep) }}</p>
+                  }
+                </div>
+                <div class="address__actions">
+                  <button
+                    tgButton
+                    type="button"
+                    appearance="outline"
+                    size="sm"
+                    [attr.aria-describedby]="'address-' + item.id"
+                    (click)="openForm(item)"
+                  >
+                    Editar
+                  </button>
+                  <button
+                    tgButton
+                    type="button"
+                    appearance="ghost"
+                    tone="danger"
+                    size="sm"
+                    iconStart="trash"
+                    [attr.aria-describedby]="'address-' + item.id"
+                    (click)="askRemove(item)"
+                  >
+                    Remover
+                  </button>
+                </div>
+              </tg-card>
+            </li>
+          }
+        </ul>
+      } @else {
+        <tg-card>
+          <tg-empty-state icon="map-pin" title="Nenhum endereço cadastrado" [level]="3">
+            Adicione um endereço para encontrar e contratar serviços perto de você.
+            <button tgButton tgEmptyAction type="button" iconStart="plus" (click)="openForm()">Adicionar endereço</button>
+          </tg-empty-state>
+        </tg-card>
+      }
+    </tg-loading>
+  }
+</section>
+
+<tg-sheet #sheet [title]="editing() ? 'Editar endereço' : 'Adicionar endereço'" [busy]="saving()" (closed)="onSheetClosed()">
+  @if (formOpen()) {
+    <div class="addresses__form">
+      @if (saveError(); as text) {
+        <tg-alert tone="danger" title="Não deu para salvar">{{ text }}</tg-alert>
+      }
+      <app-address-form
+        [formId]="formId"
+        [initialAddress]="editing()"
+        [saving]="saving()"
+        (addressSubmit)="save($event)"
+      />
+    </div>
+  }
+  <button tgButton tgSheetAction type="button" appearance="outline" [disabled]="saving()" (click)="sheet.close()">
+    Cancelar
+  </button>
+  <button tgButton tgSheetAction type="submit" [attr.form]="formId" [loading]="saving()">Salvar endereço</button>
+</tg-sheet>
+
+<tg-dialog #removeDialog title="Remover este endereço?" icon="trash" tone="danger" [busy]="deleting()">
+  @if (removing(); as target) {
+    <p class="addresses__dialog-text">
+      <strong>{{ target.label || 'Endereço' }}</strong> ({{ target.street }}, {{ target.number }}) sai da sua lista de
+      endereços.
+    </p>
+  }
+  @if (removeError(); as text) {
+    <tg-alert tone="danger">{{ text }}</tg-alert>
+  }
+  <button tgButton tgDialogAction type="button" appearance="outline" [disabled]="deleting()" (click)="removeDialog.close()">
+    Voltar
+  </button>
+  <button tgButton tgDialogAction type="button" tone="danger" [loading]="deleting()" (click)="remove()">
+    Remover endereço
+  </button>
+</tg-dialog>
