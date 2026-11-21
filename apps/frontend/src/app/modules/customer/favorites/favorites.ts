@@ -1,112 +1,207 @@
-import { finalize } from 'rxjs';
-import { Component, inject, OnInit, signal } from '@angular/core';
 import { HttpErrorResponse } from '@angular/common/http';
-import { NgIf } from '@angular/common';
+import { ChangeDetectionStrategy, Component, computed, DestroyRef, inject, signal } from '@angular/core';
+import { takeUntilDestroyed, toObservable } from '@angular/core/rxjs-interop';
+import { RouterLink } from '@angular/router';
+import { catchError, EMPTY, map, of, startWith, Subject, type Subscription, switchMap } from 'rxjs';
 
+import { environment } from '@environments/environment';
+import { sessionUserId } from '@shared/guards/session-user/session-user.guard';
 import { Provider } from '@shared/service/provider/provider';
 import { UserLoggedService } from '@shared/service/user-logged/user-logged.service';
-import { environment } from '@environments/environment';
+import { TgAlertComponent } from '@shared/design-system/feedback/tg-alert.component';
+import { TgButtonComponent } from '@shared/design-system/button/tg-button.component';
+import { TgCardComponent } from '@shared/design-system/card/tg-card.component';
+import { TgEmptyStateComponent } from '@shared/design-system/empty-state/tg-empty-state.component';
+import { TgProviderCardComponent } from '@shared/design-system/provider-card/tg-provider-card.component';
+import { type TgProvider, toTgProvider } from '@shared/design-system/provider-card/tg-provider';
+import { TgLoadingComponent, TgLoadingSkeletonDirective } from '@shared/design-system/skeleton/tg-loading.component';
+import { TgSkeletonComponent } from '@shared/design-system/skeleton/tg-skeleton.component';
 
+/**
+ * Favoritos do cliente (Etapa 10): os profissionais salvos, com o card de
+ * prestador do Design System. Tirar o coração tira dos favoritos, mas o
+ * card fica na tela (com o coração vazio) até a pessoa sair, para desfazer
+ * com outro toque.
+ */
 @Component({
   selector: 'app-favorites',
-  standalone: true,
-  imports: [NgIf],
+  imports: [
+    RouterLink,
+    TgAlertComponent,
+    TgButtonComponent,
+    TgCardComponent,
+    TgEmptyStateComponent,
+    TgLoadingComponent,
+    TgLoadingSkeletonDirective,
+    TgProviderCardComponent,
+    TgSkeletonComponent,
+  ],
   templateUrl: './favorites.html',
   styleUrl: './favorites.scss',
+  changeDetection: ChangeDetectionStrategy.OnPush,
 })
-export class Favorites implements OnInit {
-  #userLoggedService = inject(UserLoggedService);
-  #provider = inject(Provider);
+export class Favorites {
+  readonly #provider = inject(Provider);
+  readonly #session = inject(UserLoggedService);
 
-  favoritesEnabled = environment.features?.favoritesMvp ?? false;
-  favoriteLoading = signal<Record<string, boolean>>({});
-  favoriteError = signal<Record<string, string>>({});
-  providers = signal<any[]>([]);
-  isLoading = signal(false);
+  readonly favoritesEnabled = environment.features?.favoritesMvp ?? false;
+  readonly searchLink = '/customer/search';
 
-  ngOnInit(): void {
-    const clientId = this.#userLoggedService.user().user?.id;
+  /** Id de quem está na sessão; muda com outra conta ou logout. */
+  readonly #clientId = computed(() => sessionUserId(this.#session.user()));
 
-    if (!this.favoritesEnabled || !clientId) {
-      return;
-    }
+  /** Os profissionais carregados, na ordem da API (o favorito mais recente primeiro). */
+  readonly providers = signal<TgProvider[]>([]);
+  /** Quantos favoritos a conta tem (a API pode mandar só os mais recentes). */
+  readonly total = signal(0);
+  readonly loading = signal(true);
+  readonly error = signal(false);
 
-    this.loadFavorites(String(clientId));
-  }
+  /** Estado do coração por profissional: true favorito, false tirado nesta visita. */
+  readonly favorite = signal<Readonly<Record<string, boolean>>>({});
+  /** Profissionais com a troca do coração em curso. */
+  readonly busy = signal<ReadonlySet<string>>(new Set());
+  readonly actionError = signal('');
 
-  isFavorite(providerId: any) {
-    return this.providers().some(provider => String(provider.id) === String(providerId));
-  }
+  readonly favoriteCount = computed(() => this.providers().filter((p) => this.favorite()[p.id] !== false).length);
+  readonly summary = computed(() => {
+    const count = this.favoriteCount();
+    const shown = `${count} ${count === 1 ? 'profissional salvo' : 'profissionais salvos'}`;
+    return this.total() > this.providers().length ? `${shown} · mostrando os ${this.providers().length} mais recentes` : shown;
+  });
 
-  isFavoriteLoading(providerId: any) {
-    return !!this.favoriteLoading()[String(providerId)];
-  }
+  readonly #loads = new Subject<void>();
+  readonly #requests = new Map<string, Subscription>();
 
-  favoriteErrorMessage(providerId: any) {
-    return this.favoriteError()[String(providerId)] ?? '';
-  }
-
-  toggleFavorite(providerId: any) {
-    if (!this.favoritesEnabled || this.isFavoriteLoading(providerId)) {
-      return;
-    }
-
-    const clientId = this.#userLoggedService.user().user?.id;
-    if (!clientId || !providerId) {
-      this.favoriteError.update((state) => ({
-        ...state,
-        [String(providerId)]: 'Não é possível atualizar favoritos no momento.'
-      }));
-      return;
-    }
-
-    const providerKey = String(providerId);
-    const currentlyFavorite = this.isFavorite(providerKey);
-
-    this.favoriteLoading.update((state) => ({
-      ...state,
-      [providerKey]: true
-    }));
-    this.favoriteError.update((state) => ({
-      ...state,
-      [providerKey]: ''
-    }));
-
-    const request = currentlyFavorite
-      ? this.#provider.removeFavorite(String(clientId), providerKey)
-      : this.#provider.addFavorite(String(clientId), providerKey);
-
-    request.pipe(finalize(() => {
-      this.favoriteLoading.update((state) => {
-        const nextState = { ...state };
-        delete nextState[providerKey];
-        return nextState;
-      });
-    })).subscribe({
-      next: () => {
-        if (currentlyFavorite) {
-          this.providers.update((items) => items.filter((provider) => String(provider.id) !== providerKey));
+  constructor() {
+    // Uma carga por sessão: outra conta ou logout cancelam a consulta e as
+    // trocas em curso e limpam a lista na hora.
+    toObservable(this.#clientId)
+      .pipe(
+        switchMap((clientId) => {
+          this.#reset();
+          if (!this.favoritesEnabled) {
+            this.loading.set(false);
+            return EMPTY;
+          }
+          if (!clientId) {
+            this.error.set(true);
+            this.loading.set(false);
+            return EMPTY;
+          }
+          return this.#loads.pipe(
+            startWith(undefined),
+            switchMap(() => {
+              this.loading.set(true);
+              this.error.set(false);
+              return this.#provider.listFavorites(clientId).pipe(
+                map((response: unknown) => ({ ok: true as const, ...parseFavorites(response) })),
+                catchError(() => of({ ok: false as const })),
+              );
+            }),
+          );
+        }),
+        takeUntilDestroyed(),
+      )
+      .subscribe((result) => {
+        if (result.ok) {
+          this.providers.set(result.providers);
+          this.total.set(result.total);
+          this.favorite.set(Object.fromEntries(result.providers.map((p) => [p.id, true])));
+        } else {
+          this.providers.set([]);
+          this.error.set(true);
         }
-      },
-      error: (error: HttpErrorResponse) => {
-        this.favoriteError.update((state) => ({
-          ...state,
-          [providerKey]: error.error?.message || 'Erro ao atualizar favoritos.'
-        }));
-      }
+        this.loading.set(false);
+      });
+
+    inject(DestroyRef).onDestroy(() => this.#cancelRequests());
+  }
+
+  /** "Tentar de novo". */
+  load(): void {
+    this.#loads.next();
+  }
+
+  /**
+   * O coração do card: tira ou devolve aos favoritos. Um pedido por
+   * profissional por vez (outro toque enquanto corre é ignorado); cada um
+   * solta só o próprio estado.
+   */
+  toggle(providerId: string, next: boolean): void {
+    const clientId = this.#clientId();
+    if (!clientId || this.busy().has(providerId)) return;
+    this.actionError.set('');
+    this.#setBusy(providerId, true);
+    const request = (next ? this.#provider.addFavorite(clientId, providerId) : this.#provider.removeFavorite(clientId, providerId))
+      .subscribe({
+        next: () => this.favorite.update((state) => ({ ...state, [providerId]: next })),
+        error: (error: unknown) => {
+          this.#done(providerId);
+          this.actionError.set(
+            apiMessage(error) ?? (next ? 'Não foi possível salvar o favorito. Tente de novo.' : 'Não foi possível tirar dos favoritos. Tente de novo.'),
+          );
+        },
+        complete: () => this.#done(providerId),
+      });
+    if (!request.closed) this.#requests.set(providerId, request);
+  }
+
+  #done(providerId: string): void {
+    this.#requests.delete(providerId);
+    this.#setBusy(providerId, false);
+  }
+
+  #setBusy(providerId: string, value: boolean): void {
+    this.busy.update((ids) => {
+      const next = new Set(ids);
+      if (value) next.add(providerId);
+      else next.delete(providerId);
+      return next;
     });
   }
 
-  private loadFavorites(clientId: string) {
-    this.isLoading.set(true);
-    this.#provider.listFavorites(clientId).subscribe({
-      next: (response: any) => {
-        const items = response?.items ?? [];
-        const providers = (items as any[]).map((item) => item.provider ?? item);
-        this.providers.set(providers);
-      },
-      complete: () => this.isLoading.set(false),
-      error: () => this.isLoading.set(false),
-    });
+  #cancelRequests(): void {
+    for (const request of this.#requests.values()) request.unsubscribe();
+    this.#requests.clear();
   }
+
+  #reset(): void {
+    this.#cancelRequests();
+    this.busy.set(new Set());
+    this.actionError.set('');
+    this.providers.set([]);
+    this.favorite.set({});
+    this.total.set(0);
+    this.loading.set(true);
+    this.error.set(false);
+  }
+}
+
+/** A lista da API (`{ items: [{ provider }], total }`) em cards; sem id válido, o profissional fica de fora. */
+function parseFavorites(response: unknown): { providers: TgProvider[]; total: number } {
+  const body = response && typeof response === 'object' ? (response as Record<string, unknown>) : {};
+  const items = Array.isArray(body['items']) ? body['items'] : Array.isArray(response) ? response : [];
+  const seen = new Set<string>();
+  const providers: TgProvider[] = [];
+  for (const item of items) {
+    const source = item && typeof item === 'object' && 'provider' in item ? item.provider : item;
+    const card = toTgProvider(source);
+    if (card && !seen.has(card.id)) {
+      seen.add(card.id);
+      providers.push(card);
+    }
+  }
+  const total = typeof body['total'] === 'number' && Number.isFinite(body['total']) ? Math.max(body['total'], providers.length) : providers.length;
+  return { providers, total };
+}
+
+function apiMessage(error: unknown): string | null {
+  if (!(error instanceof HttpErrorResponse)) return null;
+  const body: unknown = error.error;
+  if (body && typeof body === 'object' && 'message' in body) {
+    const message: unknown = body.message;
+    if (typeof message === 'string' && message.trim()) return message.trim();
+  }
+  return null;
 }

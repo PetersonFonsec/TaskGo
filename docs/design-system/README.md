@@ -40,8 +40,10 @@ Ionic) continuam valendo até a migração tela a tela.
 | 10 | Busca de profissionais (web) | Concluído (PR #35) |
 | 10 | Entrar, recuperar acesso e Criar conta (web) | Concluído (PR #37) |
 | 10 | Passos do cadastro e conta criada (web) | Concluído (PR #38) |
-| 10 | Shell logado: topo, abas, conta e rodapé (web) | Este PR |
-| 10 | Pedidos (web) | Este PR |
+| 10 | Shell logado: topo, abas, conta e rodapé (web) | Concluído (PR #41) |
+| 10 | Pedidos (web) | Concluído (PR #41) |
+| 10 | Favoritos (web) | Este PR |
+| 10 | Meus serviços (web) | Este PR |
 
 Atributos de marca: próximo, confiável, direto e caloroso sem ser infantil.
 
@@ -757,6 +759,66 @@ Regras:
   da sessão, a URL é corrigida para o da sessão, mantendo a aba. A
   autorização real é do backend.
 - No desktop, a tela tem até 880 px, centralizada.
+
+#### Favoritos (web)
+
+Os profissionais que o cliente salvou, em `/customer/favorites`, com o
+`tg-provider-card` da busca (`toTgProvider`, sem distância, que a lista não
+traz). Título "Favoritos" e, abaixo, a contagem ("4 profissionais salvos").
+Story: **Telas/Favoritos**.
+
+Decisões aprovadas: (1) tirar o coração tira dos favoritos, mas o card fica
+na tela com o coração vazio até a pessoa sair, e outro toque devolve; (2) a
+API devolve só os 20 mais recentes: com mais, a contagem diz "mostrando os
+20 mais recentes" (paginação na #51).
+
+Regras:
+
+- Uma coluna no celular, duas a partir de 720 px e três a partir de 1040 px
+  de largura da tela (container query), até 1120 px. O favorito mais recente
+  primeiro, na ordem da API; o card leva ao perfil (`/customer/:id`).
+- O telefone saiu: a API pública do profissional não o traz.
+- Coração: um pedido por profissional por vez; cada um solta só o próprio
+  estado. Falha: alerta de perigo com o motivo da API, e o coração volta ao
+  que era.
+- Carregando: skeleton dos cards. Sem favoritos: `tg-empty-state` "Nenhum
+  favorito ainda", com "Buscar profissionais". Falha: alerta com "Tentar de
+  novo". Flag de favoritos desligada: estado vazio "Favoritos ainda não está
+  disponível".
+- A lista acompanha a sessão: outra conta ou logout cancelam a consulta e
+  as trocas em curso e limpam a lista na hora.
+
+#### Meus serviços (web)
+
+Os serviços do profissional, em `/provider/services`, dentro do shell logado
+com o tema do prestador. Título "Meus serviços" e o botão "Novo serviço".
+Story: **Telas/Meus serviços**. Endpoints e payload sem mudança:
+`GET /services/mine`, `POST /services`, `PATCH /services/:id` e
+`DELETE /services/:id` (desativar).
+
+Decisões aprovadas: (1) cada serviço é um `tg-card` com nome, selo Ativo ou
+Inativo, categoria, descrição em até 2 linhas, dias e horário ("Seg a Sex ·
+09:00 às 17:00 · 60 min"), preço fixo e as ações Desativar e Editar;
+(2) Novo serviço e Editar abrem o formulário num `tg-sheet` (painel lateral
+no desktop, folha de baixo no celular); (3) Desativar pede confirmação num
+`tg-dialog` de perigo; (4) o aviso de aprovação do perfil está só no estado
+vazio; (5) o preço aceita vírgula ("120,00" ou "1.250,50"), com "R$" na frente.
+
+Regras:
+
+- Uma coluna no celular e duas a partir de 720 px de largura da tela, até
+  1120 px. Desativar aparece só em serviços ativos; para reativar, Editar e
+  ligar "Disponível para pedidos".
+- Dias de atendimento são botões com `aria-pressed`; um horário e uma
+  duração valem para todos os dias marcados (fuso de São Paulo).
+- Os erros aparecem ao tentar salvar, abaixo de cada campo, com o ícone de
+  alerta: nome com 3 a 120 letras, categoria, preço entre R$ 0,01 e
+  R$ 100.000, pelo menos um dia e fim depois do início.
+- Salvando: o painel não fecha e o botão mostra carregando; um envio por vez.
+  Falha: alerta no painel com o motivo da API, e o formulário fica como
+  estava. Sucesso: o painel fecha, a mensagem aparece numa região de status
+  e a lista recarrega.
+- Carregando: skeleton dos cards. Falha: alerta com "Tentar de novo".
 
 ### Abas
 
