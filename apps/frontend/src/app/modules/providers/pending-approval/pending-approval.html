@@ -1,146 +1,236 @@
-<main id="provider-pending-approval">
-  @if (loading()) {
-    <div class="state" aria-live="polite">
-      <span class="spinner" aria-hidden="true"></span>
-      <strong>Carregando solicitação…</strong>
-    </div>
-  } @else if (loadError()) {
-    <div class="state" role="alert">
-      <h1 class="subtitle">Ops, algo deu errado</h1>
-      <p class="text">{{ loadError() }}</p>
-      <div class="actions">
-        <app-button color="light" (click)="goToHome()">Voltar</app-button>
-        <app-button (click)="load()">Tentar novamente</app-button>
-      </div>
-    </div>
-  } @else if (order(); as current) {
-    <header class="header">
-      <p class="eyebrow">
-        Nova solicitação · recebida {{ receivedAgo(current.schedule.requestedAt) }}
-      </p>
-      <h1 class="main-title">{{ current.service.title }}</h1>
-      <p class="text muted">{{ current.service.category }} · Cliente: {{ current.client.name }}</p>
-    </header>
+<div id="provider-pending-approval" class="approval">
+  <a class="approval__back" routerLink="/provider">
+    <tg-icon name="arrow-left" [size]="20" />
+    Voltar ao início
+  </a>
 
-    @if (!awaitingApproval()) {
-      <p class="notice" role="status">
-        Esta solicitação já foi respondida.
-        <a [routerLink]="['/orders', current.id]">Ver detalhes do pedido</a>
-      </p>
-    }
+  @if (loadError() === 'notFound') {
+    <tg-alert tone="danger" title="Esta solicitação não foi encontrada">
+      Confira o link ou volte ao início para ver suas solicitações.
+    </tg-alert>
+  } @else if (loadError() === 'failed') {
+    <tg-alert tone="danger" title="Não foi possível carregar a solicitação">
+      Verifique sua conexão e tente de novo.
+      <button tgButton tgAlertAction type="button" appearance="outline" size="sm" (click)="load()">
+        Tentar de novo
+      </button>
+    </tg-alert>
+  } @else {
+    <tg-loading label="Carregando a solicitação" [loading]="loading()">
+      <ng-template tgLoadingSkeleton>
+        <div class="approval__skeleton">
+          <tg-skeleton width="45%" />
+          <tg-skeleton width="70%" height="36" />
+          <tg-skeleton width="40%" />
+          <tg-card>
+            <div class="approval__skeleton-card">
+              <tg-skeleton width="30%" />
+              <tg-skeleton [lines]="3" />
+            </div>
+          </tg-card>
+          <tg-card>
+            <div class="approval__skeleton-card">
+              <tg-skeleton width="25%" />
+              <tg-skeleton [lines]="2" />
+            </div>
+          </tg-card>
+        </div>
+      </ng-template>
 
-    <section class="card" aria-labelledby="pending-schedule-title">
-      <h2 class="subtitle" id="pending-schedule-title">Quando e onde</h2>
-      <dl>
-        <div>
-          <dt>Data</dt>
-          <dd>{{ formatDate(current.schedule.scheduledFor) }}</dd>
-        </div>
-        <div>
-          <dt>Horário</dt>
-          <dd>
-            {{ formatTimeRange(current.schedule.scheduledFor, current.schedule.scheduledEnd) }}
-          </dd>
-        </div>
-        <div class="wide">
-          <dt>Endereço do atendimento</dt>
-          <dd>{{ streetLine(current) }}</dd>
-          @if (regionLine(current)) {
-            <span>{{ regionLine(current) }}</span>
+      @if (order(); as current) {
+        <div class="approval__content">
+          <header class="approval__header">
+            <p class="approval__eyebrow">
+              {{ order()?.status === 'AGUARDANDO_APROVACAO' ? 'Nova solicitação' : 'Solicitação' }}
+              @if (receivedAgo(current.schedule.requestedAt); as ago) {
+                · recebida {{ ago }}
+              }
+            </p>
+            <h1 class="approval__title">{{ current.service.title }}</h1>
+            <p class="approval__lead">{{ current.service.category }} · Cliente: {{ current.client.name }}</p>
+          </header>
+
+          @if (outcome(); as result) {
+            <tg-alert class="approval__outcome" [tone]="result.tone" [title]="result.title">
+              {{ result.body }}
+              @if (result.reason) {
+                <span class="approval__reason">Motivo: {{ result.reason }}</span>
+              }
+              @if (result.note) {
+                <span class="approval__quote">“{{ result.note }}”</span>
+              }
+              <a tgButton tgAlertAction appearance="outline" size="sm" [routerLink]="['/orders', current.id]">
+                Ver detalhes do pedido
+              </a>
+            </tg-alert>
           }
-          @if (current.distanceKm != null) {
-            <span class="distance"
-              >≈ {{ formatDistance(current.distanceKm) }} da sua área de atendimento</span
-            >
+
+          @if (expiry(); as notice) {
+            <tg-alert tone="warning" [title]="notice.title">{{ notice.body }}</tg-alert>
           }
-        </div>
-      </dl>
-    </section>
 
-    <section class="card" aria-labelledby="pending-values-title">
-      <h2 class="subtitle" id="pending-values-title">Valores</h2>
-      <dl>
-        <div>
-          <dt>Valor do serviço</dt>
-          <dd>{{ formatMoney(serviceAmount()) }}</dd>
-        </div>
-        @if (current.providerEarnings; as earnings) {
-          <div>
-            <dt>Taxa da plataforma ({{ formatPercent(earnings.feePct) }})</dt>
-            <dd>− {{ formatMoney(earnings.feeAmount) }}</dd>
-          </div>
-          <div class="wide net">
-            <dt>Você recebe (estimado)</dt>
-            <dd>{{ formatMoney(earnings.netAmount) }}</dd>
-            <span>Estimativa; muda se o valor final do serviço for ajustado.</span>
-          </div>
-        }
-      </dl>
-    </section>
+          <tg-card>
+            <section class="approval__section" aria-labelledby="pending-schedule-title">
+              <h2 class="approval__card-title" id="pending-schedule-title">Quando e onde</h2>
+              <dl class="approval__list">
+                <div>
+                  <dt>Data</dt>
+                  <dd>{{ formatDate(current.schedule.scheduledFor) }}</dd>
+                </div>
+                <div>
+                  <dt>Horário</dt>
+                  <dd>
+                    {{ formatTimeRange(current.schedule.scheduledFor, current.schedule.scheduledEnd) }}
+                  </dd>
+                </div>
+                <div class="approval__wide">
+                  <dt>Endereço do atendimento</dt>
+                  <dd>{{ streetLine(current) }}</dd>
+                  @if (regionLine(current); as region) {
+                    <dd class="approval__detail">{{ region }}</dd>
+                  }
+                  @if (current.distanceKm != null) {
+                    <dd class="approval__distance">
+                      <tg-icon name="map-pin" [size]="16" />
+                      ≈ {{ formatDistance(current.distanceKm) }} da sua área de atendimento
+                    </dd>
+                  }
+                </div>
+              </dl>
+            </section>
+          </tg-card>
 
-    @if (awaitingApproval()) {
-      @if (declining()) {
-        <section class="card" aria-labelledby="pending-decline-title">
-          <h2 class="subtitle" id="pending-decline-title">Por que você vai recusar?</h2>
-          <p class="text muted">O cliente verá o motivo nos detalhes do pedido.</p>
-          <fieldset>
-            <legend class="sr-only">Motivo da recusa</legend>
-            @for (option of reasons; track option.value) {
-              <label class="reason">
-                <input
-                  type="radio"
-                  name="decline-reason"
-                  [value]="option.value"
-                  [checked]="reason() === option.value"
-                  (change)="reason.set(option.value)"
-                />
-                {{ option.label }}
-              </label>
+          <tg-card>
+            <section class="approval__section" aria-labelledby="pending-values-title">
+              <h2 class="approval__card-title" id="pending-values-title">Valores</h2>
+              <dl class="approval__list">
+                <div>
+                  <dt>Valor do serviço</dt>
+                  <dd>{{ formatMoney(serviceAmount()) }}</dd>
+                </div>
+                @if (current.providerEarnings; as earnings) {
+                  <div>
+                    <dt>Taxa da plataforma ({{ formatPercent(earnings.feePct) }})</dt>
+                    <dd>− {{ formatMoney(earnings.feeAmount) }}</dd>
+                  </div>
+                  <div class="approval__wide approval__net">
+                    <dt>Você recebe (estimado)</dt>
+                    <dd class="approval__net-value">{{ formatMoney(earnings.netAmount) }}</dd>
+                    <dd class="approval__detail">Estimativa; muda se o valor final do serviço for ajustado.</dd>
+                  </div>
+                }
+              </dl>
+            </section>
+          </tg-card>
+
+          @if (awaitingApproval()) {
+            @if (acceptError(); as error) {
+              <tg-alert tone="danger" [title]="error.title">
+                {{ error.body }}
+                @if (error.stale) {
+                  <button tgButton tgAlertAction type="button" appearance="outline" size="sm" (click)="refresh()">
+                    Atualizar
+                  </button>
+                }
+              </tg-alert>
             }
-          </fieldset>
-          @if (reason() === 'OTHER') {
-            <label class="note">
-              Conte mais (opcional)
-              <textarea
-                [maxLength]="noteMaxLength"
-                [value]="note()"
-                (input)="onNoteInput($event)"
-                rows="3"
-              ></textarea>
-              <small>{{ note().length }}/{{ noteMaxLength }}</small>
-            </label>
+
+            <div class="approval__actions">
+              <button
+                tgButton
+                type="button"
+                appearance="outline"
+                [disabled]="submitting() === 'accept'"
+                (click)="openDecline()"
+              >
+                Recusar
+              </button>
+              <button tgButton type="button" [loading]="submitting() === 'accept'" (click)="accept()">
+                Aceitar serviço
+              </button>
+            </div>
           }
-        </section>
+        </div>
       }
-
-      @if (actionError()) {
-        <p class="error" role="alert">{{ actionError() }}</p>
-      }
-
-      <footer class="actions">
-        @if (declining()) {
-          <app-button color="light" [disabled]="submitting()" (click)="closeDecline()"
-            >Voltar</app-button
-          >
-          <app-button [disabled]="submitting() || !reason()" (click)="decline()">
-            {{ submitting() ? 'Enviando…' : 'Confirmar recusa' }}
-          </app-button>
-        } @else {
-          <app-button color="light" [disabled]="submitting()" (click)="openDecline()"
-            >Recusar</app-button
-          >
-          <app-button [disabled]="submitting()" (click)="confirm()">
-            {{ submitting() ? 'Enviando…' : 'Aceitar serviço' }}
-          </app-button>
-        }
-      </footer>
-    }
+    </tg-loading>
   }
-</main>
+</div>
 
-<app-full-modal
-  (closeModal)="goToHome()"
-  [showModal]="showModal()"
-  [title]="modalTitle()"
-  [message]="modalMessage()"
-/>
+<tg-dialog
+  #declineDialog
+  title="Recusar esta solicitação?"
+  icon="warning-circle"
+  tone="danger"
+  [busy]="submitting() === 'decline'"
+>
+  <p class="approval__dialog-text">
+    {{ order()?.client?.name || 'O cliente' }} recebe o aviso com o motivo. A recusa não pode ser desfeita.
+  </p>
+  @if (declineError(); as error) {
+    <tg-alert class="approval__dialog-alert" tone="danger" [title]="error.title">
+      {{ error.body }}
+      @if (error.stale) {
+        <button tgButton tgAlertAction type="button" appearance="outline" size="sm" (click)="refresh()">
+          Atualizar
+        </button>
+      }
+    </tg-alert>
+  }
+  <fieldset class="approval__reasons" [attr.aria-describedby]="reasonError() ? 'decline-reason-error' : null">
+    <legend class="approval__legend">Motivo da recusa</legend>
+    @for (option of reasons; track option.value) {
+      <label tgCard dense indicator="control" class="approval__reason-option">
+        <input
+          type="radio"
+          name="decline-reason"
+          [value]="option.value"
+          [checked]="reason() === option.value"
+          [disabled]="submitting() === 'decline' && reason() !== option.value"
+          (change)="chooseReason(option.value)"
+        />
+        <span>{{ option.label }}</span>
+      </label>
+    }
+    <!-- Sempre presente: o aria-live anuncia o erro quando ele aparece. -->
+    <div class="approval__reason-message" aria-live="polite">
+      @if (reasonError(); as message) {
+        <p class="approval__reason-error" id="decline-reason-error">
+          <tg-icon name="warning-circle" [size]="16" />
+          {{ message }}
+        </p>
+      }
+    </div>
+  </fieldset>
+  @if (reason() === 'OTHER') {
+    <tg-field label="Conte mais" optional [hint]="note().length + '/' + noteMaxLength + ' caracteres'">
+      <textarea
+        tgInput
+        rows="3"
+        [maxLength]="noteMaxLength"
+        [value]="note()"
+        [disabled]="submitting() === 'decline'"
+        (input)="onNoteInput($event)"
+      ></textarea>
+    </tg-field>
+  }
+  <button
+    tgButton
+    tgDialogAction
+    type="button"
+    appearance="outline"
+    [disabled]="submitting() === 'decline'"
+    (click)="closeDecline()"
+  >
+    Voltar
+  </button>
+  <button
+    tgButton
+    tgDialogAction
+    type="button"
+    tone="danger"
+    [loading]="submitting() === 'decline'"
+    (click)="decline()"
+  >
+    Recusar solicitação
+  </button>
+</tg-dialog>
