@@ -2,7 +2,7 @@ import { ChangeDetectionStrategy, Component, computed, DestroyRef, ElementRef, i
 import { takeUntilDestroyed, toObservable } from '@angular/core/rxjs-interop';
 import { FormsModule } from '@angular/forms';
 import { Router, RouterLink } from '@angular/router';
-import { combineLatest, of, startWith, Subject, switchMap } from 'rxjs';
+import { combineLatest, of, startWith, Subject, type Subscription, switchMap } from 'rxjs';
 import type { PublicUserProfile } from '@taskgo/shared';
 
 import { sessionUserId } from '@shared/guards/session-user/session-user.guard';
@@ -68,6 +68,8 @@ export class ProfileEdit {
   readonly #token = inject(TokenService);
   readonly #destroyRef = inject(DestroyRef);
   readonly #reloads = new Subject<void>();
+  /** O PATCH em curso e a conta que o pediu. */
+  #pendingSave: { userId: string; request?: Subscription } | null = null;
 
   readonly nameMax = NAME_MAX;
   readonly photoUrlMax = PHOTO_URL_MAX;
@@ -130,6 +132,8 @@ export class ProfileEdit {
         takeUntilDestroyed(),
       )
       .subscribe((state) => {
+        // Outra conta na sessão: o salvamento da anterior não fala mais com esta tela.
+        if (this.#pendingSave && this.#pendingSave.userId !== this.userId()) this.#dropSave();
         this.state.set(state);
         if (state.status === 'ready') this.#fill(state.profile);
       });
@@ -173,20 +177,37 @@ export class ProfileEdit {
     }
 
     this.saving.set(true);
-    this.#users
+    // A resposta só vale para a conta que salvou: se a sessão trocar antes,
+    // nada da conta anterior chega à sessão, à tela ou à navegação.
+    const pending: { userId: string; request?: Subscription } = { userId };
+    this.#pendingSave = pending;
+    const current = () => this.#pendingSave === pending && this.userId() === userId;
+    pending.request = this.#users
       .updateUser(userId, changes)
       .pipe(takeUntilDestroyed(this.#destroyRef))
       .subscribe({
         next: (saved) => {
+          if (!current()) return this.#dropSave(pending);
+          this.#pendingSave = null;
           this.saving.set(false);
           this.#syncSession(saved);
           void this.#router.navigate(this.viewLink(), { state: { [PROFILE_SAVED_STATE]: true } });
         },
         error: (error: unknown) => {
+          if (!current()) return this.#dropSave(pending);
+          this.#pendingSave = null;
           this.saving.set(false);
           this.saveError.set(saveErrorMessage(error));
         },
       });
+  }
+
+  /** Para de ouvir o PATCH da conta anterior e solta o botão (`only`: só se ainda for este). */
+  #dropSave(only?: { userId: string; request?: Subscription }): void {
+    if (only && this.#pendingSave !== only) return;
+    this.#pendingSave?.request?.unsubscribe();
+    this.#pendingSave = null;
+    this.saving.set(false);
   }
 
   #fill(profile: PublicUserProfile): void {

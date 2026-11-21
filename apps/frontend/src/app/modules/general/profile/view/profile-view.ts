@@ -75,8 +75,12 @@ export class ProfileView {
     return state.status === 'error' ? state.error : null;
   });
 
-  /** Vindo da edição com os dados salvos. */
+  /**
+   * Vindo da edição com os dados salvos. Só aparece com os dados carregados
+   * (nunca ao lado de um erro de carregamento) e só para a conta que salvou.
+   */
   readonly saved = signal(this.#router.currentNavigation()?.extras.state?.[PROFILE_SAVED_STATE] === true);
+  readonly #savedFor = this.userId();
 
   readonly role = computed(() => profileRole(this.profile()?.type));
   readonly roleLabel = computed(() => ({ provider: 'Profissional', customer: 'Cliente', unknown: 'Conta' })[this.role()]);
@@ -133,7 +137,10 @@ export class ProfileView {
         switchMap(([id]) => (id ? profileLoad(this.#users.getUser(id)) : of<ProfileLoad>({ status: 'error', error: 'noUser' }))),
         takeUntilDestroyed(),
       )
-      .subscribe((state) => this.state.set(state));
+      .subscribe((state) => {
+        if (this.userId() !== this.#savedFor) this.saved.set(false);
+        this.state.set(state);
+      });
   }
 
   reload(): void {
