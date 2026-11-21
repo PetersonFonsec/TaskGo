@@ -1,34 +1,308 @@
-<main class="review-page">
-  @if (loading()) {
-    <section class="state-card"><span class="spinner"></span><strong>Carregando atendimento…</strong></section>
-  } @else if (order(); as current) {
-    @if (success()) { <div class="toast" role="status"><span>✓</span> Obrigado pela avaliação!</div> }
-    <header><button class="back" type="button" aria-label="Voltar" (click)="back()">←</button><div><p class="eyebrow">Pedido #{{ current.id }}</p><h1>Avaliar atendimento</h1><p>Conte como foi sua experiência com {{ current.provider.name }}.</p></div></header>
+<main class="review">
+  <a class="review__back" [routerLink]="orderLink()">
+    <tg-icon name="arrow-left" [size]="20" />
+    Voltar ao pedido
+  </a>
 
-    @if (error()) { <div class="inline-error" role="alert">{{ error() }}</div> }
-    <section class="provider-card"><img [src]="current.provider.photoUrl || 'https://dummyimage.com/120x120/ede9fe/6d28d9&text=P'" [alt]="'Foto de ' + current.provider.name"><div><small>Prestador</small><h2>{{ current.provider.name }}</h2><p>{{ current.service.title }}</p></div><dl><div><dt>Realizado em</dt><dd>{{ formatDate(current.completion.providerFinishedAt || current.schedule.scheduledFor) }}</dd></div><div><dt>Valor pago</dt><dd>{{ formatMoney(current.payment?.finalAmount ?? current.service.estimatedPrice) }}</dd></div></dl></section>
+  @if (loadError() === 'notFound') {
+    <tg-alert tone="danger" title="Este pedido não foi encontrado">
+      Confira o link ou volte ao início para ver seus pedidos.
+    </tg-alert>
+  } @else if (loadError() === 'failed') {
+    <tg-alert tone="danger" title="Não foi possível carregar o atendimento">
+      Verifique sua conexão e tente de novo.
+      <button tgButton tgAlertAction type="button" appearance="outline" size="sm" (click)="load()">
+        Tentar de novo
+      </button>
+    </tg-alert>
+  } @else {
+    <tg-loading label="Carregando o atendimento" [loading]="loading()">
+      <ng-template tgLoadingSkeleton>
+        <div class="review__content">
+          <tg-skeleton width="30%" />
+          <tg-skeleton width="50%" height="36" />
+          <div class="review__skeleton-card">
+            <tg-skeleton shape="circle" [size]="48" />
+            <tg-skeleton [lines]="2" />
+          </div>
+          <div class="review__skeleton-card review__skeleton-card--column">
+            <tg-skeleton width="45%" height="24" />
+            <tg-skeleton width="260px" height="44" />
+            <tg-skeleton [lines]="3" />
+          </div>
+        </div>
+      </ng-template>
 
-    <section class="review-card">
-      <div class="step"><span>1</span><div><h2>Como foi o atendimento?</h2><p>Sua avaliação será publicada no perfil do prestador.</p></div></div>
-      <div class="rating-area"><app-rating [value]="rating()" (valueChange)="rating.set($event)" /><strong [class.selected]="rating()">{{ ratingMessage() }}</strong></div>
+      @if (summary(); as s) {
+        <div class="review__content">
+          <header class="review__header">
+            <p class="review__eyebrow">Pedido #{{ order()?.id }} · Avaliação</p>
+            <h1 class="review__title">Avaliar atendimento</h1>
+            <p class="review__lead">Conte como foi sua experiência com {{ s.providerName }}.</p>
+          </header>
 
-      <div class="divider"></div><div class="step"><span>2</span><div><h2>O que mais se destacou?</h2><p>Selecione quantas opções quiser. Opcional.</p></div></div>
-      @if (tagsLoading()) {
-        <div class="tag-skeleton" aria-label="Carregando tags"><span></span><span></span><span></span></div>
-      } @else if (tags().length) {
-        <div class="chips">
-          @for (tag of tags(); track tag.id) {
-            <app-review-tag-chip [tag]="tag" [selected]="selectedTagIds().includes(tag.id)" (toggle)="toggleTag(tag.id)" />
+          <tg-card class="review__summary" aria-label="Resumo do atendimento">
+            <div class="review__person">
+              <span class="review__avatar">
+                @if (s.photoUrl) {
+                  <img [src]="s.photoUrl" alt="" loading="lazy" decoding="async" />
+                } @else {
+                  <span aria-hidden="true">{{ s.initials }}</span>
+                }
+              </span>
+              <span class="review__person-text">
+                <span class="review__role">Prestador</span>
+                <span class="review__name">{{ s.providerName }}</span>
+                <span class="review__service">{{ s.service }}</span>
+              </span>
+            </div>
+            @if (s.doneOn || s.amount) {
+              <dl class="review__facts">
+                @if (s.doneOn) {
+                  <div>
+                    <dt>Realizado em</dt>
+                    <dd>{{ s.doneOn }}</dd>
+                  </div>
+                }
+                @if (s.amount) {
+                  <div>
+                    <dt>Valor pago</dt>
+                    <dd>{{ s.amount }}</dd>
+                  </div>
+                }
+              </dl>
+            }
+          </tg-card>
+
+          @switch (availability()) {
+            @case ('open') {
+              @if (sent()) {
+                <tg-card class="review__done">
+                  <tg-badge tone="done" icon="check">Avaliação enviada</tg-badge>
+                  <h2 #doneHeading class="review__card-title" tabindex="-1">
+                    Obrigado pela avaliação!
+                  </h2>
+                  <p class="review__text">
+                    Sua nota já aparece no perfil de {{ s.providerName }} e ajuda outros clientes a
+                    escolher.
+                  </p>
+                  @if (given(); as review) {
+                    <div class="review__given">
+                      <span
+                        class="review__given-stars"
+                        role="img"
+                        [attr.aria-label]="'Nota ' + review.rating + ' de 5'"
+                      >
+                        @for (star of stars; track star) {
+                          <tg-icon
+                            name="star"
+                            [weight]="star <= review.rating ? 'fill' : 'regular'"
+                            [size]="20"
+                          />
+                        }
+                      </span>
+                      @if (review.comment) {
+                        <p class="review__quote">“{{ review.comment }}”</p>
+                      }
+                    </div>
+                  }
+                  <div class="review__actions">
+                    <a tgButton [routerLink]="orderLink()">Ver pedido</a>
+                  </div>
+                </tg-card>
+              } @else {
+                <tg-card>
+                  <form class="review__form" novalidate (submit)="submit($event)">
+                    @if (submitError(); as message) {
+                      <tg-alert tone="danger" title="Não foi possível enviar sua avaliação">{{
+                        message
+                      }}</tg-alert>
+                    }
+
+                    <fieldset
+                      class="review__rating"
+                      role="radiogroup"
+                      aria-required="true"
+                      [attr.aria-invalid]="ratingError() ? 'true' : null"
+                      [attr.aria-describedby]="
+                        ratingError() ? 'review-rating-error' : 'review-rating-hint'
+                      "
+                      [disabled]="submitting()"
+                    >
+                      <legend class="review__card-title">Como foi o atendimento?</legend>
+                      <p id="review-rating-hint" class="review__text">
+                        Sua nota e seu comentário aparecem no perfil do prestador.
+                      </p>
+                      <div class="review__stars" (mouseleave)="hover.set(0)">
+                        @for (option of ratings; track option.value) {
+                          <label
+                            class="review__star"
+                            [class.review__star--on]="option.value <= preview()"
+                            (mouseenter)="hover.set(option.value)"
+                          >
+                            <input
+                              #star
+                              class="review__star-input"
+                              type="radio"
+                              name="rating"
+                              [value]="option.value"
+                              [checked]="rating() === option.value"
+                              (change)="setRating(option.value)"
+                            />
+                            <tg-icon
+                              name="star"
+                              [weight]="option.value <= preview() ? 'fill' : 'regular'"
+                              [size]="40"
+                            />
+                            <span class="review__sr">
+                              {{ option.value }} {{ option.value === 1 ? 'estrela' : 'estrelas' }},
+                              {{ option.label }}
+                            </span>
+                          </label>
+                        }
+                      </div>
+                      <p
+                        class="review__rating-label"
+                        [class.review__rating-label--set]="preview()"
+                        aria-hidden="true"
+                      >
+                        {{ ratingText() || 'Toque nas estrelas para dar sua nota' }}
+                      </p>
+                      @if (ratingError(); as message) {
+                        <p id="review-rating-error" class="review__error">
+                          <tg-icon name="warning-circle" weight="fill" [size]="16" />
+                          {{ message }}
+                        </p>
+                      }
+                    </fieldset>
+
+                    @if (tagsLoading()) {
+                      <div class="review__tags" aria-hidden="true">
+                        <tg-skeleton width="40%" />
+                        <div class="review__chips">
+                          <tg-skeleton width="104px" height="40" radius="full" />
+                          <tg-skeleton width="128px" height="40" radius="full" />
+                          <tg-skeleton width="144px" height="40" radius="full" />
+                        </div>
+                      </div>
+                    } @else if (tags().length) {
+                      <div class="review__tags">
+                        <p id="review-tags-title" class="review__group-title">
+                          O que mais se destacou? <span class="review__optional">(opcional)</span>
+                        </p>
+                        <div class="review__chips" role="group" aria-labelledby="review-tags-title">
+                          @for (tag of tags(); track tag.id) {
+                            <button
+                              type="button"
+                              class="review__chip"
+                              [attr.aria-pressed]="isSelected(tag.id)"
+                              [disabled]="submitting()"
+                              (click)="toggleTag(tag.id)"
+                            >
+                              <tg-icon [name]="isSelected(tag.id) ? 'check' : 'plus'" [size]="16" />
+                              {{ tag.name }}
+                            </button>
+                          }
+                        </div>
+                      </div>
+                    }
+
+                    <div class="review__comment">
+                      <tg-field
+                        label="Comentário"
+                        optional
+                        [hint]="'Até ' + commentMax + ' caracteres.'"
+                        [error]="commentError()"
+                      >
+                        <textarea
+                          #commentBox
+                          tgInput
+                          name="comment"
+                          rows="5"
+                          [attr.maxlength]="commentMax"
+                          placeholder="Conte um pouco sobre o atendimento."
+                          [value]="comment()"
+                          [disabled]="submitting()"
+                          (input)="setComment(commentBox.value)"
+                        ></textarea>
+                      </tg-field>
+                      <p class="review__counter" aria-hidden="true">
+                        {{ commentLength() }}/{{ commentMax }}
+                      </p>
+                    </div>
+
+                    <div class="review__actions review__actions--end">
+                      <button tgButton type="submit" [loading]="submitting()">
+                        Enviar avaliação
+                      </button>
+                    </div>
+                  </form>
+                </tg-card>
+              }
+            }
+            @case ('reviewed') {
+              <tg-card class="review__done">
+                <tg-badge tone="done" icon="check">Já avaliado</tg-badge>
+                <h2 #doneHeading class="review__card-title" tabindex="-1">
+                  Você já avaliou este atendimento
+                </h2>
+                @if (given(); as review) {
+                  <p class="review__text">Cada atendimento recebe uma avaliação. Esta foi a sua:</p>
+                  <div class="review__given">
+                    <span
+                      class="review__given-stars"
+                      role="img"
+                      [attr.aria-label]="'Nota ' + review.rating + ' de 5'"
+                    >
+                      @for (star of stars; track star) {
+                        <tg-icon
+                          name="star"
+                          [weight]="star <= review.rating ? 'fill' : 'regular'"
+                          [size]="20"
+                        />
+                      }
+                    </span>
+                    @if (review.comment) {
+                      <p class="review__quote">“{{ review.comment }}”</p>
+                    }
+                  </div>
+                } @else {
+                  <p class="review__text">
+                    Cada atendimento recebe uma avaliação, e a deste já foi registrada.
+                  </p>
+                }
+                <div class="review__actions">
+                  <a tgButton [routerLink]="orderLink()">Ver pedido</a>
+                </div>
+              </tg-card>
+            }
+            @case ('notOwner') {
+              <tg-alert tone="warning" title="Só quem contratou pode avaliar">
+                Este atendimento foi contratado por outra conta.
+                <a tgButton tgAlertAction appearance="outline" size="sm" [routerLink]="orderLink()"
+                  >Ver pedido</a
+                >
+              </tg-alert>
+            }
+            @case ('notFinished') {
+              <tg-alert tone="warning" title="O atendimento ainda não foi concluído">
+                Você poderá avaliar assim que o serviço for concluído.
+                <a tgButton tgAlertAction appearance="outline" size="sm" [routerLink]="orderLink()"
+                  >Ver pedido</a
+                >
+              </tg-alert>
+            }
+            @case ('closed') {
+              <tg-alert tone="warning" title="Este pedido não pode ser avaliado">
+                Só atendimentos concluídos recebem avaliação.
+                <a tgButton tgAlertAction appearance="outline" size="sm" [routerLink]="orderLink()"
+                  >Ver pedido</a
+                >
+              </tg-alert>
+            }
           }
         </div>
       }
-
-      <div class="divider"></div><div class="step"><span>3</span><div><h2>Quer contar mais detalhes?</h2><p>Seu comentário é opcional.</p></div></div>
-      <label for="comment">Comentário <span>{{ comment().length }}/500</span></label><textarea id="comment" rows="5" maxlength="500" [ngModel]="comment()" (ngModelChange)="setComment($event)" placeholder="Conte um pouco sobre sua experiência."></textarea>
-
-      <button class="button primary submit" type="button" [disabled]="!rating() || submitting() || success()" (click)="submit()">{{ submitting() ? 'Enviando avaliação…' : 'Enviar avaliação' }} <span>→</span></button>
-    </section>
-  } @else {
-    <section class="state-card"><span class="error-icon">!</span><h1>Não foi possível avaliar</h1><p>{{ error() }}</p><button class="button secondary" (click)="back()">Voltar para o pedido</button></section>
+    </tg-loading>
   }
 </main>
