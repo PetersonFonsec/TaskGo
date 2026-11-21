@@ -63,13 +63,13 @@ const PERCENT = new Intl.NumberFormat('pt-BR', { maximumFractionDigits: 1 });
 const LONG_DATE = new Intl.DateTimeFormat('pt-BR', { dateStyle: 'long' });
 const TIME = new Intl.DateTimeFormat('pt-BR', { hour: '2-digit', minute: '2-digit' });
 
-const PAYMENT_METHODS: Record<string, string> = { PIX: 'Pix', CARTAO: 'Cartão', OUTRO: 'Outra forma' };
+export const PAYMENT_METHODS: Record<string, string> = { PIX: 'Pix', CARTAO: 'Cartão', OUTRO: 'Outra forma' };
 
 /**
  * Situação do pagamento (enum PaymentStatus do backend, com os nomes em
  * inglês e em português). Desconhecida: "Em atualização", nunca o código cru.
  */
-const PAYMENT_STATUSES: Record<string, string> = {
+export const PAYMENT_STATUSES: Record<string, string> = {
   CREATED: 'Ainda não pago',
   PENDENTE: 'Aguardando pagamento',
   AUTHORIZED: 'Autorizado',

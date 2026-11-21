@@ -1,36 +1,231 @@
-<main class="confirm-page">
-  @if (toast()) { <div class="toast" role="status"><span>✓</span>{{ toast() }}</div> }
-  @if (loading()) {
-    <section class="state-card"><span class="spinner"></span><strong>Carregando serviço…</strong></section>
-  } @else if (!order()) {
-    <section class="state-card"><span class="error-icon">!</span><h1>Não foi possível continuar</h1><p>{{ error() }}</p><button class="button secondary" (click)="back()">Voltar</button></section>
-  } @else if (order(); as current) {
-    <header class="page-header"><button class="back-button" type="button" aria-label="Voltar" (click)="back()">←</button><div><p>Pedido #{{ current.id }}</p><h1>Confirmar conclusão</h1></div><span class="status"><i></i>Aguardando sua confirmação</span></header>
+<main class="confirm-service">
+  <a class="confirm-service__back" [routerLink]="['/orders', orderId()]">
+    <tg-icon name="arrow-left" [size]="20" />
+    Voltar ao pedido
+  </a>
 
-    @if (current.status !== 'AGUARDANDO_CONFIRMACAO_CLIENTE' || error()) {
-      <section class="state-card"><span class="error-icon">!</span><h2>Confirmação indisponível</h2><p>{{ error() }}</p><button class="button primary" (click)="back()">Ver detalhes do pedido</button></section>
-    } @else {
-      @if (error()) { <div class="inline-error" role="alert">{{ error() }}</div> }
-      <section class="provider-card"><img [src]="current.provider.photoUrl || 'https://dummyimage.com/120x120/ede9fe/6d28d9&text=P'" [alt]="'Foto de ' + current.provider.name"><div><small>Serviço realizado por</small><h2>{{ current.provider.name }} @if (current.provider.verified) { <span class="verified" title="Prestador verificado">✓</span> }</h2><p>{{ current.service.title }}</p></div><span class="rating">★ {{ current.provider.ratingAvg?.toFixed(1) }} <em>({{ current.provider.ratingCount }} avaliações)</em></span></section>
+  @if (loadError() === 'notFound') {
+    <h1 class="confirm-service__title">Confirmar conclusão</h1>
+    <tg-alert tone="danger" title="Este pedido não foi encontrado">
+      Confira o link ou volte ao início para ver seus pedidos.
+    </tg-alert>
+  } @else if (loadError() === 'forbidden') {
+    <h1 class="confirm-service__title">Confirmar conclusão</h1>
+    <tg-alert tone="danger" title="Confirmação indisponível">
+      Apenas o cliente deste pedido pode confirmar a conclusão.
+    </tg-alert>
+  } @else if (loadError() === 'failed') {
+    <h1 class="confirm-service__title">Confirmar conclusão</h1>
+    <tg-alert tone="danger" title="Não foi possível carregar o pedido">
+      Verifique sua conexão e tente de novo.
+      <button tgButton tgAlertAction type="button" appearance="outline" size="sm" (click)="load()">
+        Tentar de novo
+      </button>
+    </tg-alert>
+  } @else {
+    <tg-loading label="Carregando o pedido" [loading]="loading()">
+      <ng-template tgLoadingSkeleton>
+        <div class="confirm-service__skeleton">
+          <tg-skeleton width="30%" />
+          <tg-skeleton width="50%" height="36" />
+          <div class="confirm-service__grid">
+            <div class="confirm-service__skeleton-card">
+              <tg-skeleton shape="circle" size="48" />
+              <tg-skeleton [lines]="4" />
+            </div>
+            <div class="confirm-service__skeleton-card">
+              <tg-skeleton width="40%" />
+              <tg-skeleton [lines]="3" />
+              <tg-skeleton shape="rect" height="44" />
+            </div>
+          </div>
+        </div>
+      </ng-template>
 
-      <div class="content-grid">
-        <section class="card"><div class="card-heading"><span>✓</span><div><h2>Resumo do serviço</h2><p>Confira o atendimento realizado</p></div></div><dl class="details"><div><dt>Serviço contratado</dt><dd>{{ current.service.title }}</dd></div><div><dt>Agendamento</dt><dd>{{ formatDate(current.schedule.scheduledFor) }} às {{ formatTime(current.schedule.scheduledFor) }}</dd></div><div class="wide"><dt>Endereço</dt><dd>{{ address() }}</dd></div><div class="wide notes"><dt>Observações do prestador</dt><dd>{{ current.completion.providerNotes || 'O prestador não deixou observações.' }}</dd></div><div class="wide finished"><dt>Conclusão informada em</dt><dd>{{ formatDate(current.completion.providerFinishedAt, true) }}</dd></div></dl></section>
+      @if (view(); as v) {
+        <div class="confirm-service__content">
+          <header class="confirm-service__header">
+            <div class="confirm-service__heading">
+              <p class="confirm-service__eyebrow">{{ v.eyebrow }}</p>
+              <h1 class="confirm-service__title">Confirmar conclusão</h1>
+            </div>
+            <tg-badge [tone]="status().tone" [icon]="status().icon ?? undefined">{{ status().label }}</tg-badge>
+          </header>
 
-        <section class="card financial"><div class="card-heading"><span>R$</span><div><h2>Resumo financeiro</h2><p>Valores e pagamento</p></div></div><dl><div><dt>Valor estimado</dt><dd>{{ formatMoney(estimatedPrice()) }}</dd></div><div><dt>Valor final</dt><dd class="final-price">{{ formatMoney(finalPrice()) }}</dd></div><div><dt>Diferença</dt><dd [class.adjusted]="priceChanged()">{{ difference() >= 0 ? '+' : '' }}{{ formatMoney(difference()) }}</dd></div></dl>
-          @if (priceChanged()) { <div class="price-message adjusted-box"><strong>O valor final foi ajustado.</strong><p>{{ current.priceAdjustmentReason }}</p></div> } @else { <div class="price-message"><span>✓</span>O valor final permaneceu igual ao estimado.</div> }
-          <div class="payment"><div><small>Forma de pagamento</small><strong>{{ humanize(current.payment?.method || 'Não informado') }}</strong></div><div><small>Status</small><strong>{{ humanize(current.payment?.status || 'Não informado') }}</strong></div></div>
-        </section>
-      </div>
+          @if (confirmed(); as done) {
+            <tg-card class="confirm-service__done">
+              <span class="confirm-service__done-icon"><tg-icon name="check" [size]="32" /></span>
+              <h2 #doneTitle class="confirm-service__done-title" tabindex="-1">Serviço confirmado</h2>
+              <p class="confirm-service__done-text">
+                {{ done.message }} O pagamento foi liberado para {{ v.provider.name }}. Agora conte como foi o
+                atendimento.
+              </p>
+              <div class="confirm-service__done-actions">
+                <a tgButton [routerLink]="['/orders', done.id, 'review']">Avaliar atendimento</a>
+                <a tgButton appearance="outline" [routerLink]="['/orders', done.id]">Ver detalhes do pedido</a>
+              </div>
+            </tg-card>
+          } @else if (block(); as b) {
+            <tg-alert tone="warning" [title]="b.title">
+              {{ b.body }}
+              @if (b.review) {
+                <a tgButton tgAlertAction size="sm" [routerLink]="['/orders', v.id, 'review']">Avaliar atendimento</a>
+              }
+              <a tgButton tgAlertAction appearance="outline" size="sm" [routerLink]="['/orders', v.id]"
+                >Ver detalhes do pedido</a
+              >
+            </tg-alert>
+          } @else {
+            @if (confirmError(); as message) {
+              <tg-alert tone="danger" title="Não foi possível confirmar a conclusão">{{ message }}</tg-alert>
+            }
 
-      <section class="card photos-card"><div class="card-heading"><span>▧</span><div><h2>Fotos do serviço</h2><p>Registros enviados pelo prestador</p></div></div>@if (current.photos.length) { <div class="photos">@for (photo of current.photos; track photo.id) { <a [href]="photo.url" target="_blank" rel="noopener"><img [src]="photo.url" alt="Foto do serviço concluído"><span>{{ humanize(photo.type) }}</span></a> }</div> } @else { <div class="empty-photos"><span>▧</span><p>Nenhuma foto foi enviada pelo prestador.</p></div> }</section>
+            <div class="confirm-service__grid">
+              <div class="confirm-service__column">
+                <tg-card class="confirm-service__summary">
+                  <h2 class="confirm-service__card-title">Resumo do serviço</h2>
+                  <div class="confirm-service__person">
+                    <span class="confirm-service__avatar">
+                      @if (v.provider.photoUrl) {
+                        <img [src]="v.provider.photoUrl" alt="" loading="lazy" decoding="async" />
+                      } @else {
+                        <span aria-hidden="true">{{ v.provider.initials }}</span>
+                      }
+                    </span>
+                    <span class="confirm-service__person-text">
+                      <span class="confirm-service__role">Serviço feito por</span>
+                      <span class="confirm-service__name">
+                        {{ v.provider.name }}
+                        @if (v.provider.verified) {
+                          <tg-icon name="check" [size]="16" label="Prestador verificado" />
+                        }
+                      </span>
+                      @if (v.provider.rating) {
+                        <span class="confirm-service__rating">
+                          <tg-icon name="star" weight="fill" [size]="16" />
+                          {{ v.provider.rating }}
+                        </span>
+                      }
+                    </span>
+                  </div>
+                  <dl class="confirm-service__list">
+                    <div>
+                      <dt>Serviço contratado</dt>
+                      <dd>{{ v.title }}</dd>
+                    </div>
+                    @for (item of v.details; track item.label) {
+                      <div>
+                        <dt>{{ item.label }}</dt>
+                        <dd>{{ item.value }}</dd>
+                      </div>
+                    }
+                    <div>
+                      <dt>Observações do prestador</dt>
+                      <dd [class.confirm-service__muted]="!v.notes">
+                        {{ v.notes ?? 'O prestador não deixou observações.' }}
+                      </dd>
+                    </div>
+                  </dl>
+                </tg-card>
 
-      <section class="confirmation"><span class="shield">✓</span><div><h2>Confirme com segurança</h2><p>Confirme apenas se o serviço foi realizado corretamente. Após confirmar, o pagamento será processado e o prestador será notificado.</p></div><div class="actions"><button class="button secondary danger" type="button" (click)="reportProblem()">Reportar problema</button><button class="button primary" type="button" (click)="modalOpen.set(true)">Confirmar conclusão</button></div></section>
-    }
-  }
+                <tg-card>
+                  <h2 class="confirm-service__card-title">Fotos do serviço</h2>
+                  @if (v.photos.length) {
+                    <ul class="confirm-service__photos">
+                      @for (photo of v.photos; track photo.id) {
+                        <li>
+                          <a
+                            class="confirm-service__photo"
+                            [href]="photo.url"
+                            target="_blank"
+                            rel="noopener"
+                            [attr.aria-label]="'Abrir foto: ' + photo.label + ' (nova aba)'"
+                          >
+                            <img [src]="photo.url" alt="" loading="lazy" decoding="async" />
+                            <span class="confirm-service__photo-label">{{ photo.label }}</span>
+                          </a>
+                        </li>
+                      }
+                    </ul>
+                  } @else {
+                    <tg-empty-state compact icon="receipt" title="Nenhuma foto enviada" [level]="3">
+                      O prestador não enviou fotos ao finalizar o serviço.
+                    </tg-empty-state>
+                  }
+                </tg-card>
+              </div>
 
-  @if (modalOpen()) {
-    <div class="modal-backdrop" (click)="modalOpen.set(false)">
-      <section class="modal" role="dialog" aria-modal="true" aria-labelledby="confirm-title" (click)="$event.stopPropagation()"><span class="modal-icon">✓</span><h2 id="confirm-title">Tem certeza que deseja confirmar a conclusão deste serviço?</h2><p>Depois da confirmação, o pagamento será processado e esta ação não poderá ser desfeita pelo aplicativo.</p><div><button class="button secondary" type="button" [disabled]="confirming()" (click)="modalOpen.set(false)">Cancelar</button><button class="button primary" type="button" [disabled]="confirming()" (click)="confirm()">{{ confirming() ? 'Confirmando…' : 'Confirmar' }}</button></div></section>
-    </div>
+              <div class="confirm-service__column">
+                <tg-card>
+                  <h2 class="confirm-service__card-title">Valores</h2>
+                  <p class="confirm-service__total">
+                    <span class="confirm-service__total-label">Valor final</span>
+                    <span class="confirm-service__total-value">{{ v.finalPrice }}</span>
+                  </p>
+                  <dl class="confirm-service__list">
+                    @for (item of v.prices; track item.label) {
+                      <div>
+                        <dt>{{ item.label }}</dt>
+                        <dd>{{ item.value }}</dd>
+                      </div>
+                    }
+                    @for (item of v.payment; track item.label) {
+                      <div>
+                        <dt>{{ item.label }}</dt>
+                        <dd>{{ item.value }}</dd>
+                      </div>
+                    }
+                  </dl>
+                  @if (v.adjusted) {
+                    <tg-alert class="confirm-service__adjusted" tone="warning" title="O valor final foi ajustado">
+                      {{ v.adjustmentReason ?? 'O prestador não informou o motivo do ajuste.' }}
+                    </tg-alert>
+                  }
+                </tg-card>
+
+                <tg-card class="confirm-service__decision">
+                  <h2 class="confirm-service__card-title">Tudo certo com o serviço?</h2>
+                  <p class="confirm-service__decision-text">
+                    Confirme só se o serviço foi feito como combinado. Ao confirmar, o pedido é concluído, o
+                    pagamento é liberado e o prestador é avisado.
+                  </p>
+                  <div class="confirm-service__actions">
+                    <button tgButton type="button" fullWidth (click)="ask()">Confirmar conclusão</button>
+                    <a tgButton appearance="outline" fullWidth [routerLink]="['/orders', v.id, 'report-problem']"
+                      >Reportar problema</a
+                    >
+                  </div>
+                </tg-card>
+              </div>
+            </div>
+
+            <tg-dialog
+              #confirmDialog
+              title="Confirmar a conclusão do serviço?"
+              icon="check"
+              [busy]="confirming()"
+            >
+              <p>
+                O pagamento de {{ v.finalPrice }} é liberado para {{ v.provider.name }}. Depois de confirmar, não dá
+                para desfazer pelo aplicativo.
+              </p>
+              <button
+                tgButton
+                tgDialogAction
+                type="button"
+                appearance="outline"
+                [disabled]="confirming()"
+                (click)="confirmDialog.close()"
+              >
+                Voltar
+              </button>
+              <button tgButton tgDialogAction type="button" [loading]="confirming()" (click)="confirm()">
+                Confirmar
+              </button>
+            </tg-dialog>
+          }
+        </div>
+      }
+    </tg-loading>
   }
 </main>
