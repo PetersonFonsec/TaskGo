@@ -51,7 +51,9 @@ describe('Favoritos', () => {
     });
 
     cy.location('search').should('include', 'onlyFavorites=true');
-    cy.wait('@prestadores').its('request.query').should('include', { onlyFavorites: 'true' });
+    cy.get('@prestadores.all').should((chamadas) => {
+      expect(chamadas.map((c: any) => c.request.query.onlyFavorites)).to.include('true');
+    });
     cy.get('tg-provider-card').should('have.length', 1).and('contain.text', 'Bruno Limpeza');
     cy.window()
       .its('localStorage')

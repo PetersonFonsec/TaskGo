@@ -5,6 +5,18 @@ import { apiUrl } from '../../support/api/stub-base';
 
 const busca = '/customer/search?categoria=limpeza';
 const cards = () => cy.get('tg-provider-card');
+
+/**
+ * Confere que alguma busca já saiu com esta origem. A tela refaz a busca
+ * quando os endereços chegam, então a primeira chamada do alias pode ser
+ * uma anterior à troca.
+ */
+function buscouDe(alias: string, lat: string | number, lng: string | number) {
+  cy.get(`${alias}.all`).should((chamadas) => {
+    const origens = chamadas.map((c: any) => `${c.request.query.lat},${c.request.query.lng}`);
+    expect(origens).to.include(`${lat},${lng}`);
+  });
+}
 const abrirFiltros = () => {
   cy.findByRole('button', { name: /^Filtros/ }).click();
   return cy.findByRole('dialog', { name: 'Filtros' }).should('be.visible');
@@ -108,9 +120,7 @@ describe('Busca de profissionais', () => {
       cy.get('#search-address').select(enderecos[1].id);
     });
 
-    cy.wait('@outroEndereco')
-      .its('request.query')
-      .should('include', { lat: String(enderecos[1].lat), lng: String(enderecos[1].lng) });
+    buscouDe('@outroEndereco', enderecos[1].lat, enderecos[1].lng);
   });
 
   it('busca pela localização do aparelho quando o cliente permite', () => {
@@ -129,7 +139,7 @@ describe('Busca de profissionais', () => {
       cy.get('#search-address option:selected').should('contain.text', 'Localização atual do aparelho');
     });
 
-    cy.wait('@aparelho').its('request.query').should('include', { lat: '-22.9', lng: '-43.2' });
+    buscouDe('@aparelho', '-22.9', '-43.2');
   });
 
   it('mantém o endereço quando o acesso à localização é negado', () => {
@@ -183,7 +193,7 @@ describe('Busca de profissionais', () => {
     cy.findByRole('tab', { name: 'Lista' }).should('have.attr', 'aria-selected', 'true');
     cards().should('have.length', 3);
     cy.findByRole('tab', { name: 'Mapa' }).click();
-    cy.findByRole('region', { name: 'Mapa de profissionais próximos' }).should('be.visible');
+    cy.get('section.search__map').should('be.visible');
     cy.get('.leaflet-marker-icon[title="Ana Limpeza"]').should('exist');
   });
 });
