@@ -79,6 +79,41 @@ jobs:
       - name: Build Storybook
         run: npm run build-storybook --workspace apps/frontend
 
+  web-e2e-mocks:
+    name: E2E (mocks)
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    env:
+      CYPRESS_INSTALL_BINARY: ''
+      OTEL_SDK_DISABLED: 'true'
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version-file: .nvmrc
+          cache: npm
+      - name: Install dependencies and Cypress binary
+        run: npm ci
+      - name: Start frontend
+        run: |
+          (cd apps/frontend && nohup npx ng serve --port 4200 > ../../frontend.log 2>&1 &)
+          for i in $(seq 1 90); do
+            curl -sf http://localhost:4200 > /dev/null && exit 0
+            sleep 5
+          done
+          tail -50 frontend.log
+          exit 1
+      - name: Run E2E with mocked API
+        run: npm run e2e:mocks --workspace apps/frontend
+      - name: Upload logs and screenshots on failure
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: web-e2e-mocks-artifacts
+          path: |
+            frontend.log
+            apps/frontend/cypress/screenshots
+
   auth-e2e:
     name: Auth E2E (API real)
     runs-on: ubuntu-latest

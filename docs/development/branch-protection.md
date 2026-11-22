@@ -2,7 +2,7 @@
 
 Status: proposta local; nenhuma regra remota foi alterada. Requer acesso administrativo autenticado e disponibilidade no plano do repositório.
 
-O [payload de referência](../../.github/branch-protection.json) descreve a proposta para `main`, com o check `Quality` declarado no workflow. Ele não é aplicado automaticamente: compare com as regras existentes e confirme o nome exibido na execução real antes de utilizá-lo.
+O [payload de referência](../../.github/branch-protection.json) descreve a proposta para `main`, com os checks `Quality` e `E2E (mocks)` declarados no workflow. Ele não é aplicado automaticamente: compare com as regras existentes e confirme o nome exibido na execução real antes de utilizá-lo.
 
 ## Ativação
 

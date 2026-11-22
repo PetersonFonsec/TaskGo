@@ -10,7 +10,7 @@ import {
   provider,
   stubJourney,
   stubOrderDetails,
-} from '../support/customer-journey';
+} from '../../support/customer-journey';
 
 const requestButton = '#booking-request-button';
 

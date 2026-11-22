@@ -23,7 +23,7 @@ const PROFILE = {
 describe('Home (Conta)', () => {
   let fixture: ComponentFixture<Home>;
   let el: HTMLElement;
-  let http: HttpTestingController;
+  let http: HttpTestingController | undefined;
   let session: WritableSignal<unknown>;
   const logout = jasmine.createSpy('logout');
   const token = { clearToken: jasmine.createSpy('clearToken'), token: 'abc' };
@@ -51,19 +51,23 @@ describe('Home (Conta)', () => {
     await fixture.whenStable();
     fixture.detectChanges();
   };
-  const profileRequest = () => http.expectOne((req) => req.method === 'GET' && req.url.endsWith('/user/user-1'));
+  const profileRequest = () => http!.expectOne((req) => req.method === 'GET' && req.url.endsWith('/user/user-1'));
   const labels = () => Array.from(el.querySelectorAll('.account__label')).map((n) => n.textContent?.trim());
   const hrefs = () => Array.from(el.querySelectorAll<HTMLAnchorElement>('a.account__item')).map((a) => a.getAttribute('href'));
   const button = (text: string) =>
     Array.from(el.querySelectorAll<HTMLButtonElement>('button')).find((b) => b.textContent?.includes(text));
 
   beforeEach(() => {
+    // Testes sem setup (funções puras) não criam o TestBed; sem isso, o
+    // afterEach usaria o controller de outro teste ou quebraria com a ordem
+    // aleatória do Jasmine.
+    http = undefined;
     session = signal<unknown>(undefined);
     logout.calls.reset();
     token.clearToken.calls.reset();
   });
 
-  afterEach(() => http.verify());
+  afterEach(() => http?.verify());
 
   it('cliente: um h1 "Conta", os dados da sessão vindos da API e os links da conta', async () => {
     await setup({ user: { id: 'user-1', type: 'CLIENTE', name: 'Ana' } });
@@ -140,7 +144,7 @@ describe('Home (Conta)', () => {
     await setup({});
     await render();
 
-    http.expectNone(() => true);
+    http!.expectNone(() => true);
     expect(el.querySelector('tg-alert')?.textContent).toContain('Sua sessão expirou');
     expect(el.querySelectorAll('a.account__item').length).toBe(0);
     expect(button('Sair da conta')).toBeDefined();
