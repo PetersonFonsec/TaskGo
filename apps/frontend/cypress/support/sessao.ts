@@ -14,20 +14,30 @@ declare global {
        * token e o usuário no localStorage antes de a página carregar e
        * registra o `stubBase`. Devolve a sessão usada.
        *
+       * `antesDeAbrir` roda depois do `stubBase` e antes da visita: os
+       * `cy.intercept` registrados nele vencem as respostas vazias do base.
+       *
        * O login pela tela fica só nos specs de autenticação.
        */
       entrarComo(
         papel: Papel,
         caminho: string,
         overrides?: Partial<UsuarioDaSessao>,
+        antesDeAbrir?: () => void,
       ): Chainable<Sessao>;
     }
   }
 }
 
-Cypress.Commands.add('entrarComo', (papel: Papel, caminho: string, overrides = {}) => {
+Cypress.Commands.add('entrarComo', (
+  papel: Papel,
+  caminho: string,
+  overrides: Partial<UsuarioDaSessao> = {},
+  antesDeAbrir?: () => void,
+) => {
   const atual = sessao(papel, overrides);
   stubBase(atual);
+  antesDeAbrir?.();
   cy.visit(caminho, {
     onBeforeLoad(win) {
       win.localStorage.setItem(CHAVE_TOKEN, atual.access_token);

@@ -132,3 +132,40 @@ export function painelPrestadorVazio() {
     },
   };
 }
+
+/**
+ * Pedido como `GET /orders/:id` devolve (`OrderDetails` no front). Começa
+ * como acabou de ser solicitado: aguardando a resposta do prestador.
+ */
+export function pedido(overrides: Record<string, unknown> = {}) {
+  return {
+    id: '900',
+    status: 'AGUARDANDO_APROVACAO',
+    expiresAt: null,
+    service: { id: '200', title: 'Faxina residencial', category: 'limpeza', estimatedPrice: 120 },
+    provider: { id: '20', name: 'Ana Limpeza', photoUrl: null, verified: true, ratingAvg: 5, ratingCount: 1 },
+    client: { id: 'cliente-1', name: 'Cliente Teste', photoUrl: null },
+    schedule: {
+      requestedAt: '2026-09-17T15:00:00.000Z',
+      scheduledFor: '2026-09-18T12:00:00.000Z',
+      scheduledEnd: null,
+    },
+    address: {
+      street: 'Rua das Flores',
+      number: '100',
+      complement: null,
+      neighborhood: null,
+      city: 'São Paulo',
+      state: 'SP',
+      cep: '01000000',
+    },
+    cancellation: null,
+    payment: null,
+    review: null,
+    timeline: [],
+    completion: { providerFinishedAt: null, providerNotes: null },
+    priceAdjustmentReason: null,
+    photos: [],
+    ...overrides,
+  };
+}
