@@ -1,6 +1,6 @@
-import LoginElements from '../support/pages/login';
-import RegisterElements from '../support/pages/register';
-import RegisterProfileFormElements from '../support/pages/register-profile-form';
+import LoginElements from '../../support/pages/login';
+import RegisterElements from '../../support/pages/register';
+import { preencherContato, preencherEndereco, preencherPerfil } from '../../support/fluxos/cadastro';
 
 /**
  * Jornada de autenticação contra a API real, sem stubs das rotas do backend.
@@ -43,43 +43,6 @@ function buildUser(role: Role) {
   };
 }
 
-function fillProfile(user: ReturnType<typeof buildUser>) {
-  const profile = new RegisterProfileFormElements(user);
-  cy.get('#profile-step').click();
-  cy.url().should('include', '/authenticate/profile');
-  profile.fillForm();
-  profile.submitButton.click();
-  cy.url().should('include', '/authenticate/register');
-}
-
-function fillContact() {
-  cy.get('#contact-step').click();
-  cy.url().should('include', '/authenticate/contact');
-  cy.get('#whatsapp-input').type('11999999999');
-  cy.get('#social-submit').click();
-  cy.url().should('include', '/authenticate/register');
-}
-
-function fillAddress() {
-  cy.intercept('GET', 'https://brasilapi.com.br/api/cep/v2/01001000', {
-    cep: '01001-000',
-    state: 'SP',
-    city: 'São Paulo',
-    neighborhood: 'Sé',
-    street: 'Praça da Sé',
-    latitude: -23.55052,
-    longitude: -46.633308,
-  }).as('getCep');
-
-  cy.get('#address-step').click();
-  cy.url().should('include', '/authenticate/address');
-  cy.get('#zipcode-input').type('01001-000').blur();
-  cy.wait('@getCep');
-  cy.get('#number-input').type('100');
-  cy.get('#address-submit').click();
-  cy.url().should('include', '/authenticate/register');
-}
-
 function selectFirstSeededService() {
   cy.intercept('GET', `${apiUrl}/categories*`).as('getCategories');
   cy.get('#category-step').click();
@@ -107,9 +70,9 @@ function registerThroughUi(role: Role, user: ReturnType<typeof buildUser>) {
     register.customerChoice.click();
   }
 
-  fillProfile(user);
-  fillContact();
-  fillAddress();
+  preencherPerfil(user);
+  preencherContato();
+  preencherEndereco();
   if (role === 'provider') selectFirstSeededService();
 
   register.registerButton.should('be.enabled').click();
@@ -181,9 +144,9 @@ describe('Autenticação contra a API real', () => {
     const register = new RegisterElements(client);
     cy.visit('/authenticate/register');
     register.customerChoice.click();
-    fillProfile({ ...client, cpf: generateCpf() });
-    fillContact();
-    fillAddress();
+    preencherPerfil({ ...client, cpf: generateCpf() });
+    preencherContato();
+    preencherEndereco();
     register.registerButton.should('be.enabled').click();
 
     cy.wait('@duplicate').its('response.statusCode').should('be.within', 400, 499);

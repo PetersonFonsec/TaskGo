@@ -1,14 +1,13 @@
-import { defineConfig } from "cypress";
+import { defineConfig } from 'cypress';
 
 export default defineConfig({
   e2e: {
     baseUrl: 'http://localhost:4200',
-    setupNodeEvents(on, config) {
-      // implement node event listeners here
-    },
+    // Uma nova tentativa só no `cypress run` (CI); no `open`, a falha aparece na hora.
+    retries: { runMode: 1, openMode: 0 },
   },
   env: {
     url: 'http://localhost:3000',
   },
-  video: true,
+  video: false,
 });

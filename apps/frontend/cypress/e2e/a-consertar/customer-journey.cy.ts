@@ -11,7 +11,7 @@ import {
   providers,
   stubJourney,
   stubOrderDetails,
-} from '../support/customer-journey';
+} from '../../support/customer-journey';
 
 // Range tracks ignore pointer events; their native thumbs remain draggable.
 // Set the value and dispatch input to exercise Angular's native range binding.

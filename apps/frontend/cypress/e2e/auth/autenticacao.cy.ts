@@ -1,6 +1,13 @@
-import LoginElements from '../support/pages/login';
-import RegisterElements from '../support/pages/register';
-import RegisterProfileFormElements from '../support/pages/register-profile-form';
+import LoginElements from '../../support/pages/login';
+import RegisterElements from '../../support/pages/register';
+import RegisterProfileFormElements from '../../support/pages/register-profile-form';
+import {
+  preencherContato,
+  preencherEndereco,
+  preencherPerfil,
+  respostaCep,
+} from '../../support/fluxos/cadastro';
+import { painelPrestadorVazio } from '../../support/api/fabricas';
 
 const apiUrl = Cypress.env('url');
 
@@ -93,54 +100,8 @@ const categoryDetailsResponse = {
   ],
 };
 
-const cepResponse = {
-  cep: '01001-000',
-  state: 'SP',
-  city: 'São Paulo',
-  neighborhood: 'Sé',
-  street: 'Praça da Sé',
-  latitude: -23.55052,
-  longitude: -46.633308,
-};
-
 function visitAuth(path = '/authenticate') {
   cy.visit(path);
-}
-
-function fillProfile(user: typeof client) {
-  const profile = new RegisterProfileFormElements(user);
-
-  cy.get('#profile-step').click();
-  cy.url().should('include', '/authenticate/profile');
-  profile.fillForm();
-  profile.submitButton.click();
-  cy.url().should('include', '/authenticate/register');
-}
-
-function fillContact() {
-  cy.get('#contact-step').click();
-  cy.url().should('include', '/authenticate/contact');
-  cy.get('#whatsapp-input').type('11999999999');
-  cy.get('#instagram-input').type('@taskgo').should('have.value', 'taskgo');
-  cy.get('#facebook-input').type('taskgo');
-  cy.get('#linkedin-input').type('taskgo');
-  cy.get('#social-submit').click();
-  cy.url().should('include', '/authenticate/register');
-}
-
-function fillAddress() {
-  cy.intercept('GET', 'https://brasilapi.com.br/api/cep/v2/01001000', cepResponse).as('getCep');
-
-  cy.get('#address-step').click();
-  cy.url().should('include', '/authenticate/address');
-  cy.get('#zipcode-input').type('01001-000').blur();
-  cy.wait('@getCep');
-  cy.get('#street-input').should('have.value', cepResponse.street);
-  cy.get('#neighborhood-input').should('have.value', cepResponse.neighborhood);
-  cy.get('#number-input').type('100');
-  cy.get('#complement-input').type('Sala 1');
-  cy.get('#address-submit').click();
-  cy.url().should('include', '/authenticate/register');
 }
 
 function fillProviderService() {
@@ -199,20 +160,7 @@ beforeEach(() => {
     data: [],
     meta: { total: 0, page: 1, limit: 1, hasNextPage: false },
   });
-  cy.intercept('GET', `${apiUrl}/auth/provider-home`, {
-    earnings: { today: 0, month: 0, previousMonth: 0, lastSixMonths: [] },
-    services: { completedTotal: 0, completedThisWeek: 0 },
-    rating: { average: 0, count: 0 },
-    pendingRequests: [],
-    activeOrders: [],
-    recentServices: [],
-    insights: {
-      mostRequestedService: null,
-      averageTicket: 0,
-      mostServedNeighborhood: null,
-      monthlyGrowth: null,
-    },
-  });
+  cy.intercept('GET', `${apiUrl}/auth/provider-home`, painelPrestadorVazio());
 });
 
 describe('Autenticação', () => {
@@ -341,9 +289,9 @@ describe('Cadastro de usuários', () => {
     register.categoryStep.should('not.exist');
     register.registerButton.should('be.disabled');
 
-    fillProfile(client);
-    fillContact();
-    fillAddress();
+    preencherPerfil(client);
+    preencherContato({ completo: true });
+    preencherEndereco({ completo: true });
 
     register.registerButton.should('be.enabled').click();
 
@@ -360,7 +308,7 @@ describe('Cadastro de usuários', () => {
           cep: '01001000',
           city: 'São Paulo',
           state: 'SP',
-          street: cepResponse.street,
+          street: respostaCep.street,
           number: '100',
         });
         expect(user.subcategoryIds).to.deep.equal([]);
@@ -377,9 +325,9 @@ describe('Cadastro de usuários', () => {
 
     visitAuth('/authenticate/register');
 
-    fillProfile(client);
-    fillContact();
-    fillAddress();
+    preencherPerfil(client);
+    preencherContato({ completo: true });
+    preencherEndereco({ completo: true });
 
     const register = new RegisterElements(client);
     register.registerButton.should('be.enabled').click();
@@ -413,9 +361,9 @@ describe('Cadastro de usuários', () => {
     register.categoryStep.should('be.visible');
     register.registerButton.should('be.disabled');
 
-    fillProfile(provider);
-    fillContact();
-    fillAddress();
+    preencherPerfil(provider);
+    preencherContato({ completo: true });
+    preencherEndereco({ completo: true });
     fillProviderService();
 
     register.registerButton.should('be.enabled').click();
