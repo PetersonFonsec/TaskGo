@@ -41,9 +41,21 @@ Ionic) continuam valendo até a migração tela a tela.
 | 10 | Entrar, recuperar acesso e Criar conta (web) | Concluído (PR #37) |
 | 10 | Passos do cadastro e conta criada (web) | Concluído (PR #38) |
 | 10 | Shell logado: topo, abas, conta e rodapé (web) | Concluído (PR #41) |
-| 10 | Pedidos (web) | Concluído (PR #41) |
-| 10 | Favoritos (web) | Este PR |
-| 10 | Meus serviços (web) | Este PR |
+| 10 | Pedidos (web) | Concluído (PRs #41 e #89) |
+| 10 | Favoritos (web) | Concluído (PR #52) |
+| 10 | Meus serviços (web) | Concluído (PR #52) |
+| 10 | Ganhos (web) | Concluído (PR #54) |
+| 10 | Responder solicitação (web) | Concluído (PR #77) |
+| 10 | Dados pessoais (web) | Concluído (PRs #78 e #91) |
+| 10 | Conta (web) | Concluído (PR #80) |
+| 10 | Endereços (web) | Concluído (PR #79) |
+| 10 | Finalizar serviço (web) | Concluído (PR #81) |
+| 10 | Confirmar conclusão (web) | Concluído (PR #82) |
+| 10 | Avaliar atendimento (web) | Concluído (PR #83) |
+| 10 | Reportar problema (web) | Concluído (PR #84) |
+| 10 | Perfil do profissional (web) | Concluído (PR #85) |
+| 10 | Institucionais (web) | Concluído (PR #86) |
+| 10 | Página não encontrada (web) | Concluído (PR #87) |
 
 Atributos de marca: próximo, confiável, direto e caloroso sem ser infantil.
 
@@ -780,7 +792,9 @@ Regras:
 - O telefone saiu: a API pública do profissional não o traz.
 - Coração: um pedido por profissional por vez; cada um solta só o próprio
   estado. Falha: alerta de perigo com o motivo da API, e o coração volta ao
-  que era.
+  que era. A resposta só vale para a conta que pediu.
+- A contagem é o `total` da API menos os tirados na visita (nunca negativa),
+  não o número de cards carregados.
 - Carregando: skeleton dos cards. Sem favoritos: `tg-empty-state` "Nenhum
   favorito ainda", com "Buscar profissionais". Falha: alerta com "Tentar de
   novo". Flag de favoritos desligada: estado vazio "Favoritos ainda não está
@@ -811,9 +825,15 @@ Regras:
   ligar "Disponível para pedidos".
 - Dias de atendimento são botões com `aria-pressed`; um horário e uma
   duração valem para todos os dias marcados (fuso de São Paulo).
+- Editar só manda a disponibilidade se dias ou horário mudarem; senão a API
+  mantém a salva, inclusive horários diferentes por dia ou várias janelas.
+  Nesse caso, a ajuda do campo avisa que mudar os dias ou o horário passa o
+  horário único para todos os dias escolhidos.
 - Os erros aparecem ao tentar salvar, abaixo de cada campo, com o ícone de
   alerta: nome com 3 a 120 letras, categoria, preço entre R$ 0,01 e
-  R$ 100.000, pelo menos um dia e fim depois do início.
+  R$ 100.000, pelo menos um dia, horário no formato 09:00, fim depois do
+  início, duração de 15 a 480 minutos e que caiba no intervalo (como o
+  `validateAvailability` da API).
 - Salvando: o painel não fecha e o botão mostra carregando; um envio por vez.
   Falha: alerta no painel com o motivo da API, e o formulário fica como
   estava. Sucesso: o painel fecha, a mensagem aparece numa região de status
@@ -1645,6 +1665,412 @@ desabilitados por validação.
 | Categoria | `label[tgCard]` com rádio, `tg-loading` | Grade de cards (2 colunas). Carregando: esqueletos. Falha: `tg-alert` de perigo com "Tentar de novo". Sem escolha: "Escolha uma categoria". |
 | Serviços | `label[tgCard]` com checkbox | Lista da categoria, com "N selecionados". Sem escolha: "Escolha pelo menos um serviço". "Adicionar serviços" volta para Criar conta. |
 | Conta criada | ícone `check`, `h1` com foco, `a[tgButton]` | Substitui os passos. Profissional: "Configurar meus serviços" e "Ir para o início". Cliente: "Buscar profissionais" e "Ir para o início". |
+
+### Responder solicitação (web)
+
+`modules/providers/pending-approval`, rota `provider/:orderId/aprovacao`
+(título "Responder solicitação"), só para o prestador, dentro do shell
+logado com o tema do prestador. Story: **Telas/Responder solicitação**
+(pendente, carregando, confirmar recusa, enviando resposta, enviando
+recusa, já aceita, já recusada, expirada, erro ao carregar e erro ao
+responder). Endpoints sem mudança: `GET /orders/:id`, `POST
+/order/:id/provider/:providerId/confirm` e `POST .../cancel` com `{ reason,
+note? }` (`CancelOrderByProviderDto`: motivo do enum
+`OrderCancellationReason`, observação opcional de até 500 caracteres).
+
+Decisões: (1) a recusa não se desfaz (o pedido vai para CANCELADO), então
+"Recusar" abre um `tg-dialog` de perigo com o motivo e a confirmação num
+passo só, no lugar do bloco de motivos na própria tela; (2) depois de
+aceitar ou recusar, a tela fica no lugar e um `tg-alert` substitui as
+ações, com "Ver detalhes do pedido", no lugar do `app-full-modal` que
+levava ao início; (3) solicitação que já não aguarda resposta diz como
+terminou (aceita, recusada com o motivo, expirada ou cancelada).
+
+| Parte | Componente | Regra |
+| --- | --- | --- |
+| Voltar e título | link "Voltar ao início", `h1` com o serviço | Acima, "Nova solicitação · recebida há 2 h" ("Solicitação" depois de respondida); abaixo, categoria e nome do cliente. Sem contato do cliente. |
+| Prazo | `tg-alert` de atenção | `orderExpiryNotice` (o mesmo de Detalhes do pedido): "Responda até 15:40", só enquanto aguarda resposta. Quando o prazo passa, vira "O prazo terminou" sem recarregar (um timer só, sem polling); só a API diz que expirou. |
+| Quando e onde | `tg-card` com `dl` | Data e horário no horário de São Paulo ("A combinar" sem data), endereço, bairro/cidade/CEP e a distância até a área de atendimento. |
+| Valores | `tg-card` com `dl` | Valor do serviço, taxa da plataforma e "Você recebe (estimado)" em destaque. |
+| Ações | `button[tgButton]` | "Recusar" (outline) e "Aceitar serviço" (com `loading`). Um envio por vez. No celular, empilhadas com "Aceitar serviço" em cima. |
+| Recusa | `tg-dialog` de perigo com `label[tgCard]` (rádio) e `tg-field` | "Recusar esta solicitação?", motivo obrigatório ("Escolha o motivo da recusa." abaixo das opções), "Conte mais" opcional só em "Outro motivo", enviado sem espaços nas pontas. Enviando: `busy` no diálogo e `loading` em "Recusar solicitação". O link com `?recusar` abre o diálogo assim que a solicitação carrega, se ainda aguarda resposta. |
+| Resultado | `tg-alert` | Aceita (sucesso), recusada (informativo, com motivo e observação), expirada (atenção; o backend cancela e registra EXPIRED na linha do tempo), cancelada (informativo). Anunciado pelo `LiveAnnouncer`. |
+| Erro ao responder | `tg-alert` de perigo | Na tela (aceite) ou dentro do diálogo (recusa). 400/409: "Esta solicitação não pode mais ser respondida", com "Atualizar"; outras falhas: "Não foi possível enviar sua resposta". |
+| Carregando e erro | `tg-loading` com skeleton; `tg-alert` de perigo | 404: "Esta solicitação não foi encontrada", sem "Tentar de novo"; outras falhas, com "Tentar de novo". |
+
+O desfecho fica em `pendingApprovalOutcome`, função pura com testes
+próprios.
+
+### Dados pessoais (web)
+
+`modules/general/profile/view` e `edit`, rotas `/general/:userId/profile/view`
+e `/general/:userId/profile/edit` (sem sufixo, vai para `view`). Agora é uma tela
+própria do shell, como Pedidos: sem o cabeçalho de perfil da conta, com
+`unauthorizedGuard` e `sessionUserGuard`. O id vem sempre da sessão. Endpoints
+sem mudança: `GET` e `PATCH /user/:id`. Story: **Telas/Dados pessoais**
+(cliente, prestador, carregando, erro ao carregar, edição, edição com erros,
+salvando, erro ao salvar e sucesso).
+
+Decisões aprovadas: (1) as seções de antes ficam (progresso do cadastro,
+acessos rápidos, endereço principal e, para o prestador, o perfil público),
+agora em `tg-card`; (2) os atalhos seguem os nomes do menu ("Pedidos" e
+"Ganhos"); (3) salvar volta para os dados com o alerta "Dados salvos.", que só aparece com
+os dados carregados e só para a conta que salvou; (4) os
+erros da API aparecem com texto da tela, porque as mensagens da API vêm em
+inglês.
+
+| Parte | Componente | Regra |
+| --- | --- | --- |
+| Título | `h1` "Dados pessoais", `a[tgButton]` "Editar dados" | O botão só aparece com os dados carregados. |
+| Identidade | `tg-card`, avatar (foto ou iniciais), `tg-badge` | Nome, "Cliente" ou "Profissional", e-mail e telefone formatado ("(11) 91234-5678"). Cada contato tem o selo "Verificado" ou "Não verificado" quando a API manda o dado. |
+| Cadastro | `tg-card`, `progress` com tokens, `tg-badge` "Feito" | Contato, foto e endereço; o que falta leva à edição ou aos endereços. |
+| Atalhos | `tg-card` com lista de links | Pedidos e Meus endereços; cliente: Profissionais favoritos; prestador: Ganhos e Meus serviços. |
+| Endereço | `tg-card`; `tg-empty-state` compacto | O principal (ou o primeiro). Sem endereço: "Nenhum endereço cadastrado" com "Adicionar endereço". |
+| Edição | `tg-field` com `tgInput` | Link da foto (opcional, com prévia), nome completo, e-mail e telefone. Os erros aparecem ao salvar, o foco vai ao primeiro inválido e o botão nunca fica desabilitado por validação. |
+| Salvando e erro | `button[tgButton]` com `loading`; `tg-alert` | Um envio por vez. Falha: "Não deu para salvar", com o que foi digitado mantido. Nada mudou: aviso informativo, sem chamar a API. |
+| Carregando e erro | `tg-loading` com skeleton; `tg-alert` de perigo | Falha: "Tentar de novo". 401 ou sessão sem id: "Entrar de novo". |
+
+Regras:
+
+- Validação alinhada ao `UpdateUserDto` e às entidades `Email` e `Phone` da
+  API: nome obrigatório e até 150 caracteres; e-mail com as regras do `@IsEmail()` do DTO e do `Email.isValid`
+  (`isApiEmail`);
+  telefone com 10 a 13 dígitos, com ou sem máscara; foto opcional, só HTTPS
+  e até 2048 caracteres.
+- O `PATCH` leva só o que mudou, normalizado (nome e e-mail sem espaços nas
+  pontas, telefone só com dígitos, foto vazia vira `null`). A API desfaz a
+  verificação do e-mail e do telefone que recebe, então reenviar o mesmo
+  valor apagaria a verificação.
+- Ao salvar, o nome, o e-mail, o telefone e a foto da sessão são atualizados
+  com o que a API devolveu, para o menu da conta já mostrar os dados novos.
+- No desktop, os dados têm até 880 px e a edição até 640 px, centralizados.
+  A partir de 640 px de largura, os cards ficam em duas colunas.
+
+### Conta (web)
+
+O hub da conta de quem está logado, em `/general/:id/home` (título "Conta"),
+o destino da aba "Conta" abaixo de 1024 px. É uma tela própria do shell,
+como Pedidos: sem o cabeçalho de perfil antigo. Story: **Telas/Conta**.
+Endpoint sem mudança: `GET /user/:id` (só o dono; `user.controller.ts`,
+`assertOwner`), sempre com o id da sessão.
+
+| Parte | Componente | Regra |
+| --- | --- | --- |
+| Identidade | `tg-card` com avatar (foto ou iniciais), nome, e-mail e `tg-badge` neutro com o modo ("Cliente" ou "Profissional") | Vem da API. Carregando: skeleton do card. |
+| Links | `a[tgCard]` numa `nav aria-label="Sua conta"` | Cliente: Dados pessoais, Endereços, Pedidos. Prestador: os mesmos e "Perfil público" (`/provider/profile/:id`, a prévia). Não dependem da API: ficam à vista também no carregando e na falha. |
+| Sair | `button[tgButton]` outline, tom `danger`, ícone `sign-out` | Separado dos links; chama o logout da sessão. |
+
+Regras:
+
+- Rota com `unauthorizedGuard` e `sessionUserGuard`: o id da URL nunca é
+  fonte de identidade; diferente do da sessão, a URL é corrigida.
+  `/general/:id` leva a `/general/:id/home`.
+- Falha: `tg-alert` de perigo "Não foi possível carregar seus dados" com
+  "Tentar de novo", que repete só a consulta do perfil (a anterior é
+  descartada).
+- 401 ou sessão sem id: `tg-alert` "Sua sessão expirou" com "Entrar
+  novamente" (limpa o token e vai para `/authenticate/login`), sem consultar
+  a API e sem os links.
+- A ajuda institucional (Quem somos, Perguntas frequentes, Ajuda) fica no
+  rodapé do shell, não na lista.
+- No desktop, a tela tem até 640 px, centralizada.
+
+### Endereços (web)
+
+Os endereços de quem está logado, em `/general/:id/addresses`, dentro do
+perfil da conta (abaixo do cabeçalho do perfil, que já tem o `h1`; o título
+"Endereços" é `h2`). Story: **Telas/Endereços** (com endereços, sem
+endereços, carregando, falha da API, novo endereço com erros, busca do CEP,
+CEP não encontrado, editar, falha ao salvar e remover). Endpoints sem
+mudança: `GET /user/me/addresses?limit=100`, `POST`, `PATCH /:id` e `DELETE
+/:id`; o CEP continua na BrasilAPI (`Geolocalization.getAddressByCep`).
+
+| Parte | Componente | Regra |
+| --- | --- | --- |
+| Título | `h2` e linha de apoio | "N endereços salvos." com a lista carregada; senão, "Os locais onde você recebe os serviços." "Adicionar endereço" (`button[tgButton]` sm, ícone `plus`) no topo só quando há algum endereço ou a lista falhou. |
+| Lista | `ul` de `tg-card` | Duas colunas a partir de 600 px de contêiner. Nome (`h3`), `tg-badge` "Principal" no padrão, rua e número, complemento, "Bairro · Cidade, UF" e "CEP 00000-000". "Editar" (outline) e "Remover" (ghost, perigo, ícone `trash`) com `aria-describedby` no nome do endereço. Ordem da API. |
+| Vazio | `tg-empty-state` num `tg-card` | "Nenhum endereço cadastrado", com "Adicionar endereço" (a única ação da tela). |
+| Carregando e erro | `tg-loading` com skeleton; `tg-alert` de perigo | "Não foi possível carregar seus endereços", com "Tentar de novo". Cada carga cancela a anterior. |
+| Formulário | `tg-sheet` com `tg-field` + `tgInput` | Nome, CEP (máscara), rua, número, complemento (opcional), cidade e estado, e "Usar como endereço principal". Ações "Cancelar" e "Salvar endereço" (`loading` e `busy` durante o envio). |
+| Remover | `tg-dialog` de perigo | "Remover este endereço?", com o nome e a rua; "Voltar" (foco inicial) e "Remover endereço". Falha fica no diálogo. |
+
+Regras:
+
+- Validação alinhada ao `CreateAddressDto` (apps/backend/src/modules/address/dto):
+  nome, rua, número, cidade e estado obrigatórios (só espaços não vale), complemento
+  opcional; CEP com 8 dígitos. Os erros aparecem abaixo de cada campo depois da
+  primeira tentativa de salvar, e o foco vai para o primeiro campo com erro. O texto
+  vai sem espaços nas pontas e o CEP só com dígitos.
+- O campo Bairro saiu: o DTO não o aceita e a API nunca o guardou. O bairro que a
+  API devolver ainda aparece no card.
+- CEP completo busca o endereço; "Buscando o endereço pelo CEP…" fica na dica do
+  campo. O que a pessoa mudou durante a busca fica, e número e complemento nunca
+  mudam. CEP não encontrado ou falha da busca: `tg-alert` de atenção, e o
+  endereço pode ser preenchido à mão. Resposta de um CEP anterior é descartada.
+- Salvar: um envio por vez. Sucesso fecha o painel, mostra "Endereço adicionado."
+  ou "Endereço atualizado." (`tg-alert` de sucesso, com fechar) e recarrega a
+  lista em silêncio (a lista fica à vista). Falha mantém o painel e o que foi
+  digitado, com "Não deu para salvar". Cada abertura do painel começa do zero.
+- Remover pede confirmação; sucesso fecha o diálogo, mostra "Endereço removido."
+  e recarrega a lista em silêncio.
+
+### Finalizar serviço (web)
+
+O prestador informa que terminou o atendimento, em `/orders/:id/finish`
+(fora do shell, como os detalhes do pedido). Story: **Telas/Finalizar
+serviço**. Endpoints sem mudança: `GET /orders/:id` e `PATCH
+/orders/:id/finish`.
+
+Decisões (a validar): (1) cabeçalho como os detalhes do pedido: "Pedido
+#N · Categoria", h1 "Finalizar serviço" e o `tg-badge` do status do mapa do
+DS; (2) um `tg-card` de resumo com o serviço, o cliente, quando, o endereço
+e o "Valor combinado" só para leitura ("O valor combinado na contratação é
+fixo."); o campo de valor somente leitura e o quadro "Confirme os dados"
+(valor estimado, final e diferença, sempre iguais) saíram; (3) um `tg-card`
+"Como foi o atendimento" com "Observações do serviço" (`tg-field`,
+opcional, contador "N de 1.000 caracteres") e as ações "Voltar ao pedido" e
+"Enviar conclusão".
+
+Regras:
+
+- Só `EM_ANDAMENTO` pode ser finalizado (`finish-order.handler.ts`). Em
+  qualquer outro status, `tg-empty-state` "Este serviço não pode ser
+  finalizado", com o status atual e "Ver detalhes do pedido"; sem formulário.
+- Valor enviado (`finalPrice`): `payment.finalAmount` (o `order.finalPrice`
+  que o backend compara), depois `payment.estimatedAmount`, depois
+  `service.estimatedPrice`. Sem valor válido: `tg-alert` de atenção e envio
+  bloqueado. Fotos: sempre `[]` (o DTO ainda recusa fotos).
+- Observações: sem espaços nas pontas; vazias não vão no corpo. Limite de
+  1.000 caracteres do DTO, com erro no campo.
+- Enviando: um envio por vez, botão com `loading`. Sucesso: `tg-alert` de
+  sucesso "Conclusão enviada" com a mensagem da API, o selo passa ao status
+  devolvido ("Aguardando o cliente") e, depois de 900 ms, a tela abre os
+  detalhes do pedido (como antes). Falha: `tg-alert` de perigo "Não foi
+  possível enviar a conclusão" com o motivo da API (a mensagem em inglês de
+  valor divergente é traduzida), formulário preservado.
+- Carregando: skeleton. Falha ao carregar: `tg-alert` com "Tentar de novo";
+  404: "Este pedido não foi encontrado", sem repetir.
+- Data e hora no horário de São Paulo, valores com `Intl`.
+
+### Confirmar conclusão (web)
+
+`modules/orders/confirm-service`, rota `orders/:id/confirm`, só para o
+cliente. Story: **Telas/Confirmar conclusão** (aguardando confirmação, sem
+ajuste e sem fotos, enviando, confirmado, status que não permite confirmar,
+carregando, erro ao carregar e erro ao confirmar). Endpoints sem mudança:
+`GET /orders/:id` e `PATCH /orders/:id/confirm` (sem `clientNotes`, como antes).
+
+Decisões aprovadas: (1) depois de confirmar, a tela mostra "Serviço
+confirmado" com "Avaliar atendimento" e "Ver detalhes do pedido", em vez do
+toast e do redirecionamento automático para a avaliação; (2) o badge do topo
+mostra o status real do pedido (antes era sempre "Aguardando sua
+confirmação"); (3) o pedido concluído e sem avaliação oferece "Avaliar
+atendimento".
+
+| Parte | Componente | Regra |
+| --- | --- | --- |
+| Voltar e título | link "Voltar ao pedido", `h1` "Confirmar conclusão" | Acima do título, "Pedido #id · categoria"; ao lado, `tg-badge` com o mapa de status do DS. |
+| Resumo do serviço | `tg-card` com `dl` | O prestador (foto ou iniciais, verificado, nota), o serviço, o agendamento, o endereço, quando o prestador finalizou e as observações dele (ou "O prestador não deixou observações."). Datas no horário de Brasília. |
+| Fotos | `tg-card`; `tg-empty-state` compacto | Fotos da finalização com o tipo (Antes, Depois, Comprovante, Avaria), abrem em nova aba. Sem fotos: "Nenhuma foto enviada". |
+| Valores | `tg-card` com `dl`; `tg-alert` de atenção | "Valor final" em destaque, valor estimado, diferença (só quando muda, em centavos), forma e situação do pagamento em português. Valor ajustado: "O valor final foi ajustado" com o motivo. |
+| Decisão | `tg-card`; `button[tgButton]` e `a[tgButton]` outline | "Confirmar conclusão" abre o `tg-dialog`; "Reportar problema" leva a `/orders/:id/report-problem`. |
+| Confirmação | `tg-dialog` com `busy` e `loading` | "Confirmar a conclusão do serviço?", com o valor e o prestador. Um envio por vez; enquanto envia, nada fecha o diálogo. |
+| Confirmado | `tg-card` | "Serviço confirmado" com a mensagem da API; o foco vai para o título. Badge "Concluído". |
+| Indisponível | `tg-alert` de atenção | Quem não é o cliente do pedido, pedido concluído ("Este serviço já foi confirmado"), em disputa ("Aguarde a análise do problema reportado") ou em outro status: sem o botão de confirmar, com "Ver detalhes do pedido". |
+| Erros | `tg-alert` de perigo | Ao carregar: 404 "Este pedido não foi encontrado" e 403 sem "Tentar de novo"; outras falhas com "Tentar de novo". Ao confirmar: o diálogo fecha e o alerta mostra a mensagem da API (por exemplo, "Pagamento ainda não confirmado"). |
+
+As regras seguem `ConfirmOrderCompletionHandler` (apps/backend): só o
+cliente, só em `AGUARDANDO_CONFIRMACAO_CLIENTE`, Pix pago e sem problema
+reportado em aberto; a tela não antecipa as regras de pagamento e mostra a
+recusa da API. A formatação fica em `confirm-service.view.ts`
+(`confirmServiceView`), função pura com testes próprios.
+
+### Avaliar atendimento (web)
+
+`modules/orders/review-order`, rota `orders/:id/review`, só para o cliente.
+Story: **Telas/Avaliar** (formulário, preenchido, erros de validação,
+enviando, enviado com sucesso, erro ao enviar, já avaliado, pedido não
+concluído, pedido cancelado, carregando e erro ao carregar). Endpoints sem
+mudança: `GET /orders/:id`, `GET /review-tags` e `POST /orders/:id/review`.
+
+Decisões aprovadas: (1) pedido de outra conta, ainda em curso, cancelado ou
+já avaliado mostra o motivo na própria tela, com "Ver pedido", em vez de
+redirecionar sem explicação; (2) depois de enviar, a tela mostra "Obrigado
+pela avaliação!" com a nota, o comentário e "Ver pedido", sem o redirecionamento
+automático de 1,2 s; (3) o botão "Enviar avaliação" fica sempre ativo e a
+falta de nota vira erro de validação.
+
+| Parte | Componente | Regra |
+| --- | --- | --- |
+| Voltar e título | link "Voltar ao pedido", `h1` "Avaliar atendimento" | Acima, "Pedido #id · Avaliação"; abaixo, "Conte como foi sua experiência com {prestador}". |
+| Resumo | `tg-card` com `dl` | Foto ou iniciais do prestador, nome e serviço; "Realizado em" (finalização, senão o agendado, em São Paulo) e "Valor pago" (final, senão estimado do pagamento, senão o do serviço). |
+| Nota | `fieldset role="radiogroup"` com rádios nativos e `tg-icon` `star` | Cinco rádios visualmente ocultos: Tab entra no grupo e as setas trocam a nota. Cada estrela tem nome ("4 estrelas, Bom atendimento"); a prévia ao passar o mouse não muda a nota. Estrela cheia em `--tg-feedback-warning-text`, vazia em `--tg-border-strong`. |
+| Destaques | chips `button` com `aria-pressed` | As tags ativas de `GET /review-tags`, opcionais. Carregando: skeleton; falha ou lista vazia: a seção some (como antes) e volta no "Tentar de novo". |
+| Comentário | `tg-field` com `textarea[tgInput]` | Opcional, até 500 caracteres (`@MaxLength(500)` do `CreateOrderReviewDto`), contados sem os espaços das pontas, que a tela tira antes de enviar. Contador `N/500`. |
+| Validação | erro abaixo das estrelas e do campo | Sem nota: "Escolha uma nota de 1 a 5 estrelas." e o foco vai para a primeira estrela; comentário longo: o foco vai para o campo. |
+| Envio | `button[tgButton]` com `loading` | Um envio por vez; os campos ficam travados. Erro: `tg-alert` de perigo com a mensagem da API (texto) ou "Verifique sua conexão e tente de novo."; o que foi preenchido fica. 409: vira "Você já avaliou este atendimento". |
+| Enviado e já avaliado | `tg-card` com `tg-badge` `done` | "Avaliação enviada" / "Já avaliado", a nota (estrelas com `role="img"`, "Nota N de 5") e o comentário; o foco vai para o título depois do envio. |
+| Sem permissão | `tg-alert` de atenção com "Ver pedido" | Outra conta: "Só quem contratou pode avaliar"; em curso: "O atendimento ainda não foi concluído"; cancelado, recusado ou em disputa: "Este pedido não pode ser avaliado". As regras são as do `create-order-review.handler.ts`. |
+| Carregando e erro | `tg-loading` com skeleton; `tg-alert` de perigo | 404: "Este pedido não foi encontrado", sem "Tentar de novo"; outras falhas, com "Tentar de novo". |
+
+As regras e a formatação ficam em `review-order.view.ts`
+(`reviewAvailability`, `reviewErrors`, `reviewSummary`), funções puras com
+testes. Os componentes `app-rating` e `app-review-tag-chip`, usados só por
+esta tela e com cores fixas, saíram.
+
+### Reportar problema (web)
+
+O cliente ou o prestador abre um caso (disputa) sobre o pedido, em
+`/orders/:id/report-problem` (título "Reportar problema"), fora do shell
+logado, na mesma moldura de Detalhes do pedido (link "Voltar ao pedido",
+fundo `--tg-bg-canvas`, coluna de até 720px). Story: **Telas/Reportar
+problema**. Endpoints: `GET` e `POST /orders/:id/disputes` (os de antes) e
+`GET /orders/:id` (via `Order.getOrderDetails`), para saber se o pedido
+aceita um caso novo.
+
+Decisões: (1) cabeçalho com "Pedido #id · serviço", o `h1` e o texto de
+antes (a confirmação fica bloqueada enquanto o caso estiver aberto; abrir um
+caso não pede reembolso); (2) formulário num `tg-card` com `tg-field`
+"Motivo" e "O que aconteceu?" (textarea com contador), "Enviar para
+análise" e "Cancelar"; (3) casos do pedido em "Problemas reportados", um
+`tg-card` por caso com motivo, "Caso #id · aberto por você / pelo cliente /
+pelo prestador em data", `tg-badge` (Aberto, Em análise, Resolvido,
+Encerrado), descrição e "Resposta da equipe".
+
+Regras (de `apps/backend/src/modules/order/order-disputes.controller.ts`):
+
+- Quem: o cliente ou o prestador do pedido; de outra pessoa ou inexistente,
+  a API responde 404 e a tela mostra "Este pedido não foi encontrado".
+- Quando: só em `EM_ANDAMENTO` e `AGUARDANDO_CONFIRMACAO_CLIENTE`. Nos
+  outros status, sem formulário: `tg-empty-state` com o motivo (ainda não
+  começou, já concluído, já em disputa, cancelado/recusado) e "Falar com o
+  suporte".
+- Um caso aberto por vez: com um caso `OPEN` ou `UNDER_REVIEW`, a tela
+  troca o formulário por um `tg-alert` informativo "Já existe um problema em
+  análise neste pedido", com "Falar com o suporte". A API também devolve o
+  caso aberto em vez de criar outro.
+- Limites do `OpenDisputeDto`: motivo de 3 a 120 caracteres, descrição de
+  10 a 2.000 (`maxlength` nos campos). A validação roda ao enviar, sobre o
+  texto sem espaços nas pontas, que é o que a tela envia; o erro aparece
+  abaixo do campo.
+- Enviando: um envio por vez, botão com `loading` e campos desabilitados.
+  Deu certo: `tg-alert` de sucesso "Problema enviado" na página (a
+  `tg-toast-region` não está montada no app), o caso entra na lista e os
+  casos são recarregados sem skeleton. Falhou: `tg-alert` de erro "Não foi
+  possível enviar o problema" com a mensagem da API (a lista `message` do
+  filtro de exceções) ou "Verifique sua conexão e tente de novo.", e o
+  formulário fica preenchido.
+- Carregando: skeleton do cabeçalho e do formulário. Falha do pedido ou
+  dos casos: `tg-alert` de erro com "Tentar de novo" (sem formulário, já que
+  não dá para saber se há caso aberto).
+- Datas com `Intl.DateTimeFormat` no fuso `America/Sao_Paulo`.
+
+Fica para depois: o link "Reportar problema" em Detalhes do pedido só
+aparece para o cliente em `AGUARDANDO_CONFIRMACAO_CLIENTE`; a API também
+aceita o prestador e o status `EM_ANDAMENTO`.
+
+### Perfil do profissional (web)
+
+`modules/customer/provider-profile`, rotas `customer/profile/:userId` (o
+cliente, aberto por "Ver Perfil Completo" na tela de agendamento) e
+`provider/profile/:userId` (`data.preview`: o prestador vê a prévia do
+próprio perfil a partir de "Minha conta"). Busca `GET /provider/:id`; o id do
+Provider é o mesmo do usuário (1:1, mesma chave). Story: **Telas/Perfil do
+profissional** (perfil completo, sem avaliações, sem serviços ativos, visto
+pelo próprio prestador, prévia ainda não pública, não encontrado, carregando
+e com falha da API).
+
+Decisões: (1) uma coluna, com o resumo no topo e "Agendar serviço" dentro
+dele (ao lado do nome a partir de 600 px; largura total no celular), que leva
+à tela de agendamento (`/customer/:id`) como antes; (2) só dados reais: sem
+apresentação, nota ou contato, a parte some; (3) a tela mostra o preço base
+de cada serviço, que a API já manda.
+
+| Parte | Componente | Regra |
+| --- | --- | --- |
+| Voltar | link com `arrow-left` | Cliente: "Voltar para profissionais" (`/customer`). Prévia: "Voltar para minha conta". |
+| Prévia | `tg-alert` informativo | "Prévia do seu perfil público"; sem "Agendar serviço". |
+| Resumo | `tg-card` | Foto ou iniciais (72 px; 96 px a partir de 600 px), sobretítulo, `h1` com o nome, `tg-badge` "Verificado" com `check`, nota com estrela ("Nota 4,8 de 5, 37 avaliações" para leitor de tela) ou `tg-badge` accent "Novo no TaskGo" (mesma regra do card de prestador), "No TaskGo desde novembro de 2025" e a apresentação. Telefone, e-mail e região só se a API mandar (hoje não manda). |
+| Serviços oferecidos | `tg-card` com lista | Ativos, em ordem alfabética, com descrição e "a partir de R$ 120" (sem centavos quando inteiro) ou "Preço sob consulta". Vazio: `tg-empty-state` compacto "Nenhum serviço ativo". |
+| Avaliações | `tg-card` com lista | Cinco estrelas (`role="img"`, "Nota 4 de 5"), data no horário de São Paulo e comentário ou "Sem comentário.". A API não manda o autor, então ele não aparece. A API traz as 20 mais recentes: com mais avaliações que isso, "Mostrando as N avaliações mais recentes.". Vazio: `tg-empty-state` compacto "Ainda sem avaliações". |
+| Carregando | `tg-loading` com skeleton do resumo e de uma seção | |
+| Não encontrado | `tg-alert` | A API devolve vazio para prestador inexistente, não aprovado ou sem serviço ativo; 404 e 400 (id inválido) também. Cliente: perigo, "Este profissional não foi encontrado", com "Buscar profissionais". Prévia: atenção, "Seu perfil ainda não aparece para os clientes", com "Ver meus serviços". Sem "Tentar de novo". |
+| Erro | `tg-alert` de perigo com "Tentar de novo" | Outras falhas; recarrega só o perfil. |
+
+A formatação fica em `provider-profile.view.ts` (`providerProfileView`),
+função pura com testes próprios, que reaproveita o `toTgProvider` do card de
+prestador para id, nome, foto, verificado, nota e contagem.
+
+### Institucionais (web)
+
+Os documentos públicos, em `/institutional/terms` (Termos de uso),
+`/institutional/privacy` (Privacidade), `/institutional/security`
+(Segurança) e `/institutional/code-of-conduct` (Código de conduta);
+`/institutional` abre os termos. Ficam fora do shell logado, em
+`app-institutional-page`. Story: **Telas/Institucionais**. Sem API.
+
+Decisões: (1) a mesma barra do topo (`tg-app-bar`) e o mesmo rodapé
+(`app-footer`) do app, sem destinos nem menu da conta; (2) visitante vê
+"Entrar" (`/authenticate`); logado vê "Voltar ao app", para a home do modo,
+e o tema do seu modo (profissional escuro); (3) navegação entre os quatro
+documentos: lista ao lado do texto a partir de 1024 px, duas colunas de
+pílulas abaixo, com o atual em `action-subtle` e `aria-current="page"`.
+
+Regras:
+
+- O texto de cada documento é uma lista de seções (`InstitutionalSection`:
+  `id`, `title`, parágrafos e listas) na própria página, como o jurídico
+  aprovar, sem edição. Cada seção é um `h2` com âncora; um único `h1` por
+  página.
+- Leitura longa: coluna de até 68ch, corpo em `body-lg`, títulos em
+  `title-2`, linha de apoio em `text-secondary`.
+- A partir de três seções, sumário "Nesta página" com um link por seção.
+  O clique rola até a seção e leva o foco ao título, sem trocar a rota (o
+  router do app não liga o `anchorScrolling`); `scroll-margin-top` livra a
+  barra fixa.
+- Sem texto publicado: `tg-empty-state` "Texto ainda não publicado". Hoje
+  os quatro documentos estão assim (não há texto jurídico no repositório).
+- As rotas antigas `about`, `faq` e `support` (rodapé e 404) seguem como
+  estavam.
+- 360 px sem rolagem horizontal.
+
+### Página não encontrada (web)
+
+A página 404 da rota curinga (`**`, título "Página não encontrada"), dentro
+de `app-page` (topo e rodapé do app). Vale para visitante, cliente e
+prestador; o tema segue o modo de quem está na sessão (visitante e cliente,
+claro; prestador, escuro). Story: **Telas/Página não encontrada**. Sem
+chamadas de API.
+
+Decisões aprovadas: (1) o mesmo desenho do `tg-empty-state` grande
+(centralizado, título, texto curto, próximo passo), mas montado na própria
+tela, porque aqui o título é o `h1` da página e há duas ações; (2) a
+ilustração existente (`/ilustrations/not-found-ilustration.webp`, decorativa,
+`alt=""`) acima do título, até 420 px; (3) "Erro 404" como linha de apoio
+acima do `h1` "Página não encontrada"; (4) ação principal "Ir para o início"
+e, de contorno, "Voltar"; (5) uma linha "Precisa de ajuda? Fale com o
+suporte". Os atalhos antigos (buscar, agendamentos, favoritos, para
+prestadores) saíram: eram só do cliente e mandavam visitante e prestador para
+telas que eles não abrem.
+
+| Estado | Como aparece | Regras |
+| --- | --- | --- |
+| Visitante | Topo sem navegação | "Ir para o início" leva a `/authenticate` (a entrada). |
+| Cliente logado | Topo com a navegação do cliente, tema claro | "Ir para o início" leva a `/customer`. |
+| Prestador logado | Topo com a navegação do prestador, tema escuro | "Ir para o início" leva a `/provider`. |
+
+Regras:
+
+- O início segue a regra do `userLoggedGuard`: com token e tipo de usuário
+  (`CLIENTE`/`PRESTADOR` ou `CUSTOMER`/`PROVIDER`), `Utils.getRouteByRoleBack`;
+  sem token, a sessão conta como visitante.
+- "Voltar" volta para a tela anterior do app (`Location.back()`) quando houve
+  navegação antes; aberta direto pelo endereço, vai ao início, para não sair
+  do app.
+- Abaixo de 480 px, as ações ocupam a largura, a principal em cima; sem
+  rolagem horizontal em 360 px.
+- Acessibilidade: um único `h1`, ilustração decorativa, ações com texto
+  visível, foco visível no link de suporte.
 
 ## Testes
 
