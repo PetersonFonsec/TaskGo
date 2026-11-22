@@ -140,13 +140,14 @@ describe('Favorites MVP', () => {
     cy.url().should('include', '/customer/favorites');
     cy.wait('@favoritesList');
 
-    cy.get('#customer-favorites').within(() => {
-      cy.contains('Meus favoritos').should('exist');
+    cy.get('app-favorites').within(() => {
+      cy.contains('h1', 'Favoritos').should('exist');
       cy.contains('Provider Favorito').should('exist');
-      cy.get('button.card-detail_favorite').contains('Remover dos favoritos').click();
+      cy.get('button.tg-provider-card__favorite').should('have.attr', 'aria-pressed', 'true').click();
     });
 
     cy.wait('@removeFavorite');
-    cy.contains('Você não possui nenhum profissional favoritado.').should('exist');
+    // O card fica até sair da tela, com o coração vazio, para desfazer com outro toque.
+    cy.get('app-favorites button.tg-provider-card__favorite').should('have.attr', 'aria-pressed', 'false');
   });
 });

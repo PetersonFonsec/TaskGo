@@ -1,179 +1,194 @@
-<main class="services-page">
-  <a class="back-link" routerLink="/provider">← Voltar ao painel</a>
-  <header class="page-heading">
-    <p class="eyebrow">Gestão de serviços</p>
-    <h1>Meus serviços</h1>
-    <p>Gerencie suas ofertas, preços e horários de atendimento.</p>
+<div class="services">
+  <header class="services__header">
+    <div>
+      <h1 class="services__title">Meus serviços</h1>
+      <p class="services__lead">Seus serviços, preços e horários de atendimento.</p>
+    </div>
+    <button tgButton type="button" iconStart="plus" (click)="openNew()">Novo serviço</button>
   </header>
 
-  <aside class="notice">Suas ofertas ficam disponíveis após a aprovação do seu perfil.</aside>
-  @if (error()) {
-    <p class="feedback feedback--error" role="alert">{{ error() }}</p>
-  }
-  @if (message()) {
-    <p class="feedback feedback--success" role="status">{{ message() }}</p>
+  <div class="services__status" role="status">
+    @if (message(); as text) {
+      <tg-alert tone="success" dismissible (closed)="message.set('')">{{ text }}</tg-alert>
+    }
+  </div>
+  @if (actionError(); as text) {
+    <tg-alert tone="danger" title="Não deu para desativar" dismissible (closed)="actionError.set('')">{{ text }}</tg-alert>
   }
 
-  <div class="services-layout">
-    <section class="panel offers-panel" aria-labelledby="offers-title">
-      <header class="section-heading">
-        <div>
-          <h2 id="offers-title">Serviços cadastrados</h2>
-          <p>Confira e atualize suas ofertas.</p>
-        </div>
-        <span class="count">{{ offers().length }}</span>
-      </header>
-      @if (loading()) {
-        <p class="empty-state" role="status">Carregando seus serviços...</p>
-      } @else if (loadError()) {
-        <div class="empty-state">
-          <p role="alert">{{ loadError() }}</p>
-          <app-button typeColor="outline" (click)="load()">Tentar novamente</app-button>
-        </div>
-      } @else {
-        <div class="offer-list">
-          @for (offer of offers(); track offer.id) {
-            <article class="offer-card" [class.offer-card--editing]="editingId === offer.id">
-              <span class="badge" [class.badge--active]="offer.status === 'ATIVO'">
-                {{ offer.status === 'ATIVO' ? 'Ativo' : 'Rascunho / inativo' }}
-              </span>
-              <h3>{{ offer.title }}</h3>
-              @if (offer.description) {
-                <p class="offer-description">{{ offer.description }}</p>
-              }
-              <strong class="price">{{
-                offer.basePrice | currency: 'BRL' : 'symbol' : '1.2-2'
-              }}</strong>
-              <p class="price-label">Preço fixo por serviço</p>
-              <div class="actions">
-                <app-button typeColor="outline" [disabled]="busy()" (click)="edit(offer)"
-                  >Editar</app-button
-                >
-                <app-button
-                  color="light"
-                  [disabled]="busy() || offer.status !== 'ATIVO'"
-                  (click)="deactivate(offer)"
-                  >Desativar</app-button
-                >
+  @if (loadError()) {
+    <tg-alert tone="danger" title="Não foi possível carregar seus serviços">
+      Verifique sua conexão e tente de novo.
+      <button tgButton tgAlertAction type="button" appearance="outline" size="sm" (click)="load()">Tentar de novo</button>
+    </tg-alert>
+  } @else {
+    <tg-loading label="Carregando seus serviços" [loading]="loading()">
+      <ng-template tgLoadingSkeleton>
+        <div class="services__list">
+          @for (i of [1, 2]; track i) {
+            <tg-card>
+              <div class="services__skeleton">
+                <tg-skeleton width="40%" />
+                <tg-skeleton width="70%" />
+                <tg-skeleton width="30%" height="28" />
               </div>
-            </article>
-          } @empty {
-            <div class="empty-state">
-              <span class="empty-icon" aria-hidden="true">＋</span>
-              <h3>Seu primeiro serviço começa aqui</h3>
-              <p>Preencha o formulário para cadastrar uma oferta e definir seus horários.</p>
-            </div>
+            </tg-card>
           }
         </div>
-      }
-    </section>
+      </ng-template>
 
-    <form
-      class="panel service-form"
-      #form="ngForm"
-      (ngSubmit)="save()"
-      aria-labelledby="form-title"
-    >
-      <header class="section-heading">
-        <div>
-          <h2 id="form-title">{{ editingId ? 'Editar oferta' : 'Nova oferta' }}</h2>
-          <p>Conte aos clientes o que você oferece.</p>
-        </div>
-      </header>
-      <fieldset [disabled]="busy()" class="form-fields">
-        <legend class="visually-hidden">Informações da oferta</legend>
-        <label
-          >Nome do serviço
-          <input
-            name="title"
-            [(ngModel)]="draft.title"
-            required
-            minlength="3"
-            maxlength="120"
-            placeholder="Ex.: Limpeza residencial"
-          />
-        </label>
-        <label
-          >Descrição <span class="optional">(opcional)</span>
-          <textarea
-            name="description"
-            [(ngModel)]="draft.description"
-            maxlength="2000"
-            rows="4"
-            placeholder="Descreva o serviço e o que está incluído."
-          ></textarea>
-        </label>
-        <div class="field-grid">
-          <label
-            >Categoria
-            <select name="category" [(ngModel)]="draft.category" required>
-              <option value="">Selecione uma categoria</option>
-              @for (category of categories(); track category.slug) {
-                <option [value]="category.slug">{{ category.name }}</option>
-              }
-            </select>
-          </label>
-          <label
-            >Preço fixo (R$)
-            <input
-              name="price"
-              type="number"
-              min="0.01"
-              max="100000"
-              step="0.01"
-              [(ngModel)]="draft.basePrice"
-              required
-            />
-          </label>
-        </div>
-        <section class="availability" aria-labelledby="availability-title">
-          <h3 id="availability-title">Disponibilidade</h3>
-          <p>Defina os dias e horários em que você atende.</p>
-          <fieldset class="weekdays">
-            <legend>Dias de atendimento</legend>
-            <div class="days">
-              @for (day of days; track day.key) {
-                <label class="day" [class.day--selected]="selectedDays[day.key]">
-                  <input type="checkbox" [name]="day.key" [(ngModel)]="selectedDays[day.key]" />
-                  {{ day.label }}
-                </label>
-              }
-            </div>
-          </fieldset>
-          <div class="hours">
-            <label>Início<input name="start" type="time" [(ngModel)]="start" required /></label>
-            <label>Fim<input name="end" type="time" [(ngModel)]="end" required /></label>
-            <label
-              >Duração (min)<input
-                name="duration"
-                type="number"
-                min="15"
-                max="480"
-                step="15"
-                [(ngModel)]="duration"
-                required
-            /></label>
-          </div>
-          <p class="hint">
-            Horários no fuso de São Paulo. Ao salvar, estes horários substituem a disponibilidade
-            anterior desta oferta.
-          </p>
-        </section>
-        <label class="activation">
-          <input type="checkbox" name="active" [(ngModel)]="active" />
-          <span
-            >Ativar oferta<small>Deixe o serviço disponível para receber solicitações.</small></span
+      @if (offers().length) {
+        <ul class="services__list">
+          @for (offer of offers(); track offer.id) {
+            <li>
+              <tg-card class="service">
+                <div class="service__top">
+                  <h2 class="service__title">{{ offer.title }}</h2>
+                  @if (offer.status === 'ATIVO') {
+                    <tg-badge tone="done">Ativo</tg-badge>
+                  } @else {
+                    <tg-badge tone="neutral">Inativo</tg-badge>
+                  }
+                </div>
+                <p class="service__category">{{ categoryName(offer.category) }}</p>
+                @if (offer.description) {
+                  <p class="service__description">{{ offer.description }}</p>
+                }
+                <p class="service__schedule">{{ schedule(offer) }}</p>
+                <div class="service__footer">
+                  <p class="service__price">
+                    <b>{{ price(offer).toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' }) }}</b>
+                    <span>preço fixo</span>
+                  </p>
+                  <div class="service__actions">
+                    @if (offer.status === 'ATIVO') {
+                      <button tgButton type="button" appearance="ghost" size="sm" (click)="askDeactivate(offer)">
+                        Desativar
+                      </button>
+                    }
+                    <button tgButton type="button" appearance="outline" size="sm" (click)="openEdit(offer)">
+                      Editar
+                    </button>
+                  </div>
+                </div>
+              </tg-card>
+            </li>
+          }
+        </ul>
+      } @else {
+        <tg-empty-state icon="wrench" title="Cadastre seu primeiro serviço">
+          Diga o que você faz, o preço e os horários. Depois da aprovação do seu perfil, os clientes já podem pedir.
+          <button tgButton tgEmptyAction type="button" appearance="outline" size="sm" (click)="openNew()">Novo serviço</button>
+        </tg-empty-state>
+      }
+    </tg-loading>
+  }
+</div>
+
+<tg-sheet #sheet [title]="editing() ? 'Editar serviço' : 'Novo serviço'" [busy]="saving()">
+  <form id="service-form" class="form" novalidate (ngSubmit)="save()">
+    @if (saveError(); as text) {
+      <tg-alert tone="danger" title="Não deu para salvar">{{ text }}</tg-alert>
+    }
+
+    <tg-field label="Nome do serviço" [error]="errors().title ?? ''">
+      <input tgInput name="title" maxlength="120" placeholder="Limpeza residencial" [(ngModel)]="draft.title" />
+    </tg-field>
+
+    <tg-field label="Descrição" optional hint="O que está incluído e o que o cliente precisa saber." [error]="errors().description ?? ''">
+      <textarea tgInput name="description" rows="3" maxlength="2000" placeholder="Limpeza de cozinha, banheiros e quartos, com produtos inclusos." [(ngModel)]="draft.description"></textarea>
+    </tg-field>
+
+    <div class="form__select">
+      <label class="form__label" for="service-category">Categoria</label>
+      <select
+        id="service-category"
+        name="category"
+        class="form__control"
+        [attr.aria-invalid]="errors().category ? 'true' : null"
+        [attr.aria-describedby]="errors().category ? 'service-category-error' : null"
+        [(ngModel)]="draft.category"
+      >
+        <option value="">Escolha a categoria</option>
+        @for (category of categories(); track category.slug) {
+          <option [value]="category.slug">{{ category.name }}</option>
+        }
+      </select>
+      @if (errors().category; as text) {
+        <p id="service-category-error" class="form__error"><tg-icon name="warning-circle" [size]="16" /><span>{{ text }}</span></p>
+      } @else if (categoriesError()) {
+        <p class="form__hint">Não foi possível carregar as categorias. Feche e abra de novo.</p>
+      }
+    </div>
+
+    <tg-field label="Preço fixo" hint="O valor que o cliente vê como “a partir de”." [error]="errors().price ?? ''">
+      <span tgPrefix>R$</span>
+      <input tgInput name="price" inputmode="decimal" placeholder="120,00" [(ngModel)]="draft.price" />
+    </tg-field>
+
+    <fieldset class="form__group">
+      <legend class="form__label">Dias de atendimento</legend>
+      <div class="form__chips">
+        @for (day of days; track day.key) {
+          <button
+            type="button"
+            class="form__chip"
+            [attr.aria-pressed]="!!draft.days[day.key]"
+            [attr.aria-label]="day.name"
+            (click)="toggleDay(day.key)"
           >
-        </label>
-      </fieldset>
-      <footer class="form-actions">
-        <app-button type="button" color="light" [disabled]="busy()" (click)="reset()">{{
-          editingId ? 'Cancelar edição' : 'Limpar formulário'
-        }}</app-button>
-        <app-button type="submit" [disabled]="busy() || !!form.invalid">{{
-          busy() ? 'Salvando...' : 'Salvar oferta'
-        }}</app-button>
-      </footer>
-    </form>
-  </div>
-</main>
+            {{ day.label }}
+          </button>
+        }
+      </div>
+      @if (errors().days; as text) {
+        <p class="form__error"><tg-icon name="warning-circle" [size]="16" /><span>{{ text }}</span></p>
+      }
+    </fieldset>
+
+    <fieldset class="form__group">
+      <legend class="form__label">Horário</legend>
+      <div class="form__hours">
+        <tg-field label="Início">
+          <input tgInput type="time" name="start" [(ngModel)]="draft.start" />
+        </tg-field>
+        <tg-field label="Fim">
+          <input tgInput type="time" name="end" [(ngModel)]="draft.end" />
+        </tg-field>
+      </div>
+      <div class="form__select">
+        <label class="form__label form__label--small" for="service-duration">Duração de cada atendimento</label>
+        <select id="service-duration" name="duration" class="form__control" [(ngModel)]="draft.duration">
+          @for (minutes of durations; track minutes) {
+            <option [ngValue]="minutes">{{ minutes < 60 ? minutes + ' min' : minutes / 60 + (minutes === 60 ? ' hora' : ' horas') }}</option>
+          }
+        </select>
+      </div>
+      @if (errors().hours; as text) {
+        <p class="form__error"><tg-icon name="warning-circle" [size]="16" /><span>{{ text }}</span></p>
+      } @else {
+        <p class="form__hint">{{ hoursHint() }}</p>
+      }
+    </fieldset>
+
+    <label class="form__switch">
+      <span>
+        <b>Disponível para pedidos</b>
+        <small>Desligado, o serviço fica salvo, mas não aparece para os clientes.</small>
+      </span>
+      <input type="checkbox" role="switch" name="active" [(ngModel)]="draft.active" />
+      <span class="form__switch-track" aria-hidden="true"></span>
+    </label>
+  </form>
+
+  <button tgButton tgSheetAction type="button" appearance="outline" [disabled]="saving()" (click)="sheet.close()">Cancelar</button>
+  <button tgButton tgSheetAction type="submit" form="service-form" [loading]="saving()">
+    {{ editing() ? 'Salvar alterações' : 'Criar serviço' }}
+  </button>
+</tg-sheet>
+
+<tg-dialog #confirm title="Desativar este serviço?" icon="warning-circle" tone="danger" [busy]="busyDeactivate()">
+  <p>"{{ deactivating()?.title }}" deixa de aparecer para os clientes. Os pedidos já feitos continuam. Você pode ativar de novo em Editar.</p>
+  <button tgButton tgDialogAction type="button" appearance="outline" [disabled]="busyDeactivate()" (click)="confirm.close()">Voltar</button>
+  <button tgButton tgDialogAction type="button" tone="danger" [loading]="busyDeactivate()" (click)="deactivate()">Desativar serviço</button>
+</tg-dialog>
