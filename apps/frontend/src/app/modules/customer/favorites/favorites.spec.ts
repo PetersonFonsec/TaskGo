@@ -104,6 +104,80 @@ describe('Favorites', () => {
     expect(el.querySelector('tg-provider-card')).toBeNull();
   });
 
+  // Regressão: a contagem saía dos cards carregados, não do `total` da API.
+  describe('contagem com a lista paginada', () => {
+    const twenty = () => ({ items: Array.from({ length: 20 }, (_, i) => item(String(i + 1))), total: 25 });
+    const lead = () => el.querySelector('.favorites__lead')?.textContent?.replace(/\s+/g, ' ') ?? '';
+
+    it('20 itens de 25: conta 25 e diz que mostra os 20 mais recentes', async () => {
+      await setup(of(twenty()));
+      expect(component.favoriteCount()).toBe(25);
+      expect(lead()).toContain('25 profissionais salvos');
+      expect(lead()).toContain('mostrando os 20 mais recentes');
+    });
+
+    it('tirar um vai para 24; devolver volta para 25; repetir não desvia', async () => {
+      await setup(of(twenty()));
+      component.toggle('3', false);
+      flush();
+      expect(component.favoriteCount()).toBe(24);
+      expect(lead()).toContain('24 profissionais salvos');
+      component.toggle('3', true);
+      flush();
+      expect(component.favoriteCount()).toBe(25);
+      for (let i = 0; i < 3; i++) {
+        component.toggle('3', false);
+        component.toggle('3', true);
+        component.toggle('7', false);
+        component.toggle('7', true);
+      }
+      expect(component.favoriteCount()).toBe(25);
+      component.toggle('3', false);
+      component.toggle('7', false);
+      expect(component.favoriteCount()).toBe(23);
+    });
+
+    it('uma troca que falha não muda a contagem', async () => {
+      api.removeFavorite.and.returnValue(throwError(() => new HttpErrorResponse({ status: 500 })));
+      await setup(of(twenty()));
+      component.toggle('3', false);
+      flush();
+      expect(component.favoriteCount()).toBe(25);
+    });
+
+    it('nunca fica negativa', async () => {
+      await setup(of({ items: [item('1'), item('2')], total: 0 }));
+      component.toggle('1', false);
+      component.toggle('2', false);
+      expect(component.favoriteCount()).toBe(0);
+    });
+
+    it('recarregar volta aos números da API', async () => {
+      await setup(of(twenty()));
+      component.toggle('1', false);
+      expect(component.favoriteCount()).toBe(24);
+      api.listFavorites.and.returnValue(of({ items: twenty().items.slice(1), total: 24 }));
+      component.load();
+      flush();
+      expect(component.favorite()['1']).toBeUndefined();
+      expect(component.providers().length).toBe(19);
+      expect(component.favoriteCount()).toBe(24);
+    });
+
+    it('outra conta zera a contagem e usa o total da nova', async () => {
+      const second = new Subject<unknown>();
+      await setup(of(twenty()));
+      component.toggle('3', false);
+      api.listFavorites.and.returnValue(second);
+      session.set({ user: { id: 'client-2' } });
+      flush();
+      expect(component.favoriteCount()).toBe(0);
+      second.next({ items: [item('9')], total: 4 });
+      flush();
+      expect(component.favoriteCount()).toBe(4);
+    });
+  });
+
   describe('coração', () => {
     it('tirar: chama a API, o card fica com o coração vazio e a contagem cai', async () => {
       await setup(of({ items: [item('1'), item('2')] }));
@@ -159,6 +233,61 @@ describe('Favorites', () => {
       expect(el.querySelector('tg-alert')?.textContent).toContain('Falhou no servidor');
       expect(component.busy().size).toBe(0);
       expect(heart(0).getAttribute('aria-pressed')).toBe('true');
+    });
+
+    // Regressão: os callbacks da troca não conferiam se a conta ainda era a mesma.
+    describe('troca de conta com a troca do coração em curso', () => {
+      const switchToB = () => session.set({ user: { id: 'client-2', type: 'CLIENTE' } });
+
+      it('a resposta tardia de A não muda B, mesmo antes de a tela reagir à troca', async () => {
+        const pending = new Subject<unknown>();
+        api.removeFavorite.and.returnValue(pending);
+        await setup(of({ items: [item('1')], total: 1 }));
+        api.listFavorites.and.returnValue(of({ items: [item('1')], total: 1 }));
+        component.toggle('1', false);
+        switchToB();
+        pending.next({});
+        pending.complete();
+        expect(component.favorite()['1']).toBeTrue();
+        flush();
+        expect(component.favorite()['1']).toBeTrue();
+        expect(component.busy().size).toBe(0);
+        expect(component.favoriteCount()).toBe(1);
+      });
+
+      it('o erro tardio de A não aparece para B', async () => {
+        const pending = new Subject<unknown>();
+        api.removeFavorite.and.returnValue(pending);
+        await setup(of({ items: [item('1')], total: 1 }));
+        api.listFavorites.and.returnValue(of({ items: [item('2')], total: 1 }));
+        component.toggle('1', false);
+        switchToB();
+        pending.error(new HttpErrorResponse({ status: 500, error: { message: 'Falhou para A' } }));
+        expect(component.actionError()).toBe('');
+        flush();
+        expect(component.actionError()).toBe('');
+        expect(el.textContent).not.toContain('Falhou para A');
+      });
+
+      it('trocar de conta cancela o pedido de A e B troca o mesmo profissional normalmente', async () => {
+        const forA = new Subject<unknown>();
+        const forB = new Subject<unknown>();
+        await setup(of({ items: [item('1')], total: 1 }));
+        api.listFavorites.and.returnValue(of({ items: [item('1')], total: 1 }));
+        api.removeFavorite.and.returnValue(forA);
+        component.toggle('1', false);
+        switchToB();
+        flush();
+        expect(forA.observed).toBeFalse();
+        api.removeFavorite.and.returnValue(forB);
+        component.toggle('1', false);
+        expect(component.busy().has('1')).toBeTrue();
+        expect(forB.observed).toBeTrue();
+        forB.next({});
+        forB.complete();
+        expect(component.favorite()['1']).toBeFalse();
+        expect(component.busy().size).toBe(0);
+      });
     });
 
     it('destruir a tela com troca em curso cancela a chamada', async () => {

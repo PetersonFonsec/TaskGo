@@ -167,7 +167,7 @@
       @if (errors().hours; as text) {
         <p class="form__error"><tg-icon name="warning-circle" [size]="16" /><span>{{ text }}</span></p>
       } @else {
-        <p class="form__hint">Horário de São Paulo. Salvar troca os horários anteriores deste serviço.</p>
+        <p class="form__hint">{{ hoursHint() }}</p>
       }
     </fieldset>
 

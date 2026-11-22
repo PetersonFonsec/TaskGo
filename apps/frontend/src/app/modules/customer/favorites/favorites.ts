@@ -63,7 +63,16 @@ export class Favorites {
   readonly busy = signal<ReadonlySet<string>>(new Set());
   readonly actionError = signal('');
 
-  readonly favoriteCount = computed(() => this.providers().filter((p) => this.favorite()[p.id] !== false).length);
+  /**
+   * Quantos favoritos a conta tem agora: o `total` da API menos os tirados
+   * nesta visita. A lista pode trazer só os mais recentes, então a contagem
+   * não sai dos cards carregados.
+   */
+  readonly favoriteCount = computed(() => {
+    const favorite = this.favorite();
+    const removed = this.providers().filter((p) => favorite[p.id] === false).length;
+    return Math.max(0, this.total() - removed);
+  });
   readonly summary = computed(() => {
     const count = this.favoriteCount();
     const shown = `${count} ${count === 1 ? 'profissional salvo' : 'profissionais salvos'}`;
@@ -133,16 +142,24 @@ export class Favorites {
     if (!clientId || this.busy().has(providerId)) return;
     this.actionError.set('');
     this.#setBusy(providerId, true);
+    // A resposta só vale para a conta que pediu: com outra na sessão, nada
+    // dela (coração, erro ou carregando) chega à tela da conta nova.
+    const current = () => this.#clientId() === clientId;
     const request = (next ? this.#provider.addFavorite(clientId, providerId) : this.#provider.removeFavorite(clientId, providerId))
       .subscribe({
-        next: () => this.favorite.update((state) => ({ ...state, [providerId]: next })),
+        next: () => {
+          if (current()) this.favorite.update((state) => ({ ...state, [providerId]: next }));
+        },
         error: (error: unknown) => {
+          if (!current()) return;
           this.#done(providerId);
           this.actionError.set(
             apiMessage(error) ?? (next ? 'Não foi possível salvar o favorito. Tente de novo.' : 'Não foi possível tirar dos favoritos. Tente de novo.'),
           );
         },
-        complete: () => this.#done(providerId),
+        complete: () => {
+          if (current()) this.#done(providerId);
+        },
       });
     if (!request.closed) this.#requests.set(providerId, request);
   }

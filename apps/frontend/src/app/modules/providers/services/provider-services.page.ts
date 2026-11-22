@@ -53,6 +53,10 @@ interface Draft {
 }
 
 const DURATIONS = [15, 30, 45, 60, 90, 120, 180, 240, 300, 360, 420, 480];
+/** Limites da duração no backend (`validateAvailability`). */
+const DURATION_MIN = 15;
+const DURATION_MAX = 480;
+const TIME = /^([01]\d|2[0-3]):[0-5]\d$/;
 
 /**
  * Meus serviços do prestador (Etapa 10): a lista de serviços em cards do
@@ -105,6 +109,14 @@ export class ProviderServicesPage {
 
   readonly editing = signal<Offer | null>(null);
   draft: Draft = emptyDraft();
+  /**
+   * Na edição de um serviço com horários: dias e horário como abriram. A
+   * disponibilidade só vai no PATCH se a pessoa mexer neles; senão a API
+   * mantém a que está salva (o formulário mostra um horário só).
+   */
+  #savedHours: string | null = null;
+  /** Os horários salvos variam por dia ou têm mais de uma janela: o formulário não os representa. */
+  readonly variedHours = signal(false);
   readonly submitted = signal(false);
   readonly saving = signal(false);
   readonly saveError = signal('');
@@ -169,6 +181,8 @@ export class ProviderServicesPage {
   openNew(): void {
     this.editing.set(null);
     this.draft = emptyDraft();
+    this.#savedHours = null;
+    this.variedHours.set(false);
     this.#openSheet();
   }
 
@@ -187,7 +201,25 @@ export class ProviderServicesPage {
       duration: window?.slotMinutes ?? 60,
       active: offer.status === 'ATIVO',
     };
+    const windows = Object.values(weekdays).flat();
+    this.#savedHours = windows.length ? hoursKey(this.draft) : null;
+    this.variedHours.set(
+      Object.values(weekdays).some((list) => list.length > 1) ||
+        windows.some((w) => w.start !== window?.start || w.end !== window?.end || w.slotMinutes !== window?.slotMinutes),
+    );
     this.#openSheet();
+  }
+
+  /** Vai disponibilidade no envio: sempre ao criar, ou na edição quando dias ou horário mudaram (ou não havia horários). */
+  sendsHours(): boolean {
+    return this.#savedHours === null || hoursKey(this.draft) !== this.#savedHours;
+  }
+
+  hoursHint(): string {
+    if (!this.editing() || this.#savedHours === null) return 'Horário de São Paulo.';
+    if (this.variedHours())
+      return 'Este serviço tem horários diferentes por dia. Eles ficam como estão, a não ser que você mude os dias ou o horário aqui: aí todos os dias escolhidos passam a usar este horário.';
+    return 'Horário de São Paulo. Os horários só mudam se você alterar os dias ou o horário.';
   }
 
   toggleDay(key: string): void {
@@ -197,31 +229,43 @@ export class ProviderServicesPage {
   /** Erros do formulário, por campo; vazios até tentar salvar. */
   errors() {
     if (!this.submitted()) return {} as FormErrors;
-    return validate(this.draft);
+    return this.#validate();
+  }
+
+  /** Sem mudança nos horários, eles não vão no envio: dias e horário não bloqueiam. */
+  #validate(): FormErrors {
+    const errors = validate(this.draft);
+    if (!this.sendsHours()) {
+      delete errors.days;
+      delete errors.hours;
+    }
+    return errors;
   }
 
   save(): void {
     if (this.saving()) return;
     this.submitted.set(true);
     this.saveError.set('');
-    if (Object.keys(validate(this.draft)).length) return;
+    if (Object.keys(this.#validate()).length) return;
 
     const d = this.draft;
+    const availability = {
+      timezone: 'America/Sao_Paulo',
+      weekdays: Object.fromEntries(
+        WEEKDAYS.filter((day) => d.days[day.key]).map((day) => [
+          day.key,
+          [{ start: d.start, end: d.end, slotMinutes: Number(d.duration) }],
+        ]),
+      ),
+    };
     const payload = {
       title: d.title.trim(),
       description: d.description.trim(),
       category: d.category,
       basePrice: parsePrice(d.price),
       status: d.active ? 'ATIVO' : 'INATIVO',
-      availability: {
-        timezone: 'America/Sao_Paulo',
-        weekdays: Object.fromEntries(
-          WEEKDAYS.filter((day) => d.days[day.key]).map((day) => [
-            day.key,
-            [{ start: d.start, end: d.end, slotMinutes: Number(d.duration) }],
-          ]),
-        ),
-      },
+      // PATCH parcial: sem `availability`, a API mantém a que está salva.
+      ...(this.sendsHours() ? { availability } : {}),
     };
     const editing = this.editing();
     const request = editing ? this.#http.patch(`${this.#url}/${editing.id}`, payload) : this.#http.post(this.#url, payload);
@@ -303,8 +347,25 @@ export function validate(d: Draft): FormErrors {
   const price = parsePrice(d.price);
   if (price === null || price < 0.01 || price > 100000) errors['price'] = 'Informe um preço entre R$ 0,01 e R$ 100.000.';
   if (!WEEKDAYS.some((day) => d.days[day.key])) errors['days'] = 'Escolha pelo menos um dia.';
-  if (!d.start || !d.end || d.end <= d.start) errors['hours'] = 'O fim precisa ser depois do início.';
+  const duration = Number(d.duration);
+  if (!TIME.test(d.start ?? '') || !TIME.test(d.end ?? '')) errors['hours'] = 'Informe o início e o fim, como 09:00.';
+  else if (d.end <= d.start) errors['hours'] = 'O fim precisa ser depois do início.';
+  else if (!Number.isInteger(duration) || duration < DURATION_MIN || duration > DURATION_MAX)
+    errors['hours'] = 'Escolha uma duração entre 15 minutos e 8 horas.';
+  else if (minutes(d.end) - minutes(d.start) < duration)
+    errors['hours'] = 'O intervalo entre o início e o fim precisa caber pelo menos um atendimento.';
   return errors;
+}
+
+/** "09:30" em minutos do dia. */
+function minutes(time: string): number {
+  return Number(time.slice(0, 2)) * 60 + Number(time.slice(3));
+}
+
+/** Dias e horário do formulário, para saber se mudaram. */
+function hoursKey(d: Draft): string {
+  const days = WEEKDAYS.filter((day) => d.days[day.key]).map((day) => day.key);
+  return JSON.stringify([days, d.start, d.end, Number(d.duration)]);
 }
 
 /** "120", "120,50" ou "1.200,50" em número; inválido, null. */
