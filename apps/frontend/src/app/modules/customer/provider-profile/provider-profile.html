@@ -1,151 +1,223 @@
-<main class="provider-profile-page">
+<div class="profile">
   @if (preview) {
-    <a class="back-link" [routerLink]="['/general', profileUserId, 'profile', 'view']"
-      >← Voltar para minha conta</a
-    >
-    <p class="eyebrow">Prévia do seu perfil público</p>
+    <a class="profile__back" [routerLink]="['/general', profileUserId(), 'profile', 'view']">
+      <tg-icon name="arrow-left" [size]="20" />
+      Voltar para minha conta
+    </a>
   } @else {
-    <a class="back-link" routerLink="/customer" aria-label="Voltar para profissionais">
-      <span aria-hidden="true">←</span> Voltar para profissionais
+    <a class="profile__back" routerLink="/customer">
+      <tg-icon name="arrow-left" [size]="20" />
+      Voltar para profissionais
     </a>
   }
 
-  @if (loading()) {
-    <div class="page-state" role="status">Carregando perfil profissional...</div>
-  } @else if (error()) {
-    <div class="page-state page-state--error" role="alert">
-      <h1>Não foi possível abrir o perfil</h1>
-      <p>{{ error() }}</p>
-    </div>
-  } @else if (provider()) {
-    <section class="profile-hero" aria-labelledby="provider-name">
-      <div class="profile-photo">
-        @if (user()?.photoUrl) {
-          <img [src]="user().photoUrl" [alt]="'Foto de ' + user().name" />
-        } @else {
-          <span aria-hidden="true">{{ (user()?.name || 'P').charAt(0) }}</span>
-        }
-      </div>
+  @if (loadError() === 'notFound') {
+    @if (preview) {
+      <tg-alert tone="warning" title="Seu perfil ainda não aparece para os clientes">
+        Ele fica público depois que seu cadastro é aprovado e você tem pelo menos um serviço ativo.
+        <a tgButton tgAlertAction appearance="outline" size="sm" routerLink="/provider/services">Ver meus serviços</a>
+      </tg-alert>
+    } @else {
+      <tg-alert tone="danger" title="Este profissional não foi encontrado">
+        O perfil pode ter saído do ar. Confira o link ou procure outro profissional.
+        <a tgButton tgAlertAction appearance="outline" size="sm" routerLink="/customer/search">Buscar profissionais</a>
+      </tg-alert>
+    }
+  } @else if (loadError() === 'failed') {
+    <tg-alert tone="danger" title="Não foi possível carregar o perfil">
+      Verifique sua conexão e tente de novo.
+      <button tgButton tgAlertAction type="button" appearance="outline" size="sm" (click)="reload()">
+        Tentar de novo
+      </button>
+    </tg-alert>
+  } @else {
+    <tg-loading label="Carregando o perfil" [loading]="loading()">
+      <ng-template tgLoadingSkeleton>
+        <div class="profile__skeleton">
+          <tg-card>
+            <div class="profile__hero">
+              <tg-skeleton shape="circle" [size]="96" />
+              <div class="profile__skeleton-lines">
+                <tg-skeleton width="30%" />
+                <tg-skeleton width="55%" height="32" />
+                <tg-skeleton [lines]="2" />
+              </div>
+            </div>
+          </tg-card>
+          <tg-card>
+            <div class="profile__skeleton-lines">
+              <tg-skeleton width="40%" height="24" />
+              <tg-skeleton [lines]="3" />
+            </div>
+          </tg-card>
+        </div>
+      </ng-template>
 
-      <div class="profile-intro">
-        <p class="eyebrow">Perfil profissional</p>
-        <div class="name-line">
-          <h1 id="provider-name">{{ user()?.name || 'Profissional' }}</h1>
-          @if (provider()?.verified || provider()?.provider?.verified) {
-            <span class="verified">✓ Verificado</span>
+      @if (profile(); as p) {
+        <div class="profile__content">
+          @if (preview) {
+            <tg-alert tone="info" title="Prévia do seu perfil público">
+              É assim que os clientes veem seu perfil. O botão para agendar aparece só para eles.
+            </tg-alert>
           }
-        </div>
-        <p class="bio">
-          {{
-            provider()?.bio ||
-              provider()?.provider?.bio ||
-              'Este profissional ainda não adicionou uma apresentação.'
-          }}
-        </p>
-        <div class="profile-stats" aria-label="Resumo das avaliações">
-          <span
-            ><strong>{{ formatRating(rating()) }}</strong> nota média</span
-          >
-          <span
-            ><strong>{{ reviews().length }}</strong> avaliações</span
-          >
-          <span>Na plataforma desde {{ formatMemberSince(provider()?.createdAt) }}</span>
-        </div>
-      </div>
-    </section>
 
-    <div class="profile-grid">
-      <div class="profile-main">
-        <section class="profile-card" aria-labelledby="services-title">
-          <div class="section-heading">
-            <p class="eyebrow">Especialidades</p>
-            <h2 id="services-title">Serviços oferecidos</h2>
-          </div>
-          @if (services().length) {
-            <ul class="services-list">
-              @for (service of services(); track service.id || $index) {
-                <li>
-                  <strong>{{ service.title || service.name }}</strong>
-                  @if (service.description) {
-                    <p>{{ service.description }}</p>
+          <tg-card class="profile__card">
+            <div class="profile__hero">
+              <span class="profile__photo">
+                @if (p.photoUrl && !photoFailed()) {
+                  <img [src]="p.photoUrl" alt="" decoding="async" (error)="photoFailed.set(true)" />
+                } @else {
+                  <span aria-hidden="true">{{ p.initials }}</span>
+                }
+              </span>
+
+              <div class="profile__intro">
+                <p class="profile__eyebrow">Perfil profissional</p>
+                <div class="profile__name-line">
+                  <h1 id="provider-name" class="profile__name">{{ p.name }}</h1>
+                  @if (p.verified) {
+                    <tg-badge icon="check">Verificado</tg-badge>
                   }
-                </li>
+                </div>
+                <p class="profile__meta">
+                  @if (p.rating; as r) {
+                    <span class="profile__rating">
+                      <tg-icon class="profile__star" name="star" weight="fill" [size]="16" />
+                      <span aria-hidden="true"
+                        ><b>{{ r.value }}</b>{{ ' ' }}<span class="profile__muted">({{ r.count }})</span></span
+                      >
+                      <span class="profile__sr">{{ r.label }}</span>
+                    </span>
+                  } @else {
+                    <tg-badge tone="accent">Novo no TaskGo</tg-badge>
+                  }
+                  @if (p.memberSince) {
+                    <span class="profile__muted">No TaskGo desde {{ p.memberSince }}</span>
+                  }
+                </p>
+              </div>
+
+              @if (!preview) {
+                <a tgButton class="profile__cta" [routerLink]="['/customer', p.id]">Agendar serviço</a>
               }
-            </ul>
-          } @else {
-            <p class="empty-copy">Nenhum serviço informado.</p>
-          }
-        </section>
-
-        <section class="profile-card" aria-labelledby="reviews-title">
-          <div class="section-heading section-heading--reviews">
-            <div>
-              <p class="eyebrow">Experiências reais</p>
-              <h2 id="reviews-title">Comentários e feedbacks</h2>
             </div>
-            <span class="rating-summary">★ {{ formatRating(rating()) }}</span>
-          </div>
 
-          @if (reviews().length) {
-            <ul class="reviews-list">
-              @for (review of reviews(); track review.id || $index) {
-                <li>
-                  <div class="review-heading">
-                    <strong>{{
-                      review.client?.name || review.user?.name || review.authorName || 'Cliente'
-                    }}</strong>
-                    <span [attr.aria-label]="'Nota ' + review.rating + ' de 5'"
-                      >★ {{ review.rating }}/5</span
-                    >
+            @if (p.bio) {
+              <p class="profile__bio">{{ p.bio }}</p>
+            }
+
+            @if (p.contact; as c) {
+              <dl class="profile__contact" aria-label="Contato">
+                @if (c.phone) {
+                  <div>
+                    <dt>Telefone</dt>
+                    <dd>
+                      @if (c.phoneHref) {
+                        <a [href]="c.phoneHref">{{ c.phone }}</a>
+                      } @else {
+                        {{ c.phone }}
+                      }
+                    </dd>
                   </div>
-                  <p>{{ review.comment || 'O cliente não deixou um comentário.' }}</p>
-                </li>
-              }
-            </ul>
-          } @else {
-            <p class="empty-copy">Este profissional ainda não recebeu avaliações.</p>
-          }
-        </section>
-      </div>
+                }
+                @if (c.email) {
+                  <div>
+                    <dt>E-mail</dt>
+                    <dd><a [href]="'mailto:' + c.email">{{ c.email }}</a></dd>
+                  </div>
+                }
+                @if (c.region) {
+                  <div>
+                    <dt>Região de atendimento</dt>
+                    <dd>{{ c.region }}</dd>
+                  </div>
+                }
+              </dl>
+            }
+          </tg-card>
 
-      <aside class="profile-card contact-card" aria-labelledby="contact-title">
-        <p class="eyebrow">Fale diretamente</p>
-        <h2 id="contact-title">Informações de contato</h2>
-        <p class="contact-help">Use os canais abaixo para tirar dúvidas antes da contratação.</p>
+          <section class="profile__section" aria-labelledby="services-title">
+            <h2 id="services-title" class="profile__heading">Serviços oferecidos</h2>
+            @if (p.services.length) {
+              <tg-card class="profile__card">
+                <ul class="profile__list">
+                  @for (service of p.services; track service.id) {
+                    <li class="service">
+                      <div class="service__main">
+                        <h3 class="service__title">{{ service.title }}</h3>
+                        @if (service.description) {
+                          <p class="service__description">{{ service.description }}</p>
+                        }
+                      </div>
+                      <p class="service__price">
+                        @if (service.price; as price) {
+                          <span class="profile__muted">a partir de</span>{{ ' ' }}<b>{{ price }}</b>
+                        } @else {
+                          <span class="profile__muted">Preço sob consulta</span>
+                        }
+                      </p>
+                    </li>
+                  }
+                </ul>
+              </tg-card>
+            } @else {
+              <tg-card>
+                <tg-empty-state icon="wrench" title="Nenhum serviço ativo" [level]="3" compact>
+                  @if (preview) {
+                    Ative pelo menos um serviço para os clientes poderem agendar com você.
+                  } @else {
+                    Este profissional não tem serviços disponíveis agora.
+                  }
+                </tg-empty-state>
+              </tg-card>
+            }
+          </section>
 
-        <dl>
-          <div>
-            <dt>Telefone</dt>
-            <dd>
-              @if (user()?.phone) {
-                <a [href]="phoneHref(user().phone)">{{ user().phone }}</a>
-              } @else {
-                Não informado
+          <section class="profile__section" aria-labelledby="reviews-title">
+            <h2 id="reviews-title" class="profile__heading">Avaliações</h2>
+            @if (p.reviews.length) {
+              <tg-card class="profile__card">
+                <ul class="profile__list">
+                  @for (review of p.reviews; track review.id) {
+                    <li class="review">
+                      <div class="review__top">
+                        <span class="review__stars" role="img" [attr.aria-label]="review.ratingLabel">
+                          @for (star of [1, 2, 3, 4, 5]; track star) {
+                            <tg-icon
+                              [class.review__star--off]="star > review.rating"
+                              class="review__star"
+                              name="star"
+                              [weight]="star > review.rating ? 'regular' : 'fill'"
+                              [size]="16"
+                            />
+                          }
+                        </span>
+                        @if (review.date) {
+                          <span class="profile__muted review__date">{{ review.date }}</span>
+                        }
+                      </div>
+                      @if (review.comment) {
+                        <p class="review__comment">{{ review.comment }}</p>
+                      } @else {
+                        <p class="review__comment profile__muted">Sem comentário.</p>
+                      }
+                    </li>
+                  }
+                </ul>
+              </tg-card>
+              @if (p.moreReviews) {
+                <p class="profile__note">Mostrando as {{ p.reviews.length }} avaliações mais recentes.</p>
               }
-            </dd>
-          </div>
-          <div>
-            <dt>E-mail</dt>
-            <dd>
-              @if (user()?.email) {
-                <a [href]="'mailto:' + user().email">{{ user().email }}</a>
-              } @else {
-                Não informado
-              }
-            </dd>
-          </div>
-          @if (user()?.addresses?.[0]; as address) {
-            <div>
-              <dt>Região de atendimento</dt>
-              <dd>{{ address.city }}{{ address.state ? ' - ' + address.state : '' }}</dd>
-            </div>
-          }
-        </dl>
-
-        @if (!preview) {
-          <a class="booking-link" [routerLink]="['/customer', provider().id]">Agendar serviço</a>
-        }
-      </aside>
-    </div>
+            } @else {
+              <tg-card>
+                <tg-empty-state icon="star" title="Ainda sem avaliações" [level]="3" compact>
+                  As avaliações aparecem aqui depois dos primeiros serviços concluídos.
+                </tg-empty-state>
+              </tg-card>
+            }
+          </section>
+        </div>
+      }
+    </tg-loading>
   }
-</main>
+</div>

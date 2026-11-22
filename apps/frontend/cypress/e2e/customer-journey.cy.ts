@@ -32,8 +32,8 @@ describe('Jornada de busca e solicitação de visita', () => {
       cy.contains('button', 'Ver Perfil Completo').click();
       cy.location('pathname').should('eq', '/customer/profile/20');
       cy.contains('h1', provider.user.name).should('be.visible');
-      cy.contains('.services-list', 'Faxina residencial').should('be.visible');
-      cy.contains('.reviews-list', 'Excelente atendimento.').should('be.visible');
+      cy.contains('.service', 'Faxina residencial').should('be.visible');
+      cy.contains('.review', 'Excelente atendimento.').should('be.visible');
       cy.get('a[href="tel:11999999999"]').should('be.visible');
       cy.contains('a', 'Agendar serviço').click();
       cy.wait('@availability');
