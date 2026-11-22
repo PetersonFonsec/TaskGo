@@ -4,6 +4,7 @@ import { ConfigService } from '@nestjs/config';
 import { PushMessage } from '../push/push-transport';
 import { PushService } from '../push/push.service';
 import { EmailMessage, EmailTransport } from './email-transport';
+import { InAppNotificationService } from './in-app-notification.service';
 
 export interface Recipient {
   /** Com o id, o aviso também sai por push nos aparelhos do usuário. */
@@ -30,6 +31,7 @@ export class NotificationService {
     private readonly transport: EmailTransport,
     @Optional() config?: ConfigService,
     @Optional() private readonly push?: PushService,
+    @Optional() private readonly inApp?: InAppNotificationService,
   ) {
     this.frontendUrl = this.resolveFrontendUrl(config);
   }
@@ -77,6 +79,13 @@ export class NotificationService {
       body: `Você recebeu nota ${rating} de 5 no pedido #${orderId.toString()}.`,
       data: this.orderData('REVIEW_RECEIVED', orderId),
     }));
+    await this.notifyInApp(
+      provider,
+      'Nova avaliação',
+      `Você recebeu nota ${rating} de 5 no pedido #${orderId.toString()}.`,
+      'REVIEW_RECEIVED',
+      orderId,
+    );
   }
 
   async notifyProviderOrderConfirmed(
@@ -95,6 +104,13 @@ export class NotificationService {
       body: `O cliente confirmou a conclusão do pedido #${orderId.toString()}.`,
       data: this.orderData('COMPLETION_CONFIRMED', orderId),
     }));
+    await this.notifyInApp(
+      provider,
+      'Serviço confirmado',
+      `O cliente confirmou a conclusão do pedido #${orderId.toString()}.`,
+      'COMPLETION_CONFIRMED',
+      orderId,
+    );
   }
 
   async notifyProviderNewOrder(
@@ -115,6 +131,13 @@ export class NotificationService {
       body: `"${order.serviceTitle}"${this.describeSchedule(order)}. Aceite ou recuse.`,
       data: this.orderData('ORDER_REQUESTED', order.id),
     }));
+    await this.notifyInApp(
+      provider,
+      'Nova solicitação',
+      `Você recebeu uma solicitação para "${order.serviceTitle}"${this.describeSchedule(order)}.`,
+      'ORDER_REQUESTED',
+      order.id,
+    );
   }
 
   async notifyOrderExpired(
@@ -158,6 +181,20 @@ export class NotificationService {
       body: `A solicitação #${id} expirou e o horário voltou para a sua agenda.`,
       data: this.orderData('ORDER_EXPIRED', order.id),
     }));
+    await this.notifyInApp(
+      client,
+      'Seu pedido expirou',
+      `O pedido para "${order.serviceTitle}" expirou porque ${clientReason}. Nenhum valor foi cobrado.`,
+      'ORDER_EXPIRED',
+      order.id,
+    );
+    await this.notifyInApp(
+      provider,
+      'Solicitação expirada',
+      `A solicitação #${id} para "${order.serviceTitle}" expirou e o horário voltou para a sua agenda.`,
+      'ORDER_EXPIRED',
+      order.id,
+    );
   }
 
   async notifyClientOrderAccepted(
@@ -179,6 +216,13 @@ export class NotificationService {
       body: `O prestador aceitou "${order.serviceTitle}". Pague o PIX para garantir o horário.`,
       data: this.orderData('ORDER_ACCEPTED', order.id),
     }));
+    await this.notifyInApp(
+      client,
+      'Pedido aceito',
+      `O prestador aceitou "${order.serviceTitle}". Pague o PIX para garantir o horário.`,
+      'ORDER_ACCEPTED',
+      order.id,
+    );
   }
 
   async notifyClientOrderCanceledByProvider(
@@ -210,6 +254,13 @@ export class NotificationService {
         order.id,
       ),
     }));
+    await this.notifyInApp(
+      client,
+      outcome.refused ? 'Pedido recusado' : 'Pedido cancelado',
+      `O prestador ${action} "${order.serviceTitle}".${outcome.refunded ? ' O valor pago será estornado.' : ''}`,
+      outcome.refused ? 'ORDER_REFUSED' : 'ORDER_CANCELED',
+      order.id,
+    );
   }
 
   async notifyClientPaymentConfirmed(
@@ -230,6 +281,13 @@ export class NotificationService {
       body: `"${order.serviceTitle}" está agendado${this.describeSchedule(order, 'para')}.`,
       data: this.orderData('PAYMENT_CONFIRMED', order.id),
     }));
+    await this.notifyInApp(
+      client,
+      'Pagamento confirmado',
+      `"${order.serviceTitle}" está agendado${this.describeSchedule(order, 'para')}.`,
+      'PAYMENT_CONFIRMED',
+      order.id,
+    );
   }
 
   async notifyClientProviderOnTheWay(
@@ -249,6 +307,13 @@ export class NotificationService {
       body: `O prestador de "${order.serviceTitle}" está indo até você.`,
       data: this.orderData('PROVIDER_ON_THE_WAY', order.id),
     }));
+    await this.notifyInApp(
+      client,
+      'Prestador a caminho',
+      `O prestador de "${order.serviceTitle}" está indo até você.`,
+      'PROVIDER_ON_THE_WAY',
+      order.id,
+    );
   }
 
   async notifyClientServiceFinished(
@@ -269,6 +334,36 @@ export class NotificationService {
       body: `Confirme a conclusão de "${order.serviceTitle}" ou reporte um problema.`,
       data: this.orderData('SERVICE_FINISHED', order.id),
     }));
+    await this.notifyInApp(
+      client,
+      'Serviço finalizado',
+      `Confirme a conclusão de "${order.serviceTitle}" ou reporte um problema.`,
+      'SERVICE_FINISHED',
+      order.id,
+    );
+  }
+
+  private async notifyInApp(
+    recipient: Recipient,
+    title: string,
+    body: string,
+    type: string,
+    orderId: bigint,
+  ) {
+    if (!this.inApp || recipient.id === undefined) return;
+    try {
+      await this.inApp.create({
+        userId: recipient.id,
+        title,
+        body,
+        type,
+        orderId,
+      });
+    } catch (error) {
+      this.logger.error(
+        `Falha ao persistir notificação in-app: ${(error as Error).message}`,
+      );
+    }
   }
 
   /**

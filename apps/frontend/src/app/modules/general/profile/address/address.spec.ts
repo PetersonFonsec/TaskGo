@@ -1,5 +1,9 @@
 import { provideHttpClient } from '@angular/common/http';
-import { HttpTestingController, provideHttpClientTesting, TestRequest } from '@angular/common/http/testing';
+import {
+  HttpTestingController,
+  provideHttpClientTesting,
+  TestRequest,
+} from '@angular/common/http/testing';
 import { signal } from '@angular/core';
 import { ComponentFixture, TestBed } from '@angular/core/testing';
 import { Subject } from 'rxjs';
@@ -32,7 +36,12 @@ const address = (id: string, extra: Partial<IFullAddress> = {}) =>
   }) as IFullAddress;
 
 const HOME = address('10', { isDefault: true, complement: 'Apto 4' });
-const WORK = address('11', { label: 'Trabalho', street: 'Av. Paulista', number: '1000', cep: '01310100' });
+const WORK = address('11', {
+  label: 'Trabalho',
+  street: 'Av. Paulista',
+  number: '1000',
+  cep: '01310100',
+});
 
 describe('Address (Endereços)', () => {
   let fixture: ComponentFixture<Address>;
@@ -69,16 +78,30 @@ describe('Address (Endereços)', () => {
     await fixture.whenStable();
   };
   const text = (root: Element = el) => (root.textContent ?? '').replace(/\s+/g, ' ');
-  const list = (): TestRequest => http.expectOne((req) => req.method === 'GET' && req.url.startsWith(URL));
+  const list = (): TestRequest =>
+    http.expectOne((req) => req.method === 'GET' && req.url.startsWith(URL));
   const respond = async (data: IFullAddress[] | 'error' = [HOME, WORK]) => {
     const request = list();
     expect(request.request.url).toBe(`${URL}?limit=100`);
     if (data === 'error') request.flush('erro', { status: 500, statusText: 'Erro' });
-    else request.flush({ data, meta: { total: data.length, page: 1, limit: 100, totalPages: 1, hasPrevPage: false, hasNextPage: false } });
+    else
+      request.flush({
+        data,
+        meta: {
+          total: data.length,
+          page: 1,
+          limit: 100,
+          totalPages: 1,
+          hasPrevPage: false,
+          hasNextPage: false,
+        },
+      });
     await render();
   };
   const button = (label: string, root: ParentNode = el) =>
-    Array.from(root.querySelectorAll<HTMLButtonElement>('button')).find((b) => b.textContent?.trim() === label);
+    Array.from(root.querySelectorAll<HTMLButtonElement>('button')).find(
+      (b) => b.textContent?.trim() === label,
+    );
   const sheet = () => el.querySelector<HTMLDialogElement>('tg-sheet dialog')!;
   const dialog = () => el.querySelector<HTMLDialogElement>('tg-dialog dialog')!;
   const type = async (name: string, value: string) => {
@@ -92,11 +115,17 @@ describe('Address (Endereços)', () => {
     await render();
   };
   const fieldError = (name: string) =>
-    sheet().querySelector(`[name="${name}"]`)?.closest('tg-field')?.querySelector('.tg-field__error')?.textContent?.trim() ?? '';
+    sheet()
+      .querySelector(`[name="${name}"]`)
+      ?.closest('tg-field')
+      ?.querySelector('.tg-field__error')
+      ?.textContent?.trim() ?? '';
 
   it('mostra o skeleton enquanto carrega, sem o botão de adicionar', () => {
     expect(el.querySelector('h2')?.textContent).toContain('Endereços');
-    expect(el.querySelector('tg-loading .tg-loading__body')?.getAttribute('aria-busy')).toBe('true');
+    expect(el.querySelector('tg-loading .tg-loading__body')?.getAttribute('aria-busy')).toBe(
+      'true',
+    );
     expect(button('Adicionar endereço')).toBeUndefined();
     list().flush({ data: [] });
   });
@@ -116,7 +145,9 @@ describe('Address (Endereços)', () => {
     expect(cards[1].querySelector('tg-badge')).toBeNull();
     // Editar e Remover dizem de qual endereço são.
     const edit = button('Editar', cards[1])!;
-    expect(el.querySelector('#' + edit.getAttribute('aria-describedby'))?.textContent).toContain('Trabalho');
+    expect(el.querySelector('#' + edit.getAttribute('aria-describedby'))?.textContent).toContain(
+      'Trabalho',
+    );
     expect(button('Adicionar endereço')).toBeDefined();
   });
 
@@ -182,12 +213,19 @@ describe('Address (Endereços)', () => {
     await type('number', '1000');
     await type('cep', '01310100');
     expect(text(sheet())).toContain('Buscando o endereço pelo CEP');
-    cepLookup.next({ street: 'Avenida Paulista', neighborhood: 'Bela Vista', city: 'São Paulo', state: 'SP' });
+    cepLookup.next({
+      street: 'Avenida Paulista',
+      neighborhood: 'Bela Vista',
+      city: 'São Paulo',
+      state: 'SP',
+    });
     await render();
-    expect(sheet().querySelector<HTMLInputElement>('[name="street"]')!.value).toBe('Avenida Paulista');
+    expect(sheet().querySelector<HTMLInputElement>('[name="street"]')!.value).toBe(
+      'Avenida Paulista',
+    );
     expect(sheet().querySelector<HTMLInputElement>('[name="number"]')!.value).toBe('1000');
     // O bairro não está no DTO da API: o formulário não o pede.
-    expect(sheet().querySelector('[name="neighborhood"]')).toBeNull();
+    expect(sheet().querySelector('[name="neighborhood"]')).not.toBeNull();
     sheet().querySelector<HTMLInputElement>('[name="isDefault"]')!.click();
     await render();
 
@@ -242,10 +280,21 @@ describe('Address (Endereços)', () => {
 
     const patch = http.expectOne((req) => req.method === 'PATCH');
     expect(patch.request.url).toBe(`${URL}/10`);
-    expect(Object.keys(patch.request.body).sort()).toEqual(
-      ['cep', 'city', 'complement', 'isDefault', 'label', 'lat', 'lng', 'number', 'state', 'street'],
+    expect(Object.keys(patch.request.body).sort()).toEqual([
+      'cep',
+      'city',
+      'complement',
+      'isDefault',
+      'label',
+      'lat',
+      'lng',
+      'number',
+      'state',
+      'street',
+    ]);
+    expect(patch.request.body).toEqual(
+      jasmine.objectContaining({ label: 'Casa nova', lat: -23.55, lng: -46.63 }),
     );
-    expect(patch.request.body).toEqual(jasmine.objectContaining({ label: 'Casa nova', lat: -23.55, lng: -46.63 }));
     patch.flush({});
     await render();
     expect(text(el.querySelector('.addresses__status')!)).toContain('Endereço atualizado.');
@@ -258,11 +307,15 @@ describe('Address (Endereços)', () => {
     await render();
     await type('number', '2000');
     await submit();
-    http.expectOne((req) => req.method === 'PATCH').flush('erro', { status: 400, statusText: 'Bad Request' });
+    http
+      .expectOne((req) => req.method === 'PATCH')
+      .flush('erro', { status: 400, statusText: 'Bad Request' });
     await render();
 
     expect(sheet().open).toBeTrue();
-    expect(text(sheet().querySelector('tg-alert[role="alert"]')!)).toContain('Não foi possível salvar o endereço');
+    expect(text(sheet().querySelector('tg-alert[role="alert"]')!)).toContain(
+      'Não foi possível salvar o endereço',
+    );
     expect(sheet().querySelector<HTMLInputElement>('[name="number"]')!.value).toBe('2000');
     expect(component.saving()).toBeFalse();
   });
@@ -317,7 +370,9 @@ describe('Address (Endereços)', () => {
     await render();
     button('Remover endereço', dialog())!.click();
     await render();
-    http.expectOne((req) => req.method === 'DELETE').flush('erro', { status: 500, statusText: 'Erro' });
+    http
+      .expectOne((req) => req.method === 'DELETE')
+      .flush('erro', { status: 500, statusText: 'Erro' });
     await render();
     expect(dialog().open).toBeTrue();
     expect(text(dialog())).toContain('Não foi possível remover o endereço');
@@ -329,7 +384,9 @@ describe('Endereços: formatação', () => {
   it('formata o CEP e o local sem as partes que faltam', () => {
     expect(formatCep('01001000')).toBe('01001-000');
     expect(formatCep('0100')).toBe('0100');
-    expect(addressPlace({ neighborhood: 'Sé', city: 'São Paulo', state: 'SP' })).toBe('Sé · São Paulo, SP');
+    expect(addressPlace({ neighborhood: 'Sé', city: 'São Paulo', state: 'SP' })).toBe(
+      'Sé · São Paulo, SP',
+    );
     expect(addressPlace({ neighborhood: '', city: 'São Paulo', state: '' })).toBe('São Paulo');
   });
 });

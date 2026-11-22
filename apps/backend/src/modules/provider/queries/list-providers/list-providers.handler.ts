@@ -10,6 +10,7 @@ import Mediator from '../../../../shared/events/mediator';
 import { FeatureFlagService } from '../../../../shared/services/feature-flag.service';
 import { ListProvidersQuery } from './list-providers.query';
 import { PrismaService } from '../../../../prisma/prisma.service';
+import { filterAndOrderProviders } from '../../provider-search';
 
 @QueryHandler(ListProvidersQuery)
 export class ListProvidersHandler implements IQueryHandler<ListProvidersQuery> {
@@ -23,6 +24,7 @@ export class ListProvidersHandler implements IQueryHandler<ListProvidersQuery> {
     onlyFavorites,
     authenticatedUserId,
     coverage,
+    filters,
   }: ListProvidersQuery) {
     const areaWhere = await providerCoverageWhere(this.prisma, coverage);
     if (!onlyFavorites) {
@@ -34,7 +36,9 @@ export class ListProvidersHandler implements IQueryHandler<ListProvidersQuery> {
         },
         select: publicProviderSelect,
       });
-      return providers.map(toPublicProvider);
+      return filterAndOrderProviders(providers, coverage, filters).map(
+        toPublicProvider,
+      );
     }
     if (!this.featureFlagService.isFavoritesMvpEnabled()) {
       throw new NotFoundException('Favorites feature disabled');
@@ -66,9 +70,11 @@ export class ListProvidersHandler implements IQueryHandler<ListProvidersQuery> {
       resultCount: favorites.length,
       timestamp: new Date().toISOString(),
     });
-    const providers = favorites.map((favorite) =>
-      toPublicProvider(favorite.provider),
-    );
+    const providers = filterAndOrderProviders(
+      favorites.map((favorite) => favorite.provider),
+      coverage,
+      filters,
+    ).map(toPublicProvider);
     await this.mediator.publish('favorites.searchFilter.used', {
       clientId,
       resultCount: providers.length,

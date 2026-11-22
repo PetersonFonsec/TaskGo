@@ -148,6 +148,20 @@ describe('FavoritesController (integration)', () => {
       });
 
     await request(app.getHttpServer())
+      .get('/favorites?skip=0&take=1')
+      .set('Authorization', `Bearer ${validToken}`)
+      .expect(200)
+      .expect((res: any) => {
+        expect(res.body.items).toHaveLength(1);
+        expect(res.body.total).toBeGreaterThanOrEqual(1);
+      });
+
+    await request(app.getHttpServer())
+      .get('/favorites?skip=-1')
+      .set('Authorization', `Bearer ${validToken}`)
+      .expect(400);
+
+    await request(app.getHttpServer())
       .post('/favorites')
       .set('Authorization', `Bearer ${validToken}`)
       .send({ providerId: 0 })

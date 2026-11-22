@@ -34,7 +34,9 @@ export class ConfirmOrderByProviderHandler
       );
     }
     if (order.service.provider.status !== 'APPROVED')
-      throw new ForbiddenException('Provider is not approved');
+      throw new ForbiddenException(
+        'Sua conta de prestador ainda não foi aprovada para aceitar pedidos.',
+      );
     if (order.status !== OrderStatus.AGUARDANDO_APROVACAO) {
       throw new BadRequestException(
         'Only AGUARDANDO_APROVACAO orders can be confirmed',

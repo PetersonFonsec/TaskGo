@@ -5,6 +5,7 @@
   }
   @if (navigation(); as nav) {
     <div class="header__actions">
+      <app-notification />
       <tg-account-menu
         [name]="name()"
         [detail]="nav.roleLabel"

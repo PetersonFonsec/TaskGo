@@ -19,7 +19,7 @@ import { TgInputDirective } from '@shared/design-system/field/tg-input.directive
 import { IAddressEntity } from '@shared/service/address/address.model';
 import { Geolocalization } from '@shared/service/geolocalization/geolocalization';
 
-/** Campos que a API exige (`CreateAddressDto`), na ordem em que aparecem no formulário. */
+/** Campos exigidos pela API e foco de validação, na ordem do formulário. */
 export const ADDRESS_FIELDS = ['label', 'cep', 'street', 'number', 'city', 'state'] as const;
 export type AddressField = (typeof ADDRESS_FIELDS)[number];
 export type AddressErrors = Record<AddressField, string>;
@@ -30,8 +30,7 @@ const blank = (value: string | null | undefined) => !(value ?? '').trim();
 /**
  * As regras do `CreateAddressDto` da API (apps/backend/src/modules/address):
  * nome, rua, número, cidade e estado são texto obrigatório (a entidade
- * recusa vazio), e o complemento é opcional. O bairro não está no DTO e a
- * API não o guarda. O CEP tem 8 dígitos, como a busca exige.
+ * recusa vazio); complemento e bairro são opcionais. O CEP tem 8 dígitos.
  */
 export function addressErrors(address: IAddressEntity): AddressErrors {
   const cep = onlyDigits(address.cep);
@@ -45,7 +44,14 @@ export function addressErrors(address: IAddressEntity): AddressErrors {
   };
 }
 
-const NO_ERRORS: AddressErrors = { label: '', cep: '', street: '', number: '', city: '', state: '' };
+const NO_ERRORS: AddressErrors = {
+  label: '',
+  cep: '',
+  street: '',
+  number: '',
+  city: '',
+  state: '',
+};
 
 /**
  * Formulário de endereço da tela Endereços (Etapa 10). Só os campos: o
@@ -98,7 +104,13 @@ export class AddressForm implements OnInit, OnDestroy {
     const initial = this.initialAddress();
     if (initial) {
       this.payload = { ...initial, complement: initial.complement ?? '' };
-      this.lastCep = onlyDigits(this.payload.cep);
+      this.lastCep = this.hasCoordinates(this.payload) ? onlyDigits(this.payload.cep) : '';
+      if (!this.lastCep) {
+        this.cepError.set(
+          'Este endereço está sem uma localização válida. Vamos tentar corrigir pelo CEP.',
+        );
+        this.onCepChange(this.payload.cep);
+      }
     }
   }
 
@@ -130,28 +142,48 @@ export class AddressForm implements OnInit, OnDestroy {
     this.payload.lng = 0;
     const previousAddress = { ...this.payload };
     this.lookingUpCep.set(true);
-    this.cepRequest = this.geolocalization.getAddressByCep(cep).subscribe({
+    this.cepRequest = this.geolocalization.getLatLngByCep(cep).subscribe({
       next: (address) => {
+        if (
+          !Number.isFinite(address.latitude) ||
+          !Number.isFinite(address.longitude) ||
+          (address.latitude === 0 && address.longitude === 0)
+        ) {
+          this.lookingUpCep.set(false);
+          this.cepError.set(
+            'Não foi possível localizar este CEP. Confira o endereço ou tente novamente.',
+          );
+          return;
+        }
         const resolvedAddress = {
           street: address.street ?? '',
           neighborhood: address.neighborhood ?? '',
-          city: address.city,
-          state: address.state,
+          city: address.city ?? '',
+          state: address.state ?? '',
           country: 'Brasil',
+          lat: address.latitude!,
+          lng: address.longitude!,
         };
-        for (const field of Object.keys(resolvedAddress) as (keyof typeof resolvedAddress)[]) {
-          if (this.payload[field] === previousAddress[field]) {
-            this.payload[field] = resolvedAddress[field];
-          }
-        }
+        if (this.payload.street === previousAddress.street)
+          this.payload.street = resolvedAddress.street;
+        if (this.payload.neighborhood === previousAddress.neighborhood)
+          this.payload.neighborhood = resolvedAddress.neighborhood;
+        if (this.payload.city === previousAddress.city) this.payload.city = resolvedAddress.city;
+        if (this.payload.state === previousAddress.state)
+          this.payload.state = resolvedAddress.state;
+        if (this.payload.country === previousAddress.country)
+          this.payload.country = resolvedAddress.country;
+        if (this.payload.lat === previousAddress.lat) this.payload.lat = resolvedAddress.lat;
+        if (this.payload.lng === previousAddress.lng) this.payload.lng = resolvedAddress.lng;
+        this.cepError.set('');
         this.lookingUpCep.set(false);
       },
       error: (error: { status?: number } | null) => {
         this.lookingUpCep.set(false);
         this.cepError.set(
           error?.status === 404
-            ? 'CEP não encontrado. Confira o CEP ou preencha o endereço manualmente.'
-            : 'Não foi possível consultar o CEP. Preencha o endereço manualmente.',
+            ? 'CEP não encontrado ou sem localização disponível. Confira o CEP e tente novamente.'
+            : 'Não foi possível localizar este CEP. Confira a conexão e tente novamente.',
         );
       },
     });
@@ -173,17 +205,30 @@ export class AddressForm implements OnInit, OnDestroy {
   createAddress() {
     const cep = onlyDigits(this.payload.cep);
     if (this.saving() || this.lookingUpCep() || cep.length !== 8) return;
+    if (!this.hasCoordinates(this.payload)) {
+      this.cepError.set('Localize o endereço pelo CEP antes de salvar.');
+      return;
+    }
     const trim = (value: string | null | undefined) => (value ?? '').trim();
     this.addressSubmit.emit({
       ...this.payload,
       label: trim(this.payload.label),
       street: trim(this.payload.street),
       number: trim(this.payload.number),
+      neighborhood: trim(this.payload.neighborhood),
       complement: trim(this.payload.complement),
       city: trim(this.payload.city),
       state: trim(this.payload.state),
       cep,
       isDefault: !!this.payload.isDefault,
     });
+  }
+
+  private hasCoordinates(address: Pick<IAddressEntity, 'lat' | 'lng'>) {
+    return (
+      Number.isFinite(address.lat) &&
+      Number.isFinite(address.lng) &&
+      !(address.lat === 0 && address.lng === 0)
+    );
   }
 }

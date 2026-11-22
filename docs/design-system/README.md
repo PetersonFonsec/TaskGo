@@ -1141,7 +1141,7 @@ próximo passo. Carregando é skeleton; falha ao carregar é alerta.
 
 | Componente | Entradas |
 | --- | --- |
-| `tg-empty-state` | `title` (obrigatório), `icon`, `compact`, `level` (inteiro de 2 a 6, padrão 2; outro valor vira `h2`); texto no conteúdo e ação no slot `[tgEmptyAction]` |
+| `tg-empty-state` | `title` (obrigatório), `icon` ou `illustrationSrc`/`illustrationAlt`, `compact`, `level` (inteiro de 1 a 6, padrão 2; outro valor vira `h2`); texto no conteúdo, ação principal `[tgEmptyAction]` e secundária `[tgEmptySecondaryAction]` |
 
 Regras:
 
@@ -1154,15 +1154,14 @@ Regras:
   480 px (num card estreito, por exemplo), a ação desce, alinhada ao texto.
   Ocupa a largura do contêiner; numa linha flex, dê largura a ele.
 - Textos longos quebram, e a ação quebra linha se não couber.
-- Uma ação só. Em desenvolvimento, mais de uma gera um aviso no console
-  (nenhuma é escondida). A ação condicional vai num `@if` com um único
-  elemento.
+- Até duas ações: principal (`[tgEmptyAction]`) e secundária
+  (`[tgEmptySecondaryAction]`). Em desenvolvimento, mais de duas geram um
+  aviso no console (nenhuma é escondida).
 - Título diz o que falta ("Você ainda não fez nenhum pedido"); o texto,
   em uma ou duas linhas, diz o que acontece ou o que fazer.
-- No máximo uma ação, sempre o próximo passo: principal para começar,
-  contorno para desfazer um filtro ("Limpar filtros"); sem ação quando
-  não há o que fazer.
-- Ícone, não ilustração; nada de caractere no lugar de ícone.
+- Até duas ações: principal para começar e secundária, em contorno, para
+  voltar ou escolher outro caminho; sem ação quando não há o que fazer.
+- Use um ícone decorativo ou uma ilustração com texto alternativo adequado.
 
 Acessibilidade:
 
@@ -2039,14 +2038,16 @@ Regras:
 A página 404 da rota curinga (`**`, título "Página não encontrada"), dentro
 de `app-page` (topo e rodapé do app). Vale para visitante, cliente e
 prestador; o tema segue o modo de quem está na sessão (visitante e cliente,
-claro; prestador, escuro). Story: **Telas/Página não encontrada**. Sem
+claro; prestador, escuro). O `tg-empty-state` aceita `level="1"`, uma
+`illustrationSrc` opcional com `illustrationAlt` e até duas ações: marque a
+principal com `tgEmptyAction` e a secundária com `tgEmptySecondaryAction`.
+Story: **Componentes/Estado vazio — Tela com ilustração e duas ações**. Sem
 chamadas de API.
 
-Decisões aprovadas: (1) o mesmo desenho do `tg-empty-state` grande
-(centralizado, título, texto curto, próximo passo), mas montado na própria
-tela, porque aqui o título é o `h1` da página e há duas ações; (2) a
-ilustração existente (`/ilustrations/not-found-ilustration.webp`, decorativa,
-`alt=""`) acima do título, até 420 px; (3) "Erro 404" como linha de apoio
+Decisões aprovadas: (1) o `tg-empty-state` grande centralizado, com título,
+texto curto e duas ações; (2) a ilustração existente
+(`/ilustrations/not-found-ilustration.webp`, decorativa, `alt=""`) acima do
+título, até 420 px; (3) "Erro 404" como linha de apoio
 acima do `h1` "Página não encontrada"; (4) ação principal "Ir para o início"
 e, de contorno, "Voltar"; (5) uma linha "Precisa de ajuda? Fale com o
 suporte". Os atalhos antigos (buscar, agendamentos, favoritos, para
@@ -2102,3 +2103,10 @@ npm run build-storybook -w apps/frontend  # gera apps/frontend/storybook-static
 A barra **Modo** alterna entre cliente e prestador. Cada componente novo entra
 com histórias para seus estados (padrão, foco, desabilitado, erro, carregando)
 nos dois modos.
+
+## Orçamento de estilos do frontend
+
+O build de produção avisa quando o SCSS de um componente passa de 9 kB e falha
+acima de 12 kB. O aviso fica acima dos arquivos maiores já usados pelo Design
+System, enquanto o limite de erro evita que uma folha de componente cresça sem
+controle.

@@ -5,6 +5,7 @@ export class Address implements ValueObject<IAddress> {
   private cep: string;
   private street: string;
   private number: string;
+  private neighborhood?: string;
   private state: string;
   private city: string;
   private lat: number;
@@ -51,6 +52,7 @@ export class Address implements ValueObject<IAddress> {
       label: this.label,
       street: this.street,
       number: this.number,
+      neighborhood: this.neighborhood,
       city: this.city,
       state: this.state,
       cep: this.cep,

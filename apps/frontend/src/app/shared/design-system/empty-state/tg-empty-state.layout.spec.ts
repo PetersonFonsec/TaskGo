@@ -7,7 +7,10 @@ function pinTheme(theme: 'CUSTOMER' | 'PROVIDER') {
   const root = document.documentElement;
   const previous = root.getAttribute('data-theme');
   root.setAttribute('data-theme', theme);
-  return () => (previous === null ? root.removeAttribute('data-theme') : root.setAttribute('data-theme', previous));
+  return () =>
+    previous === null
+      ? root.removeAttribute('data-theme')
+      : root.setAttribute('data-theme', previous);
 }
 
 const rect = (el: Element) => el.getBoundingClientRect();
@@ -36,7 +39,12 @@ const noOverflow = (host: HTMLElement) => {
   imports: [TgEmptyStateComponent, TgButtonComponent],
   template: `
     <div [style.width.px]="width()">
-      <tg-empty-state id="alvo" compact [icon]="withIcon() ? 'map-pin' : undefined" [title]="title()">
+      <tg-empty-state
+        id="alvo"
+        compact
+        [icon]="withIcon() ? 'map-pin' : undefined"
+        [title]="title()"
+      >
         {{ text() }}
         @if (withAction()) {
           <button tgButton tgEmptyAction appearance="outline" size="sm">{{ actionLabel() }}</button>
@@ -58,7 +66,8 @@ describe('tg-empty-state compacto: layout pelo contêiner', () => {
   let fixture: ComponentFixture<CompactHost>;
   const host = () => fixture.nativeElement.querySelector('#alvo') as HTMLElement;
   const set = (patch: Partial<Record<keyof CompactHost, unknown>>) => {
-    for (const [key, value] of Object.entries(patch)) (fixture.componentInstance as any)[key].set(value);
+    for (const [key, value] of Object.entries(patch))
+      (fixture.componentInstance as any)[key].set(value);
     fixture.detectChanges();
   };
 
@@ -82,7 +91,9 @@ describe('tg-empty-state compacto: layout pelo contêiner', () => {
     set({ width: 280 });
     expect(actionBelowAligned(host())).toBeTrue();
     expect(noOverflow(host())).toBeTrue();
-    expect(rect(host().querySelector('.tg-empty-state__body') as HTMLElement).width).toBeGreaterThan(150);
+    expect(
+      rect(host().querySelector('.tg-empty-state__body') as HTMLElement).width,
+    ).toBeGreaterThan(150);
   });
 
   it('sem ícone, em 280 px: a ação desce alinhada ao texto (sem recuo do ícone)', () => {
@@ -106,7 +117,9 @@ describe('tg-empty-state compacto: layout pelo contêiner', () => {
       text: 'Adicione um endereço completo, com número e complemento, para contratar profissionais perto de você.',
     });
     expect(noOverflow(host())).toBeTrue();
-    expect(rect(host().querySelector('.tg-empty-state__title') as HTMLElement).height).toBeGreaterThan(30);
+    expect(
+      rect(host().querySelector('.tg-empty-state__title') as HTMLElement).height,
+    ).toBeGreaterThan(30);
   });
 
   it('botão com texto longo em 280 px: quebra sem overflow e mantém 32 px de altura mínima', () => {
@@ -142,9 +155,7 @@ describe('tg-empty-state compacto: layout pelo contêiner', () => {
 @Component({
   selector: 'tg-whitespace-host',
   imports: [TgEmptyStateComponent],
-  template: `<tg-empty-state id="espacos" title="Nada por aqui">
-
-    </tg-empty-state>`,
+  template: `<tg-empty-state id="espacos" title="Nada por aqui"> </tg-empty-state>`,
   preserveWhitespaces: true,
 })
 class WhitespaceHost {}
@@ -220,23 +231,29 @@ describe('tg-empty-state: slots vazios não deixam espaço', () => {
       @if (second()) {
         <button tgButton tgEmptyAction>Importar</button>
       }
+      @if (third()) {
+        <button tgButton tgEmptyAction>Ver ajuda</button>
+      }
     </tg-empty-state>
   `,
 })
 class ActionsHost {
   readonly first = signal(false);
   readonly second = signal(false);
+  readonly third = signal(false);
 }
 
-describe('tg-empty-state: no máximo uma ação', () => {
+describe('tg-empty-state: até duas ações', () => {
   let fixture: ComponentFixture<ActionsHost>;
   let warn: jasmine.Spy;
-  const render = (first: boolean, second: boolean) => {
+  const render = (first: boolean, second: boolean, third = false) => {
     fixture.componentInstance.first.set(first);
     fixture.componentInstance.second.set(second);
+    fixture.componentInstance.third.set(third);
     fixture.detectChanges();
   };
-  const warnings = () => warn.calls.allArgs().filter((a) => String(a[0]).includes('tg-empty-state'));
+  const warnings = () =>
+    warn.calls.allArgs().filter((a) => String(a[0]).includes('tg-empty-state'));
 
   beforeEach(() => {
     warn = spyOn(console, 'warn');
@@ -251,24 +268,28 @@ describe('tg-empty-state: no máximo uma ação', () => {
     expect(warnings().length).toBe(0);
   });
 
-  it('duas ações: um aviso claro, uma vez só, sem esconder nenhuma', () => {
-    expect(isDevMode()).toBeTrue();
+  it('duas ações: sem aviso e sem esconder nenhuma', () => {
     render(true, true);
-    render(true, true);
-    fixture.detectChanges();
-    expect(warnings().length).toBe(1);
-    expect(String(warnings()[0][0])).toContain('no máximo uma ação');
+    expect(warnings().length).toBe(0);
     expect(fixture.nativeElement.querySelectorAll('[tgEmptyAction]').length).toBe(2);
   });
 
-  it('ação adicionada e removida depois: avisa ao passar de uma e volta a avisar numa nova violação', () => {
-    render(true, false);
+  it('três ações: avisa em desenvolvimento e mantém todas visíveis', () => {
+    expect(isDevMode()).toBeTrue();
+    render(true, true, true);
+    expect(warnings().length).toBe(1);
+    expect(String(warnings()[0][0])).toContain('no máximo duas ações');
+    expect(fixture.nativeElement.querySelectorAll('[tgEmptyAction]').length).toBe(3);
+  });
+
+  it('ao passar de duas ações avisa de novo depois que uma violação termina', () => {
+    render(true, true);
     expect(warnings().length).toBe(0);
-    render(true, true);
-    expect(warnings().length).toBe(1);
-    render(true, false);
+    render(true, true, true);
     expect(warnings().length).toBe(1);
     render(true, true);
+    expect(warnings().length).toBe(1);
+    render(true, true, true);
     expect(warnings().length).toBe(2);
   });
 });
@@ -288,7 +309,8 @@ class LevelHost {
 
 describe('tg-empty-state: level e teclado', () => {
   let fixture: ComponentFixture<LevelHost>;
-  const heading = () => (fixture.nativeElement.querySelector('#nivel .tg-empty-state__title') as HTMLElement).tagName;
+  const heading = () =>
+    (fixture.nativeElement.querySelector('#nivel .tg-empty-state__title') as HTMLElement).tagName;
 
   beforeEach(() => {
     fixture = TestBed.createComponent(LevelHost);
@@ -298,8 +320,20 @@ describe('tg-empty-state: level e teclado', () => {
   afterEach(() => fixture.nativeElement.remove());
 
   const cases: [unknown, string][] = [
-    [2, 'H2'], [3, 'H3'], [4, 'H4'], [5, 'H5'], [6, 'H6'], ['3', 'H3'],
-    [3.9, 'H2'], ['3.9', 'H2'], [1, 'H2'], [7, 'H2'], [NaN, 'H2'], [Infinity, 'H2'], ['abc', 'H2'], ['', 'H2'],
+    [2, 'H2'],
+    [3, 'H3'],
+    [4, 'H4'],
+    [5, 'H5'],
+    [6, 'H6'],
+    ['3', 'H3'],
+    [3.9, 'H2'],
+    ['3.9', 'H2'],
+    [1, 'H2'],
+    [7, 'H2'],
+    [NaN, 'H2'],
+    [Infinity, 'H2'],
+    ['abc', 'H2'],
+    ['', 'H2'],
   ];
   for (const [input, tag] of cases) {
     it(`level=${JSON.stringify(input) ?? String(input)} → ${tag}`, () => {
@@ -313,7 +347,9 @@ describe('tg-empty-state: level e teclado', () => {
     for (const level of [4, 2, 6]) {
       fixture.componentInstance.level.set(level);
       fixture.detectChanges();
-      const titles = fixture.nativeElement.querySelectorAll('#nivel h2, #nivel h3, #nivel h4, #nivel h5, #nivel h6');
+      const titles = fixture.nativeElement.querySelectorAll(
+        '#nivel h2, #nivel h3, #nivel h4, #nivel h5, #nivel h6',
+      );
       expect(titles.length).toBe(1);
       expect(titles[0].textContent.trim()).toBe('Nada por aqui');
     }
@@ -326,9 +362,13 @@ describe('tg-empty-state: level e teclado', () => {
     fixture.detectChanges();
     expect(document.activeElement).toBe(antes);
     const host = fixture.nativeElement.querySelector('#nivel') as HTMLElement;
-    const focusables = host.querySelectorAll('a[href], button, input, select, textarea, [tabindex]');
+    const focusables = host.querySelectorAll(
+      'a[href], button, input, select, textarea, [tabindex]',
+    );
     expect(focusables.length).toBe(1);
     expect(focusables[0].id).toBe('acao');
-    expect(antes.compareDocumentPosition(focusables[0]) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
+    expect(
+      antes.compareDocumentPosition(focusables[0]) & Node.DOCUMENT_POSITION_FOLLOWING,
+    ).toBeTruthy();
   });
 });

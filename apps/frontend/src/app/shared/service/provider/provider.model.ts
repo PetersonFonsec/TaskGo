@@ -11,7 +11,12 @@ export interface FavoriteRequest {
 export interface FavoriteItem {
   providerId: string;
   id?: string;
-  [key: string]: any;
+  [key: string]: unknown;
+}
+
+export interface FavoriteListResponse {
+  items: FavoriteItem[];
+  total: number;
 }
 
 export interface ProviderAvailabilityResponse {

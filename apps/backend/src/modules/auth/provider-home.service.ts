@@ -124,6 +124,8 @@ export class ProviderHomeService {
         service: order.service.title,
         completedAt: completedAt(order).toISOString(),
         amount: Number(order.payment?.providerAmount ?? 0),
+        paymentStatus: order.payment?.status ?? null,
+        paidAt: order.payment?.paidAt?.toISOString() ?? null,
         rating: order.review?.rating ?? null,
       }));
 

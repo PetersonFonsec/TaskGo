@@ -1,6 +1,52 @@
-<button class="notification" type="button" [attr.aria-label]="label()">
-  <tg-icon name="bell" [size]="24" />
-  @if (notificationCount() > 0) {
-    <span class="notification__badge" aria-hidden="true">{{ badge() }}</span>
+<div class="notification">
+  <button
+    class="notification__trigger"
+    type="button"
+    [attr.aria-label]="label()"
+    [attr.aria-expanded]="open()"
+    aria-controls="notification-panel"
+    (click)="toggle()"
+  >
+    <tg-icon name="bell" [size]="24" />
+    @if (count() > 0) {
+      <span class="notification__badge" aria-hidden="true">{{ badge() }}</span>
+    }
+  </button>
+
+  @if (open()) {
+    <section id="notification-panel" class="notification__panel" role="dialog" aria-label="Notificações">
+      <header class="notification__panel-header">
+        <h2>Notificações</h2>
+        <button class="notification__close" type="button" aria-label="Fechar notificações" (click)="close()">×</button>
+      </header>
+
+      @if (loading()) {
+        <p class="notification__message" role="status">Carregando notificações…</p>
+      } @else if (error() && !items().length) {
+        <div class="notification__message" role="alert">
+          <p>Não foi possível carregar as notificações.</p>
+          <button type="button" (click)="retry()">Tentar novamente</button>
+        </div>
+      } @else if (items().length) {
+        <ul class="notification__list">
+          @for (item of items(); track item.id) {
+            <li>
+              <button
+                class="notification__item"
+                [class.notification__item--unread]="!item.readAt"
+                type="button"
+                (click)="openItem(item)"
+              >
+                <span class="notification__item-title">{{ item.title }}</span>
+                <span class="notification__item-body">{{ item.body }}</span>
+                <time [attr.datetime]="item.createdAt">{{ formatDate(item.createdAt) }}</time>
+              </button>
+            </li>
+          }
+        </ul>
+      } @else {
+        <p class="notification__message">Você não tem notificações.</p>
+      }
+    </section>
   }
-</button>
+</div>

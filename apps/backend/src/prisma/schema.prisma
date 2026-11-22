@@ -164,6 +164,7 @@ model User {
   favorites ClientFavorite[]
   deviceTokens  DeviceToken[]
   refreshTokens RefreshToken[]
+  notifications UserNotification[]
 
   @@map("usuarios")
 }
@@ -727,6 +728,23 @@ model DeviceToken {
   @@index([userId])
   @@index([sessionFamilyId])
   @@map("device_tokens")
+}
+
+/// Notificações persistentes exibidas na área logada.
+model UserNotification {
+  id        BigInt    @id @default(autoincrement())
+  userId    BigInt    @map("usuario_id")
+  orderId   BigInt?   @map("pedido_id")
+  title     String    @map("titulo")
+  body      String    @map("mensagem")
+  type      String    @map("tipo")
+  readAt    DateTime? @map("lida_em")
+  createdAt DateTime  @default(now()) @map("criada_em")
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId, readAt, createdAt])
+  @@map("notificacoes")
 }
 
 /// Refresh tokens com rotação. Só o hash é guardado; tokens da mesma

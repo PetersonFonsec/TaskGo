@@ -81,7 +81,7 @@
       </tg-field>
     </div>
 
-    <tg-field label="Bairro" [error]="errors().neighborhood">
+    <tg-field label="Bairro (opcional)">
       <input #neighborhoodInput tgInput id="neighborhood-input" name="neighborhood" placeholder="Centro" [ngModel]="neighborhood()" (ngModelChange)="neighborhood.set($event)" />
     </tg-field>
 

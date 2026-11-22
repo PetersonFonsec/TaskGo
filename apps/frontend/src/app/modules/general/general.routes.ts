@@ -26,12 +26,14 @@ export const GeneralRoutes: Routes = [
       {
         path: 'view',
         title: 'Dados pessoais',
-        loadComponent: () => import('@modules/general/profile/view/profile-view').then(m => m.ProfileView),
+        loadComponent: () =>
+          import('@modules/general/profile/view/profile-view').then((m) => m.ProfileView),
       },
       {
         path: 'edit',
         title: 'Editar dados pessoais',
-        loadComponent: () => import('@modules/general/profile/edit/profile-edit').then(m => m.ProfileEdit),
+        loadComponent: () =>
+          import('@modules/general/profile/edit/profile-edit').then((m) => m.ProfileEdit),
       },
       {
         path: '',
@@ -56,12 +58,13 @@ export const GeneralRoutes: Routes = [
   {
     path: ':userId',
     title: `Seja bem vindo ao TaskGo`,
+    canActivate: [unauthorizedGuard, sessionUserGuard],
     component: Profile,
     children: [
       {
         path: 'addresses',
         component: Address,
-      }
+      },
     ],
   },
 ];

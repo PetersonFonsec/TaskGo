@@ -9,9 +9,16 @@ export const AWAITING_CONFIRMATION = 'AGUARDANDO_CONFIRMACAO_CLIENTE';
 
 const TIME_ZONE = 'America/Sao_Paulo';
 const BRL = new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' });
-const ONE_DECIMAL = new Intl.NumberFormat('pt-BR', { minimumFractionDigits: 1, maximumFractionDigits: 1 });
+const ONE_DECIMAL = new Intl.NumberFormat('pt-BR', {
+  minimumFractionDigits: 1,
+  maximumFractionDigits: 1,
+});
 const DATE = new Intl.DateTimeFormat('pt-BR', { dateStyle: 'long', timeZone: TIME_ZONE });
-const TIME = new Intl.DateTimeFormat('pt-BR', { hour: '2-digit', minute: '2-digit', timeZone: TIME_ZONE });
+const TIME = new Intl.DateTimeFormat('pt-BR', {
+  hour: '2-digit',
+  minute: '2-digit',
+  timeZone: TIME_ZONE,
+});
 
 const PHOTO_TYPES: Record<string, string> = {
   BEFORE: 'Antes',
@@ -47,9 +54,6 @@ export interface ConfirmServiceView {
   prices: ConfirmServiceRow[];
   /** Valor final que a confirmação libera. */
   finalPrice: string;
-  /** O valor final difere do estimado. */
-  adjusted: boolean;
-  adjustmentReason: string | null;
   /** Forma e situação do pagamento. */
   payment: ConfirmServiceRow[];
   photos: { id: string; url: string; label: string }[];
@@ -60,24 +64,24 @@ export function confirmServiceView(order: OrderDetails): ConfirmServiceView {
   const status = tgOrderStatus(order.status, 'customer');
   const category = order.service?.category?.trim();
   const estimated = money(order.payment?.estimatedAmount) ?? money(order.service?.estimatedPrice);
-  const final = money(order.payment?.finalAmount) ?? estimated;
-  const difference = estimated !== null && final !== null ? Math.round(final * 100) - Math.round(estimated * 100) : 0;
-  const adjusted = difference !== 0;
+  // O preço combinado permanece fixo durante o atendimento; `finalAmount`
+  // não deve criar uma experiência de ajuste no cliente.
+  const final = estimated ?? money(order.payment?.finalAmount);
   const name = order.provider?.name?.trim() || 'Prestador';
   const count = Number(order.provider?.ratingCount);
   const avg = Number(order.provider?.ratingAvg);
 
   const prices: ConfirmServiceRow[] = [];
   if (estimated !== null) prices.push({ label: 'Valor estimado', value: BRL.format(estimated) });
-  if (adjusted) {
-    prices.push({ label: 'Diferença', value: `${difference > 0 ? '+' : '−'} ${BRL.format(Math.abs(difference) / 100)}` });
-  }
 
   const payment: ConfirmServiceRow[] = [];
   if (order.payment) {
     const method = PAYMENT_METHODS[order.payment.method];
     if (method) payment.push({ label: 'Forma de pagamento', value: method });
-    payment.push({ label: 'Situação do pagamento', value: PAYMENT_STATUSES[order.payment.status] ?? 'Em atualização' });
+    payment.push({
+      label: 'Situação do pagamento',
+      value: PAYMENT_STATUSES[order.payment.status] ?? 'Em atualização',
+    });
   }
 
   return {
@@ -103,8 +107,6 @@ export function confirmServiceView(order: OrderDetails): ConfirmServiceView {
     notes: order.completion?.providerNotes?.trim() || null,
     prices,
     finalPrice: final !== null ? BRL.format(final) : 'A definir',
-    adjusted,
-    adjustmentReason: adjusted ? order.priceAdjustmentReason?.trim() || null : null,
     payment,
     photos: (Array.isArray(order.photos) ? order.photos : [])
       .filter((photo) => !!photo?.url?.trim())
@@ -123,7 +125,10 @@ export function dateTime(value: string | null | undefined): string | null {
 function address(order: OrderDetails): string | null {
   const a = order.address;
   if (!a) return null;
-  const street = [a.street, a.number, a.complement].map((part) => part?.trim()).filter(Boolean).join(', ');
+  const street = [a.street, a.number, a.complement]
+    .map((part) => part?.trim())
+    .filter(Boolean)
+    .join(', ');
   const city = [a.city?.trim(), a.state?.trim()].filter(Boolean).join(' / ');
   return [street, a.neighborhood?.trim(), city].filter(Boolean).join(' · ') || null;
 }
@@ -133,7 +138,12 @@ function row(label: string, value: string | null): ConfirmServiceRow | null {
 }
 
 function money(value: unknown): number | null {
-  const n = typeof value === 'number' ? value : typeof value === 'string' && value.trim() ? Number(value) : NaN;
+  const n =
+    typeof value === 'number'
+      ? value
+      : typeof value === 'string' && value.trim()
+        ? Number(value)
+        : NaN;
   return Number.isFinite(n) && n >= 0 ? n : null;
 }
 

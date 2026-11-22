@@ -28,6 +28,10 @@ export const publicProviderSelect = {
     orderBy: { capturedAt: 'desc' },
     select: { lat: true, lng: true },
   },
+  serviceAreas: {
+    where: { active: true },
+    select: { mode: true, radiusKm: true },
+  },
 } satisfies Prisma.ProviderSelect;
 
 export function toPublicProvider<

@@ -1,17 +1,32 @@
 import type { OrderDetails } from '@shared/service/order/order.model';
 import { orderDetailsView, orderExpiryNotice } from './order-details.view';
 
-const NOW = new Date(2026, 10, 14, 9, 0);
+const NOW = new Date('2026-11-14T09:00:00-03:00');
 
 function details(extra: Partial<OrderDetails> = {}): OrderDetails {
   return {
     id: '1042',
     status: 'AGENDADO',
     expiresAt: null,
-    service: { id: '3', title: 'Instalação de chuveiro', category: 'Elétrica', estimatedPrice: 120 },
-    provider: { id: '17', name: 'Bruno Lima', photoUrl: null, ratingAvg: 4.8, ratingCount: 32, verified: true },
+    service: {
+      id: '3',
+      title: 'Instalação de chuveiro',
+      category: 'Elétrica',
+      estimatedPrice: 120,
+    },
+    provider: {
+      id: '17',
+      name: 'Bruno Lima',
+      photoUrl: null,
+      ratingAvg: 4.8,
+      ratingCount: 32,
+      verified: true,
+    },
     client: { id: '7', name: 'Marina Souza', photoUrl: null },
-    schedule: { requestedAt: '2026-11-12T13:02:00.000Z', scheduledFor: new Date(2026, 10, 14, 14, 0).toISOString() },
+    schedule: {
+      requestedAt: '2026-11-12T13:02:00.000Z',
+      scheduledFor: new Date(2026, 10, 14, 14, 0).toISOString(),
+    },
     address: {
       street: 'Rua Harmonia',
       number: '123',
@@ -53,7 +68,11 @@ describe('orderDetailsView', () => {
   });
 
   it('sem data marcada: "Data a combinar" e sem hora', () => {
-    const v = orderDetailsView(details({ schedule: { requestedAt: '', scheduledFor: null } }), 'customer', NOW);
+    const v = orderDetailsView(
+      details({ schedule: { requestedAt: '', scheduledFor: null } }),
+      'customer',
+      NOW,
+    );
     expect(v.when).toEqual({ day: 'Data a combinar', time: '' });
     expect(v.requested).toBeNull();
   });
@@ -97,7 +116,9 @@ describe('orderDetailsView', () => {
       ['Situação', 'Pago'],
     ]);
     const unknown = orderDetailsView(
-      details({ payment: { method: 'BOLETO', status: 'XYZ', estimatedAmount: 120, finalAmount: 150 } }),
+      details({
+        payment: { method: 'BOLETO', status: 'XYZ', estimatedAmount: 120, finalAmount: 150 },
+      }),
       'customer',
       NOW,
     );
@@ -115,7 +136,9 @@ describe('orderDetailsView', () => {
       ['Taxa da plataforma', '15% · R$ 18,00'],
     ]);
     const final = orderDetailsView(
-      details({ payment: { method: 'PIX', status: 'PAGO', estimatedAmount: 120, finalAmount: 120 } }),
+      details({
+        payment: { method: 'PIX', status: 'PAGO', estimatedAmount: 120, finalAmount: 120 },
+      }),
       'provider',
       NOW,
     );
@@ -123,22 +146,36 @@ describe('orderDetailsView', () => {
   });
 
   it('próximo passo do DS: Pagar, Ver QR Code, Confirmar conclusão com Reportar problema, Avaliar', () => {
-    const pay = orderDetailsView(details({ status: 'AGUARDANDO_PAGAMENTO', payment: null }), 'customer', NOW);
+    const pay = orderDetailsView(
+      details({ status: 'AGUARDANDO_PAGAMENTO', payment: null }),
+      'customer',
+      NOW,
+    );
     expect(pay.step?.label).toBe('Pagar');
     const qr = orderDetailsView(
-      details({ status: 'AGUARDANDO_PAGAMENTO', payment: { method: 'PIX', status: 'PENDENTE', estimatedAmount: 120, finalAmount: null } }),
+      details({
+        status: 'AGUARDANDO_PAGAMENTO',
+        payment: { method: 'PIX', status: 'PENDENTE', estimatedAmount: 120, finalAmount: null },
+      }),
       'customer',
       NOW,
     );
     expect(qr.step?.label).toBe('Ver QR Code');
     expect(qr.step?.link).toEqual(['/orders', '1042', 'payment']);
-    const confirm = orderDetailsView(details({ status: 'AGUARDANDO_CONFIRMACAO_CLIENTE' }), 'customer', NOW);
+    const confirm = orderDetailsView(
+      details({ status: 'AGUARDANDO_CONFIRMACAO_CLIENTE' }),
+      'customer',
+      NOW,
+    );
     expect(confirm.step?.label).toBe('Confirmar conclusão');
     expect(confirm.reportLink).toEqual(['/orders', '1042', 'report-problem']);
     const review = orderDetailsView(details({ status: 'CONCLUIDO' }), 'customer', NOW);
     expect(review.step?.label).toBe('Avaliar');
     const reviewed = orderDetailsView(
-      details({ status: 'CONCLUIDO', review: { id: 'r', rating: 5, comment: null, reviewedAt: '' } }),
+      details({
+        status: 'CONCLUIDO',
+        review: { id: 'r', rating: 5, comment: null, reviewedAt: '' },
+      }),
       'customer',
       NOW,
     );
@@ -149,22 +186,40 @@ describe('orderDetailsView', () => {
     expect(orderDetailsView(details(), 'customer', NOW).step).toBeNull();
   });
 
-  it('próximo passo do prestador: Estou a caminho, Iniciar e Finalizar serviço; sem Reportar problema', () => {
-    expect(orderDetailsView(details(), 'provider', NOW).step).toEqual({ label: 'Estou a caminho', action: 'EM_DESLOCAMENTO' });
-    expect(orderDetailsView(details({ status: 'EM_DESLOCAMENTO' }), 'provider', NOW).step?.action).toBe('EM_ANDAMENTO');
-    expect(orderDetailsView(details({ status: 'EM_ANDAMENTO' }), 'provider', NOW).step?.link).toEqual([
-      '/orders',
-      '1042',
-      'finish',
-    ]);
-    expect(orderDetailsView(details({ status: 'AGUARDANDO_CONFIRMACAO_CLIENTE' }), 'provider', NOW).reportLink).toBeNull();
+  it('próximo passo do prestador e link para reportar nas etapas permitidas', () => {
+    expect(orderDetailsView(details(), 'provider', NOW).step).toEqual({
+      label: 'Estou a caminho',
+      action: 'EM_DESLOCAMENTO',
+    });
+    expect(
+      orderDetailsView(details({ status: 'EM_DESLOCAMENTO' }), 'provider', NOW).step?.action,
+    ).toBe('EM_ANDAMENTO');
+    expect(
+      orderDetailsView(details({ status: 'EM_ANDAMENTO' }), 'provider', NOW).step?.link,
+    ).toEqual(['/orders', '1042', 'finish']);
+    expect(
+      orderDetailsView(details({ status: 'EM_ANDAMENTO' }), 'provider', NOW).reportLink,
+    ).toEqual(['/orders', '1042', 'report-problem']);
+    expect(
+      orderDetailsView(details({ status: 'AGUARDANDO_CONFIRMACAO_CLIENTE' }), 'provider', NOW)
+        .reportLink,
+    ).toEqual(['/orders', '1042', 'report-problem']);
+    expect(
+      orderDetailsView(details({ status: 'EM_ANDAMENTO' }), 'customer', NOW).reportLink,
+    ).toEqual(['/orders', '1042', 'report-problem']);
+    expect(
+      orderDetailsView(details({ status: 'CONCLUIDO' }), 'provider', NOW).reportLink,
+    ).toBeNull();
   });
 
   it('conclusão: observações, ajuste de preço e avaliação válida', () => {
     const v = orderDetailsView(
       details({
         status: 'CONCLUIDO',
-        completion: { providerFinishedAt: '2026-11-14T18:00:00Z', providerNotes: ' Troquei o registro. ' },
+        completion: {
+          providerFinishedAt: '2026-11-14T18:00:00Z',
+          providerNotes: ' Troquei o registro. ',
+        },
         priceAdjustmentReason: 'Peça extra',
         review: { id: 'r', rating: 5, comment: 'Ótimo', reviewedAt: '' },
       }),
@@ -176,25 +231,42 @@ describe('orderDetailsView', () => {
       { label: 'Motivo do ajuste de preço', value: 'Peça extra' },
     ]);
     expect(v.review).toEqual({ rating: 5, comment: 'Ótimo' });
-    const invalid = orderDetailsView(details({ review: { id: 'r', rating: 9, comment: null, reviewedAt: '' } }), 'provider', NOW);
+    const invalid = orderDetailsView(
+      details({ review: { id: 'r', rating: 9, comment: null, reviewedAt: '' } }),
+      'provider',
+      NOW,
+    );
     expect(invalid.review).toBeNull();
   });
 
   it('cancelamento pela perspectiva', () => {
-    const cancellation = { reason: 'NO_AVAILABILITY' as const, label: 'Sem horário disponível', note: 'Agenda cheia', canceledAt: null };
-    const customer = orderDetailsView(details({ status: 'CANCELADO', cancellation }), 'customer', NOW);
+    const cancellation = {
+      reason: 'NO_AVAILABILITY' as const,
+      label: 'Sem horário disponível',
+      note: 'Agenda cheia',
+      canceledAt: null,
+    };
+    const customer = orderDetailsView(
+      details({ status: 'CANCELADO', cancellation }),
+      'customer',
+      NOW,
+    );
     expect(customer.cancellation).toEqual({
       title: 'O prestador não pôde atender este pedido',
       reason: 'Sem horário disponível',
       note: 'Agenda cheia',
     });
-    const provider = orderDetailsView(details({ status: 'CANCELADO', cancellation }), 'provider', NOW);
+    const provider = orderDetailsView(
+      details({ status: 'CANCELADO', cancellation }),
+      'provider',
+      NOW,
+    );
     expect(provider.cancellation?.title).toBe('Você recusou esta solicitação');
   });
 });
 
 describe('orderExpiryNotice', () => {
-  const expires = new Date(2026, 10, 14, 15, 40).toISOString();
+  const expires = '2026-11-14T15:40:00-03:00';
 
   it('sem prazo: nada', () => {
     expect(orderExpiryNotice(details(), 'customer', NOW)).toBeNull();
@@ -203,17 +275,39 @@ describe('orderExpiryNotice', () => {
   it('pagamento: o cliente paga, o prestador espera', () => {
     const order = details({ status: 'AGUARDANDO_PAGAMENTO', expiresAt: expires });
     expect(orderExpiryNotice(order, 'customer', NOW)?.title).toBe('Pague até 15:40');
-    expect(orderExpiryNotice(order, 'provider', NOW)?.title).toBe('O cliente tem até 15:40 para pagar');
+    expect(orderExpiryNotice(order, 'provider', NOW)?.title).toBe(
+      'O cliente tem até 15:40 para pagar',
+    );
   });
 
   it('aprovação: o prestador responde, o cliente espera', () => {
     const order = details({ status: 'AGUARDANDO_APROVACAO', expiresAt: expires });
     expect(orderExpiryNotice(order, 'provider', NOW)?.title).toBe('Responda até 15:40');
-    expect(orderExpiryNotice(order, 'customer', NOW)?.title).toBe('O prestador tem até 15:40 para responder');
+    expect(orderExpiryNotice(order, 'customer', NOW)?.title).toBe(
+      'O prestador tem até 15:40 para responder',
+    );
+  });
+
+  it('usa o fuso de São Paulo e inclui amanhã quando o prazo cruza a meia-noite', () => {
+    const now = new Date('2026-11-14T23:00:00.000Z');
+    const tomorrowAtLocal = details({
+      status: 'AGUARDANDO_APROVACAO',
+      expiresAt: '2026-11-15T08:42:00.000Z',
+    });
+    expect(orderExpiryNotice(tomorrowAtLocal, 'provider', now)?.title).toBe(
+      'Responda até amanhã, 05:42',
+    );
+    const todayAtLocal = details({
+      status: 'AGUARDANDO_APROVACAO',
+      expiresAt: '2026-11-15T02:42:00.000Z',
+    });
+    expect(orderExpiryNotice(todayAtLocal, 'provider', now)?.title).toBe('Responda até 23:42');
   });
 
   it('prazo vencido', () => {
     const order = details({ status: 'AGUARDANDO_PAGAMENTO', expiresAt: expires });
-    expect(orderExpiryNotice(order, 'customer', new Date(2026, 10, 14, 16, 0))?.title).toBe('O prazo terminou');
+    expect(orderExpiryNotice(order, 'customer', new Date('2026-11-14T16:00:00-03:00'))?.title).toBe(
+      'O prazo terminou',
+    );
   });
 });

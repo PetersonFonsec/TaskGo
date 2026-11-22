@@ -106,35 +106,24 @@
               <p class="profile__bio">{{ p.bio }}</p>
             }
 
-            @if (p.contact; as c) {
-              <dl class="profile__contact" aria-label="Contato">
-                @if (c.phone) {
-                  <div>
-                    <dt>Telefone</dt>
-                    <dd>
-                      @if (c.phoneHref) {
-                        <a [href]="c.phoneHref">{{ c.phone }}</a>
-                      } @else {
-                        {{ c.phone }}
-                      }
-                    </dd>
-                  </div>
-                }
-                @if (c.email) {
-                  <div>
-                    <dt>E-mail</dt>
-                    <dd><a [href]="'mailto:' + c.email">{{ c.email }}</a></dd>
-                  </div>
-                }
-                @if (c.region) {
-                  <div>
-                    <dt>Região de atendimento</dt>
-                    <dd>{{ c.region }}</dd>
-                  </div>
-                }
-              </dl>
-            }
           </tg-card>
+
+          @if (p.region || p.acceptsPix || p.acceptsCard || p.emergencyCare || p.available24h) {
+            <section class="profile__section" aria-labelledby="coverage-title">
+              <h2 id="coverage-title" class="profile__heading">Atendimento e pagamento</h2>
+              <tg-card class="profile__card">
+                @if (p.region) {
+                  <p class="profile__region"><tg-icon name="map-pin" [size]="18" />{{ p.region }}</p>
+                }
+                <div class="profile__badges" aria-label="Formas de pagamento e atendimento">
+                  @if (p.acceptsPix) { <tg-badge>Pix</tg-badge> }
+                  @if (p.acceptsCard) { <tg-badge>Cartão</tg-badge> }
+                  @if (p.emergencyCare) { <tg-badge>Emergência</tg-badge> }
+                  @if (p.available24h) { <tg-badge>Atendimento 24h</tg-badge> }
+                </div>
+              </tg-card>
+            </section>
+          }
 
           <section class="profile__section" aria-labelledby="services-title">
             <h2 id="services-title" class="profile__heading">Serviços oferecidos</h2>

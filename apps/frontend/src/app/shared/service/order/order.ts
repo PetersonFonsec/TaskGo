@@ -11,7 +11,9 @@ import {
   FinishOrderResponse,
   OrderDetails,
   OrderPaymentResponse,
+  OrderSummaryResponse,
   OrdersResponse,
+  ProviderOrderMutationResponse,
   ReviewTag,
 } from './order.model';
 
@@ -31,7 +33,7 @@ export class Order {
   }
 
   getOrderSumary(orderId: string) {
-    return this.#http.get<any>(`${this.#urlBase}/${orderId}/summary`);
+    return this.#http.get<OrderSummaryResponse>(`${this.#urlBase}/${orderId}/summary`);
   }
 
   getOrderDetails(orderId: string) {
@@ -81,11 +83,14 @@ export class Order {
   }
 
   confirmOrder(orderId: string, providerId: string) {
-    return this.#http.post<any>(`${this.#urlBase}/${orderId}/provider/${providerId}/confirm`, {});
+    return this.#http.post<ProviderOrderMutationResponse>(
+      `${this.#urlBase}/${orderId}/provider/${providerId}/confirm`,
+      {},
+    );
   }
 
   cancelOrder(orderId: string, providerId: string, payload: CancelOrderPayload) {
-    return this.#http.post<any>(
+    return this.#http.post<ProviderOrderMutationResponse>(
       `${this.#urlBase}/${orderId}/provider/${providerId}/cancel`,
       payload,
     );

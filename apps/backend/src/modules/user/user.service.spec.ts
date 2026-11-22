@@ -1,5 +1,5 @@
 import { Test, TestingModule } from '@nestjs/testing';
-import { BadRequestException } from '@nestjs/common';
+import { BadRequestException, ConflictException } from '@nestjs/common';
 import { UserService } from './user.service';
 import { PrismaService } from '../../prisma/prisma.service';
 import { UserVerificationService } from './user-verification.service';
@@ -115,6 +115,21 @@ describe('UserService', () => {
 
     await expect(service.update(userId, invalidPhoneDto)).rejects.toThrow();
     expect(prisma.user.update).not.toHaveBeenCalled();
+  });
+
+  it('rejects an invalid email as a bad request', async () => {
+    await expect(service.update(1n, { email: 'invalido' })).rejects.toThrow(
+      BadRequestException,
+    );
+    expect(prisma.user.update).not.toHaveBeenCalled();
+  });
+
+  it('maps an email uniqueness violation to conflict', async () => {
+    mockPrisma.user.update.mockRejectedValue({ code: 'P2002' });
+
+    await expect(
+      service.update(1n, { email: 'taken@example.com' }),
+    ).rejects.toThrow(ConflictException);
   });
 
   it('requests email verification and stores pendingEmail', async () => {

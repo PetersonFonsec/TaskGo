@@ -6,9 +6,12 @@ import { LogEmailTransport } from './log-email.transport';
 import { PushModule } from '../push/push.module';
 import { NotificationService } from './notification.service';
 import { SmtpEmailTransport } from './smtp-email.transport';
+import { InAppNotificationService } from './in-app-notification.service';
+import { NotificationsController } from './notifications.controller';
 
 @Module({
   imports: [PushModule],
+  controllers: [NotificationsController],
   providers: [
     {
       provide: EmailTransport,
@@ -21,6 +24,7 @@ import { SmtpEmailTransport } from './smtp-email.transport';
       },
     },
     NotificationService,
+    InAppNotificationService,
   ],
   exports: [NotificationService],
 })

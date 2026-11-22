@@ -17,15 +17,47 @@ const PROVIDER = {
   ratingAvg: '4.8',
   ratingCount: 3,
   verified: true,
+  acceptPix: true,
+  acceptsCard: true,
+  emergencyCare: true,
+  isAvailable24h: false,
+  serviceAreas: [{ mode: 'RADIUS', radiusKm: '10' }],
   createdAt: '2025-11-10T15:00:00.000Z',
-  user: { id: '12', name: 'Bruno Lima Souza', photoUrl: null },
+  user: {
+    id: '12',
+    name: 'Bruno Lima Souza',
+    photoUrl: null,
+    email: 'bruno@example.com',
+    phone: '+5511999999999',
+  },
   services: [
-    { id: '2', providerId: '12', title: 'Troca de tomada', description: null, category: 'eletrica', basePrice: '89.9', status: 'ATIVO' },
-    { id: '1', providerId: '12', title: 'Instalação de chuveiro', description: 'Com teste de carga.', category: 'eletrica', basePrice: '120', status: 'ATIVO' },
+    {
+      id: '2',
+      providerId: '12',
+      title: 'Troca de tomada',
+      description: null,
+      category: 'eletrica',
+      basePrice: '89.9',
+      status: 'ATIVO',
+    },
+    {
+      id: '1',
+      providerId: '12',
+      title: 'Instalação de chuveiro',
+      description: 'Com teste de carga.',
+      category: 'eletrica',
+      basePrice: '120',
+      status: 'ATIVO',
+    },
   ],
   locations: [{ lat: -23.56, lng: -46.65 }],
   reviews: [
-    { id: '7', rating: 5, comment: 'Chegou no horário e deixou tudo limpo.', reviewedAt: '2026-11-12T13:00:00.000Z' },
+    {
+      id: '7',
+      rating: 5,
+      comment: 'Chegou no horário e deixou tudo limpo.',
+      reviewedAt: '2026-11-12T13:00:00.000Z',
+    },
     { id: '6', rating: 4, comment: null, reviewedAt: '2026-10-02T13:00:00.000Z' },
   ],
 };
@@ -45,7 +77,10 @@ describe('ProviderProfile (Perfil do profissional)', () => {
         {
           provide: ActivatedRoute,
           useValue: {
-            snapshot: { data: preview ? { preview: true } : {}, paramMap: convertToParamMap({ userId: '12' }) },
+            snapshot: {
+              data: preview ? { preview: true } : {},
+              paramMap: convertToParamMap({ userId: '12' }),
+            },
             paramMap: of(convertToParamMap({ userId: '12' })),
           },
         },
@@ -98,21 +133,29 @@ describe('ProviderProfile (Perfil do profissional)', () => {
       expect(text()).toContain('Eletricista há 12 anos, com NR-10.');
       expect(el.querySelector('.profile__photo')?.textContent?.trim()).toBe('BS');
 
-      const services = Array.from(el.querySelectorAll('.service__title')).map((h) => h.textContent?.trim());
+      const services = Array.from(el.querySelectorAll('.service__title')).map((h) =>
+        h.textContent?.trim(),
+      );
       expect(services).toEqual(['Instalação de chuveiro', 'Troca de tomada']);
       expect(text()).toContain('a partir de R$ 120');
       expect(text()).toContain('R$ 89,90');
 
       const reviews = el.querySelectorAll('.review');
       expect(reviews.length).toBe(2);
-      expect(reviews[0].querySelector('[role="img"]')?.getAttribute('aria-label')).toBe('Nota 5 de 5');
+      expect(reviews[0].querySelector('[role="img"]')?.getAttribute('aria-label')).toBe(
+        'Nota 5 de 5',
+      );
       expect(reviews[0].textContent).toContain('Chegou no horário');
       expect(reviews[1].textContent).toContain('Sem comentário.');
       expect(text()).toContain('Mostrando as 2 avaliações mais recentes.');
 
-      const cta = Array.from(el.querySelectorAll('a')).find((a) => a.textContent?.includes('Agendar serviço'));
+      const cta = Array.from(el.querySelectorAll('a')).find((a) =>
+        a.textContent?.includes('Agendar serviço'),
+      );
       expect(cta?.getAttribute('href')).toBe('/customer/12');
-      expect(el.querySelector('a[href="/customer"]')?.textContent).toContain('Voltar para profissionais');
+      expect(el.querySelector('a[href="/customer"]')?.textContent).toContain(
+        'Voltar para profissionais',
+      );
       expect(el.querySelector('[role="alert"]')).toBeNull();
     });
 
@@ -140,18 +183,30 @@ describe('ProviderProfile (Perfil do profissional)', () => {
       expect(el.querySelector('.profile__photo')?.textContent?.trim()).toBe('A');
     });
 
-    it('contato só quando a API manda: hoje não manda, e a parte some', () => {
-      respond({ ...PROVIDER, user: { ...PROVIDER.user, phone: '(11) 99999-0000', email: 'bruno@email.com' } });
+    it('nunca exibe telefone ou e-mail mesmo que venham na resposta', () => {
+      respond({
+        ...PROVIDER,
+        user: { ...PROVIDER.user, phone: '(11) 99999-0000', email: 'bruno@email.com' },
+      });
 
-      expect(el.querySelector('a[href="tel:11999990000"]')?.textContent).toContain('(11) 99999-0000');
-      expect(el.querySelector('a[href="mailto:bruno@email.com"]')).toBeTruthy();
-      expect(text()).not.toContain('Região de atendimento');
+      expect(el.querySelector('a[href^="tel:"]')).toBeNull();
+      expect(el.querySelector('a[href^="mailto:"]')).toBeNull();
+      expect(text()).not.toContain('(11) 99999-0000');
+      expect(text()).not.toContain('bruno@email.com');
     });
 
     it('sem contato na resposta, nada de "Não informado"', () => {
       respond(PROVIDER);
 
       expect(el.querySelector('.profile__contact')).toBeNull();
+      expect(text()).toContain('Atende em um raio de até 10 km da base cadastrada.');
+      expect(text()).toContain('Pix');
+      expect(text()).toContain('Cartão');
+      expect(text()).toContain('Emergência');
+      expect(text()).not.toContain('Telefone');
+      expect(text()).not.toContain('E-mail');
+      expect(text()).not.toContain('bruno@example.com');
+      expect(text()).not.toContain('+5511999999999');
       expect(text()).not.toContain('Não informado');
     });
 
@@ -178,7 +233,9 @@ describe('ProviderProfile (Perfil do profissional)', () => {
 
       const alert = el.querySelector('[role="alert"]');
       expect(alert?.textContent).toContain('Não foi possível carregar o perfil');
-      const retry = Array.from(el.querySelectorAll('button')).find((b) => b.textContent?.includes('Tentar de novo'));
+      const retry = Array.from(el.querySelectorAll('button')).find((b) =>
+        b.textContent?.includes('Tentar de novo'),
+      );
       expect(retry).toBeTruthy();
 
       retry!.click();
@@ -197,7 +254,9 @@ describe('ProviderProfile (Perfil do profissional)', () => {
 
       expect(text()).toContain('Prévia do seu perfil público');
       expect(text()).not.toContain('Agendar serviço');
-      expect(el.querySelector('a[href="/general/12/profile/view"]')?.textContent).toContain('Voltar para minha conta');
+      expect(el.querySelector('a[href="/general/12/profile/view"]')?.textContent).toContain(
+        'Voltar para minha conta',
+      );
     });
 
     it('perfil ainda não público: aviso com "Ver meus serviços", não erro', () => {
@@ -212,7 +271,11 @@ describe('ProviderProfile (Perfil do profissional)', () => {
 
 describe('providerProfileView', () => {
   it('lê nota Decimal do Prisma e contagem', () => {
-    const view = providerProfileView({ ...PROVIDER, ratingAvg: { s: 1, e: 0, d: [4, 5000000] }, ratingCount: 10 });
+    const view = providerProfileView({
+      ...PROVIDER,
+      ratingAvg: { s: 1, e: 0, d: [4, 5000000] },
+      ratingCount: 10,
+    });
     expect(view?.rating?.label).toBe('Nota 4,5 de 5, 10 avaliações');
     expect(view?.moreReviews).toBeTrue();
   });
@@ -221,14 +284,23 @@ describe('providerProfileView', () => {
     expect(providerProfileView({ ...PROVIDER, ratingAvg: 6 })?.rating).toBeNull();
     expect(providerProfileView({ ...PROVIDER, ratingCount: 0 })?.rating).toBeNull();
     expect(providerProfileView({ ...PROVIDER, ratingCount: 1.5 })?.rating).toBeNull();
-    expect(providerProfileView({ ...PROVIDER, ratingAvg: 5, ratingCount: 1 })?.rating?.label).toBe('Nota 5,0 de 5, 1 avaliação');
+    expect(providerProfileView({ ...PROVIDER, ratingAvg: 5, ratingCount: 1 })?.rating?.label).toBe(
+      'Nota 5,0 de 5, 1 avaliação',
+    );
   });
 
   it('descarta avaliação com nota inválida e serviço sem título; preço inválido vira sob consulta', () => {
     const view = providerProfileView({
       ...PROVIDER,
-      reviews: [{ id: '1', rating: 7 }, { id: '2', rating: 3.5 }, { id: '3', rating: '4', reviewedAt: 'x' }],
-      services: [{ id: '1', title: '' }, { id: '2', title: 'Visita', basePrice: '0' }],
+      reviews: [
+        { id: '1', rating: 7 },
+        { id: '2', rating: 3.5 },
+        { id: '3', rating: '4', reviewedAt: 'x' },
+      ],
+      services: [
+        { id: '1', title: '' },
+        { id: '2', title: 'Visita', basePrice: '0' },
+      ],
     });
     expect(view?.reviews.map((r) => r.id)).toEqual(['3']);
     expect(view?.reviews[0].date).toBeNull();
@@ -236,7 +308,10 @@ describe('providerProfileView', () => {
   });
 
   it('data da avaliação no horário de São Paulo', () => {
-    const view = providerProfileView({ ...PROVIDER, reviews: [{ id: '1', rating: 5, reviewedAt: '2026-11-13T02:00:00.000Z' }] });
+    const view = providerProfileView({
+      ...PROVIDER,
+      reviews: [{ id: '1', rating: 5, reviewedAt: '2026-11-13T02:00:00.000Z' }],
+    });
     expect(view?.reviews[0].date).toContain('12');
   });
 

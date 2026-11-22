@@ -34,7 +34,13 @@ describe('ProviderController', () => {
     }).compile();
     controller = module.get(ProviderController);
     app = module.createNestApplication();
-    app.useGlobalPipes(new ValidationPipe());
+    app.useGlobalPipes(
+      new ValidationPipe({
+        transform: true,
+        whitelist: true,
+        forbidNonWhitelisted: true,
+      }),
+    );
     await app.init();
   });
 
@@ -60,7 +66,7 @@ describe('ProviderController', () => {
   it('delegates provider reads to QueryBus', async () => {
     const filters = { from: '2026-06-21', to: '2026-06-28' };
 
-    await controller.findAll('true', '123');
+    await controller.findAll({}, 'true', '123');
     await controller.getAvailability('42', filters);
     await controller.findByCategory('limpeza');
     await controller.findOne(42n);
@@ -70,6 +76,29 @@ describe('ProviderController', () => {
     expect(queries[1]).toEqual(new GetProviderAvailabilityQuery('42', filters));
     expect(queries[2]).toEqual(new GetProvidersByCategoryQuery('limpeza'));
     expect(queries[3]).toEqual(new GetProviderQuery(42n));
+  });
+
+  it('passes category filters and favorite identity to the query', async () => {
+    const filters = { minimumRating: 4, maximumDistance: 20, minimumPrice: 50 };
+
+    await controller.findByCategory(
+      'limpeza',
+      '-23.5',
+      '-46.6',
+      filters,
+      'true',
+      '123',
+    );
+
+    expect(queryBus.execute).toHaveBeenCalledWith(
+      new GetProvidersByCategoryQuery(
+        'limpeza',
+        { lat: '-23.5', lng: '-46.6' },
+        filters,
+        true,
+        '123',
+      ),
+    );
   });
 
   describe('GET /provider/:id/availability', () => {
@@ -101,6 +130,39 @@ describe('ProviderController', () => {
         .get('/provider/42/availability')
         .query({ from: '2026-06-21T10:00:00Z', to: '2026-06-28' })
         .expect(400);
+    });
+
+    it('accepts category filters and favorite selection with coverage coordinates', async () => {
+      queryBus.execute.mockResolvedValue([]);
+
+      await request(app.getHttpServer())
+        .get('/provider/by-category/limpeza')
+        .query({
+          lat: '-23.5',
+          lng: '-46.6',
+          minimumRating: '4',
+          maximumDistance: '15',
+          minimumPrice: '50',
+          maximumPrice: '150',
+          onlyFavorites: 'true',
+        })
+        .expect(200);
+
+      const query = queryBus.execute.mock.calls.at(-1)[0];
+      expect(query).toEqual(
+        new GetProvidersByCategoryQuery(
+          'limpeza',
+          { lat: '-23.5', lng: '-46.6' },
+          expect.objectContaining({
+            minimumRating: 4,
+            maximumDistance: 15,
+            minimumPrice: 50,
+            maximumPrice: 150,
+          }),
+          true,
+          null,
+        ),
+      );
     });
   });
 });
