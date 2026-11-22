@@ -102,6 +102,12 @@ const categoryDetailsResponse = {
 
 function visitAuth(path = '/authenticate') {
   cy.visit(path);
+  // A tela vem renderizada do servidor (SSR). Antes da hidratação, um clique
+  // em Entrar envia o formulário nativo e o texto digitado se perde. O foco
+  // automático no e-mail só acontece depois dela, então serve de sinal.
+  if (path === '/authenticate/login') {
+    cy.get('#login-email').should('have.focus');
+  }
 }
 
 function fillProviderService() {

@@ -42,6 +42,9 @@ Para outra porta: `-- --config baseUrl=http://localhost:4205`.
 - **Seletores:** prefira papel e nome acessível com Testing Library
   (`cy.findByRole('button', { name: 'Confirmar conclusão' })`). Depois, os ids que as telas já têm.
   `data-testid` só onde não houver nome estável.
+- **SSR:** as telas vêm renderizadas do servidor. Antes da hidratação, cliques e texto digitado
+  se perdem. Espere um sinal de que o Angular assumiu a tela (na tela de Entrar, o foco no e-mail)
+  antes de interagir.
 - **Sem esperas fixas:** nada de `cy.wait(ms)`. Espere por alias (`cy.wait('@pedido')`) ou por
   estado da tela.
 - **O que testar aqui:** rota, guarda, navegação entre telas e o corpo das requisições. Estados
