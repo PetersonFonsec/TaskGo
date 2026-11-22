@@ -100,5 +100,5 @@ export const routes: Routes = [
       },
     ],
   },
-  { path: '**', component: NotFound },
+  { path: '**', title: 'Página não encontrada', component: NotFound },
 ];
