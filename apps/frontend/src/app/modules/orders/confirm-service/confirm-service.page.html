@@ -176,11 +176,6 @@
                       </div>
                     }
                   </dl>
-                  @if (v.adjusted) {
-                    <tg-alert class="confirm-service__adjusted" tone="warning" title="O valor final foi ajustado">
-                      {{ v.adjustmentReason ?? 'O prestador não informou o motivo do ajuste.' }}
-                    </tg-alert>
-                  }
                 </tg-card>
 
                 <tg-card class="confirm-service__decision">

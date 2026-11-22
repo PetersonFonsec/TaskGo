@@ -5,7 +5,11 @@ import {
   customerHomeAgenda,
 } from './customer-home.agenda';
 
-function o(id: string, status: string, extra: Partial<CustomerHomeOrderSource> = {}): CustomerHomeOrderSource {
+function o(
+  id: string,
+  status: string,
+  extra: Partial<CustomerHomeOrderSource> = {},
+): CustomerHomeOrderSource {
   return { id, status, service: { title: 'Serviço ' + id }, ...extra };
 }
 const day = (d: number) => `2026-11-${String(d).padStart(2, '0')}T12:00:00.000Z`;
@@ -68,22 +72,39 @@ describe('customerHomeAgenda', () => {
     const agenda = customerHomeAgenda([
       o('a', 'AGENDADO', {
         scheduledFor: day(16),
-        addressSnap: { street: 'Rua Harmonia', number: '123', complement: 'apto 41', neighborhood: 'Pinheiros' },
+        addressSnap: {
+          street: 'Rua Harmonia',
+          number: '123',
+          complement: 'apto 41',
+          neighborhood: 'Pinheiros',
+        },
       }),
-      o('b', 'CONCLUIDO', { scheduledFor: day(2), clientConfirmedAt: day(3), review: { id: 'r1' } }),
+      o('b', 'CONCLUIDO', {
+        scheduledFor: day(2),
+        clientConfirmedAt: day(3),
+        review: { id: 'r1' },
+      }),
     ]);
     expect(agenda.highlight?.address).toBe('Rua Harmonia, 123, apto 41');
     expect(agenda.history[0].reviewed).toBeTrue();
   });
 
   it('não altera a lista recebida', () => {
-    const orders = [o('a', 'AGENDADO', { scheduledFor: day(20) }), o('b', 'AGENDADO', { scheduledFor: day(10) })];
+    const orders = [
+      o('a', 'AGENDADO', { scheduledFor: day(20) }),
+      o('b', 'AGENDADO', { scheduledFor: day(10) }),
+    ];
     customerHomeAgenda(orders);
     expect(ids(orders)).toEqual(['a', 'b']);
   });
 
   describe('status: o que vai para o destaque', () => {
-    for (const status of ['AGENDADO', 'EM_DESLOCAMENTO', 'EM_ANDAMENTO', 'AGUARDANDO_CONFIRMACAO_CLIENTE']) {
+    for (const status of [
+      'AGENDADO',
+      'EM_DESLOCAMENTO',
+      'EM_ANDAMENTO',
+      'AGUARDANDO_CONFIRMACAO_CLIENTE',
+    ]) {
       it(`${status} pode ir para o destaque`, () => {
         const agenda = customerHomeAgenda([o('a', status, { scheduledFor: day(16) })]);
         expect(agenda.highlight?.id).toBe('a');
@@ -153,8 +174,14 @@ describe('customerHomeAgenda', () => {
   describe('histórico: ordem pelo encerramento', () => {
     it('agendado em outubro e concluído em novembro conta pela conclusão', () => {
       const agenda = customerHomeAgenda([
-        o('out', 'CONCLUIDO', { scheduledFor: '2026-10-05T12:00:00Z', clientConfirmedAt: '2026-11-10T12:00:00Z' }),
-        o('nov', 'CONCLUIDO', { scheduledFor: '2026-11-01T12:00:00Z', clientConfirmedAt: '2026-11-02T12:00:00Z' }),
+        o('out', 'CONCLUIDO', {
+          scheduledFor: '2026-10-05T12:00:00Z',
+          clientConfirmedAt: '2026-11-10T12:00:00Z',
+        }),
+        o('nov', 'CONCLUIDO', {
+          scheduledFor: '2026-11-01T12:00:00Z',
+          clientConfirmedAt: '2026-11-02T12:00:00Z',
+        }),
       ]);
       expect(ids(agenda.history)).toEqual(['out', 'nov']);
     });
@@ -162,7 +189,11 @@ describe('customerHomeAgenda', () => {
     it('concluído antes vem depois, mesmo com data marcada posterior', () => {
       const agenda = customerHomeAgenda([
         o('a', 'CONCLUIDO', { scheduledFor: day(20), clientConfirmedAt: day(21) }),
-        o('b', 'CONCLUIDO', { scheduledFor: day(25), providerFinishedAt: day(26), clientConfirmedAt: day(14) }),
+        o('b', 'CONCLUIDO', {
+          scheduledFor: day(25),
+          providerFinishedAt: day(26),
+          clientConfirmedAt: day(14),
+        }),
       ]);
       expect(ids(agenda.history)).toEqual(['a', 'b']);
     });
@@ -177,20 +208,27 @@ describe('customerHomeAgenda', () => {
 
     it('cancelado usa o cancelamento ou o reembolso do pagamento', () => {
       const agenda = customerHomeAgenda([
-        o('reembolso', 'CANCELADO', { requestedAt: day(1), payment: { status: 'REEMBOLSADO', refundedAt: day(12) } }),
-        o('cancelado', 'CANCELADO', { requestedAt: day(2), payment: { status: 'CANCELADO', canceledAt: day(15) } }),
+        o('reembolso', 'CANCELADO', {
+          requestedAt: day(1),
+          payment: { status: 'REEMBOLSADO', refundedAt: day(12) },
+        }),
+        o('cancelado', 'CANCELADO', {
+          requestedAt: day(2),
+          payment: { status: 'CANCELADO', canceledAt: day(15) },
+        }),
         o('concluido', 'CONCLUIDO', { clientConfirmedAt: day(13) }),
       ]);
       expect(ids(agenda.history)).toEqual(['cancelado', 'concluido', 'reembolso']);
     });
 
-    it('recusado sem pagamento cancelado usa a data do pedido', () => {
+    it('usa canceledAt da linha do tempo antes da data do pedido', () => {
       const agenda = customerHomeAgenda([
+        o('cancelado', 'CANCELADO', { requestedAt: day(5), canceledAt: day(25) }),
         o('r', 'REJEITADO', { scheduledFor: day(28), requestedAt: day(5) }),
         o('c', 'CONCLUIDO', { clientConfirmedAt: day(9) }),
       ]);
       // A data marcada (28) não é encerramento: não coloca o recusado no topo.
-      expect(ids(agenda.history)).toEqual(['c', 'r']);
+      expect(ids(agenda.history)).toEqual(['cancelado', 'c', 'r']);
     });
 
     it('sem nenhuma data, ou com data inválida, vai para o fim', () => {

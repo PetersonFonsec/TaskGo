@@ -11,7 +11,7 @@ describe('TgIconComponent', () => {
 
   it('desenha o ícone e é decorativo por padrão', () => {
     const svg = render({ name: 'house' });
-    expect(svg.querySelector('path')).not.toBeNull();
+    expect(svg.querySelector('path')?.getAttribute('d')).toContain('M128');
     expect(svg.getAttribute('aria-hidden')).toBe('true');
     expect(svg.getAttribute('width')).toBe('20');
   });
@@ -35,7 +35,12 @@ describe('TgIconComponent', () => {
     expect(svg.querySelector('b')).toBeNull();
   });
 
-  const atributos = (svg: SVGElement) => svg.getAttributeNames().sort();
+  // O _ngcontent-* é o escopo de estilo do próprio Angular, não vem das entradas.
+  const atributos = (svg: SVGElement) =>
+    svg
+      .getAttributeNames()
+      .filter((nome) => !nome.startsWith('_ngcontent-'))
+      .sort();
   const decorativo = ['aria-hidden', 'fill', 'focusable', 'height', 'viewBox', 'width', 'xmlns'].sort();
 
   it('fica direto dentro do host, sem outro elemento em volta', () => {

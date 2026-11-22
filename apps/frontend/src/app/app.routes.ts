@@ -1,7 +1,5 @@
 import { Routes } from '@angular/router';
 
-import { InstitutionalRoutes } from '@modules/institutional/institutional.routes';
-import { InstitutionalPage } from '@modules/institutional/institutional-page';
 import { ProvidersRoutes } from '@modules/providers/providers.routes';
 import { GeneralRoutes } from '@modules/general/general.routes';
 import { Provider } from '@modules/providers/provider';
@@ -64,11 +62,6 @@ export const routes: Routes = [
     canActivate: [unauthorizedGuard],
     loadComponent: () =>
       import('@modules/orders/order-details/order-details.page').then((c) => c.OrderDetailsPage),
-  },
-  {
-    path: UrlBase.INSTITUTIONAL,
-    component: InstitutionalPage,
-    children: InstitutionalRoutes,
   },
   {
     path: UrlBase.AUTHENTICATE,

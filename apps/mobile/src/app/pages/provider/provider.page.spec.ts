@@ -6,6 +6,7 @@ import { provideIonicAngular } from '@ionic/angular';
 import { of, Subject, throwError } from 'rxjs';
 
 import { AuthService } from '@app/core/auth/auth.service';
+import { CatalogService } from '@app/core/catalog/catalog.service';
 import { SECURE_STORE } from '@app/core/auth/session-storage';
 import { Availability, ProviderProfile, SavedAddress } from '@app/core/orders/orders.models';
 import { OrdersService } from '@app/core/orders/orders.service';
@@ -20,10 +21,12 @@ const profile: ProviderProfile = {
   verified: true,
   user: { name: 'Carlos Lima', photoUrl: null },
   services: [
-    { id: '1', title: 'Troca de chuveiro', basePrice: 150 },
-    { id: '2', title: 'Instalação de tomada', basePrice: 90 }
+    { id: '1', title: 'Troca de chuveiro', category: 'eletrica', basePrice: 150 },
+    { id: '2', title: 'Instalação de tomada', category: 'eletrica', basePrice: 90 },
   ],
-  reviews: [{ id: '5', rating: 5, comment: 'Muito pontual', reviewedAt: '2026-10-01T12:00:00.000Z' }]
+  reviews: [
+    { id: '5', rating: 5, comment: 'Muito pontual', reviewedAt: '2026-10-01T12:00:00.000Z' },
+  ],
 };
 
 function agenda(serviceId: string): Availability {
@@ -36,19 +39,47 @@ function agenda(serviceId: string): Availability {
         date: '2026-11-15',
         available: true,
         slots: [
-          { startsAt: '2026-11-15T12:00:00.000Z', endsAt: '2026-11-15T13:00:00.000Z', serviceId, label: '09:00', available: false },
-          { startsAt: '2026-11-15T13:00:00.000Z', endsAt: '2026-11-15T14:00:00.000Z', serviceId, label: '10:00', available: true }
-        ]
-      }
-    ]
+          {
+            startsAt: '2026-11-15T12:00:00.000Z',
+            endsAt: '2026-11-15T13:00:00.000Z',
+            serviceId,
+            label: '09:00',
+            available: false,
+          },
+          {
+            startsAt: '2026-11-15T13:00:00.000Z',
+            endsAt: '2026-11-15T14:00:00.000Z',
+            serviceId,
+            label: '10:00',
+            available: true,
+          },
+        ],
+      },
+    ],
   };
 }
 
-const home: SavedAddress = { id: '7', label: 'Casa', street: 'Rua A', number: '10', lat: -23.7, lng: -46.5 };
-const work: SavedAddress = { id: '8', label: 'Trabalho', street: 'Rua B', number: '20', lat: -23.6, lng: -46.6, isDefault: true };
+const home: SavedAddress = {
+  id: '7',
+  label: 'Casa',
+  street: 'Rua A',
+  number: '10',
+  lat: -23.7,
+  lng: -46.5,
+};
+const work: SavedAddress = {
+  id: '8',
+  label: 'Trabalho',
+  street: 'Rua B',
+  number: '20',
+  lat: -23.6,
+  lng: -46.6,
+  isDefault: true,
+};
 
 describe('ProviderPage', () => {
   let orders: jasmine.SpyObj<OrdersService>;
+  let catalog: jasmine.SpyObj<CatalogService>;
   let auth: FakeAuth;
   let store: MemorySecureStore;
   let navigate: jasmine.Spy;
@@ -61,12 +92,14 @@ describe('ProviderPage', () => {
       'availability',
       'addresses',
       'create',
-      'list'
+      'list',
     ]);
     orders.provider.and.returnValue(of(profile));
     orders.availability.and.callFake((_p, serviceId) => of(agenda(serviceId)));
     orders.addresses.and.returnValue(of(options.addresses ?? [home, work]));
     orders.list.and.returnValue(of([]));
+    catalog = jasmine.createSpyObj<CatalogService>('CatalogService', ['providersByCategory']);
+    catalog.providersByCategory.and.returnValue(of([{ id: '10' }] as any));
     TestBed.configureTestingModule({
       imports: [ProviderPage],
       providers: [
@@ -74,9 +107,10 @@ describe('ProviderPage', () => {
         provideIonicAngular(),
         provideRouter([]),
         { provide: OrdersService, useValue: orders },
+        { provide: CatalogService, useValue: catalog },
         { provide: AuthService, useValue: auth },
-        { provide: SECURE_STORE, useValue: store }
-      ]
+        { provide: SECURE_STORE, useValue: store },
+      ],
     });
     navigate = spyOn(TestBed.inject(Router), 'navigate').and.resolveTo(true);
     const fixture = TestBed.createComponent(ProviderPage);
@@ -134,16 +168,54 @@ describe('ProviderPage', () => {
     orders.create.and.returnValue(of({ id: '99' }));
     page.selectAddress('7');
     page.selectSlot('2026-11-15T13:00:00.000Z');
+    await stable(fixture);
     expect(page.canSubmit()).toBeTrue();
 
     await page.submit();
 
     expect(orders.create).toHaveBeenCalledOnceWith(
       { serviceId: '1', scheduledFor: '2026-11-15T13:00:00.000Z', addressId: '7' },
-      jasmine.stringMatching(/^[0-9a-f-]{36}$/)
+      jasmine.stringMatching(/^[0-9a-f-]{36}$/),
     );
     expect(store.log[0]).toBe('set order_intent_7'); // gravada antes do envio
     expect(navigate).toHaveBeenCalledWith(['/pedidos', '99'], { replaceUrl: true });
+  });
+
+  it('checks the selected address before allowing a request and checks again when it changes', async () => {
+    const fixture = await render();
+    const page = fixture.componentInstance;
+    page.selectSlot('2026-11-15T13:00:00.000Z');
+    await stable(fixture);
+
+    expect(catalog.providersByCategory).toHaveBeenCalledWith('eletrica', {
+      lat: -23.6,
+      lng: -46.6,
+    });
+    expect(page.canSubmit()).toBeTrue();
+
+    catalog.providersByCategory.and.returnValue(of([]));
+    page.selectAddress('7');
+    await stable(fixture);
+
+    expect(catalog.providersByCategory).toHaveBeenCalledWith('eletrica', {
+      lat: -23.7,
+      lng: -46.5,
+    });
+    expect(page.canSubmit()).toBeFalse();
+    expect(text(fixture)).toContain('Este profissional não atende no endereço escolhido');
+  });
+
+  it('keeps requests disabled and offers a retry when coverage cannot be checked', async () => {
+    const fixture = await render();
+    catalog.providersByCategory.and.returnValue(throwError(() => new Error('offline')));
+    fixture.componentInstance.retryCoverage();
+    await stable(fixture);
+
+    expect(fixture.componentInstance.canSubmit()).toBeFalse();
+    expect(text(fixture)).toContain('Não foi possível confirmar se este profissional atende');
+    expect(
+      fixture.nativeElement.querySelector('[data-testid="coverage-warning"] ion-button'),
+    ).not.toBeNull();
   });
 
   it('never sends the same order twice while the first is on its way', async () => {
@@ -171,10 +243,10 @@ describe('ProviderPage', () => {
         () =>
           new HttpErrorResponse({
             status: 400,
-            error: { message: 'Selected scheduled slot is no longer available' }
-          })
+            error: { message: 'Selected scheduled slot is no longer available' },
+          }),
       ),
-      of({ id: '100' })
+      of({ id: '100' }),
     );
     page.selectSlot('2026-11-15T13:00:00.000Z');
 
@@ -233,9 +305,9 @@ describe('ProviderPage', () => {
         () =>
           new HttpErrorResponse({
             status: 409,
-            error: { errorCode: 'IDEMPOTENCY_KEY_PAYLOAD_MISMATCH', message: ['x'] }
-          })
-      )
+            error: { errorCode: 'IDEMPOTENCY_KEY_PAYLOAD_MISMATCH', message: ['x'] },
+          }),
+      ),
     );
     await page.retry();
     await stable(fixture);
@@ -277,8 +349,8 @@ describe('ProviderPage', () => {
         scheduledFor: '2026-11-15T13:00:00.000Z',
         addressId: '8',
         startedAt: new Date().toISOString(),
-        summary: 'Troca de chuveiro'
-      })
+        summary: 'Troca de chuveiro',
+      }),
     );
     orders.create.and.returnValue(throwError(() => new HttpErrorResponse({ status: 0 })));
     auth.signOut();
@@ -317,7 +389,9 @@ describe('ProviderPage', () => {
     await page.submit();
 
     expect(orders.create).not.toHaveBeenCalled();
-    expect(navigate).toHaveBeenCalledWith(['/entrar'], { queryParams: { voltar: '/prestadores/10' } });
+    expect(navigate).toHaveBeenCalledWith(['/entrar'], {
+      queryParams: { voltar: '/prestadores/10' },
+    });
   });
 
   it('says how to proceed when the customer has no usable address', async () => {
@@ -338,8 +412,8 @@ describe('ProviderPage', () => {
         provideIonicAngular(),
         provideRouter([]),
         { provide: OrdersService, useValue: orders },
-        { provide: AuthService, useValue: new FakeAuth(null) }
-      ]
+        { provide: AuthService, useValue: new FakeAuth(null) },
+      ],
     });
     orders.provider.and.returnValue(of(null));
     const fixture = TestBed.createComponent(ProviderPage);
@@ -357,8 +431,8 @@ describe('ProviderPage', () => {
         provideIonicAngular(),
         provideRouter([]),
         { provide: OrdersService, useValue: orders },
-        { provide: AuthService, useValue: new FakeAuth(null) }
-      ]
+        { provide: AuthService, useValue: new FakeAuth(null) },
+      ],
     });
     orders.provider.and.returnValue(throwError(() => new Error('x')));
     const fixture = TestBed.createComponent(ProviderPage);

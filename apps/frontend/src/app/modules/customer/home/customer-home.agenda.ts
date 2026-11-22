@@ -36,11 +36,15 @@ export const CUSTOMER_HOME_HISTORY_LIMIT = 3;
  */
 export interface CustomerHomeOrderSource extends TgAppointmentSource {
   requestedAt?: unknown;
+  /** Último evento de cancelamento ou expiração informado pela API. */
+  canceledAt?: unknown;
   /** O cliente confirmou a conclusão. */
   clientConfirmedAt?: unknown;
   /** O prestador finalizou o serviço. */
   providerFinishedAt?: unknown;
-  payment?: (TgAppointmentSource['payment'] & { canceledAt?: unknown; refundedAt?: unknown }) | null;
+  payment?:
+    | (TgAppointmentSource['payment'] & { canceledAt?: unknown; refundedAt?: unknown })
+    | null;
 }
 
 export interface CustomerHomeAgenda {
@@ -87,15 +91,18 @@ export function customerHomeAgenda(orders: readonly CustomerHomeOrderSource[]): 
     .slice(0, CUSTOMER_HOME_HISTORY_LIMIT)
     .map((order) => toTgOrderRow(order, 'customer'));
 
-  return { highlight: highlight ? toTgAppointment(highlight, 'customer') : null, upcoming, history };
+  return {
+    highlight: highlight ? toTgAppointment(highlight, 'customer') : null,
+    upcoming,
+    history,
+  };
 }
 
 /**
  * Quando o pedido foi encerrado, só com datas reais da API:
  * - concluído: a confirmação do cliente ou, sem ela, a finalização do prestador;
- * - cancelado ou recusado: o cancelamento ou o reembolso do pagamento.
- *   O pedido não guarda a data do cancelamento (só a linha do tempo, que a
- *   listagem não traz); sem pagamento cancelado, não há data de encerramento.
+ * - cancelado ou recusado: o último evento de cancelamento/expiração,
+ *   seguido pelas datas de cancelamento/reembolso do pagamento.
  * Sem data de encerramento válida, vale a data do pedido (`requestedAt`,
  * sempre preenchida pelo backend), que é anterior ao encerramento. Sem
  * nenhuma data válida, o pedido vai para o fim.
@@ -104,7 +111,9 @@ function closedAt(order: CustomerHomeOrderSource): number | null {
   const closing =
     order.status === 'CONCLUIDO'
       ? (timeOf(order.clientConfirmedAt) ?? timeOf(order.providerFinishedAt))
-      : (timeOf(order.payment?.canceledAt) ?? timeOf(order.payment?.refundedAt));
+      : (timeOf(order.canceledAt) ??
+        timeOf(order.payment?.canceledAt) ??
+        timeOf(order.payment?.refundedAt));
   return closing ?? timeOf(order.requestedAt);
 }
 
@@ -118,7 +127,11 @@ function customerStep(order: CustomerHomeOrderSource): boolean {
 }
 
 /** Ordena sem mudar a entrada; sem data (null) sempre no fim; empate mantém a ordem original. */
-function sortBy<T>(items: readonly T[], key: (item: T) => number | null, direction: 'asc' | 'desc'): T[] {
+function sortBy<T>(
+  items: readonly T[],
+  key: (item: T) => number | null,
+  direction: 'asc' | 'desc',
+): T[] {
   return items
     .map((item, index) => ({ item, index, time: key(item) }))
     .sort((a, b) => {
@@ -132,7 +145,8 @@ function sortBy<T>(items: readonly T[], key: (item: T) => number | null, directi
 }
 
 function timeOf(value: unknown): number | null {
-  if (!(typeof value === 'string' || typeof value === 'number' || value instanceof Date)) return null;
+  if (!(typeof value === 'string' || typeof value === 'number' || value instanceof Date))
+    return null;
   if (value === '') return null;
   const time = new Date(value).getTime();
   return Number.isFinite(time) ? time : null;

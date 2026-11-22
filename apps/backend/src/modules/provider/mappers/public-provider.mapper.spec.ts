@@ -59,6 +59,15 @@ describe('public provider privacy', () => {
         { lat: -23.54321, lng: -46.65432, capturedAt: new Date() },
         { lat: 12, lng: 34 },
       ],
+      serviceAreas: [
+        {
+          mode: 'RADIUS',
+          radiusKm: '10.0',
+          centerLat: -23.54321,
+          centerLng: -46.65432,
+          active: true,
+        },
+      ],
     };
     const prisma: any = {
       provider: {
@@ -89,6 +98,9 @@ describe('public provider privacy', () => {
       { id: 4n, rating: 5, comment: 'Great service', reviewedAt: undefined },
     ]);
     expect(result?.locations).toEqual([{ lat: -23.54, lng: -46.65 }]);
+    expect(result?.serviceAreas).toEqual([
+      { mode: 'RADIUS', radiusKm: '10.0' },
+    ]);
     expect(prisma.provider.findUnique).toHaveBeenCalledWith(
       expect.objectContaining({
         where: {

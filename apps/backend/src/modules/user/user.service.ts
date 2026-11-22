@@ -1,5 +1,6 @@
 import {
   BadRequestException,
+  ConflictException,
   Injectable,
   NotFoundException,
 } from '@nestjs/common';
@@ -139,10 +140,22 @@ export class UserService extends PaginationService<User> {
       );
     }
 
-    return await this.prisma.user.update({
-      where: { id },
-      data: updateData,
-    });
+    try {
+      return await this.prisma.user.update({
+        where: { id },
+        data: updateData,
+      });
+    } catch (error) {
+      if (
+        error !== null &&
+        typeof error === 'object' &&
+        'code' in error &&
+        error.code === 'P2002'
+      ) {
+        throw new ConflictException('Este e-mail já está em uso.');
+      }
+      throw error;
+    }
   }
 
   private buildUserUpdateData(updateUserDto: UpdateUserDto) {
@@ -153,7 +166,11 @@ export class UserService extends PaginationService<User> {
     }
 
     if (updateUserDto.email !== undefined) {
-      new Email(updateUserDto.email);
+      try {
+        new Email(updateUserDto.email);
+      } catch {
+        throw new BadRequestException('Informe um e-mail válido.');
+      }
       data.email = updateUserDto.email;
       data.emailVerified = false;
       data.pendingEmail = null;

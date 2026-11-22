@@ -60,6 +60,25 @@
             </li>
           }
         </ul>
+        @if (moreError()) {
+          <tg-alert tone="danger" title="Não foi possível carregar mais favoritos">
+            Verifique sua conexão e tente novamente.
+            <button tgButton tgAlertAction type="button" appearance="outline" size="sm" (click)="loadMore()">
+              Tentar de novo
+            </button>
+          </tg-alert>
+        }
+        @if (providers().length < total()) {
+          <button
+            tgButton
+            type="button"
+            appearance="outline"
+            [disabled]="loadingMore()"
+            (click)="loadMore()"
+          >
+            {{ loadingMore() ? 'Carregando...' : 'Ver mais' }}
+          </button>
+        }
       } @else {
         <tg-empty-state icon="heart" title="Nenhum favorito ainda">
           Na busca, toque no coração de um profissional para salvá-lo aqui.

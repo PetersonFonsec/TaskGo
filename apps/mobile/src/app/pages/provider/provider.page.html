@@ -140,6 +140,16 @@
               }
             }
           </ion-list>
+          @if (coverageMessage(); as message) {
+            <div class="ion-padding-horizontal" role="status" data-testid="coverage-warning">
+              <ion-text [color]="coverage().status === 'ready' && coverage().value === false ? 'warning' : 'medium'">
+                <p>{{ message }}</p>
+              </ion-text>
+              @if (canRetryCoverage()) {
+                <ion-button fill="clear" size="small" (click)="retryCoverage()">Tentar novamente</ion-button>
+              }
+            </div>
+          }
         }
 
         <div class="ion-padding">

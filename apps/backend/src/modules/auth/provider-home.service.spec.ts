@@ -106,6 +106,8 @@ describe('ProviderHomeService', () => {
       expect.objectContaining({
         id: '10',
         amount: 180,
+        paymentStatus: PaymentStatus.RELEASED,
+        paidAt: now.toISOString(),
         rating: 5,
       }),
     );

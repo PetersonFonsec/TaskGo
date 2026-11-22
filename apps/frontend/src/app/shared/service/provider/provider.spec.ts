@@ -43,6 +43,39 @@ describe('Provider', () => {
     request.flush([]);
   });
 
+  it('requests a page of favorites with skip and take', () => {
+    service.listFavorites('client-1', { skip: 40, take: 20 }).subscribe();
+    const request = httpMock.expectOne(
+      (req) =>
+        req.url === `${environment.url}/favorites` &&
+        req.params.get('skip') === '40' &&
+        req.params.get('take') === '20',
+    );
+    expect(request.request.method).toBe('GET');
+    request.flush({ items: [], total: 40 });
+  });
+
+  it('sends the search filters as API query params', () => {
+    service
+      .findProvidersByCategorySlug('encanadores', {
+        lat: -23.5,
+        lng: -46.6,
+        onlyFavorites: true,
+        minimumRating: 4,
+        maximumDistance: 10,
+        minimumPrice: 100,
+        maximumPrice: 250,
+      })
+      .subscribe();
+    const request = httpMock.expectOne(`${environment.url}/provider/by-category/encanadores`);
+    expect(request.request.params.get('minimumRating')).toBe('4');
+    expect(request.request.params.get('maximumDistance')).toBe('10');
+    expect(request.request.params.get('minimumPrice')).toBe('100');
+    expect(request.request.params.get('maximumPrice')).toBe('250');
+    expect(request.request.params.get('onlyFavorites')).toBe('true');
+    request.flush([]);
+  });
+
   it('should call the provider availability endpoint with date range params', () => {
     const response: ProviderAvailabilityResponse = {
       providerId: 'provider-1',

@@ -15,6 +15,13 @@
   text-align: center;
 }
 
+.tg-empty-state__illustration {
+  display: block;
+  width: min(100%, 420px);
+  height: auto;
+  object-fit: contain;
+}
+
 .tg-empty-state__icon {
   display: flex;
   flex: none;
@@ -48,6 +55,12 @@
   font-weight: var(--tg-font-weight-bold);
 }
 
+.tg-empty-state__title--level-1 {
+  font-size: var(--tg-type-title-1-size);
+  line-height: var(--tg-type-title-1-line);
+  letter-spacing: -0.03em;
+}
+
 .tg-empty-state__text {
   margin: 0;
   color: var(--tg-text-secondary);
@@ -56,6 +69,10 @@
 }
 
 .tg-empty-state__action {
+  display: flex;
+  justify-content: center;
+  flex-wrap: wrap;
+  gap: var(--tg-space-2);
   max-width: 100%;
   margin-top: var(--tg-space-2);
 }

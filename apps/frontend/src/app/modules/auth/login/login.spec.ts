@@ -36,10 +36,15 @@ describe('Login email destinations', () => {
     expect(setup('/orders/42/review')).toHaveBeenCalledWith('/orders/42/review');
   });
 
+  it('returns to a protected account route after login', () => {
+    expect(setup('/general/42/history')).toHaveBeenCalledWith('/general/42/history');
+  });
+
   for (const url of [
     'https://evil.example',
     '//evil.example',
     '/orders/42/unknown',
+    '/authenticate/login',
     '/orders/42/../admin',
     '',
   ]) {
@@ -55,7 +60,9 @@ describe('Login screen', () => {
   let login: jasmine.Spy<(payload: unknown) => Observable<unknown>>;
   let navigate: jasmine.Spy;
 
-  function setup(response: () => Observable<unknown> = () => of({ user: { type: RolesBack.CUSTOMER } })) {
+  function setup(
+    response: () => Observable<unknown> = () => of({ user: { type: RolesBack.CUSTOMER } }),
+  ) {
     login = jasmine.createSpy('login').and.callFake(response);
     TestBed.configureTestingModule({
       imports: [Login],
@@ -73,7 +80,8 @@ describe('Login screen', () => {
 
   const input = (id: string) => element.querySelector<HTMLInputElement>(`#${id}`)!;
   const submitButton = () => element.querySelector<HTMLButtonElement>('button[type="submit"]')!;
-  const errors = () => Array.from(element.querySelectorAll('.tg-field__error')).map((e) => e.textContent?.trim());
+  const errors = () =>
+    Array.from(element.querySelectorAll('.tg-field__error')).map((e) => e.textContent?.trim());
 
   function type(id: string, value: string) {
     input(id).value = value;
@@ -143,13 +151,19 @@ describe('Login screen', () => {
     expect(login).toHaveBeenCalledTimes(1);
     expect(submitButton().getAttribute('aria-busy')).toBe('true');
 
-    pending.error(new HttpErrorResponse({ status: 401, error: { message: 'Credenciais inválidas' } }));
+    pending.error(
+      new HttpErrorResponse({ status: 401, error: { message: 'Credenciais inválidas' } }),
+    );
     fixture.detectChanges();
     expect(submitButton().getAttribute('aria-busy')).not.toBe('true');
   });
 
   it('shows the API error in a danger alert', () => {
-    setup(() => throwError(() => new HttpErrorResponse({ status: 401, error: { message: 'Credenciais inválidas' } })));
+    setup(() =>
+      throwError(
+        () => new HttpErrorResponse({ status: 401, error: { message: 'Credenciais inválidas' } }),
+      ),
+    );
     type('login-email', 'ana@email.com');
     type('login-password', 'errada');
     submit();
@@ -169,7 +183,13 @@ describe('Login helpers', () => {
 
   it('turns API failures into readable messages', () => {
     expect(loginErrorMessage(new HttpErrorResponse({ status: 0 }))).toContain('Sem conexão');
-    expect(loginErrorMessage(new HttpErrorResponse({ status: 400, error: { message: ['email inválido'] } }))).toBe('email inválido');
-    expect(loginErrorMessage(new HttpErrorResponse({ status: 500, error: null }))).toContain('Não foi possível entrar');
+    expect(
+      loginErrorMessage(
+        new HttpErrorResponse({ status: 400, error: { message: ['email inválido'] } }),
+      ),
+    ).toBe('email inválido');
+    expect(loginErrorMessage(new HttpErrorResponse({ status: 500, error: null }))).toContain(
+      'Não foi possível entrar',
+    );
   });
 });

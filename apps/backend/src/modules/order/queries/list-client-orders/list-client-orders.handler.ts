@@ -32,18 +32,24 @@ export class ListClientOrdersHandler
         addressSnap: true,
         review: true,
         orderTimeline: {
-          where: { event: 'ACCEPTED' },
-          select: { createdAt: true },
+          where: { event: { in: ['ACCEPTED', 'CANCELED', 'EXPIRED'] } },
+          select: { event: true, createdAt: true },
           orderBy: { createdAt: 'desc' },
-          take: 1,
+          take: 3,
         },
       },
     });
     return orders.map(({ orderTimeline, ...order }) => ({
       ...order,
+      canceledAt:
+        orderTimeline.find(
+          ({ event }) => event === 'CANCELED' || event === 'EXPIRED',
+        )?.createdAt ?? null,
       expiresAt: this.expiration.expiresAt({
         ...order,
-        acceptedAt: orderTimeline[0]?.createdAt ?? null,
+        acceptedAt:
+          orderTimeline.find(({ event }) => event === 'ACCEPTED')?.createdAt ??
+          null,
       }),
     }));
   }

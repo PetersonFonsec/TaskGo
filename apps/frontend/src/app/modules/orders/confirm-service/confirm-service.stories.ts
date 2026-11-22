@@ -32,8 +32,20 @@ function details(extra: Partial<OrderDetails> = {}): OrderDetails {
     id: '1042',
     status: 'AGUARDANDO_CONFIRMACAO_CLIENTE',
     expiresAt: null,
-    service: { id: '3', title: 'Instalação de chuveiro', category: 'Elétrica', estimatedPrice: 120 },
-    provider: { id: '17', name: 'Bruno Lima', photoUrl: null, ratingAvg: 4.8, ratingCount: 32, verified: true },
+    service: {
+      id: '3',
+      title: 'Instalação de chuveiro',
+      category: 'Elétrica',
+      estimatedPrice: 120,
+    },
+    provider: {
+      id: '17',
+      name: 'Bruno Lima',
+      photoUrl: null,
+      ratingAvg: 4.8,
+      ratingCount: 32,
+      verified: true,
+    },
     client: { id: '7', name: 'Marina Souza', photoUrl: null },
     schedule: { requestedAt: at(-2, 10), scheduledFor: at(0, 14) },
     address: {
@@ -48,11 +60,14 @@ function details(extra: Partial<OrderDetails> = {}): OrderDetails {
     distanceKm: null,
     providerEarnings: null,
     cancellation: null,
-    payment: { method: 'PIX', status: 'PAGO', estimatedAmount: 120, finalAmount: 150 },
+    priceAdjustmentReason: null,
+    payment: { method: 'PIX', status: 'PAGO', estimatedAmount: 120, finalAmount: 120 },
     review: null,
     timeline: [],
-    completion: { providerFinishedAt: at(0, 16, 20), providerNotes: 'Troquei o registro, que estava com vazamento.' },
-    priceAdjustmentReason: 'Registro novo, fora do orçamento.',
+    completion: {
+      providerFinishedAt: at(0, 16, 20),
+      providerNotes: 'Troquei o registro, que estava com vazamento.',
+    },
     photos: [
       { id: '1', url: photo('Antes', 30), type: 'BEFORE' },
       { id: '2', url: photo('Depois', 160), type: 'AFTER' },
@@ -70,12 +85,21 @@ const CONFIRMED: ConfirmOrderResponse = {
   message: 'Serviço confirmado com sucesso.',
 };
 
-function providers(order: Observable<OrderDetails>, confirm: Observable<ConfirmOrderResponse> = NEVER) {
+function providers(
+  order: Observable<OrderDetails>,
+  confirm: Observable<ConfirmOrderResponse> = NEVER,
+) {
   return [
     provideRouter([{ path: '**', component: PageComponent }]),
     { provide: ActivatedRoute, useValue: { paramMap: of(convertToParamMap({ id: '1042' })) } },
-    { provide: Order, useValue: { getOrderDetails: () => order, confirmOrderCompletion: () => confirm } },
-    { provide: UserLoggedService, useValue: { user: () => ({ user: { id: '7', type: 'CLIENTE' } }) } },
+    {
+      provide: Order,
+      useValue: { getOrderDetails: () => order, confirmOrderCompletion: () => confirm },
+    },
+    {
+      provide: UserLoggedService,
+      useValue: { user: () => ({ user: { id: '7', type: 'CLIENTE' } }) },
+    },
   ];
 }
 
@@ -117,7 +141,6 @@ export const SemAjuste: Story = {
           details({
             payment: { method: 'PIX', status: 'PAGO', estimatedAmount: 120, finalAmount: 120 },
             completion: { providerFinishedAt: at(0, 16, 20), providerNotes: null },
-            priceAdjustmentReason: null,
             photos: [],
           }),
         ),
@@ -166,7 +189,9 @@ export const Carregando: Story = {
 export const ErroAoCarregar: Story = {
   name: 'Erro ao carregar',
   decorators: [
-    applicationConfig({ providers: providers(throwError(() => new HttpErrorResponse({ status: 500 }))) }),
+    applicationConfig({
+      providers: providers(throwError(() => new HttpErrorResponse({ status: 500 }))),
+    }),
   ],
 };
 

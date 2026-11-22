@@ -23,7 +23,7 @@ export class UserExistValidator implements UserValidations {
 
     if (existingUser)
       throw new BadRequestException(
-        'User with this CPF or email already exists',
+        'Já existe uma conta com este CPF ou e-mail. Entre ou use outros dados.',
       );
   }
 }

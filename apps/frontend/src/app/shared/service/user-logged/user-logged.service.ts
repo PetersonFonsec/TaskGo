@@ -7,7 +7,7 @@ import { TokenService } from '../token/token.service';
 import { environment } from 'environments/environment';
 
 @Injectable({
-  providedIn: 'root'
+  providedIn: 'root',
 })
 export class UserLoggedService {
   #keyLocalStorage = environment.user;
@@ -17,7 +17,7 @@ export class UserLoggedService {
 
   // default safe values used during SSR
   storageUser: string = '{}';
-  user = signal<IUserLogged>(JSON.parse(this.storageUser));
+  user = signal<IUserLogged | null>(JSON.parse(this.storageUser));
 
   constructor() {
     // Only access localStorage when running in the browser
@@ -35,22 +35,27 @@ export class UserLoggedService {
 
   setUserLogged(user: IUserLogged) {
     this.user.set(user);
-    localStorage.setItem(this.#keyLocalStorage, JSON.stringify(this.user()));
+    this.#persistUser();
   }
 
   updateUser(user: IUser) {
-    this.user.update((userLogged) => {
-      // userLogged.user = user;
-      return userLogged
-    });
-    localStorage.setItem(this.#keyLocalStorage, JSON.stringify(this.user()));
+    this.user.update((userLogged) =>
+      userLogged ? { ...userLogged, user } : ({ user } as IUserLogged),
+    );
+    this.#persistUser();
   }
 
   logout() {
-    this.user.update(() => null as any);
+    this.user.set(null);
     this.#tokenService.clearToken();
 
-    localStorage.removeItem(this.#keyLocalStorage);
-    this.#router.navigateByUrl("/");
+    if (isPlatformBrowser(this.#platformId)) localStorage.removeItem(this.#keyLocalStorage);
+    this.#router.navigateByUrl('/');
+  }
+
+  #persistUser() {
+    if (isPlatformBrowser(this.#platformId) && this.user()) {
+      localStorage.setItem(this.#keyLocalStorage, JSON.stringify(this.user()));
+    }
   }
 }

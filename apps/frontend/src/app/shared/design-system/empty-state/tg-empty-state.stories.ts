@@ -2,7 +2,8 @@ import { moduleMetadata, type Meta, type StoryObj } from '@storybook/angular';
 import { TgButtonComponent } from '../button/tg-button.component';
 import { TgEmptyStateComponent } from './tg-empty-state.component';
 
-const surface = 'background:var(--tg-bg-surface);border:1px solid var(--tg-border-default);border-radius:20px;max-width:560px';
+const surface =
+  'background:var(--tg-bg-surface);border:1px solid var(--tg-border-default);border-radius:20px;max-width:560px';
 
 const meta: Meta<TgEmptyStateComponent> = {
   title: 'Componentes/Estado vazio',
@@ -89,6 +90,21 @@ export const CompactoEmCardEstreito: Story = {
             <button tgButton tgEmptyAction appearance="outline" size="sm">Adicionar</button>
           </tg-empty-state>
         </div>
+      </div>`,
+  }),
+};
+
+/** Tela inteira: título h1, ilustração e ação principal e secundária. */
+export const TelaComIlustracaoEDuasAcoes: Story = {
+  name: 'Tela com ilustração e duas ações',
+  render: () => ({
+    template: `
+      <div style="${surface};max-width:none">
+        <tg-empty-state title="Página não encontrada" [level]="1" illustrationSrc="/ilustrations/not-found-ilustration.webp" illustrationAlt="">
+          <p>O endereço não existe ou mudou de lugar. Confira o link ou siga por aqui.</p>
+          <button tgButton tgEmptyAction>Ir para o início</button>
+          <button tgButton tgEmptySecondaryAction appearance="outline">Voltar</button>
+        </tg-empty-state>
       </div>`,
   }),
 };

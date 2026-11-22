@@ -8,14 +8,6 @@
       </div>
     </div>
 
-    <nav class="footer__nav" aria-label="Institucional">
-      <ul class="footer__links">
-        @for (item of links; track item.link) {
-          <li><a class="footer__link" [routerLink]="item.link">{{ item.label }}</a></li>
-        }
-      </ul>
-    </nav>
-
     <p class="footer__legal">
       © {{ year }} TaskGo. Todos os direitos reservados.
     </p>

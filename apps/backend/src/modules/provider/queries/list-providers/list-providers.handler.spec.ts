@@ -40,7 +40,7 @@ describe('ListProvidersHandler', () => {
 
     await expect(
       handler.execute(new ListProvidersQuery(true, '7')),
-    ).resolves.toEqual([{ id: 42n }]);
+    ).resolves.toEqual([{ id: 42n, distanceKm: null }]);
     expect(mediator.publish).toHaveBeenCalledWith(
       'favorites.searchFilter.used',
       expect.objectContaining({ clientId: 7n, resultCount: 1 }),

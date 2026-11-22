@@ -13,6 +13,7 @@ export interface Paginated<T> {
 export interface ProviderService {
   readonly id: string | number;
   readonly title: string;
+  readonly category?: string | null;
   readonly description?: string | null;
   readonly basePrice: number;
 }

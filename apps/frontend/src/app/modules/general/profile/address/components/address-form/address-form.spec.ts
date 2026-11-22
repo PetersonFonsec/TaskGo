@@ -9,14 +9,14 @@ describe('AddressForm', () => {
   let fixture: ComponentFixture<AddressForm>;
 
   let lookup: jasmine.Spy;
-  let response: Subject<any>;
+  let response: Subject<{ street?: string; neighborhood?: string; city?: string; state?: string }>;
 
   beforeEach(async () => {
     response = new Subject();
     lookup = jasmine.createSpy().and.returnValue(response);
     await TestBed.configureTestingModule({
       imports: [AddressForm],
-      providers: [{ provide: Geolocalization, useValue: { getAddressByCep: lookup } }],
+      providers: [{ provide: Geolocalization, useValue: { getLatLngByCep: lookup } }],
     }).compileComponents();
 
     fixture = TestBed.createComponent(AddressForm);
@@ -28,11 +28,19 @@ describe('AddressForm', () => {
     const checkbox: HTMLInputElement = fixture.nativeElement.querySelector('[name="isDefault"]');
     const submit = spyOn(component.addressSubmit, 'emit');
     component.payload.cep = '01001000';
+    component.payload.lat = -23.55;
+    component.payload.lng = -46.63;
     expect(checkbox.checked).toBeFalse();
 
     checkbox.click();
     await fixture.whenStable();
-    response.next({ street: 'Praça da Sé', city: 'São Paulo', state: 'SP' });
+    response.next({
+      street: 'Praça da Sé',
+      city: 'São Paulo',
+      state: 'SP',
+      latitude: -23.55,
+      longitude: -46.63,
+    });
     component.createAddress();
     expect(submit).toHaveBeenCalledWith(jasmine.objectContaining({ isDefault: true }));
 
@@ -49,7 +57,14 @@ describe('AddressForm', () => {
     expect(lookup).not.toHaveBeenCalled();
     component.onCepChange('01001-000');
     expect(lookup).toHaveBeenCalledOnceWith('01001000');
-    response.next({ street: 'Praça da Sé', neighborhood: 'Sé', city: 'São Paulo', state: 'SP' });
+    response.next({
+      street: 'Praça da Sé',
+      neighborhood: 'Sé',
+      city: 'São Paulo',
+      state: 'SP',
+      latitude: -23.55,
+      longitude: -46.63,
+    });
     expect(component.payload).toEqual(
       jasmine.objectContaining({
         street: 'Praça da Sé',
@@ -67,19 +82,43 @@ describe('AddressForm', () => {
   it('ignores an outdated lookup when the CEP changes', () => {
     component.onCepChange('01001000');
     component.onCepChange('01001');
-    response.next({ street: 'Old street' });
+    response.next({ street: 'Old street', latitude: -23.55, longitude: -46.63 });
     expect(component.payload.street).toBe('');
     expect(component.lookingUpCep()).toBeFalse();
   });
 
-  it('allows manual entry after a failed lookup', () => {
+  it('blocks saving when a failed lookup leaves the address without coordinates', () => {
     component.onCepChange('01001000');
     response.error({ status: 404 });
     expect(component.cepError()).toContain('CEP não encontrado');
     expect(component.lookingUpCep()).toBeFalse();
     const submit = spyOn(component.addressSubmit, 'emit');
     component.createAddress();
-    expect(submit).toHaveBeenCalled();
+    expect(submit).not.toHaveBeenCalled();
+    expect(component.cepError()).toContain('Localize o endereço');
+  });
+
+  it('submits the coordinates returned by geocoding a changed CEP', () => {
+    Object.assign(component.payload, {
+      label: 'Casa',
+      street: 'Rua A',
+      number: '10',
+      city: 'São Paulo',
+      state: 'SP',
+    });
+    const submit = spyOn(component.addressSubmit, 'emit');
+    component.onCepChange('01001000');
+    response.next({
+      street: 'Praça da Sé',
+      city: 'São Paulo',
+      state: 'SP',
+      latitude: -23.55,
+      longitude: -46.63,
+    });
+
+    component.createAddress();
+
+    expect(submit).toHaveBeenCalledWith(jasmine.objectContaining({ lat: -23.55, lng: -46.63 }));
   });
 
   it('blocks saving an incomplete CEP or a pending lookup', () => {
@@ -103,7 +142,12 @@ describe('AddressForm', () => {
   it('preserves the existing address when opening the edit form', async () => {
     const editFixture = TestBed.createComponent(AddressForm);
     editFixture.componentRef.setInput('initialAddress', {
-      ...component.payload, cep: '01001000', street: 'Rua editada', lat: -23, lng: -46, isDefault: true,
+      ...component.payload,
+      cep: '01001000',
+      street: 'Rua editada',
+      lat: -23,
+      lng: -46,
+      isDefault: true,
     });
     await editFixture.whenStable();
     expect(lookup).not.toHaveBeenCalled();
@@ -115,12 +159,18 @@ describe('AddressForm', () => {
   it('preserves fields edited while the lookup is pending', () => {
     component.onCepChange('01001000');
     component.payload.street = 'Rua digitada';
-    response.next({ street: 'Praça da Sé', city: 'São Paulo', state: 'SP' });
+    response.next({
+      street: 'Praça da Sé',
+      city: 'São Paulo',
+      state: 'SP',
+      latitude: -23.55,
+      longitude: -46.63,
+    });
     expect(component.payload.street).toBe('Rua digitada');
     expect(component.payload.city).toBe('São Paulo');
   });
 
-  it('should create' , () => {
+  it('should create', () => {
     expect(component).toBeTruthy();
   });
 
@@ -131,19 +181,39 @@ describe('AddressForm', () => {
     expect(component.errors().street).toBe('Informe a rua.');
 
     Object.assign(component.payload, {
-      label: ' Casa ', cep: '01001000', street: ' Rua A ', number: ' 12 ', city: 'São Paulo', state: 'SP',
+      label: ' Casa ',
+      cep: '01001000',
+      street: ' Rua A ',
+      number: ' 12 ',
+      city: 'São Paulo',
+      state: 'SP',
     });
     component.submit();
     expect(submit).toHaveBeenCalledWith(
-      jasmine.objectContaining({ label: 'Casa', street: 'Rua A', number: '12', complement: '', isDefault: false }),
+      jasmine.objectContaining({
+        label: 'Casa',
+        street: 'Rua A',
+        number: '12',
+        complement: '',
+        isDefault: false,
+      }),
     );
   });
 });
 
 describe('addressErrors', () => {
   const valid = {
-    label: 'Casa', street: 'Rua A', number: '12', complement: '', neighborhood: '', city: 'São Paulo',
-    state: 'SP', country: 'Brasil', cep: '01001-000', lat: 0, lng: 0,
+    label: 'Casa',
+    street: 'Rua A',
+    number: '12',
+    complement: '',
+    neighborhood: '',
+    city: 'São Paulo',
+    state: 'SP',
+    country: 'Brasil',
+    cep: '01001-000',
+    lat: 0,
+    lng: 0,
   };
 
   it('aceita o endereço com os campos do DTO, sem complemento nem bairro', () => {

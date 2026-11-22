@@ -104,6 +104,16 @@ export class ConfirmServicePage implements OnInit {
     if (userId === undefined || userId === null || String(userId) !== String(order.client?.id)) {
       return { title: 'Confirmação indisponível', body: NOT_CLIENT, review: false };
     }
+    const eligibility = order.confirmationEligibility;
+    if (eligibility && !eligibility.canConfirm) {
+      return {
+        title: eligibility.hasOpenDispute
+          ? 'Este pedido está em análise'
+          : 'Confirmação indisponível',
+        body: eligibility.reason?.trim() || 'A confirmação não está disponível para este pedido.',
+        review: false,
+      };
+    }
     switch (order.status) {
       case AWAITING_CONFIRMATION:
         return null;
@@ -203,7 +213,10 @@ export class ConfirmServicePage implements OnInit {
             id: response?.id || order.id,
             message: response?.message?.trim() || 'Serviço confirmado com sucesso.',
           });
-          afterNextRender({ write: () => this.doneTitle()?.nativeElement.focus() }, { injector: this.#injector });
+          afterNextRender(
+            { write: () => this.doneTitle()?.nativeElement.focus() },
+            { injector: this.#injector },
+          );
         },
         error: (error: unknown) => {
           if (id !== this.orderId()) return;
@@ -228,6 +241,8 @@ export function apiMessage(error: unknown): string | null {
   const body: unknown = error.error;
   if (!body || typeof body !== 'object' || !('message' in body)) return null;
   const message: unknown = body.message;
-  const text = Array.isArray(message) ? message.find((item): item is string => typeof item === 'string') : message;
+  const text = Array.isArray(message)
+    ? message.find((item): item is string => typeof item === 'string')
+    : message;
   return typeof text === 'string' && text.trim() ? text.trim() : null;
 }

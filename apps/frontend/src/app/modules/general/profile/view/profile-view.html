@@ -124,7 +124,7 @@
                   } @else {
                     <a class="link" [routerLink]="item.link">
                       {{ item.action }}
-                      <tg-icon name="arrow-right" [size]="16" />
+                      <tg-icon name="caret-right" [size]="16" />
                     </a>
                   }
                 </li>
@@ -143,7 +143,7 @@
                         <span class="shortcut__label">{{ item.label }}</span>
                         <span class="shortcut__hint">{{ item.text }}</span>
                       </span>
-                      <tg-icon name="arrow-right" [size]="20" />
+                      <tg-icon name="caret-right" [size]="20" />
                     </a>
                   </li>
                 }
@@ -166,7 +166,7 @@
               </div>
               <a class="link" [routerLink]="addressesLink()">
                 Gerenciar endereços
-                <tg-icon name="arrow-right" [size]="16" />
+                <tg-icon name="caret-right" [size]="16" />
               </a>
             } @else {
               <tg-empty-state compact icon="map-pin" title="Nenhum endereço cadastrado" [level]="3">
@@ -182,7 +182,7 @@
               <p class="section__text">Confira os serviços, a apresentação e as avaliações que os clientes veem.</p>
               <a class="link" [routerLink]="['/provider/profile', user.id]">
                 Ver meu perfil público
-                <tg-icon name="arrow-right" [size]="16" />
+                <tg-icon name="caret-right" [size]="16" />
               </a>
             </tg-card>
           }

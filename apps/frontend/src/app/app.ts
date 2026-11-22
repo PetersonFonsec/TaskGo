@@ -3,12 +3,13 @@ import { RouterOutlet } from '@angular/router';
 
 import { Theme } from '@shared/service/theme/theme';
 import { UserLoggedService } from '@shared/service/user-logged/user-logged.service';
+import { TgToastRegionComponent } from '@shared/design-system/feedback/tg-toast-region.component';
 
 @Component({
   selector: 'app-root',
-  imports: [RouterOutlet],
+  imports: [RouterOutlet, TgToastRegionComponent],
   templateUrl: './app.html',
-  styleUrl: './app.scss'
+  styleUrl: './app.scss',
 })
 export class App {
   readonly #theme = inject(Theme);

@@ -1,28 +1,22 @@
 <app-page>
-  <section class="not-found" aria-labelledby="not-found-title">
-    <img
-      class="not-found__illustration"
-      src="/ilustrations/not-found-ilustration.webp"
-      alt=""
-      width="700"
-      height="470"
-    />
-
-    <div class="not-found__body">
-      <p class="not-found__code">Erro 404</p>
-      <h1 id="not-found-title" class="not-found__title">Página não encontrada</h1>
-      <p class="not-found__text">
-        O endereço que você abriu não existe ou mudou de lugar. Confira o link ou siga por aqui.
-      </p>
-    </div>
-
-    <div class="not-found__actions">
-      <a tgButton iconStart="house" [routerLink]="home()">Ir para o início</a>
-      <button tgButton type="button" appearance="outline" iconStart="arrow-left" (click)="back()">Voltar</button>
-    </div>
-
-    <p class="not-found__help">
-      Precisa de ajuda? <a routerLink="/institutional/support">Fale com o suporte</a>
+  <section class="not-found" aria-label="Página não encontrada">
+  <tg-empty-state
+    title="Página não encontrada"
+    [level]="1"
+    illustrationSrc="/ilustrations/not-found-ilustration.webp"
+    illustrationAlt=""
+  >
+    <p class="not-found__code">Erro 404</p>
+    <p class="not-found__text">
+      O endereço que você abriu não existe ou mudou de lugar. Confira o link ou siga por aqui.
     </p>
+    <a tgButton tgEmptyAction iconStart="house" [routerLink]="home()">Ir para o início</a>
+    <button tgButton tgEmptySecondaryAction type="button" appearance="outline" iconStart="arrow-left" (click)="back()">
+      Voltar
+    </button>
+  </tg-empty-state>
+  <p class="not-found__help">
+    Precisa de ajuda? <a href="mailto:contato@taskgo.com.br">Fale com o suporte</a>
+  </p>
   </section>
 </app-page>

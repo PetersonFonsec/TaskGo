@@ -1,4 +1,14 @@
-import { ChangeDetectionStrategy, Component, DestroyRef, ElementRef, afterNextRender, computed, inject, signal, viewChild } from '@angular/core';
+import {
+  ChangeDetectionStrategy,
+  Component,
+  DestroyRef,
+  ElementRef,
+  afterNextRender,
+  computed,
+  inject,
+  signal,
+  viewChild,
+} from '@angular/core';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { HttpErrorResponse } from '@angular/common/http';
 import { ActivatedRoute, Router, RouterLink } from '@angular/router';
@@ -12,12 +22,10 @@ import { TgInputDirective } from '@shared/design-system/field/tg-input.directive
 import { TgPasswordToggleComponent } from '@shared/design-system/field/tg-password-toggle.component';
 import { UserRegister } from '@shared/service/users/user-register';
 import { Utils } from '@shared/service/utils/utils.service';
+import { safeReturnUrl } from '@shared/guards/return-url';
 
 /** Mesmo critério do input type="email": algo@dominio, sem espaços. */
 export const EMAIL_PATTERN = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-
-/** Destinos aceitos vindos dos e-mails de pedido. */
-const RETURN_URL = /^\/orders\/[1-9]\d*(?:\/(?:review|confirm|payment|finish|report-problem))?$/;
 
 export function emailError(value: string): string {
   const email = value.trim();
@@ -32,7 +40,14 @@ export function emailError(value: string): string {
  */
 @Component({
   selector: 'app-login',
-  imports: [RouterLink, TgAlertComponent, TgButtonComponent, TgFieldComponent, TgInputDirective, TgPasswordToggleComponent],
+  imports: [
+    RouterLink,
+    TgAlertComponent,
+    TgButtonComponent,
+    TgFieldComponent,
+    TgInputDirective,
+    TgPasswordToggleComponent,
+  ],
   templateUrl: './login.html',
   styleUrl: './login.scss',
   changeDetection: ChangeDetectionStrategy.OnPush,
@@ -51,7 +66,9 @@ export class Login {
   readonly error = signal('');
 
   readonly emailError = computed(() => (this.submitted() ? emailError(this.email()) : ''));
-  readonly passwordError = computed(() => (this.submitted() && !this.password() ? 'Informe sua senha.' : ''));
+  readonly passwordError = computed(() =>
+    this.submitted() && !this.password() ? 'Informe sua senha.' : '',
+  );
 
   readonly emailInput = viewChild<ElementRef<HTMLInputElement>>('emailInput');
   readonly passwordInput = viewChild<ElementRef<HTMLInputElement>>('passwordInput');
@@ -84,7 +101,7 @@ export class Login {
         next: ({ user }) => {
           this.#liveAnnouncer.announce('Login realizado com sucesso');
           const returnUrl = this.#route.snapshot.queryParamMap.get('returnUrl');
-          const destination = returnUrl && RETURN_URL.test(returnUrl) ? returnUrl : Utils.getRouteByRoleBack(user.type);
+          const destination = safeReturnUrl(returnUrl) ?? Utils.getRouteByRoleBack(user.type);
           this.#router.navigateByUrl(destination);
         },
         error: (error: HttpErrorResponse) => {
@@ -95,7 +112,8 @@ export class Login {
 }
 
 export function loginErrorMessage(error: HttpErrorResponse): string {
-  if (error.status === 0) return 'Sem conexão com o servidor. Verifique sua internet e tente de novo.';
+  if (error.status === 0)
+    return 'Sem conexão com o servidor. Verifique sua internet e tente de novo.';
   const message: unknown = error.error?.message;
   if (typeof message === 'string' && message.trim()) return message;
   if (Array.isArray(message) && typeof message[0] === 'string') return message[0];

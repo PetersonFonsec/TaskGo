@@ -59,37 +59,6 @@
   font-size: var(--tg-type-body-sm-size);
 }
 
-.footer__links {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 0 var(--tg-space-2);
-  margin: 0;
-  padding: 0;
-  list-style: none;
-}
-
-.footer__link {
-  display: inline-flex;
-  align-items: center;
-  min-height: 44px;
-  padding: 0 var(--tg-space-2);
-  border-radius: var(--tg-radius-sm);
-  color: var(--tg-text-secondary);
-  font-size: var(--tg-type-body-sm-size);
-  font-weight: var(--tg-font-weight-medium);
-  text-decoration: none;
-
-  &:hover {
-    color: var(--tg-text-primary);
-    text-decoration: underline;
-  }
-
-  &:focus-visible {
-    outline: 2px solid var(--tg-focus-ring);
-    outline-offset: 2px;
-  }
-}
-
 .footer__legal {
   flex-basis: 100%;
   margin: 0;

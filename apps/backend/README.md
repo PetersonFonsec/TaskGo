@@ -41,3 +41,19 @@ The backend should respect a `favorites_mvp` feature flag during rollout. UI and
 
 ### Notes
 This documentation reflects the current MVP plan for the favorites feature and is intended for internal API and product tracking. It should be updated once the implementation is available in source code.
+
+## HTTP error response
+
+HTTP errors use this envelope:
+
+```json
+{
+  "statusCode": 400,
+  "message": ["email: informe um e-mail válido."],
+  "errorCode": "VALIDATION_ERROR",
+  "timestamp": "2026-11-22T12:00:00.000Z",
+  "path": "/users/1"
+}
+```
+
+`message` is always an array of Portuguese messages, with one entry per validation cause. `errorCode` is a stable machine-readable code when the error type defines one; it may be absent for other HTTP errors. `timestamp`, `path`, and `requestId` are added by the global exception filter.

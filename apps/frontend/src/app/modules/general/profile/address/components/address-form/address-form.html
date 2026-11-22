@@ -64,6 +64,16 @@
       </tg-field>
     </div>
 
+    <tg-field label="Bairro (opcional)">
+      <input
+        tgInput
+        id="address-neighborhood-input"
+        name="neighborhood"
+        autocomplete="address-level3"
+        [(ngModel)]="payload.neighborhood"
+      />
+    </tg-field>
+
     <div class="address-form__row address-form__row--city">
       <tg-field label="Cidade" [error]="errors().city">
         <input

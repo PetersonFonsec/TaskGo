@@ -33,7 +33,9 @@ describe('Finish order financial integrity', () => {
   it.each([0, 149, 151])('refuses price changes to %s', async (finalPrice) => {
     await expect(
       handler.execute(new FinishOrderCommand(1n, 42n, { finalPrice })),
-    ).rejects.toThrow('Final price');
+    ).rejects.toThrow(
+      'O valor final deve ser igual ao valor combinado e pago.',
+    );
     expect(db.$transaction).not.toHaveBeenCalled();
     expect(notifications.notifyClientServiceFinished).not.toHaveBeenCalled();
   });

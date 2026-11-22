@@ -172,37 +172,20 @@
   overflow-wrap: anywhere;
 }
 
-.profile__contact {
+.profile__region,
+.profile__badges {
   display: flex;
   flex-wrap: wrap;
-  gap: var(--tg-space-3) var(--tg-space-6);
-  margin: var(--tg-space-4) 0 0;
-  padding-top: var(--tg-space-4);
-  border-top: 1px solid var(--tg-border-default);
+  align-items: center;
+  gap: var(--tg-space-2);
+  margin: 0;
+}
 
-  dt {
-    color: var(--tg-text-secondary);
-    font-size: var(--tg-type-body-sm-size);
-    line-height: var(--tg-type-body-sm-line);
-  }
-
-  dd {
-    margin: 0;
-    font-size: var(--tg-type-body-size);
-    line-height: var(--tg-type-body-line);
-    font-weight: var(--tg-font-weight-bold);
-    overflow-wrap: anywhere;
-  }
-
-  a {
-    color: var(--tg-action-subtle-text);
-
-    &:focus-visible {
-      outline: 2px solid var(--tg-focus-ring);
-      outline-offset: 2px;
-      border-radius: var(--tg-radius-sm);
-    }
-  }
+.profile__region {
+  margin-bottom: var(--tg-space-3);
+  color: var(--tg-text-secondary);
+  font-size: var(--tg-type-body-sm-size);
+  line-height: var(--tg-type-body-sm-line);
 }
 
 .profile__section {
