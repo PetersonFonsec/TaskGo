@@ -29,10 +29,11 @@ export class TgIconComponent {
 
   readonly #sanitizer = inject(DomSanitizer);
 
-  // O conteúdo vem só do registro gerado a partir do pacote Phosphor, nunca de entrada externa;
-  // o label é escapado antes de entrar no atributo.
+  // bypassSecurityTrustHtml continua seguro porque nada de fora entra cru: o desenho vem só do
+  // registro gerado a partir do pacote Phosphor, o tamanho é sempre um número positivo e o
+  // label é escapado antes de entrar no atributo.
   readonly markup = computed(() => {
-    const size = this.size();
+    const size = validSize(this.size());
     const label = this.label();
     const a11y = label ? `role="img" aria-label="${escapeAttribute(label)}"` : 'aria-hidden="true"';
     return this.#sanitizer.bypassSecurityTrustHtml(
@@ -41,6 +42,13 @@ export class TgIconComponent {
         `${TG_ICONS[this.name()][this.weight()]}</svg>`,
     );
   });
+}
+
+const DEFAULT_SIZE = 20;
+
+/** Só números finitos e positivos viram largura e altura; o resto cai no tamanho padrão. */
+function validSize(value: unknown): number {
+  return typeof value === 'number' && Number.isFinite(value) && value > 0 ? value : DEFAULT_SIZE;
 }
 
 function escapeAttribute(value: string): string {

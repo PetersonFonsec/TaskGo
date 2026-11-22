@@ -394,11 +394,14 @@ export class Search implements OnInit {
   }
 
   private loadCategories() {
-    this.#categoryService.getCategories().subscribe({
-      next: (response) => this.categories.set(response.data ?? []),
-      // Sem categorias, a busca segue só com "Todas".
-      error: () => this.categories.set([]),
-    });
+    this.#categoryService
+      .getCategories()
+      .pipe(takeUntilDestroyed(this.#destroyRef))
+      .subscribe({
+        next: (response) => this.categories.set(response.data ?? []),
+        // Sem categorias, a busca segue só com "Todas".
+        error: () => this.categories.set([]),
+      });
   }
 
   /** Prestador que o card mostra; a distância é a da busca (a da API ou a calculada). */
