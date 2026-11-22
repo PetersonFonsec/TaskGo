@@ -164,11 +164,17 @@ export class AddressForm implements OnInit, OnDestroy {
           lat: address.latitude!,
           lng: address.longitude!,
         };
-        for (const field of Object.keys(resolvedAddress) as (keyof typeof resolvedAddress)[]) {
-          if (this.payload[field] === previousAddress[field]) {
-            this.payload[field] = resolvedAddress[field];
-          }
-        }
+        if (this.payload.street === previousAddress.street)
+          this.payload.street = resolvedAddress.street;
+        if (this.payload.neighborhood === previousAddress.neighborhood)
+          this.payload.neighborhood = resolvedAddress.neighborhood;
+        if (this.payload.city === previousAddress.city) this.payload.city = resolvedAddress.city;
+        if (this.payload.state === previousAddress.state)
+          this.payload.state = resolvedAddress.state;
+        if (this.payload.country === previousAddress.country)
+          this.payload.country = resolvedAddress.country;
+        if (this.payload.lat === previousAddress.lat) this.payload.lat = resolvedAddress.lat;
+        if (this.payload.lng === previousAddress.lng) this.payload.lng = resolvedAddress.lng;
         this.cepError.set('');
         this.lookingUpCep.set(false);
       },

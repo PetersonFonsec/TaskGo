@@ -318,7 +318,8 @@ export class SingleUser implements OnInit {
   }
 
   goToHome() {
-    this.#router.navigateByUrl(Utils.getRouteByRole(this.#userLogged.user()?.user?.type));
+    const role = this.#userLogged.user()?.user?.type;
+    this.#router.navigateByUrl(role ? Utils.getRouteByRole(role) : '/');
   }
 
   openFullProfile() {

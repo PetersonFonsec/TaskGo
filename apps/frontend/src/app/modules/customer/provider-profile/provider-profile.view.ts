@@ -118,7 +118,10 @@ function regionOf(value: unknown): string | null {
   const radii = areas
     .filter((area) => area['mode'] === 'RADIUS')
     .map((area) => toNumber(area['radiusKm']))
-    .filter((radius): radius is number => radius !== null && radius > 0);
+    .filter(
+      (radius): radius is number =>
+        typeof radius === 'number' && Number.isFinite(radius) && radius > 0,
+    );
   if (radii.length) {
     const radius = Math.max(...radii);
     const formatted = new Intl.NumberFormat('pt-BR', { maximumFractionDigits: 0 }).format(radius);

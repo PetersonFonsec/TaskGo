@@ -60,6 +60,7 @@ function details(extra: Partial<OrderDetails> = {}): OrderDetails {
     distanceKm: null,
     providerEarnings: null,
     cancellation: null,
+    priceAdjustmentReason: null,
     payment: { method: 'PIX', status: 'PAGO', estimatedAmount: 120, finalAmount: 120 },
     review: null,
     timeline: [],

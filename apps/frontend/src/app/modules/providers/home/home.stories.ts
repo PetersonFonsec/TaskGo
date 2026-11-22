@@ -2,7 +2,7 @@ import { HttpClient } from '@angular/common/http';
 import { Component } from '@angular/core';
 import { provideRouter } from '@angular/router';
 import { applicationConfig, type Meta, type StoryObj } from '@storybook/angular';
-import { delay, NEVER, type Observable, of, throwError } from 'rxjs';
+import { delay, NEVER, Observable, of, throwError } from 'rxjs';
 import { Order } from '@shared/service/order/order';
 import type { OrderModel, OrdersResponse } from '@shared/service/order/order.model';
 import { UserLoggedService } from '@shared/service/user-logged/user-logged.service';
