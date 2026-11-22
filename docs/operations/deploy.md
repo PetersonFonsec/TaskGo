@@ -16,6 +16,16 @@ O `docker-compose.yml` atual habilita banco e observabilidade; os serviços back
 
 ## Execução no ambiente de destino
 
+### Domínios de compartilhamento e busca
+
+As três aplicações usam as origens de desenvolvimento por padrão. Antes do build de publicação, defina `LANDING_PUBLIC_ORIGIN`, `FRONTEND_PUBLIC_ORIGIN` e `BACKOFFICE_PUBLIC_ORIGIN` no ambiente do pipeline com os endereços HTTPS reais. Cada valor deve conter apenas o protocolo, o domínio e a porta, se houver. As aplicações usam a raiz de seus respectivos domínios.
+
+Na raiz do checkout de publicação, execute `node scripts/configure-web-origins.mjs` antes de gerar os artefatos. O comando atualiza os arquivos-fonte de metadados, sitemap e robots das aplicações cujas variáveis foram definidas. O Angular usa esses valores durante a pré-renderização.
+
+Após publicar, abra `/robots.txt`, `/sitemap.xml` e `/share.png` em cada domínio. O mapa da landing page aponta para a página inicial. O da plataforma inclui a entrada, o login e o cadastro. O mapa do backoffice contém apenas o login e todas as telas administrativas declaram `noindex`. O rastreamento do HTML é permitido para que os buscadores leiam essa diretiva.
+
+### Entrega dos artefatos
+
 O responsável deve primeiro registrar abaixo o comando de entrega específico do provedor. Use artefatos identificados pelo commit, mantenha o artefato anterior disponível e publique inicialmente em homologação.
 
 Para aplicar migrations versionadas, a partir da raiz do artefato com as ferramentas necessárias e `DATABASE_URL` do destino:
