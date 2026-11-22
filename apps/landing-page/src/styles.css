@@ -189,15 +189,7 @@ html.has-cursor .cursor { display: block; }
 .logo { display: flex; align-items: center; gap: 9px; font-size: 21px; font-weight: 800; white-space: nowrap; }
 .logo > span:last-child > span { color: var(--accent); transition: color .8s; }
 .logo-mark {
-  display: grid;
-  place-items: center;
-  width: 34px;
-  height: 34px;
-  border-radius: 10px;
-  color: #fff;
-  background: var(--purple);
   transform: rotate(-5deg);
-  font-size: 18px;
   transition: transform .6s var(--ease-out);
 }
 .logo:hover .logo-mark { transform: rotate(355deg) scale(1.1); }
