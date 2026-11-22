@@ -1,17 +1,144 @@
-@use "mixins/grid";
+// Endereços (Etapa 10). Só tokens --tg-*.
+:host {
+  display: block;
+  container: addresses / inline-size;
+}
+
+.addresses {
+  display: flex;
+  flex-direction: column;
+  gap: var(--tg-space-5);
+  color: var(--tg-text-primary);
+  font-family: var(--tg-font-sans);
+}
+
+.addresses__header {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: var(--tg-space-3);
+}
+
+.addresses__title {
+  margin: 0;
+  font-size: var(--tg-type-title-2-size);
+  line-height: var(--tg-type-title-2-line);
+  font-weight: var(--tg-font-weight-extrabold);
+  letter-spacing: -0.03em;
+}
+
+.addresses__lead {
+  margin: var(--tg-space-1) 0 0;
+  color: var(--tg-text-secondary);
+  font-size: var(--tg-type-body-size);
+  line-height: var(--tg-type-body-line);
+}
+
+.addresses__status:empty {
+  display: none;
+}
+
+.addresses__list {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  gap: var(--tg-space-3);
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.addresses__skeleton {
+  display: flex;
+  flex-direction: column;
+  gap: var(--tg-space-3);
+}
 
 .address {
-  @include grid.directionColumn();
-  align-items: flex-start;
-  gap: var(--space-19);
+  display: flex;
+  flex-direction: column;
+  gap: var(--tg-space-3);
+  height: 100%;
+  box-sizing: border-box;
+}
 
-  &_container {
-    width: 100%;
+.address__head {
+  display: flex;
+  align-items: center;
+  gap: var(--tg-space-2);
+  min-width: 0;
+}
 
-    ::ng-deep .tab-header {
-      gap: 12px;
-      max-width: 100%;
-      width: 400px;
-    }
+.address__icon {
+  display: inline-flex;
+  flex-shrink: 0;
+  align-items: center;
+  justify-content: center;
+  width: var(--tg-space-8);
+  height: var(--tg-space-8);
+  border-radius: var(--tg-radius-full);
+  background: var(--tg-action-subtle);
+  color: var(--tg-action-subtle-text);
+}
+
+.address__label {
+  margin: 0;
+  min-width: 0;
+  font-size: var(--tg-type-body-lg-size);
+  line-height: var(--tg-type-body-lg-line);
+  font-weight: var(--tg-font-weight-bold);
+  overflow-wrap: anywhere;
+}
+
+.address__body {
+  display: flex;
+  flex-direction: column;
+  gap: var(--tg-space-1);
+  flex: 1;
+}
+
+.address__street,
+.address__line {
+  margin: 0;
+  overflow-wrap: anywhere;
+}
+
+.address__street {
+  font-size: var(--tg-type-body-size);
+  line-height: var(--tg-type-body-line);
+  font-weight: var(--tg-font-weight-medium);
+}
+
+.address__line {
+  color: var(--tg-text-secondary);
+  font-size: var(--tg-type-body-sm-size);
+  line-height: var(--tg-type-body-sm-line);
+}
+
+.address__actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--tg-space-2);
+}
+
+.addresses__form {
+  display: flex;
+  flex-direction: column;
+  gap: var(--tg-space-5);
+}
+
+.addresses__dialog-text {
+  margin: 0;
+  overflow-wrap: anywhere;
+}
+
+@container addresses (min-width: 600px) {
+  .addresses__header {
+    flex-direction: row;
+    align-items: center;
+    justify-content: space-between;
+  }
+
+  .addresses__list {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
   }
 }

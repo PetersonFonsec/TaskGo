@@ -2,7 +2,7 @@ import { ComponentFixture, TestBed } from '@angular/core/testing';
 
 import { Subject } from 'rxjs';
 import { Geolocalization } from '@shared/service/geolocalization/geolocalization';
-import { AddressForm } from './address-form';
+import { AddressForm, addressErrors } from './address-form';
 
 describe('AddressForm', () => {
   let component: AddressForm;
@@ -122,5 +122,39 @@ describe('AddressForm', () => {
 
   it('should create' , () => {
     expect(component).toBeTruthy();
+  });
+
+  it('não envia com campos obrigatórios vazios e envia o texto sem espaços nas pontas', async () => {
+    const submit = spyOn(component.addressSubmit, 'emit');
+    component.submit();
+    expect(submit).not.toHaveBeenCalled();
+    expect(component.errors().street).toBe('Informe a rua.');
+
+    Object.assign(component.payload, {
+      label: ' Casa ', cep: '01001000', street: ' Rua A ', number: ' 12 ', city: 'São Paulo', state: 'SP',
+    });
+    component.submit();
+    expect(submit).toHaveBeenCalledWith(
+      jasmine.objectContaining({ label: 'Casa', street: 'Rua A', number: '12', complement: '', isDefault: false }),
+    );
+  });
+});
+
+describe('addressErrors', () => {
+  const valid = {
+    label: 'Casa', street: 'Rua A', number: '12', complement: '', neighborhood: '', city: 'São Paulo',
+    state: 'SP', country: 'Brasil', cep: '01001-000', lat: 0, lng: 0,
+  };
+
+  it('aceita o endereço com os campos do DTO, sem complemento nem bairro', () => {
+    expect(Object.values(addressErrors(valid)).every((error) => error === '')).toBeTrue();
+  });
+
+  it('recusa campos vazios ou só com espaços e CEP sem 8 dígitos', () => {
+    const errors = addressErrors({ ...valid, label: '  ', number: '', cep: '0100' });
+    expect(errors.label).not.toBe('');
+    expect(errors.number).toBe('Informe o número.');
+    expect(errors.cep).toBe('Informe os 8 dígitos do CEP.');
+    expect(addressErrors({ ...valid, cep: '' }).cep).toBe('Informe o CEP.');
   });
 });
