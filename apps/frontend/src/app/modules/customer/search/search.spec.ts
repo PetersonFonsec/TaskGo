@@ -359,6 +359,15 @@ describe('Search', () => {
     expect(fixture.nativeElement.textContent).toContain('Categoria 5');
   });
 
+  it('keeps the search usable when categories fail to load', () => {
+    categoryServiceMock.getCategories.and.returnValue(
+      throwError(() => new HttpErrorResponse({ status: 0 })),
+    );
+    expect(() => fixture.detectChanges()).not.toThrow();
+    expect(component.categories()).toEqual([]);
+    expect(fixture.nativeElement.textContent).toContain('Todas');
+  });
+
   it('should recover from a failed HTTP request on retry', () => {
     providerMock.findProvidersByCategorySlug.and.returnValue(
       throwError(() => new Error('offline')),

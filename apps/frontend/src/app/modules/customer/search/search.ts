@@ -396,6 +396,8 @@ export class Search implements OnInit {
   private loadCategories() {
     this.#categoryService.getCategories().subscribe({
       next: (response) => this.categories.set(response.data ?? []),
+      // Sem categorias, a busca segue só com "Todas".
+      error: () => this.categories.set([]),
     });
   }
 

@@ -28,4 +28,10 @@ describe('TgIconComponent', () => {
     const fill = render({ name: 'house', weight: 'fill' }).innerHTML;
     expect(fill).not.toEqual(regular);
   });
+
+  it('escapa o label no atributo', () => {
+    const svg = render({ name: 'house', label: 'Casa "nova" <b>' });
+    expect(svg.getAttribute('aria-label')).toBe('Casa "nova" <b>');
+    expect(svg.querySelector('b')).toBeNull();
+  });
 });
