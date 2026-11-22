@@ -1,148 +1,147 @@
-<main class="finish-page">
-  @if (toast()) {
-    <div class="toast" role="status"><span>✓</span>{{ toast() }}</div>
-  }
+<main class="finish-service">
+  <a class="finish-service__back" [routerLink]="['/orders', orderId()]">
+    <tg-icon name="arrow-left" [size]="20" />
+    Voltar ao pedido
+  </a>
 
-  @if (loading()) {
-    <section class="state-card">
-      <span class="spinner"></span><strong>Carregando atendimento…</strong>
-    </section>
-  } @else if (!order()) {
-    <section class="state-card">
-      <span class="error-icon">!</span>
-      <h1>Não foi possível continuar</h1>
-      <p>{{ error() }}</p>
-      <button class="button secondary" (click)="backToDetails()">Voltar</button>
-    </section>
-  } @else if (order(); as current) {
-    <header class="page-header">
-      <button class="back-button" type="button" aria-label="Voltar" (click)="backToDetails()">
-        ←
+  @if (loadError() === 'notFound') {
+    <h1 class="finish-service__title">Finalizar serviço</h1>
+    <tg-alert tone="danger" title="Este pedido não foi encontrado">
+      Confira o link ou volte ao início para ver seus pedidos.
+    </tg-alert>
+  } @else if (loadError() === 'failed') {
+    <h1 class="finish-service__title">Finalizar serviço</h1>
+    <tg-alert tone="danger" title="Não foi possível carregar o pedido">
+      Verifique sua conexão e tente de novo.
+      <button tgButton tgAlertAction type="button" appearance="outline" size="sm" (click)="load()">
+        Tentar de novo
       </button>
-      <div>
-        <p>Pedido #{{ current.id }}</p>
-        <h1>Finalizar serviço</h1>
-      </div>
-      <span class="status"><i></i> Em andamento</span>
-    </header>
-
-    @if (current.status !== 'EM_ANDAMENTO') {
-      <section class="state-card">
-        <span class="error-icon">!</span>
-        <h2>Este serviço não pode ser finalizado</h2>
-        <p>{{ error() }}</p>
-        <button class="button primary" (click)="backToDetails()">Ver detalhes do pedido</button>
-      </section>
-    } @else {
-      @if (error()) {
-        <div class="inline-error" role="alert">{{ error() }}</div>
-      }
-      <section class="summary-card">
-        <img
-          [src]="current.client.photoUrl || 'https://dummyimage.com/112x112/dbeafe/2563eb&text=C'"
-          [alt]="'Foto de ' + current.client.name"
-        />
-        <div class="customer">
-          <small>Atendimento para</small>
-          <h2>{{ current.client.name }}</h2>
-          <p>{{ current.service.title }}</p>
+    </tg-alert>
+  } @else {
+    <tg-loading label="Carregando o pedido" [loading]="loading()">
+      <ng-template tgLoadingSkeleton>
+        <div class="finish-service__skeleton">
+          <tg-skeleton width="30%" />
+          <tg-skeleton width="50%" height="36" />
+          <div class="finish-service__skeleton-card">
+            <tg-skeleton width="25%" />
+            <tg-skeleton width="45%" height="28" />
+            <tg-skeleton [lines]="3" />
+          </div>
+          <div class="finish-service__skeleton-card">
+            <tg-skeleton width="40%" />
+            <tg-skeleton height="120" radius="md" />
+            <tg-skeleton width="35%" height="44" />
+          </div>
         </div>
-        <dl>
-          <div>
-            <dt>Data</dt>
-            <dd>{{ formatDate(current.schedule.scheduledFor) }}</dd>
-          </div>
-          <div>
-            <dt>Horário</dt>
-            <dd>{{ formatTime(current.schedule.scheduledFor) }}</dd>
-          </div>
-          <div>
-            <dt>Endereço</dt>
-            <dd>{{ address() }}</dd>
-          </div>
-          <div>
-            <dt>Valor estimado</dt>
-            <dd class="money">{{ formatMoney(estimatedPrice()) }}</dd>
-          </div>
-        </dl>
-      </section>
+      </ng-template>
 
-      <form [formGroup]="form" (ngSubmit)="submit()" novalidate>
-        <section class="form-card">
-          <div class="section-heading">
-            <span>1</span>
-            <div>
-              <h2>Informações da conclusão</h2>
-              <p>Conte ao cliente como foi o atendimento.</p>
+      @if (view(); as v) {
+        <div class="finish-service__content">
+          <header class="finish-service__header">
+            <div class="finish-service__heading">
+              <p class="finish-service__eyebrow">{{ v.eyebrow }}</p>
+              <h1 class="finish-service__title">Finalizar serviço</h1>
             </div>
-          </div>
-          <label for="finalPrice">Valor final <b>*</b></label>
-          <div class="currency-input">
-            <span>R$</span
-            ><input
-              id="finalPrice"
-              type="number"
-              min="0.01"
-              step="0.01"
-              formControlName="finalPrice"
-              readonly
-            />
-          </div>
-          @if (submitted() && form.controls.finalPrice.invalid) {
-            <p class="field-error">Informe um valor final maior que zero.</p>
-          }
+            <tg-badge [tone]="v.status.tone" [icon]="v.status.icon ?? undefined">{{ v.status.label }}</tg-badge>
+          </header>
 
-          <label for="providerNotes">Observações do serviço <em>Opcional</em></label>
-          <textarea
-            id="providerNotes"
-            rows="4"
-            formControlName="providerNotes"
-            placeholder="Descreva brevemente o que foi realizado no atendimento."
-          ></textarea>
+          @if (finished(); as message) {
+            <tg-alert tone="success" title="Conclusão enviada">
+              {{ message }} Abrindo os detalhes do pedido…
+              <a tgButton tgAlertAction appearance="outline" size="sm" [routerLink]="['/orders', v.id]">
+                Ver detalhes do pedido
+              </a>
+            </tg-alert>
+          } @else if (!v.canFinish) {
+            <tg-card>
+              <tg-empty-state icon="hourglass" title="Este serviço não pode ser finalizado">
+                Só dá para finalizar um serviço em andamento. Este pedido está como “{{ v.status.label }}”.
+                <a tgButton tgEmptyAction [routerLink]="['/orders', v.id]">Ver detalhes do pedido</a>
+              </tg-empty-state>
+            </tg-card>
+          } @else {
+            <tg-card class="finish-service__summary" aria-labelledby="finish-service-summary">
+              <h2 id="finish-service-summary" class="finish-service__card-title">{{ v.title }}</h2>
 
-          <p>O valor combinado na contratação é fixo.</p>
-        </section>
-
-        <section class="confirmation-card">
-          <div class="section-heading">
-            <span>2</span>
-            <div>
-              <h2>Confirme os dados</h2>
-              <p>Revise antes de enviar ao cliente.</p>
-            </div>
-          </div>
-          <dl>
-            <div>
-              <dt>Valor estimado</dt>
-              <dd>{{ formatMoney(estimatedPrice()) }}</dd>
-            </div>
-            <div>
-              <dt>Valor final</dt>
-              <dd class="final-value">{{ formatMoney(form.controls.finalPrice.value || 0) }}</dd>
-            </div>
-            <div>
-              <dt>Diferença</dt>
-              <dd [class.changed]="priceChanged()">
-                {{ priceDifference() >= 0 ? '+' : '' }}{{ formatMoney(priceDifference()) }}
-              </dd>
-            </div>
-            @if (form.controls.providerNotes.value) {
-              <div class="notes">
-                <dt>Observações</dt>
-                <dd>{{ form.controls.providerNotes.value }}</dd>
+              <div class="finish-service__person">
+                <span class="finish-service__avatar">
+                  @if (v.person.photoUrl) {
+                    <img [src]="v.person.photoUrl" alt="" loading="lazy" decoding="async" />
+                  } @else {
+                    <span aria-hidden="true">{{ v.person.initials }}</span>
+                  }
+                </span>
+                <span class="finish-service__person-text">
+                  <span class="finish-service__role">{{ v.person.role }}</span>
+                  <span class="finish-service__name">{{ v.person.name }}</span>
+                </span>
               </div>
-            }
-          </dl>
-        </section>
 
-        <div class="actions">
-          <button class="button secondary" type="button" (click)="backToDetails()">
-            Voltar para detalhes</button
-          ><button class="button primary" type="submit" [disabled]="submitting()">
-            {{ submitting() ? 'Enviando…' : 'Enviar conclusão' }} <span>→</span>
-          </button>
+              <dl class="finish-service__list">
+                <div>
+                  <dt>Quando</dt>
+                  <dd>{{ v.when.time ? v.when.day + ', ' + v.when.time : v.when.day }}</dd>
+                </div>
+                <div>
+                  <dt>Endereço</dt>
+                  <dd>
+                    {{ v.address ?? 'Endereço não informado' }}
+                    @if (v.addressDetail) {
+                      <span class="finish-service__detail">{{ v.addressDetail }}</span>
+                    }
+                  </dd>
+                </div>
+                <div>
+                  <dt>Valor combinado</dt>
+                  <dd>
+                    {{ v.amountLabel ?? 'Indisponível' }}
+                    <span class="finish-service__detail">O valor combinado na contratação é fixo.</span>
+                  </dd>
+                </div>
+              </dl>
+            </tg-card>
+
+            @if (v.amount === null) {
+              <tg-alert tone="warning" title="Não encontramos o valor combinado">
+                Sem ele, a conclusão não pode ser enviada. Fale com o suporte.
+              </tg-alert>
+            }
+
+            <tg-card>
+              <form class="finish-service__form" novalidate [formGroup]="form" (ngSubmit)="submit()">
+                <div class="finish-service__form-heading">
+                  <h2 class="finish-service__card-title">Como foi o atendimento</h2>
+                  <p class="finish-service__lead">
+                    O cliente recebe a conclusão e confirma que o serviço foi feito.
+                  </p>
+                </div>
+
+                <tg-field label="Observações do serviço" optional [hint]="notesCount()" [error]="notesError()">
+                  <textarea
+                    tgInput
+                    rows="4"
+                    [attr.maxlength]="notesMax"
+                    formControlName="providerNotes"
+                    placeholder="Descreva brevemente o que foi feito no atendimento."
+                  ></textarea>
+                </tg-field>
+
+                @if (submitError(); as message) {
+                  <tg-alert tone="danger" title="Não foi possível enviar a conclusão">{{ message }}</tg-alert>
+                }
+
+                <div class="finish-service__actions">
+                  <a tgButton appearance="outline" [routerLink]="['/orders', v.id]">Voltar ao pedido</a>
+                  <button tgButton type="submit" [loading]="submitting()" [disabled]="v.amount === null">
+                    Enviar conclusão
+                  </button>
+                </div>
+              </form>
+            </tg-card>
+          }
         </div>
-      </form>
-    }
+      }
+    </tg-loading>
   }
 </main>
