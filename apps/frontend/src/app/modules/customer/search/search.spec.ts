@@ -359,6 +359,41 @@ describe('Search', () => {
     expect(fixture.nativeElement.textContent).toContain('Categoria 5');
   });
 
+  it('keeps the search usable when categories fail to load', () => {
+    categoryServiceMock.getCategories.and.returnValue(
+      throwError(() => new HttpErrorResponse({ status: 0 })),
+    );
+    expect(() => fixture.detectChanges()).not.toThrow();
+    expect(component.categories()).toEqual([]);
+    expect(fixture.nativeElement.textContent).toContain('Todas');
+  });
+
+  it('para de ouvir as categorias pendentes quando a tela é destruída', () => {
+    const categorias = new Subject<{ data: { id: number; name: string; slug: string }[] }>();
+    categoryServiceMock.getCategories.and.returnValue(categorias);
+    fixture.detectChanges();
+    expect(categorias.observed).toBeTrue();
+    expect(component.categories()).toEqual([]);
+
+    fixture.destroy();
+
+    expect(categorias.observed).toBeFalse();
+    categorias.next({ data: [{ id: 9, name: 'Tardia', slug: 'tardia' }] });
+    expect(component.categories()).toEqual([]);
+  });
+
+  it('não reage a uma falha das categorias que chega depois de sair da tela', () => {
+    const categorias = new Subject<{ data: { id: number; name: string; slug: string }[] }>();
+    categoryServiceMock.getCategories.and.returnValue(categorias);
+    fixture.detectChanges();
+    const setSpy = spyOn(component.categories, 'set').and.callThrough();
+
+    fixture.destroy();
+    categorias.error(new HttpErrorResponse({ status: 500 }));
+
+    expect(setSpy).not.toHaveBeenCalled();
+  });
+
   it('should recover from a failed HTTP request on retry', () => {
     providerMock.findProvidersByCategorySlug.and.returnValue(
       throwError(() => new Error('offline')),

@@ -9,18 +9,10 @@ import { TG_ICONS, type TgIconName, type TgIconWeight } from '@taskgo/icons';
 @Component({
   selector: 'tg-icon',
   changeDetection: ChangeDetectionStrategy.OnPush,
-  template: `<svg
-    xmlns="http://www.w3.org/2000/svg"
-    viewBox="0 0 256 256"
-    fill="currentColor"
-    [attr.width]="size()"
-    [attr.height]="size()"
-    [attr.role]="label() ? 'img' : null"
-    [attr.aria-label]="label() || null"
-    [attr.aria-hidden]="label() ? null : 'true'"
-    focusable="false"
-    [innerHTML]="markup()"
-  ></svg>`,
+  // O svg inteiro vai no innerHTML do host: o DOM do SSR não implementa
+  // innerHTML em elementos SVG, só em elementos HTML.
+  host: { '[innerHTML]': 'markup()' },
+  template: '',
   styles: `
     :host {
       display: inline-flex;
@@ -37,8 +29,32 @@ export class TgIconComponent {
 
   readonly #sanitizer = inject(DomSanitizer);
 
-  // O conteúdo vem só do registro gerado a partir do pacote Phosphor, nunca de entrada externa.
-  readonly markup = computed(() =>
-    this.#sanitizer.bypassSecurityTrustHtml(TG_ICONS[this.name()][this.weight()]),
-  );
+  // bypassSecurityTrustHtml continua seguro porque nada de fora entra cru: o desenho vem só do
+  // registro gerado a partir do pacote Phosphor, o tamanho é sempre um número positivo e o
+  // label é escapado antes de entrar no atributo.
+  readonly markup = computed(() => {
+    const size = validSize(this.size());
+    const label = this.label();
+    const a11y = label ? `role="img" aria-label="${escapeAttribute(label)}"` : 'aria-hidden="true"';
+    return this.#sanitizer.bypassSecurityTrustHtml(
+      `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 256 256" fill="currentColor" ` +
+        `width="${size}" height="${size}" ${a11y} focusable="false">` +
+        `${TG_ICONS[this.name()][this.weight()]}</svg>`,
+    );
+  });
+}
+
+const DEFAULT_SIZE = 20;
+
+/** Só números finitos e positivos viram largura e altura; o resto cai no tamanho padrão. */
+function validSize(value: unknown): number {
+  return typeof value === 'number' && Number.isFinite(value) && value > 0 ? value : DEFAULT_SIZE;
+}
+
+function escapeAttribute(value: string): string {
+  return value
+    .replace(/&/g, '&amp;')
+    .replace(/"/g, '&quot;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;');
 }
