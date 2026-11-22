@@ -104,6 +104,14 @@ export class ConfirmServicePage implements OnInit {
     if (userId === undefined || userId === null || String(userId) !== String(order.client?.id)) {
       return { title: 'Confirmação indisponível', body: NOT_CLIENT, review: false };
     }
+    const eligibility = order.confirmationEligibility;
+    if (eligibility && !eligibility.canConfirm) {
+      return {
+        title: eligibility.hasOpenDispute ? 'Este pedido está em análise' : 'Confirmação indisponível',
+        body: eligibility.reason?.trim() || 'A confirmação não está disponível para este pedido.',
+        review: false,
+      };
+    }
     switch (order.status) {
       case AWAITING_CONFIRMATION:
         return null;

@@ -29,6 +29,7 @@ import { personCircle, shieldCheckmark, star } from 'ionicons/icons';
 import { catchError, map, Observable, of, startWith, switchMap } from 'rxjs';
 
 import { AuthService } from '@app/core/auth/auth.service';
+import { CatalogService } from '@app/core/catalog/catalog.service';
 import { Availability, ProviderProfile, SavedAddress } from '@app/core/orders/orders.models';
 import { OrderSubmission, SubmissionState } from '@app/core/orders/order-submission.service';
 import { OrdersService } from '@app/core/orders/orders.service';
@@ -76,6 +77,7 @@ type Load<T> = { status: 'loading' } | { status: 'error' } | { status: 'ready'; 
 })
 export class ProviderPage {
   readonly #orders = inject(OrdersService);
+  readonly #catalog = inject(CatalogService);
   readonly #router = inject(Router);
   readonly #submission = inject(OrderSubmission);
   readonly auth = inject(AuthService);
@@ -147,6 +149,51 @@ export class ProviderPage {
     if (list.some((a) => a.id === chosen)) return chosen;
     return (list.find((a) => a.isDefault) ?? list[0])?.id ?? null;
   });
+  readonly #selectedAddress = computed(() => {
+    const state = this.addresses();
+    if (state.status !== 'ready') return null;
+    return state.value.find((address) => address.id === this.addressId()) ?? null;
+  });
+  readonly #coverageKey = computed(() => {
+    const service = this.service();
+    const address = this.#selectedAddress();
+    if (
+      !service?.category ||
+      !address ||
+      typeof address.lat !== 'number' ||
+      typeof address.lng !== 'number'
+    ) return null;
+    return {
+      providerId: String(this.id()),
+      category: service.category,
+      lat: address.lat,
+      lng: address.lng
+    };
+  });
+  readonly #coverage = privateResource(this.#coverageKey, (request) =>
+    request
+      ? this.#catalog
+          .providersByCategory(request.category, { lat: request.lat, lng: request.lng })
+          .pipe(map((providers) => providers.some((provider) => String(provider.id) === request.providerId)))
+      : of(null)
+  );
+  readonly coverage = this.#coverage.state;
+  readonly coverageMessage = computed(() => {
+    if (!this.auth.isAuthenticated() || !this.#selectedAddress() || !this.provider()) return null;
+    const state = this.coverage();
+    if (state.status === 'loading') return 'Verificando se este profissional atende no endereço escolhido…';
+    if (state.status === 'error' || state.status === 'ready' && state.value === null) {
+      return 'Não foi possível confirmar se este profissional atende neste endereço. Tente novamente.';
+    }
+    if (state.status === 'ready' && !state.value) {
+      return 'Este profissional não atende no endereço escolhido. Selecione outro endereço para continuar.';
+    }
+    return null;
+  });
+  readonly canRetryCoverage = computed(() => {
+    const state = this.coverage();
+    return state.status === 'error' || state.status === 'ready' && state.value === null;
+  });
 
   readonly submission = this.#submission.state;
   /** Liga no toque, antes de qualquer espera, para um segundo toque não passar. */
@@ -179,7 +226,8 @@ export class ProviderPage {
         !this.conflict() &&
         !!this.service() &&
         !!this.slot() &&
-        !!this.addressId())
+        !!this.addressId() &&
+        this.isCovered())
   );
 
   constructor() {
@@ -212,6 +260,15 @@ export class ProviderPage {
 
   selectAddress(id: string): void {
     this.#chosenAddress.set(id);
+  }
+
+  retryCoverage(): void {
+    this.#coverage.reload();
+  }
+
+  private isCovered(): boolean {
+    const state = this.coverage();
+    return state.status === 'ready' && state.value === true;
   }
 
   async submit(): Promise<void> {

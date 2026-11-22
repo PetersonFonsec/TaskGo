@@ -1,12 +1,12 @@
 import { Location } from '@angular/common';
-import { ChangeDetectionStrategy, Component, computed, effect, inject } from '@angular/core';
+import { ChangeDetectionStrategy, Component, computed, inject } from '@angular/core';
 import { Router, RouterLink } from '@angular/router';
 
 import { Page } from '@shared/components/ui/page/page';
 import { TgButtonComponent } from '@shared/design-system/button/tg-button.component';
+import { TgEmptyStateComponent } from '@shared/design-system/empty-state/tg-empty-state.component';
 import { normalizeNavigationRole } from '@shared/components/ui/header/navigation.constant';
 import { UrlBase } from '@shared/enums/base-url.enum';
-import { Theme } from '@shared/service/theme/theme';
 import { TokenService } from '@shared/service/token/token.service';
 import { UserLoggedService } from '@shared/service/user-logged/user-logged.service';
 import { Utils } from '@shared/service/utils/utils.service';
@@ -20,7 +20,7 @@ import { Utils } from '@shared/service/utils/utils.service';
  */
 @Component({
   selector: 'app-not-found',
-  imports: [Page, RouterLink, TgButtonComponent],
+  imports: [Page, RouterLink, TgButtonComponent, TgEmptyStateComponent],
   changeDetection: ChangeDetectionStrategy.OnPush,
   templateUrl: './not-found.html',
   styleUrl: './not-found.scss',
@@ -30,7 +30,6 @@ export class NotFound {
   readonly #location = inject(Location);
   readonly #token = inject(TokenService);
   readonly #session = inject(UserLoggedService);
-  readonly #theme = inject(Theme);
 
   /** Papel de quem está na sessão (com token), ou null para visitante. */
   readonly role = computed(() => {
@@ -44,9 +43,6 @@ export class NotFound {
     return role ? Utils.getRouteByRoleBack(role) : `/${UrlBase.AUTHENTICATE}`;
   });
 
-  constructor() {
-    effect(() => this.#theme.setTheme(this.role() ?? 'CUSTOMER'));
-  }
 
   /** Volta para a tela anterior do app; aberta direto pelo endereço, vai ao início. */
   back(): void {

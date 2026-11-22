@@ -55,6 +55,8 @@ export class Favorites {
   /** Quantos favoritos a conta tem (a API pode mandar só os mais recentes). */
   readonly total = signal(0);
   readonly loading = signal(true);
+  readonly loadingMore = signal(false);
+  readonly moreError = signal(false);
   readonly error = signal(false);
 
   /** Estado do coração por profissional: true favorito, false tirado nesta visita. */
@@ -62,6 +64,8 @@ export class Favorites {
   /** Profissionais com a troca do coração em curso. */
   readonly busy = signal<ReadonlySet<string>>(new Set());
   readonly actionError = signal('');
+  readonly #nextSkip = signal(0);
+  readonly #destroyRef = inject(DestroyRef);
 
   /**
    * Quantos favoritos a conta tem agora: o `total` da API menos os tirados
@@ -76,7 +80,9 @@ export class Favorites {
   readonly summary = computed(() => {
     const count = this.favoriteCount();
     const shown = `${count} ${count === 1 ? 'profissional salvo' : 'profissionais salvos'}`;
-    return this.total() > this.providers().length ? `${shown} · mostrando os ${this.providers().length} mais recentes` : shown;
+    return this.total() > this.providers().length
+      ? `${shown} · mostrando ${this.providers().length} de ${this.total()}`
+      : shown;
   });
 
   readonly #loads = new Subject<void>();
@@ -103,7 +109,7 @@ export class Favorites {
             switchMap(() => {
               this.loading.set(true);
               this.error.set(false);
-              return this.#provider.listFavorites(clientId).pipe(
+              return this.#provider.listFavorites(clientId, { skip: 0, take: FAVORITES_PAGE_SIZE }).pipe(
                 map((response: unknown) => ({ ok: true as const, ...parseFavorites(response) })),
                 catchError(() => of({ ok: false as const })),
               );
@@ -116,6 +122,7 @@ export class Favorites {
         if (result.ok) {
           this.providers.set(result.providers);
           this.total.set(result.total);
+          this.#nextSkip.set(result.count);
           this.favorite.set(Object.fromEntries(result.providers.map((p) => [p.id, true])));
         } else {
           this.providers.set([]);
@@ -124,12 +131,46 @@ export class Favorites {
         this.loading.set(false);
       });
 
-    inject(DestroyRef).onDestroy(() => this.#cancelRequests());
+    this.#destroyRef.onDestroy(() => this.#cancelRequests());
   }
 
   /** "Tentar de novo". */
   load(): void {
     this.#loads.next();
+  }
+
+  /** Carrega a próxima página sem descartar os cards que já estão na tela. */
+  loadMore(): void {
+    const clientId = this.#clientId();
+    const skip = this.#nextSkip();
+    if (!clientId || this.loadingMore() || skip >= this.total()) return;
+
+    this.loadingMore.set(true);
+    this.moreError.set(false);
+    this.#provider
+      .listFavorites(clientId, { skip, take: FAVORITES_PAGE_SIZE })
+      .pipe(takeUntilDestroyed(this.#destroyRef))
+      .subscribe({
+        next: (response) => {
+          if (this.#clientId() !== clientId) return;
+          const page = parseFavorites(response);
+          const known = new Set(this.providers().map((provider) => provider.id));
+          const added = page.providers.filter((provider) => !known.has(provider.id));
+          this.providers.update((current) => [...current, ...added]);
+          this.favorite.update((current) => ({
+            ...current,
+            ...Object.fromEntries(added.map((provider) => [provider.id, true])),
+          }));
+          this.total.set(page.total);
+          this.#nextSkip.update((current) => current + page.count);
+          this.loadingMore.set(false);
+        },
+        error: () => {
+          if (this.#clientId() !== clientId) return;
+          this.loadingMore.set(false);
+          this.moreError.set(true);
+        },
+      });
   }
 
   /**
@@ -190,13 +231,18 @@ export class Favorites {
     this.providers.set([]);
     this.favorite.set({});
     this.total.set(0);
+    this.#nextSkip.set(0);
     this.loading.set(true);
     this.error.set(false);
+    this.loadingMore.set(false);
+    this.moreError.set(false);
   }
 }
 
 /** A lista da API (`{ items: [{ provider }], total }`) em cards; sem id válido, o profissional fica de fora. */
-function parseFavorites(response: unknown): { providers: TgProvider[]; total: number } {
+const FAVORITES_PAGE_SIZE = 20;
+
+function parseFavorites(response: unknown): { providers: TgProvider[]; total: number; count: number } {
   const body = response && typeof response === 'object' ? (response as Record<string, unknown>) : {};
   const items = Array.isArray(body['items']) ? body['items'] : Array.isArray(response) ? response : [];
   const seen = new Set<string>();
@@ -210,7 +256,7 @@ function parseFavorites(response: unknown): { providers: TgProvider[]; total: nu
     }
   }
   const total = typeof body['total'] === 'number' && Number.isFinite(body['total']) ? Math.max(body['total'], providers.length) : providers.length;
-  return { providers, total };
+  return { providers, total, count: items.length };
 }
 
 function apiMessage(error: unknown): string | null {

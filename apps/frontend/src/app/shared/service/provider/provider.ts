@@ -1,7 +1,7 @@
 import { HttpClient, HttpParams } from '@angular/common/http';
 import { inject, Injectable } from '@angular/core';
 import { environment } from '@environments/environment';
-import { hireProviderRequest, ProviderAvailabilityResponse } from './provider.model';
+import { FavoriteListResponse, hireProviderRequest, ProviderAvailabilityResponse } from './provider.model';
 
 export interface ProviderAvailabilityQuery {
   from: string;
@@ -18,7 +18,15 @@ export class Provider {
 
   findProvidersByCategorySlug(
     categorySlug: string | undefined,
-    options?: { onlyFavorites?: boolean; lat?: number; lng?: number },
+    options?: {
+      onlyFavorites?: boolean;
+      lat?: number;
+      lng?: number;
+      minimumRating?: number;
+      maximumDistance?: number;
+      minimumPrice?: number | null;
+      maximumPrice?: number | null;
+    },
   ) {
     let params = new HttpParams();
 
@@ -28,6 +36,10 @@ export class Provider {
     if (options?.onlyFavorites) {
       params = params.set('onlyFavorites', 'true');
     }
+    if (options?.minimumRating) params = params.set('minimumRating', options.minimumRating);
+    if (options?.maximumDistance) params = params.set('maximumDistance', options.maximumDistance);
+    if (options?.minimumPrice != null) params = params.set('minimumPrice', options.minimumPrice);
+    if (options?.maximumPrice != null) params = params.set('maximumPrice', options.maximumPrice);
 
     const url = categorySlug
       ? `${this.#urlBase}/by-category/${encodeURIComponent(categorySlug)}`
@@ -36,7 +48,7 @@ export class Provider {
   }
 
   hireProvider(payload: hireProviderRequest) {
-    return this.#http.post(`${environment.url}/order`, payload);
+    return this.#http.post<{ id: string }>(`${environment.url}/order`, payload);
   }
 
   getAvailability(providerId: string, query: ProviderAvailabilityQuery) {
@@ -52,8 +64,11 @@ export class Provider {
     );
   }
 
-  listFavorites(clientId: string) {
-    return this.#http.get<any>(`${environment.url}/favorites`);
+  listFavorites(clientId: string, paging?: { skip?: number; take?: number }) {
+    let params = new HttpParams();
+    if (paging?.skip != null) params = params.set('skip', paging.skip);
+    if (paging?.take != null) params = params.set('take', paging.take);
+    return this.#http.get<FavoriteListResponse>(`${environment.url}/favorites`, { params });
   }
 
   addFavorite(clientId: string, providerId: string) {

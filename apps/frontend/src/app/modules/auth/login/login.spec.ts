@@ -36,10 +36,15 @@ describe('Login email destinations', () => {
     expect(setup('/orders/42/review')).toHaveBeenCalledWith('/orders/42/review');
   });
 
+  it('returns to a protected account route after login', () => {
+    expect(setup('/general/42/history')).toHaveBeenCalledWith('/general/42/history');
+  });
+
   for (const url of [
     'https://evil.example',
     '//evil.example',
     '/orders/42/unknown',
+    '/authenticate/login',
     '/orders/42/../admin',
     '',
   ]) {

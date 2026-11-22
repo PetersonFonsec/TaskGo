@@ -22,6 +22,7 @@ type AddressWriteData = {
   label?: string;
   street?: string;
   number?: string;
+  neighborhood?: string;
   city?: string;
   state?: string;
   cep?: string;
@@ -38,7 +39,7 @@ export class AddressService extends PaginationService<Address> {
       defaultSortBy: 'id',
       defaultOrder: 'asc',
       allowedSortFields: ['id', 'createdAt', 'updatedAt', 'label'],
-      allowedSearchFields: ['label', 'street', 'city', 'state', 'cep'],
+      allowedSearchFields: ['label', 'street', 'neighborhood', 'city', 'state', 'cep'],
     });
   }
 
@@ -125,6 +126,7 @@ export class AddressService extends PaginationService<Address> {
       'label',
       'street',
       'number',
+      'neighborhood',
       'city',
       'state',
       'cep',

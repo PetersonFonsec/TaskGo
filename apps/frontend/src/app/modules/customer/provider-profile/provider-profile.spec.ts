@@ -17,8 +17,16 @@ const PROVIDER = {
   ratingAvg: '4.8',
   ratingCount: 3,
   verified: true,
+  acceptPix: true,
+  acceptsCard: true,
+  emergencyCare: true,
+  isAvailable24h: false,
+  serviceAreas: [{ mode: 'RADIUS', radiusKm: '10' }],
   createdAt: '2025-11-10T15:00:00.000Z',
-  user: { id: '12', name: 'Bruno Lima Souza', photoUrl: null },
+  user: {
+    id: '12', name: 'Bruno Lima Souza', photoUrl: null,
+    email: 'bruno@example.com', phone: '+5511999999999',
+  },
   services: [
     { id: '2', providerId: '12', title: 'Troca de tomada', description: null, category: 'eletrica', basePrice: '89.9', status: 'ATIVO' },
     { id: '1', providerId: '12', title: 'Instalação de chuveiro', description: 'Com teste de carga.', category: 'eletrica', basePrice: '120', status: 'ATIVO' },
@@ -140,18 +148,27 @@ describe('ProviderProfile (Perfil do profissional)', () => {
       expect(el.querySelector('.profile__photo')?.textContent?.trim()).toBe('A');
     });
 
-    it('contato só quando a API manda: hoje não manda, e a parte some', () => {
+    it('nunca exibe telefone ou e-mail mesmo que venham na resposta', () => {
       respond({ ...PROVIDER, user: { ...PROVIDER.user, phone: '(11) 99999-0000', email: 'bruno@email.com' } });
 
-      expect(el.querySelector('a[href="tel:11999990000"]')?.textContent).toContain('(11) 99999-0000');
-      expect(el.querySelector('a[href="mailto:bruno@email.com"]')).toBeTruthy();
-      expect(text()).not.toContain('Região de atendimento');
+      expect(el.querySelector('a[href^="tel:"]')).toBeNull();
+      expect(el.querySelector('a[href^="mailto:"]')).toBeNull();
+      expect(text()).not.toContain('(11) 99999-0000');
+      expect(text()).not.toContain('bruno@email.com');
     });
 
     it('sem contato na resposta, nada de "Não informado"', () => {
       respond(PROVIDER);
 
       expect(el.querySelector('.profile__contact')).toBeNull();
+      expect(text()).toContain('Atende em um raio de até 10 km da base cadastrada.');
+      expect(text()).toContain('Pix');
+      expect(text()).toContain('Cartão');
+      expect(text()).toContain('Emergência');
+      expect(text()).not.toContain('Telefone');
+      expect(text()).not.toContain('E-mail');
+      expect(text()).not.toContain('bruno@example.com');
+      expect(text()).not.toContain('+5511999999999');
       expect(text()).not.toContain('Não informado');
     });
 

@@ -1,7 +1,9 @@
 import { signal } from '@angular/core';
 import { TestBed } from '@angular/core/testing';
 import { provideRouter } from '@angular/router';
+import { of } from 'rxjs';
 import { UserLoggedService } from '@shared/service/user-logged/user-logged.service';
+import { Notification as NotificationApi } from '@shared/components/functional/notification/notification.service';
 import { Header } from './header';
 import { resolveShellNavigation } from './navigation.constant';
 
@@ -14,7 +16,11 @@ describe('Header (shell logado)', () => {
     user.set({ user: { id: '42', type: 'CLIENTE', name: 'Ana Souza', photoUrl: '' } });
     await TestBed.configureTestingModule({
       imports: [Header],
-      providers: [provideRouter([]), { provide: UserLoggedService, useValue: { user, logout } }],
+      providers: [
+        provideRouter([]),
+        { provide: UserLoggedService, useValue: { user, logout } },
+        { provide: NotificationApi, useValue: { list: () => of({ items: [], total: 0, unreadCount: 0 }), markAllRead: () => of({ updatedCount: 0, unreadCount: 0 }), markRead: () => of({ updated: true, notificationId: '1' }) } },
+      ],
     }).compileComponents();
   });
 
@@ -69,14 +75,13 @@ describe('Header (shell logado)', () => {
     expect(logout).toHaveBeenCalledTimes(1);
   });
 
-  it('não mostra o botão de notificações, que ainda não tem funcionalidade', () => {
+  it('mostra o botão de notificações com um nome acessível', () => {
     const el = render();
-    expect(el.querySelector('app-notification')).toBeNull();
-    expect(el.textContent).not.toContain('Notificações');
+    expect(el.querySelector('app-notification')).not.toBeNull();
     const names = Array.from(el.querySelectorAll('button, a')).map(
       (control) => control.getAttribute('aria-label') ?? control.textContent?.trim() ?? '',
     );
-    expect(names.some((name) => /notifica/i.test(name))).toBeFalse();
+    expect(names.some((name) => /notifica/i.test(name))).toBeTrue();
   });
 
   it('sem sessão mostra só a marca', () => {

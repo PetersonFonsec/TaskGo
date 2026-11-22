@@ -36,6 +36,8 @@ export const CUSTOMER_HOME_HISTORY_LIMIT = 3;
  */
 export interface CustomerHomeOrderSource extends TgAppointmentSource {
   requestedAt?: unknown;
+  /** Último evento de cancelamento ou expiração informado pela API. */
+  canceledAt?: unknown;
   /** O cliente confirmou a conclusão. */
   clientConfirmedAt?: unknown;
   /** O prestador finalizou o serviço. */
@@ -93,9 +95,8 @@ export function customerHomeAgenda(orders: readonly CustomerHomeOrderSource[]): 
 /**
  * Quando o pedido foi encerrado, só com datas reais da API:
  * - concluído: a confirmação do cliente ou, sem ela, a finalização do prestador;
- * - cancelado ou recusado: o cancelamento ou o reembolso do pagamento.
- *   O pedido não guarda a data do cancelamento (só a linha do tempo, que a
- *   listagem não traz); sem pagamento cancelado, não há data de encerramento.
+ * - cancelado ou recusado: o último evento de cancelamento/expiração,
+ *   seguido pelas datas de cancelamento/reembolso do pagamento.
  * Sem data de encerramento válida, vale a data do pedido (`requestedAt`,
  * sempre preenchida pelo backend), que é anterior ao encerramento. Sem
  * nenhuma data válida, o pedido vai para o fim.
@@ -104,7 +105,7 @@ function closedAt(order: CustomerHomeOrderSource): number | null {
   const closing =
     order.status === 'CONCLUIDO'
       ? (timeOf(order.clientConfirmedAt) ?? timeOf(order.providerFinishedAt))
-      : (timeOf(order.payment?.canceledAt) ?? timeOf(order.payment?.refundedAt));
+      : (timeOf(order.canceledAt) ?? timeOf(order.payment?.canceledAt) ?? timeOf(order.payment?.refundedAt));
   return closing ?? timeOf(order.requestedAt);
 }
 

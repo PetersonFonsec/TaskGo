@@ -131,6 +131,11 @@ export class GetOrderDetailsHandler
     if (!order)
       throw new NotFoundException(`Pedido ${id.toString()} não encontrado`);
 
+    const openDispute = await this.prisma.orderDispute.findFirst({
+      where: { orderId: id, status: { in: ['OPEN', 'UNDER_REVIEW'] } },
+      select: { id: true },
+    });
+
     const provider = order.service.provider;
     const estimatedAmount = Number(
       order.estimatedPrice ?? order.service.basePrice,
@@ -210,6 +215,36 @@ export class GetOrderDetailsHandler
               order.finalPrice === null ? null : Number(order.finalPrice),
           }
         : null,
+      confirmationEligibility: {
+        hasOpenDispute: Boolean(openDispute),
+        canConfirm:
+          order.status === OrderStatus.AGUARDANDO_CONFIRMACAO_CLIENTE &&
+          order.providerFinishedAt !== null &&
+          order.finalPrice !== null &&
+          order.payment?.method === 'PIX' &&
+          ['PAGO', 'CAPTURED', 'RELEASED'].includes(order.payment.status) &&
+          !openDispute &&
+          Math.round(Number(order.finalPrice) * 100) ===
+            Math.round(Number(order.payment.amount) * 100),
+        reason: openDispute
+          ? 'Há um problema em análise para este pedido.'
+          : order.status !== OrderStatus.AGUARDANDO_CONFIRMACAO_CLIENTE
+            ? 'Este pedido ainda não está aguardando confirmação.'
+            : !order.providerFinishedAt
+              ? 'O prestador ainda não informou a conclusão do serviço.'
+              : !order.payment
+                ? 'O pagamento deste pedido não foi encontrado.'
+                : order.payment.method !== 'PIX'
+                  ? 'A confirmação está disponível apenas para pagamentos via Pix neste MVP.'
+                  : !['PAGO', 'CAPTURED', 'RELEASED'].includes(order.payment.status)
+                    ? 'O pagamento ainda não foi confirmado.'
+                    : order.finalPrice === null
+                      ? 'O pedido não possui um valor final.'
+                      : Math.round(Number(order.finalPrice) * 100) !==
+                          Math.round(Number(order.payment.amount) * 100)
+                        ? 'O valor final diverge do valor pago.'
+                        : null,
+      },
       review: order.review
         ? { ...order.review, id: order.review.id.toString() }
         : null,

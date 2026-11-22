@@ -20,6 +20,8 @@ import { Card } from '@shared/components/forms/card/card';
 import { Badge } from '@shared/components/ui/badge/badge';
 import { environment } from '@environments/environment';
 import { User } from '@shared/service/users/user';
+import type { ProviderProfileResponse } from '@shared/service/users/user.model';
+import type { FavoriteItem } from '@shared/service/provider/provider.model';
 import {
   hireProviderRequest,
   ProviderAvailabilityDay,
@@ -57,11 +59,11 @@ export class SingleUser implements OnInit {
   #user = inject(User);
 
   private readonly http = inject(HttpClient);
-  addresses = signal<any[]>([]);
+  addresses = signal<Array<{ id: string; label?: string; street: string; number?: string; isDefault?: boolean }>>([]);
   selectedAddressId = signal('');
   selectedServiceId = signal('');
   submitting = signal(false);
-  provider = signal<any>({});
+  provider = signal<ProviderProfileResponse | null>(null);
   showModal = signal(false);
   error = signal('');
   favoritesEnabled = environment.features?.favoritesMvp ?? false;
@@ -99,7 +101,7 @@ export class SingleUser implements OnInit {
   );
   selectedService = computed(
     () =>
-      this.provider()?.services?.find((s: any) => String(s.id) === this.selectedServiceId()) ??
+      this.provider()?.services?.find((service) => service.id === this.selectedServiceId()) ??
       this.provider()?.services?.[0] ??
       null,
   );
@@ -120,7 +122,11 @@ export class SingleUser implements OnInit {
   socialLinks = SOCIAL_LINKS;
 
   ngOnInit(): void {
-    this.http.get<{ data: any[] }>(environment.url + '/user/me/addresses?limit=100').subscribe({
+    this.http
+      .get<{ data: Array<{ id: string; label?: string; street: string; number?: string; isDefault?: boolean }> }>(
+        environment.url + '/user/me/addresses?limit=100',
+      )
+      .subscribe({
       next: ({ data }) => {
         this.addresses.set(data);
         this.selectedAddressId.set(String(data.find((a) => a.isDefault)?.id ?? data[0]?.id ?? ''));
@@ -130,7 +136,7 @@ export class SingleUser implements OnInit {
     this.#activatedRoute.params
       .pipe(switchMap(({ userId }) => this.#user.getProvider(userId)))
       .subscribe({
-        next: (provider: any) => {
+        next: (provider) => {
           this.provider.set(provider);
           this.loadAvailability(provider);
           if (this.favoritesEnabled) {
@@ -165,7 +171,7 @@ export class SingleUser implements OnInit {
       return;
     }
 
-    const clientId = this.#userLogged.user().user?.id;
+    const clientId = this.#userLogged.user()?.user?.id;
     const providerId = this.provider()?.id;
 
     if (!clientId || !providerId) {
@@ -202,18 +208,16 @@ export class SingleUser implements OnInit {
     });
   }
 
-  private loadFavoriteState(providerId: any) {
-    const clientId = this.#userLogged.user().user?.id;
+  private loadFavoriteState(providerId: string) {
+    const clientId = this.#userLogged.user()?.user?.id;
     if (!clientId || !providerId) {
       return;
     }
 
     this.#provider.listFavorites(String(clientId)).subscribe({
-      next: (response: any) => {
-        const items = response?.items ?? response ?? [];
-        const favoriteIds = (items as any[]).map((item) =>
-          String(item.providerId ?? item.id ?? ''),
-        );
+      next: (response) => {
+        const items: FavoriteItem[] = response.items ?? [];
+        const favoriteIds = items.map((item) => String(item.providerId || item.id || ''));
         this.favoriteState.set(favoriteIds.includes(String(providerId)));
       },
     });
@@ -253,7 +257,7 @@ export class SingleUser implements OnInit {
       .hireProvider(payload)
       .pipe(finalize(() => this.submitting.set(false)))
       .subscribe({
-        next: (response: any) => {
+        next: (response) => {
           void this.#router.navigate(['/orders', response.id]);
           this.#liveAnnouncer.announce('Agendamento solicitado com sucesso');
           this.showModal.set(true);
@@ -292,8 +296,11 @@ export class SingleUser implements OnInit {
     }).format(parsedDate);
   }
 
-  formatPrice(value: number) {
-    return new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(value);
+  formatPrice(value: number | string | null) {
+    const amount = Number(value);
+    return new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(
+      Number.isFinite(amount) ? amount : 0,
+    );
   }
 
   dayHasAvailableSlots(day: ProviderAvailabilityDay) {
@@ -301,7 +308,7 @@ export class SingleUser implements OnInit {
   }
 
   goToHome() {
-    this.#router.navigateByUrl(Utils.getRouteByRole(this.#userLogged.user().user?.type));
+    this.#router.navigateByUrl(Utils.getRouteByRole(this.#userLogged.user()?.user?.type));
   }
 
   openFullProfile() {
@@ -317,7 +324,7 @@ export class SingleUser implements OnInit {
     this.loadAvailability(this.provider());
   }
 
-  private loadAvailability(provider: any) {
+  private loadAvailability(provider: ProviderProfileResponse | null) {
     const providerId = provider?.id;
     const serviceId = this.selectedService()?.id;
 

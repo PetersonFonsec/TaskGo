@@ -6,6 +6,11 @@
 .notification {
   position: relative;
   display: inline-flex;
+}
+
+.notification__trigger {
+  position: relative;
+  display: inline-flex;
   align-items: center;
   justify-content: center;
   width: 44px;
@@ -45,4 +50,101 @@
   line-height: 14px;
   font-weight: var(--tg-font-weight-bold);
   text-align: center;
+}
+
+.notification__panel {
+  position: absolute;
+  z-index: 1000;
+  top: calc(100% + 8px);
+  right: 0;
+  width: min(360px, calc(100vw - 24px));
+  max-height: min(520px, calc(100vh - 100px));
+  overflow: auto;
+  border: 1px solid var(--tg-border-default);
+  border-radius: var(--tg-radius-md);
+  background: var(--tg-bg-surface);
+  color: var(--tg-text-primary);
+  box-shadow: 0 8px 24px rgb(0 0 0 / 16%);
+}
+
+.notification__panel-header {
+  position: sticky;
+  top: 0;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 14px 16px;
+  border-bottom: 1px solid var(--tg-border-default);
+  background: var(--tg-bg-surface);
+
+  h2 {
+    margin: 0;
+    font-size: 16px;
+    font-weight: var(--tg-font-weight-bold);
+  }
+}
+
+.notification__close {
+  border: 0;
+  border-radius: var(--tg-radius-sm);
+  padding: 4px 8px;
+  background: transparent;
+  color: var(--tg-text-secondary);
+  font-size: 24px;
+  cursor: pointer;
+}
+
+.notification__list {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.notification__item {
+  display: grid;
+  width: 100%;
+  gap: 4px;
+  padding: 12px 16px;
+  border: 0;
+  border-bottom: 1px solid var(--tg-border-default);
+  background: transparent;
+  color: inherit;
+  text-align: left;
+  cursor: pointer;
+
+  &:hover,
+  &:focus-visible {
+    background: var(--tg-action-subtle);
+  }
+
+  &:focus-visible {
+    outline: 2px solid var(--tg-focus-ring);
+    outline-offset: -2px;
+  }
+
+  time {
+    color: var(--tg-text-secondary);
+    font-size: 12px;
+  }
+}
+
+.notification__item--unread {
+  background: var(--tg-bg-subtle);
+}
+
+.notification__item-title {
+  font-weight: var(--tg-font-weight-bold);
+}
+
+.notification__item-body,
+.notification__message {
+  color: var(--tg-text-secondary);
+  font-size: 14px;
+  line-height: 1.4;
+}
+
+.notification__message {
+  margin: 0;
+  padding: 18px 16px;
 }

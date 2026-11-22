@@ -13,7 +13,7 @@ import {
 import type { TgIconName } from '@taskgo/icons';
 import { TgIconComponent } from '../icon/tg-icon.component';
 
-export type TgEmptyStateLevel = 2 | 3 | 4 | 5 | 6;
+export type TgEmptyStateLevel = 1 | 2 | 3 | 4 | 5 | 6;
 
 /**
  * Estado vazio do Design System TaskGo (Etapa 7): quando não há nada para
@@ -46,11 +46,14 @@ export type TgEmptyStateLevel = 2 | 3 | 4 | 5 | 6;
   // query (um elemento não consulta o próprio tamanho).
   template: `
     <div class="tg-empty-state__box">
-    @if (icon(); as name) {
+    @if (illustrationSrc(); as src) {
+      <img class="tg-empty-state__illustration" [src]="src" [alt]="illustrationAlt()" />
+    } @else if (icon(); as name) {
       <span class="tg-empty-state__icon"><tg-icon [name]="name" [size]="compact() ? 22 : 32" /></span>
     }
     <div class="tg-empty-state__body">
       @switch (headingLevel()) {
+        @case (1) { <h1 class="tg-empty-state__title tg-empty-state__title--level-1">{{ title() }}</h1> }
         @case (3) { <h3 class="tg-empty-state__title">{{ title() }}</h3> }
         @case (4) { <h4 class="tg-empty-state__title">{{ title() }}</h4> }
         @case (5) { <h5 class="tg-empty-state__title">{{ title() }}</h5> }
@@ -59,7 +62,7 @@ export type TgEmptyStateLevel = 2 | 3 | 4 | 5 | 6;
       }
       <div #text class="tg-empty-state__text"><ng-content /></div>
     </div>
-    <div #action class="tg-empty-state__action"><ng-content select="[tgEmptyAction]" /></div>
+    <div #action class="tg-empty-state__action"><ng-content select="[tgEmptyAction], [tgEmptySecondaryAction]" /></div>
     </div>
   `,
   styleUrl: './tg-empty-state.component.scss',
@@ -69,6 +72,9 @@ export class TgEmptyStateComponent {
   readonly title = input.required<string>();
   /** Ícone decorativo, do conjunto do Design System. */
   readonly icon = input<TgIconName | undefined>(undefined);
+  /** Ilustração opcional, exibida no lugar do ícone. */
+  readonly illustrationSrc = input<string | undefined>(undefined);
+  readonly illustrationAlt = input('');
   /** Em linha, para uma seção dentro de uma tela maior. */
   readonly compact = input(false, { transform: booleanAttribute });
   /** Nível do heading do título, para encaixar na estrutura da tela. */
@@ -76,7 +82,7 @@ export class TgEmptyStateComponent {
 
   protected readonly headingLevel = computed(() => {
     const level = Number(this.level());
-    return Number.isInteger(level) && level >= 2 && level <= 6 ? level : 2;
+    return Number.isInteger(level) && level >= 1 && level <= 6 ? level : 2;
   });
 
   private readonly text = viewChild.required<ElementRef<HTMLElement>>('text');
@@ -87,18 +93,18 @@ export class TgEmptyStateComponent {
     // Depois de cada renderização: o CSS não vê texto, então `:empty` falha
     // com espaços ou com os marcadores de um @if. Aqui se marca o slot vazio
     // de verdade (sem texto nem elemento) e, em desenvolvimento, se avisa
-    // quando há mais de uma ação. Não roda no servidor; lá vale o `:empty`.
+    // quando há mais de duas ações. Não roda no servidor; lá vale o `:empty`.
     afterEveryRender(() => {
       const text = this.text().nativeElement;
       const action = this.action().nativeElement;
       text.classList.toggle('tg-empty-state__text--empty', isBlank(text));
       action.classList.toggle('tg-empty-state__action--empty', action.children.length === 0);
       if (!isDevMode()) return;
-      const many = action.children.length > 1;
+      const many = action.children.length > 2;
       if (many && !this.#warnedActions) {
         console.warn(
-          `tg-empty-state "${this.title()}": use no máximo uma ação (${action.children.length} elementos com tgEmptyAction). ` +
-            'Todas continuam na tela; deixe só o próximo passo.',
+          `tg-empty-state "${this.title()}": use no máximo duas ações (${action.children.length} elementos de ação). ` +
+            'Todas continuam na tela; mantenha uma ação principal e uma secundária.',
         );
       }
       this.#warnedActions = many;

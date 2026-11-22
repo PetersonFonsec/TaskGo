@@ -25,14 +25,15 @@ export interface AccountLink {
   readonly description: string;
   readonly icon: TgIconName;
   readonly link: string | readonly string[];
+  readonly href?: string;
 }
 
 export type AccountMode = 'customer' | 'provider';
 
 /**
  * Links da Conta. Só rotas que existem hoje: os dados da conta (os mesmos do
- * menu da conta da barra do topo), os pedidos e, para o prestador, a prévia
- * do perfil público. A ajuda institucional fica no rodapé do shell.
+ * menu da conta da barra do topo), os pedidos, ajuda e, para o prestador, a
+ * prévia do perfil público.
  */
 export function accountLinks(userId: string, mode: AccountMode): readonly AccountLink[] {
   const links: AccountLink[] = [
@@ -43,6 +44,13 @@ export function accountLinks(userId: string, mode: AccountMode): readonly Accoun
       description: mode === 'provider' ? 'Solicitações, agenda e histórico.' : 'Acompanhe seus serviços.',
       icon: 'receipt',
       link: ['/general', userId, 'history'],
+    },
+    {
+      label: 'Ajuda',
+      description: 'Fale com a equipe de suporte.',
+      icon: 'question',
+      link: '#',
+      href: 'mailto:suporte@proxi.com.br',
     },
   ];
   if (mode === 'provider') {

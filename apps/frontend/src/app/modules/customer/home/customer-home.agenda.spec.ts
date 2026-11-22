@@ -184,13 +184,14 @@ describe('customerHomeAgenda', () => {
       expect(ids(agenda.history)).toEqual(['cancelado', 'concluido', 'reembolso']);
     });
 
-    it('recusado sem pagamento cancelado usa a data do pedido', () => {
+    it('usa canceledAt da linha do tempo antes da data do pedido', () => {
       const agenda = customerHomeAgenda([
+        o('cancelado', 'CANCELADO', { requestedAt: day(5), canceledAt: day(25) }),
         o('r', 'REJEITADO', { scheduledFor: day(28), requestedAt: day(5) }),
         o('c', 'CONCLUIDO', { clientConfirmedAt: day(9) }),
       ]);
       // A data marcada (28) não é encerramento: não coloca o recusado no topo.
-      expect(ids(agenda.history)).toEqual(['c', 'r']);
+      expect(ids(agenda.history)).toEqual(['cancelado', 'c', 'r']);
     });
 
     it('sem nenhuma data, ou com data inválida, vai para o fim', () => {

@@ -23,6 +23,7 @@ import {
 } from '@shared/components/ui/proxi-map/proxi-map.component';
 import { Geolocalization } from '@shared/service/geolocalization/geolocalization';
 import { Provider } from '@shared/service/provider/provider';
+import type { FavoriteItem } from '@shared/service/provider/provider.model';
 import { UserLoggedService } from '@shared/service/user-logged/user-logged.service';
 import { environment } from '@environments/environment';
 import {
@@ -55,7 +56,7 @@ import {
 import { TgSkeletonComponent } from '@shared/design-system/skeleton/tg-skeleton.component';
 import { TgTabComponent, TgTabsComponent } from '@shared/design-system/tabs/tg-tabs.component';
 
-/** Filtros que valem só ao tocar "Ver N profissionais" (a categoria fica fora: busca na hora). */
+/** Filtros que valem só ao aplicar no painel (a categoria fica fora: busca na hora). */
 export interface SearchFilters {
   minimumRating: number;
   maximumDistance: number;
@@ -75,8 +76,8 @@ const RATING = new Intl.NumberFormat('pt-BR', { maximumFractionDigits: 1 });
 /**
  * Busca de profissionais (Etapa 10), só para o cliente. Chips de categoria
  * buscam na hora; nota, distância, preço e favoritos ficam num `tg-sheet` e só
- * valem ao tocar "Ver N profissionais". A lista vem dos mais próximos para os
- * mais distantes. Na tela grande, lista e mapa lado a lado; no celular, abas.
+ * valem ao tocar "Ver profissionais". A API filtra e ordena os resultados.
+ * Na tela grande, lista e mapa lado a lado; no celular, abas.
  */
 @Component({
   selector: 'app-search',
@@ -180,21 +181,15 @@ export class Search implements OnInit {
     onlyFavorites: this.onlyFavorites(),
   }));
 
-  /** Prestadores que passam nos filtros aplicados, dos mais próximos para os mais distantes. */
-  providers = computed(() => this.byDistance(this.allProviders().filter((p) => this.matches(p, this.filters()))));
-
-  /** Quantos passariam com o rascunho do painel ("Ver N profissionais"). */
-  readonly draftCount = computed(() => this.allProviders().filter((p) => this.matches(p, this.draft())).length);
+  /** A API já retorna os prestadores filtrados e ordenados por distância. */
+  providers = computed(() => this.allProviders());
   readonly draftPriceError = computed(() => {
     const { minimumPrice, maximumPrice } = this.draft();
     return minimumPrice != null && maximumPrice != null && maximumPrice < minimumPrice
       ? 'O máximo precisa ser maior que o mínimo.'
       : '';
   });
-  readonly applyLabel = computed(() => {
-    const count = this.draftCount();
-    return count === 1 ? 'Ver 1 profissional' : `Ver ${count} profissionais`;
-  });
+  readonly applyLabel = computed(() => 'Ver profissionais');
   /** Filtros do painel em uso (para o "Filtros · N"). */
   readonly activeFilters = computed(() => {
     const f = this.filters();
@@ -238,6 +233,8 @@ export class Search implements OnInit {
   ngOnInit(): void {
     this.resolveUserLocation();
     this.loadCategories();
+    const clientId = this.#userLoggedService.user()?.user?.id;
+    if (this.favoritesEnabled && clientId) this.loadFavorites(String(clientId));
 
     combineLatest([this.#route.queryParams, this.retrySearch.pipe(startWith(undefined))])
       .pipe(
@@ -260,7 +257,7 @@ export class Search implements OnInit {
             this.minimumPrice.set(this.queryOptionalNumber(minimumPrice));
             this.maximumPrice.set(this.queryOptionalNumber(maximumPrice));
 
-            const clientId = this.#userLoggedService.user().user?.id;
+            const clientId = this.#userLoggedService.user()?.user?.id;
             const persistedOnlyFavorites = clientId
               ? this.restoreOnlyFavoritesPreference(String(clientId))
               : false;
@@ -283,6 +280,10 @@ export class Search implements OnInit {
               ...this.searchOrigin(),
               onlyFavorites:
                 onlyFavorites === 'true' || (onlyFavorites === undefined && this.onlyFavorites()),
+              minimumRating: this.minimumRating(),
+              maximumDistance: this.maximumDistance(),
+              minimumPrice: this.minimumPrice(),
+              maximumPrice: this.maximumPrice(),
             })
             .pipe(
               catchError(() => {
@@ -297,11 +298,6 @@ export class Search implements OnInit {
         next: (params: any) => {
           this.searching.set(false);
           this.allProviders.set(params);
-
-          const clientId = this.#userLoggedService.user().user?.id;
-          if (this.favoritesEnabled && clientId) {
-            this.loadFavorites(String(clientId));
-          }
         },
       });
   }
@@ -346,7 +342,7 @@ export class Search implements OnInit {
     return value ? `Até ${value} km` : 'Sem limite';
   }
 
-  /** "Ver N profissionais": aplica o rascunho na URL (e guarda a preferência de favoritos). */
+  /** Aplica o rascunho na URL e guarda a preferência de favoritos. */
   applyFilters() {
     if (this.draftPriceError()) return;
     const draft = this.draft();
@@ -403,36 +399,6 @@ export class Search implements OnInit {
   private toCard(provider: unknown): TgProvider | null {
     const card = toTgProvider(provider, { category: this.category() || null });
     return card ? { ...card, distanceKm: this.providerDistance(provider) } : null;
-  }
-
-  private matches(provider: unknown, filters: SearchFilters): boolean {
-    const rating = this.providerRating(provider);
-    const price = this.providerPrice(provider);
-    const priceFilter = filters.minimumPrice != null || filters.maximumPrice != null;
-    const distance = this.providerDistance(provider);
-    const record = (provider ?? {}) as { id?: unknown; providerId?: unknown };
-    return (
-      rating >= filters.minimumRating &&
-      (!filters.maximumDistance || (distance != null && distance <= filters.maximumDistance)) &&
-      // Com filtro de preço, quem não tem preço válido fica de fora (não vira R$ 0).
-      (!priceFilter || price != null) &&
-      (filters.minimumPrice == null || (price != null && price >= filters.minimumPrice)) &&
-      (filters.maximumPrice == null || (price != null && price <= filters.maximumPrice)) &&
-      (!filters.onlyFavorites || this.isFavorite(record.id ?? record.providerId))
-    );
-  }
-
-  /** Mais próximos primeiro; quem não tem distância vai para o fim, na ordem da API. */
-  private byDistance<T>(providers: T[]): T[] {
-    return providers
-      .map((provider, index) => ({ provider, index, distance: this.providerDistance(provider) }))
-      .sort((a, b) => {
-        if (a.distance == null || b.distance == null) {
-          return a.distance == null && b.distance == null ? a.index - b.index : a.distance == null ? 1 : -1;
-        }
-        return a.distance - b.distance || a.index - b.index;
-      })
-      .map(({ provider }) => provider);
   }
 
   viewProviderProfile(providerId: ProxiMapProvider['id']) {
@@ -706,7 +672,7 @@ export class Search implements OnInit {
       return;
     }
 
-    const clientId = this.#userLoggedService.user().user?.id;
+    const clientId = this.#userLoggedService.user()?.user?.id;
     if (!clientId || !providerId) {
       this.favoriteError.update((state) => ({
         ...state,
@@ -762,35 +728,46 @@ export class Search implements OnInit {
 
   private loadFavorites(clientId: string) {
     const seq = ++this.#favoritesSeq;
-    this.#provider.listFavorites(clientId).pipe(takeUntilDestroyed(this.#destroyRef)).subscribe({
-      next: (response: any) => {
-        // Lista de outro usuário, ou mais velha que uma já aplicada: não vale.
-        if (!this.#sameClient(clientId) || seq < this.#favoritesAppliedSeq) return;
-        this.#favoritesAppliedSeq = seq;
-        const items = response?.items ?? response ?? [];
-        const favoritesMap = (items as any[]).reduce(
-          (acc, item) => {
-            const id = String(item.providerId ?? item.id ?? '');
-            if (id) {
-              acc[id] = true;
+    const allFavorites: FavoriteItem[] = [];
+    const loadPage = (skip: number): void => {
+      this.#provider
+        .listFavorites(clientId, { skip, take: FAVORITES_PAGE_SIZE })
+        .pipe(takeUntilDestroyed(this.#destroyRef))
+        .subscribe({
+          next: (response) => {
+            if (!this.#sameClient(clientId) || seq < this.#favoritesAppliedSeq) return;
+            allFavorites.push(...response.items);
+            if (response.items.length && skip + response.items.length < response.total) {
+              loadPage(skip + response.items.length);
+              return;
             }
-            return acc;
-          },
-          {} as Record<string, boolean>,
-        );
 
-        // Trocas concluídas depois do pedido desta lista ganham da lista.
-        for (const [id, editSeq] of this.#favoriteEdits) {
-          if (editSeq > seq) favoritesMap[id] = !!this.favorites()[id];
-        }
-        this.favorites.set(favoritesMap);
-      },
-      // Sem a lista, a busca segue com os corações como estão; a próxima busca tenta de novo.
-      error: () => undefined,
-    });
+            this.#favoritesAppliedSeq = seq;
+            const favoritesMap = allFavorites.reduce(
+              (acc, item) => {
+                const id = String(item.providerId ?? item.id ?? '');
+                if (id) acc[id] = true;
+                return acc;
+              },
+              {} as Record<string, boolean>,
+            );
+
+            // Trocas concluídas depois do pedido da primeira página ganham da lista.
+            for (const [id, editSeq] of this.#favoriteEdits) {
+              if (editSeq > seq) favoritesMap[id] = !!this.favorites()[id];
+            }
+            this.favorites.set(favoritesMap);
+          },
+          // Sem a lista completa, a busca segue com os corações atuais nesta visita.
+          error: () => undefined,
+        });
+    };
+    loadPage(0);
   }
 
   #sameClient(clientId: string | number) {
     return String(this.#userLoggedService.user()?.user?.id ?? '') === String(clientId);
   }
 }
+
+const FAVORITES_PAGE_SIZE = 100;

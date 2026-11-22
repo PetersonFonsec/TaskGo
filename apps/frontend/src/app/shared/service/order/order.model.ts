@@ -107,6 +107,8 @@ export interface OrderModel {
 	providerFinishedAt?: string | null;
 	/** Quando o cliente confirmou a conclusão. */
 	clientConfirmedAt?: string | null;
+	/** Timestamp of the latest CANCELED/EXPIRED timeline event when the order was closed. */
+	canceledAt?: string | null;
 	requestedAt?: any;
 	scheduledFor?: any | null;
 	client?: UserModel | null;
@@ -119,6 +121,27 @@ export interface OrderModel {
 }
 
 export type OrdersResponse = OrderModel[];
+
+/** Resumo mínimo usado antes de abrir a tela de pedido. */
+export interface OrderSummaryResponse {
+  id: string;
+  status: string;
+  finalPrice: DecimalLike | number | null;
+  client: Pick<UserModel, 'id' | 'name' | 'photoUrl'> | null;
+  service: Pick<ServiceModel, 'id' | 'title' | 'category' | 'basePrice'> | null;
+}
+
+/** Atualização retornada ao prestador ao aceitar ou recusar uma solicitação. */
+export interface ProviderOrderMutationResponse {
+  id: string;
+  status: string;
+  providerId: string;
+  serviceId: string;
+  clientId: string;
+  requestedAt?: string;
+  scheduledFor?: string | null;
+  finalPrice?: DecimalLike | number | null;
+}
 
 export type OrderUserRole = 'CLIENTE' | 'PRESTADOR';
 
@@ -203,6 +226,8 @@ export interface CancelOrderPayload {
 export interface OrderDetails {
   id: string;
   status: string;
+  /** Whether completion can be confirmed, and the first reason when blocked. */
+  confirmationEligibility?: { hasOpenDispute: boolean; canConfirm: boolean; reason: string | null } | null;
   /** Prazo para aprovação/pagamento antes da expiração automática; null fora desses estados. */
   expiresAt: string | null;
   service: { id: string; title: string; category: string; estimatedPrice: number };
@@ -271,5 +296,3 @@ export interface CreateReviewResponse {
     ratingCount: number;
   };
 }
-
-export interface RatingOption { value: 1 | 2 | 3 | 4 | 5; label: string }

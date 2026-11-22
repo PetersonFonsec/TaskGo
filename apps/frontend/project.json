@@ -26,6 +26,13 @@
         "command": "npm run test"
       }
     },
+    "lint": {
+      "executor": "nx:run-commands",
+      "options": {
+        "cwd": "apps/frontend",
+        "command": "npm run lint"
+      }
+    },
     "e2e": {
       "executor": "nx:run-commands",
       "outputs": ["{projectRoot}/cypress/results"],

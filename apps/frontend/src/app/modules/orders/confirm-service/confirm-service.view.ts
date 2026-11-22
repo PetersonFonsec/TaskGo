@@ -47,9 +47,6 @@ export interface ConfirmServiceView {
   prices: ConfirmServiceRow[];
   /** Valor final que a confirmação libera. */
   finalPrice: string;
-  /** O valor final difere do estimado. */
-  adjusted: boolean;
-  adjustmentReason: string | null;
   /** Forma e situação do pagamento. */
   payment: ConfirmServiceRow[];
   photos: { id: string; url: string; label: string }[];
@@ -60,18 +57,15 @@ export function confirmServiceView(order: OrderDetails): ConfirmServiceView {
   const status = tgOrderStatus(order.status, 'customer');
   const category = order.service?.category?.trim();
   const estimated = money(order.payment?.estimatedAmount) ?? money(order.service?.estimatedPrice);
-  const final = money(order.payment?.finalAmount) ?? estimated;
-  const difference = estimated !== null && final !== null ? Math.round(final * 100) - Math.round(estimated * 100) : 0;
-  const adjusted = difference !== 0;
+  // O preço combinado permanece fixo durante o atendimento; `finalAmount`
+  // não deve criar uma experiência de ajuste no cliente.
+  const final = estimated ?? money(order.payment?.finalAmount);
   const name = order.provider?.name?.trim() || 'Prestador';
   const count = Number(order.provider?.ratingCount);
   const avg = Number(order.provider?.ratingAvg);
 
   const prices: ConfirmServiceRow[] = [];
   if (estimated !== null) prices.push({ label: 'Valor estimado', value: BRL.format(estimated) });
-  if (adjusted) {
-    prices.push({ label: 'Diferença', value: `${difference > 0 ? '+' : '−'} ${BRL.format(Math.abs(difference) / 100)}` });
-  }
 
   const payment: ConfirmServiceRow[] = [];
   if (order.payment) {
@@ -103,8 +97,6 @@ export function confirmServiceView(order: OrderDetails): ConfirmServiceView {
     notes: order.completion?.providerNotes?.trim() || null,
     prices,
     finalPrice: final !== null ? BRL.format(final) : 'A definir',
-    adjusted,
-    adjustmentReason: adjusted ? order.priceAdjustmentReason?.trim() || null : null,
     payment,
     photos: (Array.isArray(order.photos) ? order.photos : [])
       .filter((photo) => !!photo?.url?.trim())

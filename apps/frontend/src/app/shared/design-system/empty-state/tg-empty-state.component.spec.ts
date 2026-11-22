@@ -30,6 +30,11 @@ function token(name: string, property = 'color') {
       <tg-empty-state id="compacto" compact icon="calendar-blank" title="Sua agenda está livre" [level]="level()">
         Quando você contratar um serviço, ele aparece aqui.
       </tg-empty-state>
+      <tg-empty-state id="completo" title="Página não encontrada" [level]="1" illustrationSrc="/ilustracao.webp" illustrationAlt="">
+        <p>Confira o endereço e tente novamente.</p>
+        <button tgButton tgEmptyAction id="principal">Ir para o início</button>
+        <button tgButton tgEmptySecondaryAction id="secundaria" appearance="outline">Voltar</button>
+      </tg-empty-state>
       <tg-empty-state id="so-titulo" title="Nada por aqui" />
     </div>
   `,
@@ -66,6 +71,14 @@ describe('TgEmptyStateComponent', () => {
     fixture.componentInstance.level.set(9 as TgEmptyStateLevel);
     fixture.detectChanges();
     expect($('#compacto h2')).not.toBeNull();
+  });
+
+  it('aceita h1, ilustração acessível e duas ações', () => {
+    expect($('#completo h1')?.textContent?.trim()).toBe('Página não encontrada');
+    expect($('#completo img')?.getAttribute('src')).toBe('/ilustracao.webp');
+    expect($('#completo img')?.getAttribute('alt')).toBe('');
+    expect($('#completo .tg-empty-state__action #principal')).not.toBeNull();
+    expect($('#completo .tg-empty-state__action #secundaria')).not.toBeNull();
   });
 
   it('é conteúdo comum: sem role e ícone decorativo', () => {

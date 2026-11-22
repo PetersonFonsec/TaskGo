@@ -1,4 +1,4 @@
-import { ChangeDetectionStrategy, Component, computed, effect, inject } from '@angular/core';
+import { ChangeDetectionStrategy, Component, computed, inject } from '@angular/core';
 import { RouterLink, RouterLinkActive, RouterOutlet } from '@angular/router';
 
 import { Footer } from '@shared/components/ui/footer/footer';
@@ -6,7 +6,6 @@ import { resolveShellNavigation } from '@shared/components/ui/header/navigation.
 import { TgButtonComponent } from '@shared/design-system/button/tg-button.component';
 import { TgAppBarComponent } from '@shared/design-system/navigation/tg-app-bar.component';
 import { UrlBase } from '@shared/enums/base-url.enum';
-import { Theme } from '@shared/service/theme/theme';
 import { UserLoggedService } from '@shared/service/user-logged/user-logged.service';
 import { INSTITUTIONAL_PAGES, institutionalLink } from './institutional-pages';
 
@@ -26,7 +25,6 @@ import { INSTITUTIONAL_PAGES, institutionalLink } from './institutional-pages';
 })
 export class InstitutionalPage {
   readonly #session = inject(UserLoggedService);
-  readonly #theme = inject(Theme);
 
   readonly #user = computed(() => this.#session.user()?.user);
   /** Destinos do modo de quem está logado; `null` para visitante. */
@@ -38,7 +36,4 @@ export class InstitutionalPage {
   protected readonly signIn = `/${UrlBase.AUTHENTICATE}`;
   protected readonly pages = INSTITUTIONAL_PAGES.map((page) => ({ ...page, link: institutionalLink(page.path) }));
 
-  constructor() {
-    effect(() => this.#theme.setTheme(this.#user()?.type ?? 'CUSTOMER'));
-  }
 }

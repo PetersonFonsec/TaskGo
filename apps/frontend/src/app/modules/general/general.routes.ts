@@ -56,6 +56,7 @@ export const GeneralRoutes: Routes = [
   {
     path: ':userId',
     title: `Seja bem vindo ao TaskGo`,
+    canActivate: [unauthorizedGuard, sessionUserGuard],
     component: Profile,
     children: [
       {

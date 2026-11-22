@@ -48,11 +48,10 @@ function details(extra: Partial<OrderDetails> = {}): OrderDetails {
     distanceKm: null,
     providerEarnings: null,
     cancellation: null,
-    payment: { method: 'PIX', status: 'PAGO', estimatedAmount: 120, finalAmount: 150 },
+    payment: { method: 'PIX', status: 'PAGO', estimatedAmount: 120, finalAmount: 120 },
     review: null,
     timeline: [],
     completion: { providerFinishedAt: at(0, 16, 20), providerNotes: 'Troquei o registro, que estava com vazamento.' },
-    priceAdjustmentReason: 'Registro novo, fora do orçamento.',
     photos: [
       { id: '1', url: photo('Antes', 30), type: 'BEFORE' },
       { id: '2', url: photo('Depois', 160), type: 'AFTER' },
@@ -117,7 +116,6 @@ export const SemAjuste: Story = {
           details({
             payment: { method: 'PIX', status: 'PAGO', estimatedAmount: 120, finalAmount: 120 },
             completion: { providerFinishedAt: at(0, 16, 20), providerNotes: null },
-            priceAdjustmentReason: null,
             photos: [],
           }),
         ),

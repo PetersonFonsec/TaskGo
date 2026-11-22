@@ -32,11 +32,10 @@ function details(extra: Partial<OrderDetails> = {}): OrderDetails {
       cep: '05435-000',
     },
     cancellation: null,
-    payment: { method: 'PIX', status: 'PAGO', estimatedAmount: 120, finalAmount: 150 },
+    payment: { method: 'PIX', status: 'PAGO', estimatedAmount: 120, finalAmount: 120 },
     review: null,
     timeline: [],
     completion: { providerFinishedAt: '2026-10-03T19:30:00.000Z', providerNotes: 'Troquei o registro.' },
-    priceAdjustmentReason: 'Registro novo, fora do orçamento.',
     photos: [
       { id: '1', url: 'https://example.com/depois.jpg', type: 'AFTER' },
       { id: '2', url: 'https://example.com/nota.jpg', type: 'RECEIPT' },
@@ -105,7 +104,7 @@ describe('ConfirmServicePage (Confirmar conclusão)', () => {
     expect(text(el.querySelector('h1'))).toBe('Confirmar conclusão');
   });
 
-  it('aguardando: resumo, prestador, valores com ajuste, pagamento e fotos', async () => {
+  it('aguardando: resumo, prestador, valor fixo combinado, pagamento e fotos', async () => {
     await setup();
     load();
 
@@ -119,12 +118,12 @@ describe('ConfirmServicePage (Confirmar conclusão)', () => {
     expect(rows()).toContain('Endereço: Rua Harmonia, 123, apto 41 · Vila Madalena · São Paulo / SP');
     expect(rows()).toContain('Conclusão informada em: 3 de outubro de 2026 às 16:30');
     expect(rows()).toContain('Observações do prestador: Troquei o registro.');
-    expect(text(el.querySelector('.confirm-service__total-value'))).toBe('R$ 150,00');
+    expect(text(el.querySelector('.confirm-service__total-value'))).toBe('R$ 120,00');
     expect(rows()).toContain('Valor estimado: R$ 120,00');
-    expect(rows()).toContain('Diferença: + R$ 30,00');
+    expect(rows().some((row) => row.startsWith('Diferença'))).toBeFalse();
     expect(rows()).toContain('Forma de pagamento: Pix');
     expect(rows()).toContain('Situação do pagamento: Pago');
-    expect(text(el.querySelector('.confirm-service__adjusted'))).toContain('Registro novo, fora do orçamento.');
+    expect(el.querySelector('.confirm-service__adjusted')).toBeNull();
     const photos = [...el.querySelectorAll<HTMLAnchorElement>('.confirm-service__photo')];
     expect(photos.map((a) => text(a))).toEqual(['Depois', 'Comprovante']);
     expect(photos[0].target).toBe('_blank');
@@ -155,7 +154,7 @@ describe('ConfirmServicePage (Confirmar conclusão)', () => {
     byText('Confirmar conclusão')?.click();
     render();
     expect(dialogOpen()).toBeTrue();
-    expect(text(el.querySelector('tg-dialog'))).toContain('O pagamento de R$ 150,00 é liberado para João Pereira.');
+    expect(text(el.querySelector('tg-dialog'))).toContain('O pagamento de R$ 120,00 é liberado para João Pereira.');
 
     byText('Confirmar')?.click();
     render();
@@ -252,6 +251,28 @@ describe('ConfirmServicePage (Confirmar conclusão)', () => {
     expect(byText('Confirmar conclusão')).toBeNull();
   });
 
+  it('usa a elegibilidade da API e esconde a confirmação quando Pix está bloqueado', async () => {
+    await setup();
+    load(details({
+      confirmationEligibility: {
+        hasOpenDispute: false,
+        canConfirm: false,
+        reason: 'A confirmação está disponível apenas para Pix neste MVP.',
+      },
+    }));
+    expect(text(el.querySelector('tg-alert'))).toContain('A confirmação está disponível apenas para Pix neste MVP.');
+    expect(byText('Confirmar conclusão')).toBeNull();
+  });
+
+  it('a elegibilidade de disputa mostra o motivo retornado pela API', async () => {
+    await setup();
+    load(details({
+      confirmationEligibility: { hasOpenDispute: true, canConfirm: false, reason: 'Aguarde a análise da disputa.' },
+    }));
+    expect(text(el.querySelector('tg-alert'))).toContain('Aguarde a análise da disputa.');
+    expect(byText('Confirmar conclusão')).toBeNull();
+  });
+
   it('quem não é o cliente do pedido não confirma', async () => {
     await setup('99');
     load();
@@ -305,19 +326,18 @@ describe('confirmServiceView', () => {
   const plain = (rows: { label: string; value: string }[]) =>
     rows.map((row) => ({ label: row.label, value: row.value.replace(/\s/g, ' ') }));
 
-  it('valor menor que o estimado: diferença negativa', () => {
+  it('mantém o preço combinado quando a API devolve um valor final divergente', () => {
     const view = confirmServiceView(
       details({ payment: { method: 'PIX', status: 'PAGO', estimatedAmount: 120, finalAmount: 100 } }),
     );
-    expect(plain(view.prices)).toContain({ label: 'Diferença', value: '− R$ 20,00' });
-    expect(view.adjusted).toBeTrue();
+    expect(view.finalPrice.replace(/\s/g, ' ')).toBe('R$ 120,00');
+    expect(plain(view.prices)).not.toContain(jasmine.objectContaining({ label: 'Diferença' }));
   });
 
   it('sem pagamento: usa o preço estimado do serviço e não inventa forma nem situação', () => {
     const view = confirmServiceView(details({ payment: null }));
     expect(view.finalPrice.replace(/\s/g, ' ')).toBe('R$ 120,00');
     expect(view.payment).toEqual([]);
-    expect(view.adjusted).toBeFalse();
   });
 
   it('situação de pagamento desconhecida: "Em atualização", nunca o código cru', () => {

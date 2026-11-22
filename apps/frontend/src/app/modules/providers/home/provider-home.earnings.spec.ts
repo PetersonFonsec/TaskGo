@@ -141,4 +141,26 @@ describe('providerHomeEarnings', () => {
     expect(result.revenue).toEqual([]);
     expect(result.recent).toEqual([]);
   });
+  it('só informa recebimento com status confirmado e identifica valores pendentes', () => {
+    const recent = providerHomeEarnings(
+      data({
+        recentServices: [
+          { id: 'pago', clientName: 'A', service: 'S', completedAt: '2026-11-02T15:00:00', amount: 72, rating: null, paymentStatus: 'CAPTURED' },
+          { id: 'released', clientName: 'B', service: 'S', completedAt: '2026-11-02T15:00:00', amount: 40, rating: null, paymentStatus: 'RELEASED' },
+          { id: 'pendente', clientName: 'C', service: 'S', completedAt: '2026-11-02T15:00:00', amount: 30, rating: null, paymentStatus: 'PENDENTE' },
+          { id: 'ausente', clientName: 'D', service: 'S', completedAt: '2026-11-02T15:00:00', amount: 20, rating: null },
+          { id: 'invalido', clientName: 'E', service: 'S', completedAt: '2026-11-02T15:00:00', amount: 10, rating: null, paymentStatus: 'UNKNOWN' },
+        ],
+      }),
+      NOW,
+    ).recent.map((item) => plain(item.share));
+    expect(recent).toEqual([
+      'Você recebeu R$ 72',
+      'Você recebeu R$ 40',
+      'A receber: R$ 30',
+      'Sua parte no serviço: R$ 20',
+      'Sua parte no serviço: R$ 10',
+    ]);
+  });
+
 });

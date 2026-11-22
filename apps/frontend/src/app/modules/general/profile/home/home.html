@@ -58,13 +58,13 @@
       <ul class="account__list">
         @for (item of links(); track item.label) {
           <li>
-            <a tgCard class="account__item" [routerLink]="item.link">
+            <a tgCard class="account__item" [routerLink]="item.href ? null : item.link" [attr.href]="item.href ?? null">
               <span class="account__icon"><tg-icon [name]="item.icon" [size]="24" /></span>
               <span class="account__text">
                 <span class="account__label">{{ item.label }}</span>
                 <span class="account__description">{{ item.description }}</span>
               </span>
-              <tg-icon class="account__chevron" name="arrow-right" [size]="20" />
+              <tg-icon class="account__chevron" name="caret-right" [size]="20" />
             </a>
           </li>
         }

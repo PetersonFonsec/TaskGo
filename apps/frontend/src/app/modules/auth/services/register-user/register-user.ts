@@ -105,6 +105,7 @@ export class RegisterUser {
         street: user.address.street,
         number: user.address.number,
         complement: user.address.complement,
+        neighborhood: user.address.neighborhood?.trim() || undefined,
         city: user.address.city,
         state: user.address.state,
         cep: user.address.cep,

@@ -12,12 +12,10 @@ import { TgInputDirective } from '@shared/design-system/field/tg-input.directive
 import { TgPasswordToggleComponent } from '@shared/design-system/field/tg-password-toggle.component';
 import { UserRegister } from '@shared/service/users/user-register';
 import { Utils } from '@shared/service/utils/utils.service';
+import { safeReturnUrl } from '@shared/guards/return-url';
 
 /** Mesmo critério do input type="email": algo@dominio, sem espaços. */
 export const EMAIL_PATTERN = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-
-/** Destinos aceitos vindos dos e-mails de pedido. */
-const RETURN_URL = /^\/orders\/[1-9]\d*(?:\/(?:review|confirm|payment|finish|report-problem))?$/;
 
 export function emailError(value: string): string {
   const email = value.trim();
@@ -84,7 +82,7 @@ export class Login {
         next: ({ user }) => {
           this.#liveAnnouncer.announce('Login realizado com sucesso');
           const returnUrl = this.#route.snapshot.queryParamMap.get('returnUrl');
-          const destination = returnUrl && RETURN_URL.test(returnUrl) ? returnUrl : Utils.getRouteByRoleBack(user.type);
+          const destination = safeReturnUrl(returnUrl) ?? Utils.getRouteByRoleBack(user.type);
           this.#router.navigateByUrl(destination);
         },
         error: (error: HttpErrorResponse) => {

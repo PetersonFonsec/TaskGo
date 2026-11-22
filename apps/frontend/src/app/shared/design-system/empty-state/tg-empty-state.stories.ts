@@ -92,3 +92,18 @@ export const CompactoEmCardEstreito: Story = {
       </div>`,
   }),
 };
+
+/** Tela inteira: título h1, ilustração e ação principal e secundária. */
+export const TelaComIlustracaoEDuasAcoes: Story = {
+  name: 'Tela com ilustração e duas ações',
+  render: () => ({
+    template: `
+      <div style="${surface};max-width:none">
+        <tg-empty-state title="Página não encontrada" [level]="1" illustrationSrc="/ilustrations/not-found-ilustration.webp" illustrationAlt="">
+          <p>O endereço não existe ou mudou de lugar. Confira o link ou siga por aqui.</p>
+          <button tgButton tgEmptyAction>Ir para o início</button>
+          <button tgButton tgEmptySecondaryAction appearance="outline">Voltar</button>
+        </tg-empty-state>
+      </div>`,
+  }),
+};

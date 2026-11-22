@@ -37,6 +37,8 @@ export interface ProviderHomeData {
     service: string;
     completedAt: string;
     amount: number;
+    paymentStatus?: string | null;
+    paidAt?: string | null;
     rating: number | null;
   }>;
   insights: {

@@ -54,17 +54,30 @@ export class FinishOrderHandler implements ICommandHandler<FinishOrderCommand> {
       );
     }
 
+    if (order.service.provider.status !== 'APPROVED') {
+      throw new ForbiddenException(
+        'Sua conta de prestador ainda não foi aprovada para finalizar serviços.',
+      );
+    }
+    if (!order.payment) {
+      throw new BadRequestException('O pedido ainda não tem um pagamento.');
+    }
+    if (order.payment.method !== 'PIX') {
+      throw new BadRequestException(
+        'A finalização está disponível apenas para pagamentos via Pix neste MVP.',
+      );
+    }
+    if (!['CAPTURED', 'PAGO'].includes(order.payment.status)) {
+      throw new BadRequestException('O pagamento do pedido ainda não foi confirmado.');
+    }
     if (
-      order.service.provider.status !== 'APPROVED' ||
-      !order.payment ||
-      order.payment.method !== 'PIX' ||
-      !['CAPTURED', 'PAGO'].includes(order.payment.status) ||
       Number(order.payment.amount) !== payload.finalPrice ||
       Number(order.finalPrice) !== payload.finalPrice
-    )
+    ) {
       throw new BadRequestException(
-        'Final price must equal the agreed paid amount',
+        'O valor final deve ser igual ao valor combinado e pago.',
       );
+    }
     const priceAdjusted = false;
     const reason = undefined;
     if ((payload.photos?.length ?? 0) > 5) {

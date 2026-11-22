@@ -5,7 +5,7 @@ export interface IAddressEntity {
   street: string,
   number: string,
   complement: string,
-  neighborhood: string,
+  neighborhood?: string | null,
   city: string,
   state: string,
   country: string,
@@ -22,8 +22,8 @@ export interface IFullAddress extends IAddressEntity{
   placeId: number,
   isDefault: boolean,
   active: boolean,
-  createdAt: any,
-  updatedAt: any
+  createdAt: string;
+  updatedAt: string;
 }
 
 export interface ResponseAddressList extends Paginable<IFullAddress> {}

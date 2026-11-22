@@ -36,19 +36,12 @@ export interface ProviderProfileView {
   reviews: ProviderProfileReviewView[];
   /** A API traz só as 20 avaliações mais recentes; `true` quando há mais do que as mostradas. */
   moreReviews: boolean;
-  /**
-   * Contato do usuário, só quando vier. Hoje `GET /provider/:id` não traz
-   * telefone, e-mail nem endereço (só `user.id`, `name` e `photoUrl`), então
-   * fica `null` e a parte some.
-   */
-  contact: ProviderProfileContactView | null;
-}
-
-export interface ProviderProfileContactView {
-  phone: string | null;
-  phoneHref: string | null;
-  email: string | null;
+  /** Região aproximada de cobertura (sem expor coordenadas nem endereço residencial). */
   region: string | null;
+  acceptsPix: boolean;
+  acceptsCard: boolean;
+  emergencyCare: boolean;
+  available24h: boolean;
 }
 
 const TIME_ZONE = 'America/Sao_Paulo';
@@ -97,20 +90,26 @@ export function providerProfileView(source: unknown): ProviderProfileView | null
       .sort((a, b) => a.title.localeCompare(b.title, 'pt-BR')),
     reviews,
     moreReviews: count > reviews.length,
-    contact: contactOf(isRecord(source['user']) ? source['user'] : {}),
+    region: regionOf(source['serviceAreas']),
+    acceptsPix: source['acceptPix'] === true,
+    acceptsCard: source['acceptsCard'] === true,
+    emergencyCare: source['emergencyCare'] === true,
+    available24h: source['isAvailable24h'] === true,
   };
 }
 
-function contactOf(user: Record<string, unknown>): ProviderProfileContactView | null {
-  const phone = text(user['phone']);
-  const email = text(user['email']);
-  const [address] = list(user['addresses']);
-  const city = address ? text(address['city']) : null;
-  const state = address ? text(address['state']) : null;
-  const region = city ? (state ? `${city} - ${state}` : city) : null;
-  if (!phone && !email && !region) return null;
-  const digits = phone?.replace(/[^+\d]/g, '') ?? '';
-  return { phone, phoneHref: digits ? `tel:${digits}` : null, email, region };
+function regionOf(value: unknown): string | null {
+  const areas = list(value);
+  const radii = areas
+    .filter((area) => area['mode'] === 'RADIUS')
+    .map((area) => toNumber(area['radiusKm']))
+    .filter((radius): radius is number => radius !== null && radius > 0);
+  if (radii.length) {
+    const radius = Math.max(...radii);
+    const formatted = new Intl.NumberFormat('pt-BR', { maximumFractionDigits: 0 }).format(radius);
+    return `Atende em um raio de até ${formatted} km da base cadastrada.`;
+  }
+  return areas.some((area) => area['mode'] === 'POLYGON') ? 'Atende na área delimitada no mapa.' : null;
 }
 
 /** Mesma regra do card de prestador: média de 1 a 5 e contagem inteira positiva. */

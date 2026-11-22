@@ -1,5 +1,4 @@
-import { ChangeDetectionStrategy, Component, computed, inject, input } from '@angular/core';
-import { DomSanitizer } from '@angular/platform-browser';
+import { ChangeDetectionStrategy, Component, computed, input } from '@angular/core';
 import { TG_ICONS, type TgIconName, type TgIconWeight } from '@taskgo/icons';
 
 /**
@@ -19,8 +18,7 @@ import { TG_ICONS, type TgIconName, type TgIconWeight } from '@taskgo/icons';
     [attr.aria-label]="label() || null"
     [attr.aria-hidden]="label() ? null : 'true'"
     focusable="false"
-    [innerHTML]="markup()"
-  ></svg>`,
+  ><path [attr.d]="pathData()" /></svg>`,
   styles: `
     :host {
       display: inline-flex;
@@ -35,10 +33,10 @@ export class TgIconComponent {
   readonly size = input<16 | 20 | 24 | number>(20);
   readonly label = input('');
 
-  readonly #sanitizer = inject(DomSanitizer);
-
-  // O conteúdo vem só do registro gerado a partir do pacote Phosphor, nunca de entrada externa.
-  readonly markup = computed(() =>
-    this.#sanitizer.bypassSecurityTrustHtml(TG_ICONS[this.name()][this.weight()]),
-  );
+  // Só dados geométricos do pacote Phosphor entram no SVG; sem innerHTML, o ícone
+  // também é renderizado pelo Angular no prerender do servidor.
+  readonly pathData = computed(() => {
+    const markup = TG_ICONS[this.name()][this.weight()];
+    return /<path\s+d="([^"]+)"/.exec(markup)?.[1] ?? '';
+  });
 }

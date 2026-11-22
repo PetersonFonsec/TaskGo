@@ -71,7 +71,7 @@ export class Address {
       cep: !cep ? 'Informe o CEP.' : cep.length !== 8 ? 'Informe os 8 dígitos do CEP.' : '',
       street: requiredError(this.street(), 'Informe a rua.'),
       number: requiredError(this.number(), 'Informe o número.'),
-      neighborhood: requiredError(this.neighborhood(), 'Informe o bairro.'),
+      neighborhood: '',
       city: requiredError(this.city(), 'Informe a cidade.'),
       state: requiredError(this.state(), 'Informe a UF.'),
     };
@@ -184,7 +184,7 @@ export class Address {
       street: this.street().trim(),
       number: this.number().trim(),
       complement: this.complement().trim(),
-      neighborhood: this.neighborhood().trim(),
+      neighborhood: this.neighborhood().trim() || undefined,
       city: this.city().trim(),
       state: this.state().trim().toUpperCase(),
       lat: this.lat(),

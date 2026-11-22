@@ -132,7 +132,7 @@ export function providerHomeEarnings(home: ProviderHomeData, now: Date = new Dat
       service: service.service?.trim() || 'Serviço',
       person: service.clientName?.trim() || null,
       date: shortDate(service.completedAt, now),
-      share: share(service.amount),
+      share: share(service.amount, service.paymentStatus),
       rating: validRating(service.rating),
     }),
   );
@@ -166,9 +166,13 @@ export function providerHomeEarnings(home: ProviderHomeData, now: Date = new Dat
   };
 }
 
-function share(value: unknown): string | null {
+function share(value: unknown, paymentStatus: unknown): string | null {
   const money = tgMoney(isNumber(value) ? value : null);
-  return money ? `Sua parte no serviço: ${money}` : null;
+  if (!money) return null;
+  const status = typeof paymentStatus === 'string' ? paymentStatus.toUpperCase() : '';
+  if (['CAPTURED', 'RELEASED', 'PAGO'].includes(status)) return `Você recebeu ${money}`;
+  if (['CREATED', 'AUTHORIZED', 'AUTORIZADO', 'PENDENTE'].includes(status)) return `A receber: ${money}`;
+  return `Sua parte no serviço: ${money}`;
 }
 
 function validRating(value: unknown): number | null {

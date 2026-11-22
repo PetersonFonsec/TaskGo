@@ -8,6 +8,7 @@ import {
   UseGuards,
   UseInterceptors,
   Param,
+  BadRequestException,
 } from '@nestjs/common';
 import { CommandBus, QueryBus } from '@nestjs/cqrs';
 import { User } from '@taskgo/backend/shared/decorators/user.decorator';
@@ -53,7 +54,29 @@ export class FavoritesController {
   }
 
   @Get()
-  async listFavorites(@User('id') clientId: string) {
-    return this.queryBus.execute(new ListFavoritesQuery(BigInt(clientId)));
+  async listFavorites(
+    @User('id') clientId: string,
+    @Query('skip') skip?: string,
+    @Query('take') take?: string,
+  ) {
+    const paging = {
+      skip: this.parsePagingValue(skip, 'skip', 0),
+      take: Math.min(this.parsePagingValue(take, 'take', 20), 100),
+    };
+    return this.queryBus.execute(
+      new ListFavoritesQuery(BigInt(clientId), paging),
+    );
+  }
+
+  private parsePagingValue(value: string | undefined, name: string, fallback: number) {
+    if (value === undefined) return fallback;
+    if (!/^\d+$/.test(value)) {
+      throw new BadRequestException(`${name} deve ser um número inteiro não negativo`);
+    }
+    const parsed = Number(value);
+    if (!Number.isSafeInteger(parsed)) {
+      throw new BadRequestException(`${name} está fora do limite permitido`);
+    }
+    return parsed;
   }
 }

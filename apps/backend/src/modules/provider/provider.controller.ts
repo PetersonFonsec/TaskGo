@@ -12,9 +12,11 @@ import { CommandBus, QueryBus } from '@nestjs/cqrs';
 import { CreateProviderDto } from './dto/create-provider.dto';
 import { UpdateProviderDto } from './dto/update-provider.dto';
 import { ProviderAvailabilityQueryDto } from './dto/provider-availability.dto';
+import { ProviderSearchQueryDto } from './dto/provider-search-query.dto';
 import { Public } from '../../shared/decorators/public.decorator';
 import { OptionalAuth } from '../../shared/decorators/optional-auth.decorator';
 import { User } from '../../shared/decorators/user.decorator';
+import { ProviderSearchFilters } from './provider-search';
 import { ParseBigIntPipe } from '../../shared/pipes/parse-bigint.pipe';
 import {
   CreateProviderCommand,
@@ -45,6 +47,7 @@ export class ProviderController {
   @OptionalAuth()
   @Get()
   findAll(
+    @Query() filters: ProviderSearchQueryDto,
     @Query('onlyFavorites') onlyFavorites?: string,
     @User('id') authenticatedUserId?: string,
     @Query('lat') lat?: string,
@@ -54,7 +57,7 @@ export class ProviderController {
       new ListProvidersQuery(onlyFavorites === 'true', authenticatedUserId, {
         lat,
         lng,
-      }),
+      }, filters as ProviderSearchFilters),
     );
   }
 
@@ -67,15 +70,24 @@ export class ProviderController {
     return this.queryBus.execute(new GetProviderAvailabilityQuery(id, query));
   }
 
-  @Public()
+  @OptionalAuth()
   @Get('by-category/:slug')
   findByCategory(
     @Param('slug') slug: string,
     @Query('lat') lat?: string,
     @Query('lng') lng?: string,
+    @Query() filters?: ProviderSearchQueryDto,
+    @Query('onlyFavorites') onlyFavorites?: string,
+    @User('id') authenticatedUserId?: string,
   ) {
     return this.queryBus.execute(
-      new GetProvidersByCategoryQuery(slug, { lat, lng }),
+      new GetProvidersByCategoryQuery(
+        slug,
+        { lat, lng },
+        filters as ProviderSearchFilters,
+        onlyFavorites === 'true',
+        authenticatedUserId,
+      ),
     );
   }
 

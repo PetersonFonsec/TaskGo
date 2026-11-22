@@ -93,7 +93,11 @@ const EMPTY_HOME: ProviderHomeData = {
   insights: { mostRequestedService: null, averageTicket: 0, mostServedNeighborhood: null, monthlyGrowth: null },
 };
 
-function providers(orders: Observable<OrdersResponse>, home: Observable<ProviderHomeData>) {
+function providers(
+  orders: Observable<OrdersResponse>,
+  home: Observable<ProviderHomeData>,
+  updateOrderStatus: () => Observable<unknown> = () => of({}).pipe(delay(1000)),
+) {
   return [
     provideRouter([{ path: '**', component: PageComponent }]),
     { provide: HttpClient, useValue: { get: () => home } },
@@ -101,8 +105,7 @@ function providers(orders: Observable<OrdersResponse>, home: Observable<Provider
       provide: Order,
       useValue: {
         getOrderByProvider: () => orders,
-        // A troca de status responde depois de 1 s, para ver o botão carregando.
-        updateOrderStatus: () => of({}).pipe(delay(1000)),
+        updateOrderStatus,
       },
     },
     { provide: UserLoggedService, useValue: { user: () => ({ user: { id: '17', name: 'Bruno Alves' } }) } },
@@ -143,3 +146,49 @@ export const Erro: Story = {
 export const Carregando: Story = {
   decorators: [applicationConfig({ providers: providers(NEVER, NEVER) })],
 };
+
+/** Doze solicitações para revisar a expansão, aria-expanded e o foco da primeira linha nova. */
+export const MuitasSolicitacoes: Story = {
+  name: 'Muitas solicitações',
+  decorators: [
+    applicationConfig({
+      providers: providers(
+        of(
+          Array.from({ length: 12 }, (_, index) =>
+            order(
+              `request-${index + 1}`,
+              'AGUARDANDO_APROVACAO',
+              `Serviço solicitado ${index + 1}`,
+              `Cliente ${index + 1}`,
+              index + 1,
+              9,
+              'Pinheiros',
+              120,
+            ),
+          ),
+        ),
+        of(EMPTY_HOME),
+      ),
+    }),
+  ],
+};
+
+/** A API aceita a troca, mas a consulta silenciosa seguinte falha. */
+export const FalhaAoSincronizar: Story = {
+  name: 'Falha ao sincronizar',
+  decorators: [
+    applicationConfig({
+      providers: providers(
+        new Observable<OrdersResponse>((subscriber) => {
+          // A primeira chamada carrega a agenda; a segunda simula a recarga após a ação.
+          if (!failedSyncCalls++) subscriber.next([ORDERS[0]]);
+          else subscriber.error(new Error('offline'));
+        }),
+        of(HOME),
+        () => of({}),
+      ),
+    }),
+  ],
+};
+
+let failedSyncCalls = 0;

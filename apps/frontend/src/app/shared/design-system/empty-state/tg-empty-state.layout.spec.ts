@@ -220,20 +220,25 @@ describe('tg-empty-state: slots vazios não deixam espaço', () => {
       @if (second()) {
         <button tgButton tgEmptyAction>Importar</button>
       }
+      @if (third()) {
+        <button tgButton tgEmptyAction>Ver ajuda</button>
+      }
     </tg-empty-state>
   `,
 })
 class ActionsHost {
   readonly first = signal(false);
   readonly second = signal(false);
+  readonly third = signal(false);
 }
 
-describe('tg-empty-state: no máximo uma ação', () => {
+describe('tg-empty-state: até duas ações', () => {
   let fixture: ComponentFixture<ActionsHost>;
   let warn: jasmine.Spy;
-  const render = (first: boolean, second: boolean) => {
+  const render = (first: boolean, second: boolean, third = false) => {
     fixture.componentInstance.first.set(first);
     fixture.componentInstance.second.set(second);
+    fixture.componentInstance.third.set(third);
     fixture.detectChanges();
   };
   const warnings = () => warn.calls.allArgs().filter((a) => String(a[0]).includes('tg-empty-state'));
@@ -251,24 +256,28 @@ describe('tg-empty-state: no máximo uma ação', () => {
     expect(warnings().length).toBe(0);
   });
 
-  it('duas ações: um aviso claro, uma vez só, sem esconder nenhuma', () => {
-    expect(isDevMode()).toBeTrue();
+  it('duas ações: sem aviso e sem esconder nenhuma', () => {
     render(true, true);
-    render(true, true);
-    fixture.detectChanges();
-    expect(warnings().length).toBe(1);
-    expect(String(warnings()[0][0])).toContain('no máximo uma ação');
+    expect(warnings().length).toBe(0);
     expect(fixture.nativeElement.querySelectorAll('[tgEmptyAction]').length).toBe(2);
   });
 
-  it('ação adicionada e removida depois: avisa ao passar de uma e volta a avisar numa nova violação', () => {
-    render(true, false);
+  it('três ações: avisa em desenvolvimento e mantém todas visíveis', () => {
+    expect(isDevMode()).toBeTrue();
+    render(true, true, true);
+    expect(warnings().length).toBe(1);
+    expect(String(warnings()[0][0])).toContain('no máximo duas ações');
+    expect(fixture.nativeElement.querySelectorAll('[tgEmptyAction]').length).toBe(3);
+  });
+
+  it('ao passar de duas ações avisa de novo depois que uma violação termina', () => {
+    render(true, true);
     expect(warnings().length).toBe(0);
-    render(true, true);
-    expect(warnings().length).toBe(1);
-    render(true, false);
+    render(true, true, true);
     expect(warnings().length).toBe(1);
     render(true, true);
+    expect(warnings().length).toBe(1);
+    render(true, true, true);
     expect(warnings().length).toBe(2);
   });
 });

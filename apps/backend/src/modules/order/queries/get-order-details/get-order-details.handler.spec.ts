@@ -60,6 +60,7 @@ describe('Order details', () => {
     };
     db = {
       order: { findUnique: jest.fn(async () => order) },
+      orderDispute: { findFirst: jest.fn(async () => null) },
       category: {
         findFirst: jest.fn().mockResolvedValue({ platformFeePct: null }),
       },
@@ -103,6 +104,37 @@ describe('Order details', () => {
     expect(details.address).not.toHaveProperty('lng');
     expect(details.client).not.toHaveProperty('email');
     expect(details.client).not.toHaveProperty('phone');
+  });
+
+  it('reports when a client can confirm a paid Pix order', async () => {
+    order.status = 'AGUARDANDO_CONFIRMACAO_CLIENTE';
+    order.providerFinishedAt = new Date('2026-10-01T11:00:00Z');
+    order.finalPrice = 150;
+    order.payment = { method: 'PIX', status: 'PAGO', amount: 150, paidAt: null };
+
+    const details = await handler.execute(new GetOrderDetailsQuery(1n));
+
+    expect(details.confirmationEligibility).toEqual({
+      hasOpenDispute: false,
+      canConfirm: true,
+      reason: null,
+    });
+  });
+
+  it('reports an open dispute as a reason not to confirm', async () => {
+    order.status = 'AGUARDANDO_CONFIRMACAO_CLIENTE';
+    order.providerFinishedAt = new Date('2026-10-01T11:00:00Z');
+    order.finalPrice = 150;
+    order.payment = { method: 'PIX', status: 'PAGO', amount: 150, paidAt: null };
+    db.orderDispute.findFirst.mockResolvedValue({ id: 9n });
+
+    const details = await handler.execute(new GetOrderDetailsQuery(1n));
+
+    expect(details.confirmationEligibility).toEqual({
+      hasOpenDispute: true,
+      canConfirm: false,
+      reason: 'Há um problema em análise para este pedido.',
+    });
   });
 
   it('returns no distance when coordinates are unknown', async () => {

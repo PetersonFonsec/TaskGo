@@ -64,7 +64,7 @@ describe('Favorites', () => {
 
   it('carrega os favoritos da sessão uma vez e mostra os cards com link para o perfil', async () => {
     await setup(of({ items: [item('1', 'Bruno Lima'), item('2', 'Carla Dias')], total: 2 }));
-    expect(api.listFavorites).toHaveBeenCalledOnceWith('client-1');
+    expect(api.listFavorites).toHaveBeenCalledOnceWith('client-1', { skip: 0, take: 20 });
     expect(el.querySelector('h1')?.textContent).toContain('Favoritos');
     expect(names()).toEqual(['Bruno Lima', 'Carla Dias']);
     expect(el.querySelector('.tg-provider-card__name a')?.getAttribute('href')).toBe('/customer/1');
@@ -109,11 +109,27 @@ describe('Favorites', () => {
     const twenty = () => ({ items: Array.from({ length: 20 }, (_, i) => item(String(i + 1))), total: 25 });
     const lead = () => el.querySelector('.favorites__lead')?.textContent?.replace(/\s+/g, ' ') ?? '';
 
-    it('20 itens de 25: conta 25 e diz que mostra os 20 mais recentes', async () => {
+    it('20 itens de 25: conta 25 e oferece carregar a próxima página', async () => {
       await setup(of(twenty()));
       expect(component.favoriteCount()).toBe(25);
       expect(lead()).toContain('25 profissionais salvos');
-      expect(lead()).toContain('mostrando os 20 mais recentes');
+      expect(lead()).toContain('mostrando 20 de 25');
+      expect(el.querySelector<HTMLButtonElement>('button[tgButton]')?.textContent).toContain('Ver mais');
+    });
+
+    it('carrega o restante dos favoritos sob demanda e mantém a primeira página', async () => {
+      await setup(of(twenty()));
+      api.listFavorites.and.callFake((_clientId: string, paging: { skip: number; take: number }) =>
+        of({ items: Array.from({ length: 5 }, (_, i) => item(String(21 + i))), total: 25 }),
+      );
+
+      component.loadMore();
+      fixture.detectChanges();
+
+      expect(api.listFavorites).toHaveBeenCalledWith('client-1', { skip: 20, take: 20 });
+      expect(component.providers().length).toBe(25);
+      expect(component.total()).toBe(25);
+      expect(el.querySelector<HTMLButtonElement>('button[tgButton]')).toBeNull();
     });
 
     it('tirar um vai para 24; devolver volta para 25; repetir não desvia', async () => {
@@ -321,7 +337,7 @@ describe('Favorites', () => {
       session.set({ user: { id: 'b' } });
       flush();
       expect(first.observed).toBeFalse();
-      expect(api.listFavorites.calls.mostRecent().args).toEqual(['b']);
+      expect(api.listFavorites.calls.mostRecent().args).toEqual(['b', { skip: 0, take: 20 }]);
       first.next({ items: [item('velho')] });
       second.next({ items: [item('2')] });
       expect(component.providers().map((p) => p.id)).toEqual(['2']);

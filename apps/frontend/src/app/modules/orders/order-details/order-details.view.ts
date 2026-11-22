@@ -43,7 +43,7 @@ export interface OrderDetailsView {
   person: OrderDetailsPerson;
   /** O mesmo próximo passo da linha e do card de agendamento. */
   step: TgOrderNextStep | null;
-  /** "Reportar problema", ao lado de "Confirmar conclusão" (só o cliente). */
+  /** "Reportar problema", disponível para as duas pessoas nos estados aceitos pela API. */
   reportLink: readonly string[] | null;
   /** Valor, forma e situação do pagamento; sem pagamento, só o valor. */
   payment: OrderDetailsRow[];
@@ -60,8 +60,10 @@ export interface OrderDetailsView {
 const BRL = new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' });
 const ONE_DECIMAL = new Intl.NumberFormat('pt-BR', { minimumFractionDigits: 1, maximumFractionDigits: 1 });
 const PERCENT = new Intl.NumberFormat('pt-BR', { maximumFractionDigits: 1 });
-const LONG_DATE = new Intl.DateTimeFormat('pt-BR', { dateStyle: 'long' });
-const TIME = new Intl.DateTimeFormat('pt-BR', { hour: '2-digit', minute: '2-digit' });
+const ORDER_TIME_ZONE = 'America/Sao_Paulo';
+const LONG_DATE = new Intl.DateTimeFormat('pt-BR', { dateStyle: 'long', timeZone: ORDER_TIME_ZONE });
+const TIME = new Intl.DateTimeFormat('pt-BR', { hour: '2-digit', minute: '2-digit', timeZone: ORDER_TIME_ZONE });
+const CALENDAR_DATE = new Intl.DateTimeFormat('en-CA', { year: 'numeric', month: '2-digit', day: '2-digit', timeZone: ORDER_TIME_ZONE });
 
 export const PAYMENT_METHODS: Record<string, string> = { PIX: 'Pix', CARTAO: 'Cartão', OUTRO: 'Outra forma' };
 
@@ -117,7 +119,8 @@ export function orderDetailsView(
     person: person(order, perspective),
     step,
     reportLink:
-      perspective === 'customer' && order.status === 'AGUARDANDO_CONFIRMACAO_CLIENTE'
+      ['EM_ANDAMENTO', 'AGUARDANDO_CONFIRMACAO_CLIENTE'].includes(order.status) &&
+      (perspective === 'customer' || perspective === 'provider')
         ? ['/orders', order.id, 'report-problem']
         : null,
     payment: payment(order, finalAmount, estimated),
@@ -157,12 +160,13 @@ export function orderExpiryNotice(
   if (expires.getTime() <= now.getTime()) {
     return { title: 'O prazo terminou', body: 'O pedido será expirado automaticamente e o horário é liberado.' };
   }
+  const datePrefix = expiryDatePrefix(expires, now);
   const time = TIME.format(expires);
   const customer = perspective === 'customer';
   if (approval) {
-    return { title: customer ? `O prestador tem até ${time} para responder` : `Responda até ${time}`, body };
+    return { title: customer ? `O prestador tem até ${datePrefix}${time} para responder` : `Responda até ${datePrefix}${time}`, body };
   }
-  return { title: customer ? `Pague até ${time}` : `O cliente tem até ${time} para pagar`, body };
+  return { title: customer ? `Pague até ${datePrefix}${time}` : `O cliente tem até ${datePrefix}${time} para pagar`, body };
 }
 
 function address(order: OrderDetails, perspective: TgOrderPerspective) {
@@ -250,4 +254,21 @@ function initials(name: string): string {
   const words = name.split(/\s+/).filter(Boolean);
   const letters = words.length > 1 ? [words[0], words[words.length - 1]] : words;
   return letters.map((word) => word[0]?.toUpperCase() ?? '').join('');
+}
+
+function expiryDatePrefix(expires: Date, now: Date): string {
+  const expiryDay = calendarDateKey(expires);
+  const today = calendarDateKey(now);
+  if (expiryDay === today) return '';
+  const todayParts = CALENDAR_DATE.formatToParts(now);
+  const part = (type: string) => Number(todayParts.find((item) => item.type === type)?.value);
+  const tomorrow = new Date(Date.UTC(part('year'), part('month') - 1, part('day') + 1));
+  const tomorrowKey = `${tomorrow.getUTCFullYear()}-${String(tomorrow.getUTCMonth() + 1).padStart(2, '0')}-${String(tomorrow.getUTCDate()).padStart(2, '0')}`;
+  return expiryDay === tomorrowKey ? 'amanhã, ' : `${LONG_DATE.format(expires)}, `;
+}
+
+function calendarDateKey(date: Date): string {
+  const parts = CALENDAR_DATE.formatToParts(date);
+  const value = (type: string) => parts.find((part) => part.type === type)?.value ?? '';
+  return `${value('year')}-${value('month')}-${value('day')}`;
 }

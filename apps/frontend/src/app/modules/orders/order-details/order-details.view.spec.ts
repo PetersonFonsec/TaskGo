@@ -1,7 +1,7 @@
 import type { OrderDetails } from '@shared/service/order/order.model';
 import { orderDetailsView, orderExpiryNotice } from './order-details.view';
 
-const NOW = new Date(2026, 10, 14, 9, 0);
+const NOW = new Date('2026-11-14T09:00:00-03:00');
 
 function details(extra: Partial<OrderDetails> = {}): OrderDetails {
   return {
@@ -149,7 +149,7 @@ describe('orderDetailsView', () => {
     expect(orderDetailsView(details(), 'customer', NOW).step).toBeNull();
   });
 
-  it('próximo passo do prestador: Estou a caminho, Iniciar e Finalizar serviço; sem Reportar problema', () => {
+  it('próximo passo do prestador e link para reportar nas etapas permitidas', () => {
     expect(orderDetailsView(details(), 'provider', NOW).step).toEqual({ label: 'Estou a caminho', action: 'EM_DESLOCAMENTO' });
     expect(orderDetailsView(details({ status: 'EM_DESLOCAMENTO' }), 'provider', NOW).step?.action).toBe('EM_ANDAMENTO');
     expect(orderDetailsView(details({ status: 'EM_ANDAMENTO' }), 'provider', NOW).step?.link).toEqual([
@@ -157,7 +157,16 @@ describe('orderDetailsView', () => {
       '1042',
       'finish',
     ]);
-    expect(orderDetailsView(details({ status: 'AGUARDANDO_CONFIRMACAO_CLIENTE' }), 'provider', NOW).reportLink).toBeNull();
+    expect(orderDetailsView(details({ status: 'EM_ANDAMENTO' }), 'provider', NOW).reportLink).toEqual([
+      '/orders', '1042', 'report-problem',
+    ]);
+    expect(orderDetailsView(details({ status: 'AGUARDANDO_CONFIRMACAO_CLIENTE' }), 'provider', NOW).reportLink).toEqual([
+      '/orders', '1042', 'report-problem',
+    ]);
+    expect(orderDetailsView(details({ status: 'EM_ANDAMENTO' }), 'customer', NOW).reportLink).toEqual([
+      '/orders', '1042', 'report-problem',
+    ]);
+    expect(orderDetailsView(details({ status: 'CONCLUIDO' }), 'provider', NOW).reportLink).toBeNull();
   });
 
   it('conclusão: observações, ajuste de preço e avaliação válida', () => {
@@ -194,7 +203,7 @@ describe('orderDetailsView', () => {
 });
 
 describe('orderExpiryNotice', () => {
-  const expires = new Date(2026, 10, 14, 15, 40).toISOString();
+  const expires = '2026-11-14T15:40:00-03:00';
 
   it('sem prazo: nada', () => {
     expect(orderExpiryNotice(details(), 'customer', NOW)).toBeNull();
@@ -212,8 +221,16 @@ describe('orderExpiryNotice', () => {
     expect(orderExpiryNotice(order, 'customer', NOW)?.title).toBe('O prestador tem até 15:40 para responder');
   });
 
+  it('usa o fuso de São Paulo e inclui amanhã quando o prazo cruza a meia-noite', () => {
+    const now = new Date('2026-11-14T23:00:00.000Z');
+    const tomorrowAtLocal = details({ status: 'AGUARDANDO_APROVACAO', expiresAt: '2026-11-15T08:42:00.000Z' });
+    expect(orderExpiryNotice(tomorrowAtLocal, 'provider', now)?.title).toBe('Responda até amanhã, 05:42');
+    const todayAtLocal = details({ status: 'AGUARDANDO_APROVACAO', expiresAt: '2026-11-15T02:42:00.000Z' });
+    expect(orderExpiryNotice(todayAtLocal, 'provider', now)?.title).toBe('Responda até 23:42');
+  });
+
   it('prazo vencido', () => {
     const order = details({ status: 'AGUARDANDO_PAGAMENTO', expiresAt: expires });
-    expect(orderExpiryNotice(order, 'customer', new Date(2026, 10, 14, 16, 0))?.title).toBe('O prazo terminou');
+    expect(orderExpiryNotice(order, 'customer', new Date('2026-11-14T16:00:00-03:00'))?.title).toBe('O prazo terminou');
   });
 });

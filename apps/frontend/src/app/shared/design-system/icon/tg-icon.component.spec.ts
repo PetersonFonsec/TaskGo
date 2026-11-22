@@ -11,7 +11,7 @@ describe('TgIconComponent', () => {
 
   it('desenha o ícone e é decorativo por padrão', () => {
     const svg = render({ name: 'house' });
-    expect(svg.querySelector('path')).not.toBeNull();
+    expect(svg.querySelector('path')?.getAttribute('d')).toContain('M128');
     expect(svg.getAttribute('aria-hidden')).toBe('true');
     expect(svg.getAttribute('width')).toBe('20');
   });

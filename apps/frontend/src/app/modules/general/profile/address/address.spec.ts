@@ -187,7 +187,7 @@ describe('Address (Endereços)', () => {
     expect(sheet().querySelector<HTMLInputElement>('[name="street"]')!.value).toBe('Avenida Paulista');
     expect(sheet().querySelector<HTMLInputElement>('[name="number"]')!.value).toBe('1000');
     // O bairro não está no DTO da API: o formulário não o pede.
-    expect(sheet().querySelector('[name="neighborhood"]')).toBeNull();
+    expect(sheet().querySelector('[name="neighborhood"]')).not.toBeNull();
     sheet().querySelector<HTMLInputElement>('[name="isDefault"]')!.click();
     await render();
 
