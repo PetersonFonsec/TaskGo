@@ -44,7 +44,14 @@ export function addressErrors(address: IAddressEntity): AddressErrors {
   };
 }
 
-const NO_ERRORS: AddressErrors = { label: '', cep: '', street: '', number: '', city: '', state: '' };
+const NO_ERRORS: AddressErrors = {
+  label: '',
+  cep: '',
+  street: '',
+  number: '',
+  city: '',
+  state: '',
+};
 
 /**
  * Formulário de endereço da tela Endereços (Etapa 10). Só os campos: o
@@ -99,7 +106,9 @@ export class AddressForm implements OnInit, OnDestroy {
       this.payload = { ...initial, complement: initial.complement ?? '' };
       this.lastCep = this.hasCoordinates(this.payload) ? onlyDigits(this.payload.cep) : '';
       if (!this.lastCep) {
-        this.cepError.set('Este endereço está sem uma localização válida. Vamos tentar corrigir pelo CEP.');
+        this.cepError.set(
+          'Este endereço está sem uma localização válida. Vamos tentar corrigir pelo CEP.',
+        );
         this.onCepChange(this.payload.cep);
       }
     }
@@ -141,7 +150,9 @@ export class AddressForm implements OnInit, OnDestroy {
           (address.latitude === 0 && address.longitude === 0)
         ) {
           this.lookingUpCep.set(false);
-          this.cepError.set('Não foi possível localizar este CEP. Confira o endereço ou tente novamente.');
+          this.cepError.set(
+            'Não foi possível localizar este CEP. Confira o endereço ou tente novamente.',
+          );
           return;
         }
         const resolvedAddress = {
@@ -163,9 +174,11 @@ export class AddressForm implements OnInit, OnDestroy {
       },
       error: (error: { status?: number } | null) => {
         this.lookingUpCep.set(false);
-        this.cepError.set(error?.status === 404
-          ? 'CEP não encontrado ou sem localização disponível. Confira o CEP e tente novamente.'
-          : 'Não foi possível localizar este CEP. Confira a conexão e tente novamente.');
+        this.cepError.set(
+          error?.status === 404
+            ? 'CEP não encontrado ou sem localização disponível. Confira o CEP e tente novamente.'
+            : 'Não foi possível localizar este CEP. Confira a conexão e tente novamente.',
+        );
       },
     });
   }
@@ -206,7 +219,10 @@ export class AddressForm implements OnInit, OnDestroy {
   }
 
   private hasCoordinates(address: Pick<IAddressEntity, 'lat' | 'lng'>) {
-    return Number.isFinite(address.lat) && Number.isFinite(address.lng) &&
-      !(address.lat === 0 && address.lng === 0);
+    return (
+      Number.isFinite(address.lat) &&
+      Number.isFinite(address.lng) &&
+      !(address.lat === 0 && address.lng === 0)
+    );
   }
 }

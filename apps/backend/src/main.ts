@@ -35,8 +35,8 @@ async function bootstrap() {
         new BadRequestException({
           errorCode: 'VALIDATION_ERROR',
           message: errors.flatMap(({ property, constraints }) =>
-            Object.keys(constraints ?? {}).map((constraint) =>
-              `${property}: ${validationMessage(constraint)}`,
+            Object.keys(constraints ?? {}).map(
+              (constraint) => `${property}: ${validationMessage(constraint)}`,
             ),
           ),
         }),

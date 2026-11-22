@@ -18,7 +18,9 @@ import { TG_ICONS, type TgIconName, type TgIconWeight } from '@taskgo/icons';
     [attr.aria-label]="label() || null"
     [attr.aria-hidden]="label() ? null : 'true'"
     focusable="false"
-  ><path [attr.d]="pathData()" /></svg>`,
+  >
+    <path [attr.d]="pathData()" />
+  </svg>`,
   styles: `
     :host {
       display: inline-flex;

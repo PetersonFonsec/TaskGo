@@ -1,6 +1,10 @@
 import type { TgIconName } from '@taskgo/icons';
 import type { TgBadgeTone } from '@shared/design-system/badge/tg-badge.component';
-import { TG_NO_DATE, tgDistance, tgWhenParts } from '@shared/design-system/order-row/tg-order-format';
+import {
+  TG_NO_DATE,
+  tgDistance,
+  tgWhenParts,
+} from '@shared/design-system/order-row/tg-order-format';
 import {
   type TgOrderNextStep,
   type TgOrderPerspective,
@@ -58,14 +62,33 @@ export interface OrderDetailsView {
 }
 
 const BRL = new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' });
-const ONE_DECIMAL = new Intl.NumberFormat('pt-BR', { minimumFractionDigits: 1, maximumFractionDigits: 1 });
+const ONE_DECIMAL = new Intl.NumberFormat('pt-BR', {
+  minimumFractionDigits: 1,
+  maximumFractionDigits: 1,
+});
 const PERCENT = new Intl.NumberFormat('pt-BR', { maximumFractionDigits: 1 });
 const ORDER_TIME_ZONE = 'America/Sao_Paulo';
-const LONG_DATE = new Intl.DateTimeFormat('pt-BR', { dateStyle: 'long', timeZone: ORDER_TIME_ZONE });
-const TIME = new Intl.DateTimeFormat('pt-BR', { hour: '2-digit', minute: '2-digit', timeZone: ORDER_TIME_ZONE });
-const CALENDAR_DATE = new Intl.DateTimeFormat('en-CA', { year: 'numeric', month: '2-digit', day: '2-digit', timeZone: ORDER_TIME_ZONE });
+const LONG_DATE = new Intl.DateTimeFormat('pt-BR', {
+  dateStyle: 'long',
+  timeZone: ORDER_TIME_ZONE,
+});
+const TIME = new Intl.DateTimeFormat('pt-BR', {
+  hour: '2-digit',
+  minute: '2-digit',
+  timeZone: ORDER_TIME_ZONE,
+});
+const CALENDAR_DATE = new Intl.DateTimeFormat('en-CA', {
+  year: 'numeric',
+  month: '2-digit',
+  day: '2-digit',
+  timeZone: ORDER_TIME_ZONE,
+});
 
-export const PAYMENT_METHODS: Record<string, string> = { PIX: 'Pix', CARTAO: 'Cartão', OUTRO: 'Outra forma' };
+export const PAYMENT_METHODS: Record<string, string> = {
+  PIX: 'Pix',
+  CARTAO: 'Cartão',
+  OUTRO: 'Outra forma',
+};
 
 /**
  * Situação do pagamento (enum PaymentStatus do backend, com os nomes em
@@ -102,9 +125,15 @@ export function orderDetailsView(
   const parts = tgWhenParts(order.schedule?.scheduledFor, now);
   const category = order.service?.category?.trim();
   const finalAmount = validMoney(order.payment?.finalAmount);
-  const estimated = validMoney(order.payment?.estimatedAmount) ?? validMoney(order.service?.estimatedPrice);
+  const estimated =
+    validMoney(order.payment?.estimatedAmount) ?? validMoney(order.service?.estimatedPrice);
   const step = tgOrderNextStep(
-    { id: order.id, status: order.status, reviewed: !!order.review, paymentStatus: order.payment?.status ?? null },
+    {
+      id: order.id,
+      status: order.status,
+      reviewed: !!order.review,
+      paymentStatus: order.payment?.status ?? null,
+    },
     perspective,
   );
 
@@ -112,7 +141,10 @@ export function orderDetailsView(
     id: order.id,
     title: order.service?.title?.trim() || 'Serviço',
     eyebrow: [`Pedido #${order.id}`, category].filter(Boolean).join(' · '),
-    requested: formatDate(order.schedule?.requestedAt, (date) => `Solicitado em ${LONG_DATE.format(date)}`),
+    requested: formatDate(
+      order.schedule?.requestedAt,
+      (date) => `Solicitado em ${LONG_DATE.format(date)}`,
+    ),
     when: parts ?? { day: TG_NO_DATE, time: '' },
     status: { ...status, icon: tgOrderStatusIcon(order.status) },
     ...address(order, perspective),
@@ -134,7 +166,9 @@ export function orderDetailsView(
       order.status === 'CANCELADO' && order.cancellation?.label
         ? {
             title:
-              perspective === 'provider' ? 'Você recusou esta solicitação' : 'O prestador não pôde atender este pedido',
+              perspective === 'provider'
+                ? 'Você recusou esta solicitação'
+                : 'O prestador não pôde atender este pedido',
             reason: order.cancellation.label,
             note: order.cancellation.note?.trim() || null,
           }
@@ -158,24 +192,44 @@ export function orderExpiryNotice(
   const approval = order.status === 'AGUARDANDO_APROVACAO';
   const body = 'Depois disso o pedido expira e o horário é liberado.';
   if (expires.getTime() <= now.getTime()) {
-    return { title: 'O prazo terminou', body: 'O pedido será expirado automaticamente e o horário é liberado.' };
+    return {
+      title: 'O prazo terminou',
+      body: 'O pedido será expirado automaticamente e o horário é liberado.',
+    };
   }
   const datePrefix = expiryDatePrefix(expires, now);
   const time = TIME.format(expires);
   const customer = perspective === 'customer';
   if (approval) {
-    return { title: customer ? `O prestador tem até ${datePrefix}${time} para responder` : `Responda até ${datePrefix}${time}`, body };
+    return {
+      title: customer
+        ? `O prestador tem até ${datePrefix}${time} para responder`
+        : `Responda até ${datePrefix}${time}`,
+      body,
+    };
   }
-  return { title: customer ? `Pague até ${datePrefix}${time}` : `O cliente tem até ${datePrefix}${time} para pagar`, body };
+  return {
+    title: customer
+      ? `Pague até ${datePrefix}${time}`
+      : `O cliente tem até ${datePrefix}${time} para pagar`,
+    body,
+  };
 }
 
 function address(order: OrderDetails, perspective: TgOrderPerspective) {
   const a = order.address;
-  const street = [a?.street, a?.number, a?.complement].map((part) => part?.trim()).filter(Boolean).join(', ');
+  const street = [a?.street, a?.number, a?.complement]
+    .map((part) => part?.trim())
+    .filter(Boolean)
+    .join(', ');
   const line = [street, a?.neighborhood?.trim()].filter(Boolean).join(' · ');
   const city = [a?.city?.trim(), a?.state?.trim()].filter(Boolean).join(' / ');
   const distance = perspective === 'provider' ? tgDistance(order.distanceKm) : null;
-  const detail = [city, a?.cep?.trim() ? `CEP ${a.cep.trim()}` : '', distance ? `${distance} de você` : '']
+  const detail = [
+    city,
+    a?.cep?.trim() ? `CEP ${a.cep.trim()}` : '',
+    distance ? `${distance} de você` : '',
+  ]
     .filter(Boolean)
     .join(' · ');
   return { address: line || null, addressDetail: detail || null };
@@ -199,7 +253,11 @@ function person(order: OrderDetails, perspective: TgOrderPerspective): OrderDeta
   };
 }
 
-function payment(order: OrderDetails, finalAmount: number | null, estimated: number | null): OrderDetailsRow[] {
+function payment(
+  order: OrderDetails,
+  finalAmount: number | null,
+  estimated: number | null,
+): OrderDetailsRow[] {
   const rows: (OrderDetailsRow | null)[] = [
     finalAmount !== null
       ? { label: 'Valor final', value: BRL.format(finalAmount) }
@@ -221,9 +279,14 @@ function earnings(order: OrderDetails, final: boolean): OrderDetailsRow[] {
   if (!e || net === null) return [];
   const pct = Number(e.feePct);
   const fee = Number(e.feeAmount);
-  const rows: OrderDetailsRow[] = [{ label: final ? 'Sua parte' : 'Sua parte (estimada)', value: BRL.format(net) }];
+  const rows: OrderDetailsRow[] = [
+    { label: final ? 'Sua parte' : 'Sua parte (estimada)', value: BRL.format(net) },
+  ];
   if (Number.isFinite(pct) && pct >= 0 && Number.isFinite(fee) && fee >= 0) {
-    rows.push({ label: 'Taxa da plataforma', value: `${PERCENT.format(pct * 100)}% · ${BRL.format(fee)}` });
+    rows.push({
+      label: 'Taxa da plataforma',
+      value: `${PERCENT.format(pct * 100)}% · ${BRL.format(fee)}`,
+    });
   }
   return rows;
 }
@@ -240,11 +303,19 @@ function row(label: string, value: string | null | undefined): OrderDetailsRow |
 }
 
 function validMoney(value: unknown): number | null {
-  const n = typeof value === 'number' ? value : typeof value === 'string' && value.trim() ? Number(value) : NaN;
+  const n =
+    typeof value === 'number'
+      ? value
+      : typeof value === 'string' && value.trim()
+        ? Number(value)
+        : NaN;
   return Number.isFinite(n) && n > 0 ? n : null;
 }
 
-function formatDate(value: string | null | undefined, format: (date: Date) => string): string | null {
+function formatDate(
+  value: string | null | undefined,
+  format: (date: Date) => string,
+): string | null {
   if (!value) return null;
   const date = new Date(value);
   return Number.isNaN(date.getTime()) ? null : format(date);

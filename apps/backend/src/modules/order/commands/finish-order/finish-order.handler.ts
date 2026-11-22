@@ -68,7 +68,9 @@ export class FinishOrderHandler implements ICommandHandler<FinishOrderCommand> {
       );
     }
     if (!['CAPTURED', 'PAGO'].includes(order.payment.status)) {
-      throw new BadRequestException('O pagamento do pedido ainda não foi confirmado.');
+      throw new BadRequestException(
+        'O pagamento do pedido ainda não foi confirmado.',
+      );
     }
     if (
       Number(order.payment.amount) !== payload.finalPrice ||

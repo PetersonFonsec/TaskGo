@@ -18,7 +18,14 @@ import { INSTITUTIONAL_PAGES, institutionalLink } from './institutional-pages';
  */
 @Component({
   selector: 'app-institutional-page',
-  imports: [Footer, RouterLink, RouterLinkActive, RouterOutlet, TgAppBarComponent, TgButtonComponent],
+  imports: [
+    Footer,
+    RouterLink,
+    RouterLinkActive,
+    RouterOutlet,
+    TgAppBarComponent,
+    TgButtonComponent,
+  ],
   changeDetection: ChangeDetectionStrategy.OnPush,
   templateUrl: './institutional-page.html',
   styleUrl: './institutional-page.scss',
@@ -34,6 +41,8 @@ export class InstitutionalPage {
   });
   protected readonly home = computed(() => this.navigation()?.home ?? `/${UrlBase.AUTHENTICATE}`);
   protected readonly signIn = `/${UrlBase.AUTHENTICATE}`;
-  protected readonly pages = INSTITUTIONAL_PAGES.map((page) => ({ ...page, link: institutionalLink(page.path) }));
-
+  protected readonly pages = INSTITUTIONAL_PAGES.map((page) => ({
+    ...page,
+    link: institutionalLink(page.path),
+  }));
 }

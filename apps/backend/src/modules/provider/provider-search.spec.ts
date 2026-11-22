@@ -42,11 +42,7 @@ describe('filterAndOrderProviders', () => {
       { id: 3n, locations: [] },
     ];
 
-    const result = filterAndOrderProviders(
-      providers,
-      { lat: 0, lng: 0 },
-      {},
-    );
+    const result = filterAndOrderProviders(providers, { lat: 0, lng: 0 }, {});
 
     expect(result.map(({ id }) => id)).toEqual([2n, 1n, 3n]);
     expect(result[0].distanceKm).toBeLessThan(result[1].distanceKm!);

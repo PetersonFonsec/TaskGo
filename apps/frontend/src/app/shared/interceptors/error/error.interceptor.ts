@@ -12,13 +12,13 @@ export const errorInterceptor: HttpInterceptorFn = (req, next) => {
 
   return next(req).pipe(
     catchError((err: any) => {
-      if ((err instanceof HttpErrorResponse) && err.status === 401) {
+      if (err instanceof HttpErrorResponse && err.status === 401) {
         console.info('Sessão vencida, é necessario se autenticar novamente.');
         tokenService.clearToken();
         router.navigateByUrl('/');
       }
 
       return throwError(() => err);
-    })
+    }),
   );
 };

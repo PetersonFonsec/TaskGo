@@ -110,7 +110,12 @@ describe('Order details', () => {
     order.status = 'AGUARDANDO_CONFIRMACAO_CLIENTE';
     order.providerFinishedAt = new Date('2026-10-01T11:00:00Z');
     order.finalPrice = 150;
-    order.payment = { method: 'PIX', status: 'PAGO', amount: 150, paidAt: null };
+    order.payment = {
+      method: 'PIX',
+      status: 'PAGO',
+      amount: 150,
+      paidAt: null,
+    };
 
     const details = await handler.execute(new GetOrderDetailsQuery(1n));
 
@@ -125,7 +130,12 @@ describe('Order details', () => {
     order.status = 'AGUARDANDO_CONFIRMACAO_CLIENTE';
     order.providerFinishedAt = new Date('2026-10-01T11:00:00Z');
     order.finalPrice = 150;
-    order.payment = { method: 'PIX', status: 'PAGO', amount: 150, paidAt: null };
+    order.payment = {
+      method: 'PIX',
+      status: 'PAGO',
+      amount: 150,
+      paidAt: null,
+    };
     db.orderDispute.findFirst.mockResolvedValue({ id: 9n });
 
     const details = await handler.execute(new GetOrderDetailsQuery(1n));

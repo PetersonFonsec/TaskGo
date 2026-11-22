@@ -47,8 +47,15 @@ export interface ProviderHomeEarnings {
   insights: ProviderHomeInsight[];
 }
 
-const BRL_INT = new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL', maximumFractionDigits: 0 });
-const ONE_DECIMAL = new Intl.NumberFormat('pt-BR', { minimumFractionDigits: 1, maximumFractionDigits: 1 });
+const BRL_INT = new Intl.NumberFormat('pt-BR', {
+  style: 'currency',
+  currency: 'BRL',
+  maximumFractionDigits: 0,
+});
+const ONE_DECIMAL = new Intl.NumberFormat('pt-BR', {
+  minimumFractionDigits: 1,
+  maximumFractionDigits: 1,
+});
 const MONTHS = ['jan', 'fev', 'mar', 'abr', 'mai', 'jun', 'jul', 'ago', 'set', 'out', 'nov', 'dez'];
 /** Os rótulos do gráfico (backend: "Jan" a "Dez") por extenso, para "em relação a outubro". */
 const MONTH_NAMES: Record<string, string> = {
@@ -73,7 +80,10 @@ const MONTH_NAMES: Record<string, string> = {
  * crescimento do mês, que já era calculado aqui. Campos ausentes ou
  * inválidos viram zero ou "Sem dados", nunca valor inventado.
  */
-export function providerHomeEarnings(home: ProviderHomeData, now: Date = new Date()): ProviderHomeEarnings {
+export function providerHomeEarnings(
+  home: ProviderHomeData,
+  now: Date = new Date(),
+): ProviderHomeEarnings {
   const earnings = home.earnings ?? { today: 0, month: 0, previousMonth: 0, lastSixMonths: [] };
   const revenue = Array.isArray(earnings.lastSixMonths) ? earnings.lastSixMonths : [];
   const month = amount(earnings.month);
@@ -126,16 +136,16 @@ export function providerHomeEarnings(home: ProviderHomeData, now: Date = new Dat
     },
   ];
 
-  const recent: ProviderHomeRecent[] = (Array.isArray(home.recentServices) ? home.recentServices : []).map(
-    (service) => ({
-      id: String(service.id),
-      service: service.service?.trim() || 'Serviço',
-      person: service.clientName?.trim() || null,
-      date: shortDate(service.completedAt, now),
-      share: share(service.amount, service.paymentStatus),
-      rating: validRating(service.rating),
-    }),
-  );
+  const recent: ProviderHomeRecent[] = (
+    Array.isArray(home.recentServices) ? home.recentServices : []
+  ).map((service) => ({
+    id: String(service.id),
+    service: service.service?.trim() || 'Serviço',
+    person: service.clientName?.trim() || null,
+    date: shortDate(service.completedAt, now),
+    share: share(service.amount, service.paymentStatus),
+    rating: validRating(service.rating),
+  }));
 
   const insights = home.insights;
   const ticket = amount(insights?.averageTicket);
@@ -154,9 +164,21 @@ export function providerHomeEarnings(home: ProviderHomeData, now: Date = new Dat
     revenue,
     recent,
     insights: [
-      { label: 'Serviço mais pedido', value: insights?.mostRequestedService?.trim() || 'Sem dados', positive: false },
-      { label: 'Ticket médio', value: ticket > 0 ? BRL_INT.format(ticket) : 'Sem dados', positive: false },
-      { label: 'Bairro mais atendido', value: insights?.mostServedNeighborhood?.trim() || 'Sem dados', positive: false },
+      {
+        label: 'Serviço mais pedido',
+        value: insights?.mostRequestedService?.trim() || 'Sem dados',
+        positive: false,
+      },
+      {
+        label: 'Ticket médio',
+        value: ticket > 0 ? BRL_INT.format(ticket) : 'Sem dados',
+        positive: false,
+      },
+      {
+        label: 'Bairro mais atendido',
+        value: insights?.mostServedNeighborhood?.trim() || 'Sem dados',
+        positive: false,
+      },
       {
         label: 'Crescimento no mês',
         value: isNumber(monthlyGrowth) ? signed(monthlyGrowth) : 'Sem histórico',
@@ -171,7 +193,8 @@ function share(value: unknown, paymentStatus: unknown): string | null {
   if (!money) return null;
   const status = typeof paymentStatus === 'string' ? paymentStatus.toUpperCase() : '';
   if (['CAPTURED', 'RELEASED', 'PAGO'].includes(status)) return `Você recebeu ${money}`;
-  if (['CREATED', 'AUTHORIZED', 'AUTORIZADO', 'PENDENTE'].includes(status)) return `A receber: ${money}`;
+  if (['CREATED', 'AUTHORIZED', 'AUTORIZADO', 'PENDENTE'].includes(status))
+    return `A receber: ${money}`;
   return `Sua parte no serviço: ${money}`;
 }
 

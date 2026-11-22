@@ -236,7 +236,9 @@ export class GetOrderDetailsHandler
                 ? 'O pagamento deste pedido não foi encontrado.'
                 : order.payment.method !== 'PIX'
                   ? 'A confirmação está disponível apenas para pagamentos via Pix neste MVP.'
-                  : !['PAGO', 'CAPTURED', 'RELEASED'].includes(order.payment.status)
+                  : !['PAGO', 'CAPTURED', 'RELEASED'].includes(
+                        order.payment.status,
+                      )
                     ? 'O pagamento ainda não foi confirmado.'
                     : order.finalPrice === null
                       ? 'O pedido não possui um valor final.'

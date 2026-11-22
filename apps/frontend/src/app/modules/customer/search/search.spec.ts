@@ -42,7 +42,16 @@ const validProvider = {
       verified: true,
     },
   },
-  services: [{ id: 's1', name: 'Encanadora', title: 'Encanadora', category: 'encanadores', basePrice: 120, status: 'ATIVO' }],
+  services: [
+    {
+      id: 's1',
+      name: 'Encanadora',
+      title: 'Encanadora',
+      category: 'encanadores',
+      basePrice: 120,
+      status: 'ATIVO',
+    },
+  ],
   lat: '-23.55052',
   lng: '-46.633308',
   distanceKm: '3.5',
@@ -141,7 +150,8 @@ describe('Search', () => {
   });
 
   const el = () => fixture.nativeElement as HTMLElement;
-  const text = (node: Element | null = el()) => (node?.textContent ?? '').replace(/\s+/g, ' ').trim();
+  const text = (node: Element | null = el()) =>
+    (node?.textContent ?? '').replace(/\s+/g, ' ').trim();
   const buttonIn = (root: Element, label: string) =>
     [...root.querySelectorAll<HTMLButtonElement>('button')].find((b) => text(b) === label) ?? null;
   const sheet = () => el().querySelector('tg-sheet dialog') as HTMLDialogElement;
@@ -501,7 +511,12 @@ describe('Search', () => {
     providerMock.listFavorites.and.callFake((_clientId: string, paging: { skip: number }) =>
       of(
         paging.skip === 0
-          ? { items: Array.from({ length: 100 }, (_, index) => ({ providerId: `provider-${index}` })), total: 101 }
+          ? {
+              items: Array.from({ length: 100 }, (_, index) => ({
+                providerId: `provider-${index}`,
+              })),
+              total: 101,
+            }
           : { items: [{ providerId: 'provider-200' }], total: 101 },
       ),
     );
@@ -576,12 +591,21 @@ describe('Search', () => {
     fixture.detectChanges();
 
     queryParams.next({
-      categoria: 'encanadores', minimumRating: '4', maximumDistance: '10', minimumPrice: '100', maximumPrice: '200',
+      categoria: 'encanadores',
+      minimumRating: '4',
+      maximumDistance: '10',
+      minimumPrice: '100',
+      maximumPrice: '200',
     });
 
     expect(providerMock.findProvidersByCategorySlug).toHaveBeenCalledWith(
       'encanadores',
-      jasmine.objectContaining({ minimumRating: 4, maximumDistance: 10, minimumPrice: 100, maximumPrice: 200 }),
+      jasmine.objectContaining({
+        minimumRating: 4,
+        maximumDistance: 10,
+        minimumPrice: 100,
+        maximumPrice: 200,
+      }),
     );
     expect(component.providers().map((provider) => provider.id)).toEqual(['match']);
   });
@@ -652,7 +676,12 @@ describe('Search', () => {
     it('mudar o rascunho não busca nem filtra; aplicar salva os parâmetros na URL', () => {
       providersResponse = [
         { ...validProvider, id: '201', distanceKm: 2 },
-        { ...validProvider, id: '202', distanceKm: 4, user: { name: 'Bia', provider: { ratingAvg: 3.2 } } },
+        {
+          ...validProvider,
+          id: '202',
+          distanceKm: 4,
+          user: { name: 'Bia', provider: { ratingAvg: 3.2 } },
+        },
       ];
       fixture.detectChanges();
       component.openFilters();
@@ -727,11 +756,16 @@ describe('Search', () => {
 
   it('chips de categoria buscam na hora; "Todas" tira a categoria', () => {
     fixture.detectChanges();
-    const chips = [...el().querySelectorAll<HTMLButtonElement>('.search__categories .search__chip')];
+    const chips = [
+      ...el().querySelectorAll<HTMLButtonElement>('.search__categories .search__chip'),
+    ];
     expect(chips.map((c) => text(c))).toEqual(['Todas', 'Encanadores']);
     expect(chips[1].getAttribute('aria-pressed')).toBe('true');
     chips[0].click();
-    expect(routerMock.navigate).toHaveBeenCalledWith([], jasmine.objectContaining({ queryParams: { categoria: null } }));
+    expect(routerMock.navigate).toHaveBeenCalledWith(
+      [],
+      jasmine.objectContaining({ queryParams: { categoria: null } }),
+    );
   });
 
   it('lista dos mais próximos para os mais distantes; sem distância vai para o fim', () => {
@@ -780,9 +814,13 @@ describe('Search', () => {
   });
 
   it('falha na busca: alerta com "Tentar de novo"', () => {
-    providerMock.findProvidersByCategorySlug.and.returnValue(throwError(() => new Error('offline')));
+    providerMock.findProvidersByCategorySlug.and.returnValue(
+      throwError(() => new Error('offline')),
+    );
     fixture.detectChanges();
-    expect(text(el().querySelector('tg-alert'))).toContain('Não foi possível buscar os profissionais');
+    expect(text(el().querySelector('tg-alert'))).toContain(
+      'Não foi possível buscar os profissionais',
+    );
     providerMock.findProvidersByCategorySlug.and.returnValue(of([validProvider]));
     buttonIn(el(), 'Tentar de novo')!.click();
     fixture.detectChanges();
@@ -792,9 +830,21 @@ describe('Search', () => {
   describe('filtros de preço enviados à API', () => {
     it('envia a faixa de preço ao aplicar e não filtra localmente o rascunho', () => {
       providersResponse = [
-        { ...validProvider, id: '409', services: [{ id: 'a', title: 'A', category: 'encanadores', basePrice: 300 }] },
-        { ...validProvider, id: '410', services: [{ id: 'b', title: 'B', category: 'encanadores', basePrice: 250 }] },
-        { ...validProvider, id: '411', services: [{ id: 'c', title: 'C', category: 'encanadores', basePrice: 140 }] },
+        {
+          ...validProvider,
+          id: '409',
+          services: [{ id: 'a', title: 'A', category: 'encanadores', basePrice: 300 }],
+        },
+        {
+          ...validProvider,
+          id: '410',
+          services: [{ id: 'b', title: 'B', category: 'encanadores', basePrice: 250 }],
+        },
+        {
+          ...validProvider,
+          id: '411',
+          services: [{ id: 'c', title: 'C', category: 'encanadores', basePrice: 140 }],
+        },
       ];
       fixture.detectChanges();
       component.openFilters();
@@ -815,14 +865,28 @@ describe('Search', () => {
     });
 
     it('usa o mesmo menor preço elegível do card e do mapa', () => {
-      providersResponse = [{
-        ...validProvider,
-        id: '412',
-        services: [
-          { id: 'a', title: 'Mais caro', category: 'encanadores', basePrice: 300, status: 'ATIVO' },
-          { id: 'b', title: 'Mais barato', category: 'encanadores', basePrice: 100, status: 'ATIVO' },
-        ],
-      }];
+      providersResponse = [
+        {
+          ...validProvider,
+          id: '412',
+          services: [
+            {
+              id: 'a',
+              title: 'Mais caro',
+              category: 'encanadores',
+              basePrice: 300,
+              status: 'ATIVO',
+            },
+            {
+              id: 'b',
+              title: 'Mais barato',
+              category: 'encanadores',
+              basePrice: 100,
+              status: 'ATIVO',
+            },
+          ],
+        },
+      ];
       fixture.detectChanges();
       expect(component.cards()[0].priceFrom).toBe(100);
       expect(component.mapProviders()[0].priceFrom).toBe(100);
@@ -830,7 +894,7 @@ describe('Search', () => {
   });
 
   describe('favoritos fora de ordem', () => {
-    const later = <T,>() => new Subject<T>();
+    const later = <T>() => new Subject<T>();
     type List = { items: { providerId: string }[] };
 
     it('lista antiga que chega depois de favoritar não desfaz o favorito', () => {
@@ -879,7 +943,9 @@ describe('Search', () => {
     it('falha ao favoritar: estado e carregamento coerentes, e a lista seguinte vale', () => {
       const list = later<List>();
       providerMock.listFavorites.and.returnValue(list);
-      providerMock.addFavorite.and.returnValue(throwError(() => new HttpErrorResponse({ status: 500 })));
+      providerMock.addFavorite.and.returnValue(
+        throwError(() => new HttpErrorResponse({ status: 500 })),
+      );
       fixture.detectChanges();
       component.toggleFavorite('101');
       expect(component.isFavorite('101')).toBeFalse();

@@ -28,7 +28,10 @@ async function setup({ token, type }: Session, from?: string) {
       { provide: TokenService, useValue: { token } },
       {
         provide: UserLoggedService,
-        useValue: { user: signal(type ? { user: { id: '7', type, name: 'Ana', photoUrl: '' } } : {}), logout: () => undefined },
+        useValue: {
+          user: signal(type ? { user: { id: '7', type, name: 'Ana', photoUrl: '' } } : {}),
+          logout: () => undefined,
+        },
       },
     ],
   });
@@ -39,9 +42,13 @@ async function setup({ token, type }: Session, from?: string) {
 }
 
 const homeLink = (el: HTMLElement) =>
-  [...el.querySelectorAll<HTMLAnchorElement>('a[tgButton]')].find((a) => a.textContent?.includes('Ir para o início'));
+  [...el.querySelectorAll<HTMLAnchorElement>('a[tgButton]')].find((a) =>
+    a.textContent?.includes('Ir para o início'),
+  );
 const backButton = (el: HTMLElement) =>
-  [...el.querySelectorAll<HTMLButtonElement>('button[tgButton]')].find((b) => b.textContent?.includes('Voltar'));
+  [...el.querySelectorAll<HTMLButtonElement>('button[tgButton]')].find((b) =>
+    b.textContent?.includes('Voltar'),
+  );
 
 describe('NotFound (Página não encontrada)', () => {
   it('mostra um único h1, o texto, a ilustração decorativa e as duas ações', async () => {
@@ -59,7 +66,9 @@ describe('NotFound (Página não encontrada)', () => {
 
     expect(homeLink(el)).toBeTruthy();
     expect(backButton(el)?.getAttribute('type')).toBe('button');
-    expect(el.querySelector('a[href="mailto:contato@taskgo.com.br"]')?.textContent).toContain('Fale com o suporte');
+    expect(el.querySelector('a[href="mailto:contato@taskgo.com.br"]')?.textContent).toContain(
+      'Fale com o suporte',
+    );
   });
 
   it('visitante: "Ir para o início" leva à entrada', async () => {

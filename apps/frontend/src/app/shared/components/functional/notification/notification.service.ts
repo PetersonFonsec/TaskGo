@@ -29,10 +29,16 @@ export class Notification {
   }
 
   markAllRead() {
-    return this.#http.patch<{ updatedCount: number; unreadCount: number }>(`${this.#url}/read-all`, {});
+    return this.#http.patch<{ updatedCount: number; unreadCount: number }>(
+      `${this.#url}/read-all`,
+      {},
+    );
   }
 
   markRead(id: string) {
-    return this.#http.patch<{ updated: boolean; notificationId: string }>(`${this.#url}/${encodeURIComponent(id)}/read`, {});
+    return this.#http.patch<{ updated: boolean; notificationId: string }>(
+      `${this.#url}/${encodeURIComponent(id)}/read`,
+      {},
+    );
   }
 }

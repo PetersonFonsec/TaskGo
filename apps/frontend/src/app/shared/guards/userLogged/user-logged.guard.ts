@@ -8,9 +8,9 @@ import { safeReturnUrl } from '../return-url';
 
 /**
  * @description:
- * Guard para verificar se o usuário já está logado, caso esteja, 
+ * Guard para verificar se o usuário já está logado, caso esteja,
  * redireciona para a rota correspondente ao seu tipo de usuário
- * 
+ *
  * @returns The `userLoggedGuard` function is returning `false`.
  */
 export const userLoggedGuard: CanActivateChildFn = (childRoute, state) => {

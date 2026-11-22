@@ -45,7 +45,10 @@ export interface ProviderProfileView {
 }
 
 const TIME_ZONE = 'America/Sao_Paulo';
-const ONE_DECIMAL = new Intl.NumberFormat('pt-BR', { minimumFractionDigits: 1, maximumFractionDigits: 1 });
+const ONE_DECIMAL = new Intl.NumberFormat('pt-BR', {
+  minimumFractionDigits: 1,
+  maximumFractionDigits: 1,
+});
 const COUNT = new Intl.NumberFormat('pt-BR');
 const PRICE = new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' });
 const PRICE_INT = new Intl.NumberFormat('pt-BR', {
@@ -54,8 +57,17 @@ const PRICE_INT = new Intl.NumberFormat('pt-BR', {
   minimumFractionDigits: 0,
   maximumFractionDigits: 0,
 });
-const MONTH_YEAR = new Intl.DateTimeFormat('pt-BR', { month: 'long', year: 'numeric', timeZone: TIME_ZONE });
-const DAY = new Intl.DateTimeFormat('pt-BR', { day: 'numeric', month: 'short', year: 'numeric', timeZone: TIME_ZONE });
+const MONTH_YEAR = new Intl.DateTimeFormat('pt-BR', {
+  month: 'long',
+  year: 'numeric',
+  timeZone: TIME_ZONE,
+});
+const DAY = new Intl.DateTimeFormat('pt-BR', {
+  day: 'numeric',
+  month: 'short',
+  year: 'numeric',
+  timeZone: TIME_ZONE,
+});
 
 /**
  * Converte `GET /provider/:id` (backend: `GetProviderHandler`, com
@@ -71,8 +83,11 @@ export function providerProfileView(source: unknown): ProviderProfileView | null
   if (!card || !isRecord(source)) return null;
 
   const rating = ratingOf(card.rating, card.ratingCount);
-  const reviews = list(source['reviews']).map(toReview).filter((r): r is ProviderProfileReviewView => !!r);
-  const count = card.ratingCount != null && Number.isSafeInteger(card.ratingCount) ? card.ratingCount : 0;
+  const reviews = list(source['reviews'])
+    .map(toReview)
+    .filter((r): r is ProviderProfileReviewView => !!r);
+  const count =
+    card.ratingCount != null && Number.isSafeInteger(card.ratingCount) ? card.ratingCount : 0;
 
   return {
     id: card.id,
@@ -109,7 +124,9 @@ function regionOf(value: unknown): string | null {
     const formatted = new Intl.NumberFormat('pt-BR', { maximumFractionDigits: 0 }).format(radius);
     return `Atende em um raio de até ${formatted} km da base cadastrada.`;
   }
-  return areas.some((area) => area['mode'] === 'POLYGON') ? 'Atende na área delimitada no mapa.' : null;
+  return areas.some((area) => area['mode'] === 'POLYGON')
+    ? 'Atende na área delimitada no mapa.'
+    : null;
 }
 
 /** Mesma regra do card de prestador: média de 1 a 5 e contagem inteira positiva. */
@@ -134,12 +151,18 @@ function toService(service: Record<string, unknown>): ProviderProfileServiceView
     id: String(service['id'] ?? title),
     title,
     description: text(service['description']),
-    price: price != null && price > 0 ? (Number.isInteger(price) ? PRICE_INT : PRICE).format(price) : null,
+    price:
+      price != null && price > 0
+        ? (Number.isInteger(price) ? PRICE_INT : PRICE).format(price)
+        : null,
   };
 }
 
 /** Cada avaliação é um inteiro de 1 a 5; fora disso, a avaliação não aparece. */
-function toReview(review: Record<string, unknown>, index: number): ProviderProfileReviewView | null {
+function toReview(
+  review: Record<string, unknown>,
+  index: number,
+): ProviderProfileReviewView | null {
   const rating = toNumber(review['rating']);
   if (rating == null || !Number.isInteger(rating) || rating < 1 || rating > 5) return null;
   return {

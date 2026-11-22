@@ -22,7 +22,7 @@ import {
   IonSpinner,
   IonText,
   IonTitle,
-  IonToolbar
+  IonToolbar,
 } from '@ionic/angular';
 import { addIcons } from 'ionicons';
 import { personCircle, shieldCheckmark, star } from 'ionicons/icons';
@@ -61,7 +61,7 @@ type Load<T> = { status: 'loading' } | { status: 'error' } | { status: 'ready'; 
     IonSpinner,
     IonText,
     IonTitle,
-    IonToolbar
+    IonToolbar,
   ],
   templateUrl: './provider.page.html',
   styles: `
@@ -73,7 +73,7 @@ type Load<T> = { status: 'loading' } | { status: 'error' } | { status: 'ready'; 
     .days ion-chip {
       flex: none;
     }
-  `
+  `,
 })
 export class ProviderPage {
   readonly #orders = inject(OrdersService);
@@ -86,10 +86,8 @@ export class ProviderPage {
   readonly id = input.required<string>();
 
   readonly profile = toSignal(
-    toObservable(this.id).pipe(
-      switchMap((id) => loading(this.#orders.provider(id)))
-    ),
-    { initialValue: { status: 'loading' } as Load<ProviderProfile | null> }
+    toObservable(this.id).pipe(switchMap((id) => loading(this.#orders.provider(id)))),
+    { initialValue: { status: 'loading' } as Load<ProviderProfile | null> },
   );
   readonly provider = computed(() => {
     const state = this.profile();
@@ -98,10 +96,10 @@ export class ProviderPage {
 
   readonly #chosenService = signal<string | null>(null);
   readonly serviceId = computed(
-    () => this.#chosenService() ?? (this.provider()?.services[0]?.id?.toString() ?? null)
+    () => this.#chosenService() ?? this.provider()?.services[0]?.id?.toString() ?? null,
   );
   readonly service = computed(
-    () => this.provider()?.services.find((s) => String(s.id) === this.serviceId()) ?? null
+    () => this.provider()?.services.find((s) => String(s.id) === this.serviceId()) ?? null,
   );
 
   readonly agenda = toSignal(
@@ -109,10 +107,10 @@ export class ProviderPage {
       switchMap(([providerId, serviceId]) =>
         providerId != null && serviceId
           ? loading(this.#orders.availability(String(providerId), serviceId))
-          : of<Load<Availability>>({ status: 'loading' })
-      )
+          : of<Load<Availability>>({ status: 'loading' }),
+      ),
     ),
-    { initialValue: { status: 'loading' } as Load<Availability> }
+    { initialValue: { status: 'loading' } as Load<Availability> },
   );
   readonly days = computed(() => {
     const agenda = this.agenda();
@@ -131,11 +129,14 @@ export class ProviderPage {
     return days.some((d) => d.date === chosen) ? chosen : (days[0]?.date ?? null);
   });
   readonly slots = computed(
-    () => this.days().find((d) => d.date === this.date())?.slots.filter((s) => s.available) ?? []
+    () =>
+      this.days()
+        .find((d) => d.date === this.date())
+        ?.slots.filter((s) => s.available) ?? [],
   );
   readonly #chosenSlot = signal<string | null>(null);
   readonly slot = computed(
-    () => this.slots().find((s) => s.startsAt === this.#chosenSlot()) ?? null
+    () => this.slots().find((s) => s.startsAt === this.#chosenSlot()) ?? null,
   );
 
   /** Endereços da conta logada; `idle` sem sessão. */
@@ -162,27 +163,33 @@ export class ProviderPage {
       !address ||
       typeof address.lat !== 'number' ||
       typeof address.lng !== 'number'
-    ) return null;
+    )
+      return null;
     return {
       providerId: String(this.id()),
       category: service.category,
       lat: address.lat,
-      lng: address.lng
+      lng: address.lng,
     };
   });
   readonly #coverage = privateResource(this.#coverageKey, (request) =>
     request
       ? this.#catalog
           .providersByCategory(request.category, { lat: request.lat, lng: request.lng })
-          .pipe(map((providers) => providers.some((provider) => String(provider.id) === request.providerId)))
-      : of(null)
+          .pipe(
+            map((providers) =>
+              providers.some((provider) => String(provider.id) === request.providerId),
+            ),
+          )
+      : of(null),
   );
   readonly coverage = this.#coverage.state;
   readonly coverageMessage = computed(() => {
     if (!this.auth.isAuthenticated() || !this.#selectedAddress() || !this.provider()) return null;
     const state = this.coverage();
-    if (state.status === 'loading') return 'Verificando se este profissional atende no endereço escolhido…';
-    if (state.status === 'error' || state.status === 'ready' && state.value === null) {
+    if (state.status === 'loading')
+      return 'Verificando se este profissional atende no endereço escolhido…';
+    if (state.status === 'error' || (state.status === 'ready' && state.value === null)) {
       return 'Não foi possível confirmar se este profissional atende neste endereço. Tente novamente.';
     }
     if (state.status === 'ready' && !state.value) {
@@ -192,7 +199,7 @@ export class ProviderPage {
   });
   readonly canRetryCoverage = computed(() => {
     const state = this.coverage();
-    return state.status === 'error' || state.status === 'ready' && state.value === null;
+    return state.status === 'error' || (state.status === 'ready' && state.value === null);
   });
 
   readonly submission = this.#submission.state;
@@ -227,7 +234,7 @@ export class ProviderPage {
         !!this.service() &&
         !!this.slot() &&
         !!this.addressId() &&
-        this.isCovered())
+        this.isCovered()),
   );
 
   constructor() {
@@ -274,7 +281,7 @@ export class ProviderPage {
   async submit(): Promise<void> {
     if (!this.auth.isAuthenticated()) {
       await this.#router.navigate(['/entrar'], {
-        queryParams: { voltar: `/prestadores/${this.id()}` }
+        queryParams: { voltar: `/prestadores/${this.id()}` },
       });
       return;
     }
@@ -286,8 +293,8 @@ export class ProviderPage {
     await this.#run(() =>
       this.#submission.submit(
         { serviceId: String(service.id), scheduledFor: slot.startsAt, addressId },
-        summary
-      )
+        summary,
+      ),
     );
   }
 
@@ -340,7 +347,7 @@ export class ProviderPage {
     return new Intl.DateTimeFormat('pt-BR', {
       hour: '2-digit',
       minute: '2-digit',
-      timeZone: this.timezone()
+      timeZone: this.timezone(),
     }).format(new Date(startsAt));
   }
 
@@ -355,7 +362,7 @@ export class ProviderPage {
 
   reviewDate(value: string): string {
     return new Intl.DateTimeFormat('pt-BR', { month: 'short', year: 'numeric' }).format(
-      new Date(value)
+      new Date(value),
     );
   }
 }
@@ -364,6 +371,6 @@ function loading<T>(source: Observable<T>) {
   return source.pipe(
     map((value): Load<T> => ({ status: 'ready', value })),
     catchError(() => of<Load<T>>({ status: 'error' })),
-    startWith<Load<T>>({ status: 'loading' })
+    startWith<Load<T>>({ status: 'loading' }),
   );
 }

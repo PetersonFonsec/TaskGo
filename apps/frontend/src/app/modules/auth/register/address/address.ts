@@ -1,4 +1,13 @@
-import { ChangeDetectionStrategy, Component, DestroyRef, ElementRef, computed, inject, signal, viewChild } from '@angular/core';
+import {
+  ChangeDetectionStrategy,
+  Component,
+  DestroyRef,
+  ElementRef,
+  computed,
+  inject,
+  signal,
+  viewChild,
+} from '@angular/core';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { LiveAnnouncer } from '@angular/cdk/a11y';
 import { FormsModule } from '@angular/forms';
@@ -30,7 +39,16 @@ const hasCoordinates = (lat: number, lng: number) =>
  */
 @Component({
   selector: 'app-address',
-  imports: [FormsModule, NgxMaskDirective, RouterLink, TgAlertComponent, TgButtonComponent, TgFieldComponent, TgIconComponent, TgInputDirective],
+  imports: [
+    FormsModule,
+    NgxMaskDirective,
+    RouterLink,
+    TgAlertComponent,
+    TgButtonComponent,
+    TgFieldComponent,
+    TgIconComponent,
+    TgInputDirective,
+  ],
   providers: [provideNgxMask()],
   templateUrl: './address.html',
   styleUrl: './address.scss',
@@ -61,11 +79,19 @@ export class Address {
 
   readonly hasLocation = computed(() => hasCoordinates(this.lat(), this.lng()));
   /** Cidade e UF viram campos só quando o CEP não as trouxe. */
-  readonly manualCity = computed(() => this.lookup() === 'notFound' || this.lookup() === 'error' || (this.lookup() === 'found' && !this.city()));
-  readonly needsLocation = computed(() => this.lookup() !== 'idle' && this.lookup() !== 'loading' && !this.hasLocation());
+  readonly manualCity = computed(
+    () =>
+      this.lookup() === 'notFound' ||
+      this.lookup() === 'error' ||
+      (this.lookup() === 'found' && !this.city()),
+  );
+  readonly needsLocation = computed(
+    () => this.lookup() !== 'idle' && this.lookup() !== 'loading' && !this.hasLocation(),
+  );
 
   readonly errors = computed<Record<AddressField, string>>(() => {
-    if (!this.submitted()) return { cep: '', street: '', number: '', neighborhood: '', city: '', state: '' };
+    if (!this.submitted())
+      return { cep: '', street: '', number: '', neighborhood: '', city: '', state: '' };
     const cep = onlyDigits(this.cep());
     return {
       cep: !cep ? 'Informe o CEP.' : cep.length !== 8 ? 'Informe os 8 dígitos do CEP.' : '',
@@ -76,7 +102,9 @@ export class Address {
       state: requiredError(this.state(), 'Informe a UF.'),
     };
   });
-  readonly locationRequired = computed(() => this.submitted() && onlyDigits(this.cep()).length === 8 && !this.hasLocation());
+  readonly locationRequired = computed(
+    () => this.submitted() && onlyDigits(this.cep()).length === 8 && !this.hasLocation(),
+  );
 
   readonly cepInput = viewChild<ElementRef<HTMLInputElement>>('cepInput');
   readonly streetInput = viewChild<ElementRef<HTMLInputElement>>('streetInput');
@@ -101,7 +129,10 @@ export class Address {
             : this.#geolocalization.getLatLngByCep(cep).pipe(
                 map((result) => ({ result, status: 'found' as const })),
                 catchError((error: { status?: number }) =>
-                  of({ result: null, status: error?.status === 404 ? ('notFound' as const) : ('error' as const) }),
+                  of({
+                    result: null,
+                    status: error?.status === 404 ? ('notFound' as const) : ('error' as const),
+                  }),
                 ),
                 startWith({ result: null, status: 'loading' as const }),
               ),
@@ -160,7 +191,9 @@ export class Address {
           this.#liveAnnouncer.announce('Localização registrada');
         },
         error: () =>
-          this.locationError.set('Não foi possível obter sua localização. Permita o acesso no navegador e tente de novo.'),
+          this.locationError.set(
+            'Não foi possível obter sua localização. Permita o acesso no navegador e tente de novo.',
+          ),
       });
   }
 
@@ -174,7 +207,10 @@ export class Address {
       { error: errors.neighborhood, element: this.neighborhoodInput()?.nativeElement },
       { error: errors.city, element: this.cityInput()?.nativeElement },
       { error: errors.state, element: this.stateInput()?.nativeElement },
-      { error: this.locationRequired() ? 'location' : '', element: this.locationButton()?.nativeElement },
+      {
+        error: this.locationRequired() ? 'location' : '',
+        element: this.locationButton()?.nativeElement,
+      },
     ]);
     if (invalid || this.lookup() === 'loading') return;
 

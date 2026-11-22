@@ -1,6 +1,4 @@
-import {
-  providerCoverageWhere,
-} from '../../coverage';
+import { providerCoverageWhere } from '../../coverage';
 import { NotFoundException, UnauthorizedException } from '@nestjs/common';
 import { IQueryHandler, QueryHandler } from '@nestjs/cqrs';
 import { Prisma } from '@prisma/client';

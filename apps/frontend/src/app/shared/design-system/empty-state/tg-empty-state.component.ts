@@ -46,23 +46,39 @@ export type TgEmptyStateLevel = 1 | 2 | 3 | 4 | 5 | 6;
   // query (um elemento não consulta o próprio tamanho).
   template: `
     <div class="tg-empty-state__box">
-    @if (illustrationSrc(); as src) {
-      <img class="tg-empty-state__illustration" [src]="src" [alt]="illustrationAlt()" />
-    } @else if (icon(); as name) {
-      <span class="tg-empty-state__icon"><tg-icon [name]="name" [size]="compact() ? 22 : 32" /></span>
-    }
-    <div class="tg-empty-state__body">
-      @switch (headingLevel()) {
-        @case (1) { <h1 class="tg-empty-state__title tg-empty-state__title--level-1">{{ title() }}</h1> }
-        @case (3) { <h3 class="tg-empty-state__title">{{ title() }}</h3> }
-        @case (4) { <h4 class="tg-empty-state__title">{{ title() }}</h4> }
-        @case (5) { <h5 class="tg-empty-state__title">{{ title() }}</h5> }
-        @case (6) { <h6 class="tg-empty-state__title">{{ title() }}</h6> }
-        @default { <h2 class="tg-empty-state__title">{{ title() }}</h2> }
+      @if (illustrationSrc(); as src) {
+        <img class="tg-empty-state__illustration" [src]="src" [alt]="illustrationAlt()" />
+      } @else if (icon(); as name) {
+        <span class="tg-empty-state__icon"
+          ><tg-icon [name]="name" [size]="compact() ? 22 : 32"
+        /></span>
       }
-      <div #text class="tg-empty-state__text"><ng-content /></div>
-    </div>
-    <div #action class="tg-empty-state__action"><ng-content select="[tgEmptyAction], [tgEmptySecondaryAction]" /></div>
+      <div class="tg-empty-state__body">
+        @switch (headingLevel()) {
+          @case (1) {
+            <h1 class="tg-empty-state__title tg-empty-state__title--level-1">{{ title() }}</h1>
+          }
+          @case (3) {
+            <h3 class="tg-empty-state__title">{{ title() }}</h3>
+          }
+          @case (4) {
+            <h4 class="tg-empty-state__title">{{ title() }}</h4>
+          }
+          @case (5) {
+            <h5 class="tg-empty-state__title">{{ title() }}</h5>
+          }
+          @case (6) {
+            <h6 class="tg-empty-state__title">{{ title() }}</h6>
+          }
+          @default {
+            <h2 class="tg-empty-state__title">{{ title() }}</h2>
+          }
+        }
+        <div #text class="tg-empty-state__text"><ng-content /></div>
+      </div>
+      <div #action class="tg-empty-state__action">
+        <ng-content select="[tgEmptyAction], [tgEmptySecondaryAction]" />
+      </div>
     </div>
   `,
   styleUrl: './tg-empty-state.component.scss',

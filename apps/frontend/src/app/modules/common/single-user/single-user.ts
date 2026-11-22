@@ -59,7 +59,9 @@ export class SingleUser implements OnInit {
   #user = inject(User);
 
   private readonly http = inject(HttpClient);
-  addresses = signal<Array<{ id: string; label?: string; street: string; number?: string; isDefault?: boolean }>>([]);
+  addresses = signal<
+    Array<{ id: string; label?: string; street: string; number?: string; isDefault?: boolean }>
+  >([]);
   selectedAddressId = signal('');
   selectedServiceId = signal('');
   submitting = signal(false);
@@ -123,16 +125,24 @@ export class SingleUser implements OnInit {
 
   ngOnInit(): void {
     this.http
-      .get<{ data: Array<{ id: string; label?: string; street: string; number?: string; isDefault?: boolean }> }>(
-        environment.url + '/user/me/addresses?limit=100',
-      )
+      .get<{
+        data: Array<{
+          id: string;
+          label?: string;
+          street: string;
+          number?: string;
+          isDefault?: boolean;
+        }>;
+      }>(environment.url + '/user/me/addresses?limit=100')
       .subscribe({
-      next: ({ data }) => {
-        this.addresses.set(data);
-        this.selectedAddressId.set(String(data.find((a) => a.isDefault)?.id ?? data[0]?.id ?? ''));
-      },
-      error: () => this.error.set('Cadastre um endereço de atendimento no seu perfil.'),
-    });
+        next: ({ data }) => {
+          this.addresses.set(data);
+          this.selectedAddressId.set(
+            String(data.find((a) => a.isDefault)?.id ?? data[0]?.id ?? ''),
+          );
+        },
+        error: () => this.error.set('Cadastre um endereço de atendimento no seu perfil.'),
+      });
     this.#activatedRoute.params
       .pipe(switchMap(({ userId }) => this.#user.getProvider(userId)))
       .subscribe({

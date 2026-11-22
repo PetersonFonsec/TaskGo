@@ -17,9 +17,11 @@ describe('GetProvidersByCategoryHandler', () => {
     const prisma = {
       provider: { findMany: jest.fn().mockResolvedValue([provider]) },
       clientFavorite: {
-        findMany: jest.fn().mockResolvedValue([
-          { provider, createdAt: new Date('2026-11-22T00:00:00Z') },
-        ]),
+        findMany: jest
+          .fn()
+          .mockResolvedValue([
+            { provider, createdAt: new Date('2026-11-22T00:00:00Z') },
+          ]),
       },
     };
     const mediator = { publish: jest.fn() };
@@ -77,7 +79,9 @@ describe('GetProvidersByCategoryHandler', () => {
     const { handler } = setup(false);
 
     await expect(
-      handler.execute(new GetProvidersByCategoryQuery('limpeza', {}, {}, true, '7')),
+      handler.execute(
+        new GetProvidersByCategoryQuery('limpeza', {}, {}, true, '7'),
+      ),
     ).rejects.toThrow(NotFoundException);
   });
 });

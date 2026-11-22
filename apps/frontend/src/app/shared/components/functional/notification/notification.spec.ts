@@ -6,14 +6,18 @@ import { Notification as NotificationApi } from './notification.service';
 
 describe('Notification', () => {
   beforeEach(() => {
-    TestBed.configureTestingModule({ providers: [{
-      provide: NotificationApi,
-      useValue: {
-        list: () => of({ items: [], total: 0, unreadCount: 0 }),
-        markAllRead: () => of({ updatedCount: 0, unreadCount: 0 }),
-        markRead: () => of({ updated: true, notificationId: '1' }),
-      },
-    }] });
+    TestBed.configureTestingModule({
+      providers: [
+        {
+          provide: NotificationApi,
+          useValue: {
+            list: () => of({ items: [], total: 0, unreadCount: 0 }),
+            markAllRead: () => of({ updatedCount: 0, unreadCount: 0 }),
+            markRead: () => of({ updated: true, notificationId: '1' }),
+          },
+        },
+      ],
+    });
   });
 
   function render(count?: number) {

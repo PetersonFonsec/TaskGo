@@ -12,7 +12,10 @@ import { TgBadgeComponent } from '@shared/design-system/badge/tg-badge.component
 import { TgButtonComponent } from '@shared/design-system/button/tg-button.component';
 import { TgCardComponent } from '@shared/design-system/card/tg-card.component';
 import { TgIconComponent } from '@shared/design-system/icon/tg-icon.component';
-import { TgLoadingComponent, TgLoadingSkeletonDirective } from '@shared/design-system/skeleton/tg-loading.component';
+import {
+  TgLoadingComponent,
+  TgLoadingSkeletonDirective,
+} from '@shared/design-system/skeleton/tg-loading.component';
 import { TgSkeletonComponent } from '@shared/design-system/skeleton/tg-skeleton.component';
 import { RolesBack } from '@shared/enums/roles.enum';
 import { sessionUserId } from '@shared/guards/session-user/session-user.guard';
@@ -37,11 +40,22 @@ export type AccountMode = 'customer' | 'provider';
  */
 export function accountLinks(userId: string, mode: AccountMode): readonly AccountLink[] {
   const links: AccountLink[] = [
-    { label: 'Dados pessoais', description: 'Nome, contato e foto.', icon: 'user', link: ['/general', userId, 'profile'] },
-    { label: 'Endereços', description: 'Onde os serviços acontecem.', icon: 'map-pin', link: ['/general', userId, 'addresses'] },
+    {
+      label: 'Dados pessoais',
+      description: 'Nome, contato e foto.',
+      icon: 'user',
+      link: ['/general', userId, 'profile'],
+    },
+    {
+      label: 'Endereços',
+      description: 'Onde os serviços acontecem.',
+      icon: 'map-pin',
+      link: ['/general', userId, 'addresses'],
+    },
     {
       label: 'Pedidos',
-      description: mode === 'provider' ? 'Solicitações, agenda e histórico.' : 'Acompanhe seus serviços.',
+      description:
+        mode === 'provider' ? 'Solicitações, agenda e histórico.' : 'Acompanhe seus serviços.',
       icon: 'receipt',
       link: ['/general', userId, 'history'],
     },
@@ -67,7 +81,8 @@ export function accountLinks(userId: string, mode: AccountMode): readonly Accoun
 /** Iniciais para o avatar sem foto (a mesma regra do menu da conta). */
 export function accountInitials(name: string): string {
   const parts = name.trim().split(/\s+/).filter(Boolean);
-  const letters = parts.length > 1 ? parts[0][0] + parts[parts.length - 1][0] : (parts[0] ?? '').slice(0, 2);
+  const letters =
+    parts.length > 1 ? parts[0][0] + parts[parts.length - 1][0] : (parts[0] ?? '').slice(0, 2);
   return letters.toUpperCase();
 }
 
@@ -112,9 +127,13 @@ export class Home {
   protected readonly userId = computed(() => sessionUserId(this.#session.user()));
 
   protected readonly mode = computed<AccountMode>(() =>
-    normalizeNavigationRole(this.#session.user()?.user?.type) === RolesBack.PROVIDER ? 'provider' : 'customer',
+    normalizeNavigationRole(this.#session.user()?.user?.type) === RolesBack.PROVIDER
+      ? 'provider'
+      : 'customer',
   );
-  protected readonly modeLabel = computed(() => (this.mode() === 'provider' ? 'Profissional' : 'Cliente'));
+  protected readonly modeLabel = computed(() =>
+    this.mode() === 'provider' ? 'Profissional' : 'Cliente',
+  );
 
   protected readonly links = computed(() => {
     const id = this.userId();
@@ -169,7 +188,10 @@ export class Home {
       map((user): ProfileState => ({ kind: 'ready', user })),
       startWith(LOADING),
       catchError((error: unknown) =>
-        of<ProfileState>({ kind: 'error', status: error instanceof HttpErrorResponse ? error.status : 0 }),
+        of<ProfileState>({
+          kind: 'error',
+          status: error instanceof HttpErrorResponse ? error.status : 0,
+        }),
       ),
     );
   }

@@ -54,10 +54,15 @@ export class ProviderController {
     @Query('lng') lng?: string,
   ) {
     return this.queryBus.execute(
-      new ListProvidersQuery(onlyFavorites === 'true', authenticatedUserId, {
-        lat,
-        lng,
-      }, filters as ProviderSearchFilters),
+      new ListProvidersQuery(
+        onlyFavorites === 'true',
+        authenticatedUserId,
+        {
+          lat,
+          lng,
+        },
+        filters as ProviderSearchFilters,
+      ),
     );
   }
 

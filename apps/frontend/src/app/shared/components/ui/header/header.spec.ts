@@ -19,7 +19,14 @@ describe('Header (shell logado)', () => {
       providers: [
         provideRouter([]),
         { provide: UserLoggedService, useValue: { user, logout } },
-        { provide: NotificationApi, useValue: { list: () => of({ items: [], total: 0, unreadCount: 0 }), markAllRead: () => of({ updatedCount: 0, unreadCount: 0 }), markRead: () => of({ updated: true, notificationId: '1' }) } },
+        {
+          provide: NotificationApi,
+          useValue: {
+            list: () => of({ items: [], total: 0, unreadCount: 0 }),
+            markAllRead: () => of({ updatedCount: 0, unreadCount: 0 }),
+            markRead: () => of({ updated: true, notificationId: '1' }),
+          },
+        },
       ],
     }).compileComponents();
   });
@@ -53,7 +60,9 @@ describe('Header (shell logado)', () => {
     const el = fixture.nativeElement as HTMLElement;
     expect(navLabels(el)).toEqual(['Agenda', 'Pedidos', 'Serviços', 'Ganhos', 'Conta']);
     expect(el.querySelector('.tg-app-bar__brand')?.getAttribute('href')).toBe('/provider');
-    const hrefs = Array.from(el.querySelectorAll('.tg-account__item[href]')).map((a) => a.getAttribute('href'));
+    const hrefs = Array.from(el.querySelectorAll('.tg-account__item[href]')).map((a) =>
+      a.getAttribute('href'),
+    );
     expect(hrefs).toEqual(['/general/77/profile', '/general/77/addresses']);
     expect(el.textContent).toContain('Profissional');
   });
@@ -61,15 +70,24 @@ describe('Header (shell logado)', () => {
   it('usa as iniciais sem foto e a foto quando existe', () => {
     let el = render();
     expect(el.querySelector('.tg-account__avatar')?.textContent?.trim()).toBe('AS');
-    user.set({ user: { id: '42', type: 'CLIENTE', name: 'Ana Souza', photoUrl: 'https://cdn.example/ana.jpg' } });
+    user.set({
+      user: {
+        id: '42',
+        type: 'CLIENTE',
+        name: 'Ana Souza',
+        photoUrl: 'https://cdn.example/ana.jpg',
+      },
+    });
     el = render();
-    expect(el.querySelector('.tg-account__avatar img')?.getAttribute('src')).toBe('https://cdn.example/ana.jpg');
+    expect(el.querySelector('.tg-account__avatar img')?.getAttribute('src')).toBe(
+      'https://cdn.example/ana.jpg',
+    );
   });
 
   it('"Sair da conta" encerra a sessão', () => {
     const el = render();
-    const button = Array.from(el.querySelectorAll<HTMLButtonElement>('.tg-account__item')).find((b) =>
-      b.textContent?.includes('Sair da conta'),
+    const button = Array.from(el.querySelectorAll<HTMLButtonElement>('.tg-account__item')).find(
+      (b) => b.textContent?.includes('Sair da conta'),
     );
     button!.click();
     expect(logout).toHaveBeenCalledTimes(1);

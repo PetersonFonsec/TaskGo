@@ -48,7 +48,11 @@ import { TgFieldComponent } from '@shared/design-system/field/tg-field.component
 import { TgInputDirective } from '@shared/design-system/field/tg-input.directive';
 import { TgIconComponent } from '@shared/design-system/icon/tg-icon.component';
 import { TgProviderCardComponent } from '@shared/design-system/provider-card/tg-provider-card.component';
-import { TgProvider, tgProviderPriceFrom, toTgProvider } from '@shared/design-system/provider-card/tg-provider';
+import {
+  TgProvider,
+  tgProviderPriceFrom,
+  toTgProvider,
+} from '@shared/design-system/provider-card/tg-provider';
 import {
   TgLoadingComponent,
   TgLoadingSkeletonDirective,
@@ -193,10 +197,17 @@ export class Search implements OnInit {
   /** Filtros do painel em uso (para o "Filtros · N"). */
   readonly activeFilters = computed(() => {
     const f = this.filters();
-    return [f.minimumRating > 0, f.maximumDistance > 0, f.minimumPrice != null, f.maximumPrice != null, f.onlyFavorites]
-      .filter(Boolean).length;
+    return [
+      f.minimumRating > 0,
+      f.maximumDistance > 0,
+      f.minimumPrice != null,
+      f.maximumPrice != null,
+      f.onlyFavorites,
+    ].filter(Boolean).length;
   });
-  readonly filtersLabel = computed(() => (this.activeFilters() ? `Filtros · ${this.activeFilters()}` : 'Filtros'));
+  readonly filtersLabel = computed(() =>
+    this.activeFilters() ? `Filtros · ${this.activeFilters()}` : 'Filtros',
+  );
   readonly resultsLabel = computed(() => {
     const count = this.providers().length;
     return count === 1 ? '1 profissional' : `${count} profissionais`;
@@ -208,7 +219,9 @@ export class Search implements OnInit {
       .filter((card): card is TgProvider => card !== null),
   );
   /** Primeira falha ao favoritar, para o aviso acima da lista. */
-  readonly favoriteFailure = computed(() => Object.values(this.favoriteError()).find(Boolean) ?? '');
+  readonly favoriteFailure = computed(
+    () => Object.values(this.favoriteError()).find(Boolean) ?? '',
+  );
 
   mapProviders = computed(() =>
     this.providers()
@@ -222,7 +235,8 @@ export class Search implements OnInit {
 
   constructor() {
     const view = inject(DOCUMENT).defaultView;
-    const query = typeof view?.matchMedia === 'function' ? view.matchMedia(SEARCH_WIDE_MEDIA) : null;
+    const query =
+      typeof view?.matchMedia === 'function' ? view.matchMedia(SEARCH_WIDE_MEDIA) : null;
     if (!query) return;
     this.wide.set(query.matches);
     const update = (event: MediaQueryListEvent) => this.wide.set(event.matches);
@@ -327,7 +341,13 @@ export class Search implements OnInit {
 
   /** "Limpar" do painel: zera o rascunho; só vale ao aplicar. */
   clearDraft() {
-    this.draft.set({ minimumRating: 0, maximumDistance: 0, minimumPrice: null, maximumPrice: null, onlyFavorites: false });
+    this.draft.set({
+      minimumRating: 0,
+      maximumDistance: 0,
+      minimumPrice: null,
+      maximumPrice: null,
+      onlyFavorites: false,
+    });
   }
 
   ratingLabel(value: number) {

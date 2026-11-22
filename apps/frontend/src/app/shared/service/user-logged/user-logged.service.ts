@@ -7,7 +7,7 @@ import { TokenService } from '../token/token.service';
 import { environment } from 'environments/environment';
 
 @Injectable({
-  providedIn: 'root'
+  providedIn: 'root',
 })
 export class UserLoggedService {
   #keyLocalStorage = environment.user;
@@ -39,7 +39,9 @@ export class UserLoggedService {
   }
 
   updateUser(user: IUser) {
-    this.user.update((userLogged) => userLogged ? { ...userLogged, user } : { user } as IUserLogged);
+    this.user.update((userLogged) =>
+      userLogged ? { ...userLogged, user } : ({ user } as IUserLogged),
+    );
     this.#persistUser();
   }
 
@@ -48,7 +50,7 @@ export class UserLoggedService {
     this.#tokenService.clearToken();
 
     if (isPlatformBrowser(this.#platformId)) localStorage.removeItem(this.#keyLocalStorage);
-    this.#router.navigateByUrl("/");
+    this.#router.navigateByUrl('/');
   }
 
   #persistUser() {

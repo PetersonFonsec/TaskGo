@@ -7,7 +7,10 @@ function pinTheme(theme: 'CUSTOMER' | 'PROVIDER') {
   const root = document.documentElement;
   const previous = root.getAttribute('data-theme');
   root.setAttribute('data-theme', theme);
-  return () => (previous === null ? root.removeAttribute('data-theme') : root.setAttribute('data-theme', previous));
+  return () =>
+    previous === null
+      ? root.removeAttribute('data-theme')
+      : root.setAttribute('data-theme', previous);
 }
 
 function token(name: string, property = 'color') {
@@ -27,10 +30,22 @@ function token(name: string, property = 'color') {
         Encontre um profissional e agende em poucos passos.
         <button tgButton tgEmptyAction id="acao">Buscar profissionais</button>
       </tg-empty-state>
-      <tg-empty-state id="compacto" compact icon="calendar-blank" title="Sua agenda está livre" [level]="level()">
+      <tg-empty-state
+        id="compacto"
+        compact
+        icon="calendar-blank"
+        title="Sua agenda está livre"
+        [level]="level()"
+      >
         Quando você contratar um serviço, ele aparece aqui.
       </tg-empty-state>
-      <tg-empty-state id="completo" title="Página não encontrada" [level]="1" illustrationSrc="/ilustracao.webp" illustrationAlt="">
+      <tg-empty-state
+        id="completo"
+        title="Página não encontrada"
+        [level]="1"
+        illustrationSrc="/ilustracao.webp"
+        illustrationAlt=""
+      >
         <p>Confira o endereço e tente novamente.</p>
         <button tgButton tgEmptyAction id="principal">Ir para o início</button>
         <button tgButton tgEmptySecondaryAction id="secundaria" appearance="outline">Voltar</button>
@@ -58,7 +73,9 @@ describe('TgEmptyStateComponent', () => {
   it('título como heading (h2 por padrão), texto e ação no slot', () => {
     const title = $('#grande h2');
     expect(title.textContent?.trim()).toBe('Você ainda não fez nenhum pedido');
-    expect($('#grande .tg-empty-state__text').textContent?.trim()).toBe('Encontre um profissional e agende em poucos passos.');
+    expect($('#grande .tg-empty-state__text').textContent?.trim()).toBe(
+      'Encontre um profissional e agende em poucos passos.',
+    );
     expect($('#grande .tg-empty-state__action #acao')).not.toBeNull();
     expect($('#grande .tg-empty-state__text #acao')).toBeNull();
   });
@@ -82,7 +99,8 @@ describe('TgEmptyStateComponent', () => {
   });
 
   it('é conteúdo comum: sem role e ícone decorativo', () => {
-    for (const id of ['grande', 'compacto', 'so-titulo']) expect($(`#${id}`).hasAttribute('role')).toBeFalse();
+    for (const id of ['grande', 'compacto', 'so-titulo'])
+      expect($(`#${id}`).hasAttribute('role')).toBeFalse();
     expect($('#grande tg-icon svg').getAttribute('aria-hidden')).toBe('true');
     expect(document.activeElement).not.toBe($('#acao'));
   });
@@ -111,8 +129,12 @@ describe('TgEmptyStateComponent', () => {
   it('sem ícone, texto ou ação: só o título, sem espaços vazios', () => {
     const host = $('#so-titulo');
     expect(host.querySelector('.tg-empty-state__icon')).toBeNull();
-    expect(getComputedStyle(host.querySelector('.tg-empty-state__text') as HTMLElement).display).toBe('none');
-    expect(getComputedStyle(host.querySelector('.tg-empty-state__action') as HTMLElement).display).toBe('none');
+    expect(
+      getComputedStyle(host.querySelector('.tg-empty-state__text') as HTMLElement).display,
+    ).toBe('none');
+    expect(
+      getComputedStyle(host.querySelector('.tg-empty-state__action') as HTMLElement).display,
+    ).toBe('none');
   });
 
   it('cores dos tokens nos dois modos', () => {
@@ -120,12 +142,22 @@ describe('TgEmptyStateComponent', () => {
       const restore = pinTheme(theme);
       try {
         const icon = $('#grande .tg-empty-state__icon');
-        expect(getComputedStyle(icon).backgroundColor).toBe(token('--tg-action-subtle', 'background-color'));
+        expect(getComputedStyle(icon).backgroundColor).toBe(
+          token('--tg-action-subtle', 'background-color'),
+        );
         expect(getComputedStyle(icon).color).toBe(token('--tg-action-subtle-text'));
-        expect(getComputedStyle($('#grande .tg-empty-state__title')).color).toBe(token('--tg-text-primary'));
-        expect(getComputedStyle($('#grande .tg-empty-state__text')).color).toBe(token('--tg-text-secondary'));
-        expect(getComputedStyle($('#compacto .tg-empty-state__box')).borderTopColor).toBe(token('--tg-border-default'));
-        expect(getComputedStyle($('#compacto .tg-empty-state__box')).backgroundColor).toBe(token('--tg-bg-surface', 'background-color'));
+        expect(getComputedStyle($('#grande .tg-empty-state__title')).color).toBe(
+          token('--tg-text-primary'),
+        );
+        expect(getComputedStyle($('#grande .tg-empty-state__text')).color).toBe(
+          token('--tg-text-secondary'),
+        );
+        expect(getComputedStyle($('#compacto .tg-empty-state__box')).borderTopColor).toBe(
+          token('--tg-border-default'),
+        );
+        expect(getComputedStyle($('#compacto .tg-empty-state__box')).backgroundColor).toBe(
+          token('--tg-bg-surface', 'background-color'),
+        );
       } finally {
         restore();
       }

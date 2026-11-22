@@ -47,7 +47,16 @@ const ORDERS: OrdersResponse = [
   order('2042', 'AGUARDANDO_APROVACAO', 'Limpeza residencial', 'Ana Clara', 2, 9, 'Pinheiros', 180),
   order('2043', 'AGUARDANDO_APROVACAO', 'Troca de torneira', 'Paulo Reis', 4, 15, 'Moema', 90),
   order('2044', 'EM_DESLOCAMENTO', 'Montagem de armário', 'João Pereira', 1, 9, 'Moema', 250),
-  order('2045', 'AGUARDANDO_PAGAMENTO', 'Pintura de quarto', 'Rafael Santos', 6, 8, 'Vila Madalena', 400),
+  order(
+    '2045',
+    'AGUARDANDO_PAGAMENTO',
+    'Pintura de quarto',
+    'Rafael Santos',
+    6,
+    8,
+    'Vila Madalena',
+    400,
+  ),
   order('2030', 'CONCLUIDO', 'Conserto de tomada', 'Carlos Lima', -13, 10, 'Pinheiros', 90),
 ];
 
@@ -72,9 +81,30 @@ const HOME: ProviderHomeData = {
   pendingRequests: [],
   activeOrders: [],
   recentServices: [
-    { id: '2030', clientName: 'Carlos Lima', service: 'Conserto de tomada', completedAt: daysAgo(13), amount: 72, rating: 5 },
-    { id: '2028', clientName: 'Ana Souza', service: 'Limpeza pós-obra', completedAt: daysAgo(21), amount: 216, rating: null },
-    { id: '2025', clientName: 'Rafael Santos', service: 'Troca de fechadura', completedAt: daysAgo(30), amount: 96, rating: 4 },
+    {
+      id: '2030',
+      clientName: 'Carlos Lima',
+      service: 'Conserto de tomada',
+      completedAt: daysAgo(13),
+      amount: 72,
+      rating: 5,
+    },
+    {
+      id: '2028',
+      clientName: 'Ana Souza',
+      service: 'Limpeza pós-obra',
+      completedAt: daysAgo(21),
+      amount: 216,
+      rating: null,
+    },
+    {
+      id: '2025',
+      clientName: 'Rafael Santos',
+      service: 'Troca de fechadura',
+      completedAt: daysAgo(30),
+      amount: 96,
+      rating: 4,
+    },
   ],
   insights: {
     mostRequestedService: 'Limpeza residencial',
@@ -86,11 +116,21 @@ const HOME: ProviderHomeData = {
 
 const EMPTY_HOME: ProviderHomeData = {
   ...HOME,
-  earnings: { today: 0, month: 0, previousMonth: 0, lastSixMonths: HOME.earnings.lastSixMonths.map((m) => ({ ...m, revenue: 0 })) },
+  earnings: {
+    today: 0,
+    month: 0,
+    previousMonth: 0,
+    lastSixMonths: HOME.earnings.lastSixMonths.map((m) => ({ ...m, revenue: 0 })),
+  },
   services: { completedTotal: 0, completedThisWeek: 0 },
   rating: { average: 0, count: 0 },
   recentServices: [],
-  insights: { mostRequestedService: null, averageTicket: 0, mostServedNeighborhood: null, monthlyGrowth: null },
+  insights: {
+    mostRequestedService: null,
+    averageTicket: 0,
+    mostServedNeighborhood: null,
+    monthlyGrowth: null,
+  },
 };
 
 function providers(
@@ -108,7 +148,10 @@ function providers(
         updateOrderStatus,
       },
     },
-    { provide: UserLoggedService, useValue: { user: () => ({ user: { id: '17', name: 'Bruno Alves' } }) } },
+    {
+      provide: UserLoggedService,
+      useValue: { user: () => ({ user: { id: '17', name: 'Bruno Alves' } }) },
+    },
   ];
 }
 
@@ -137,7 +180,10 @@ export const Vazio: Story = {
 export const Erro: Story = {
   decorators: [
     applicationConfig({
-      providers: providers(throwError(() => new Error('offline')), throwError(() => new Error('offline'))),
+      providers: providers(
+        throwError(() => new Error('offline')),
+        throwError(() => new Error('offline')),
+      ),
     }),
   ],
 };

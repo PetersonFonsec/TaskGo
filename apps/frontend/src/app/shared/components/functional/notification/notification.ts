@@ -1,4 +1,13 @@
-import { ChangeDetectionStrategy, Component, HostListener, OnInit, computed, inject, input, signal } from '@angular/core';
+import {
+  ChangeDetectionStrategy,
+  Component,
+  HostListener,
+  OnInit,
+  computed,
+  inject,
+  input,
+  signal,
+} from '@angular/core';
 import { Router } from '@angular/router';
 import { TgIconComponent } from '@shared/design-system/icon/tg-icon.component';
 import { InAppNotification, Notification as NotificationApi } from './notification.service';
@@ -21,7 +30,7 @@ export class Notification implements OnInit {
   readonly apiUnreadCount = signal<number | null>(null);
   readonly count = computed(() => {
     const supplied = this.notificationCount();
-    return supplied > 0 ? supplied : this.apiUnreadCount() ?? 0;
+    return supplied > 0 ? supplied : (this.apiUnreadCount() ?? 0);
   });
   readonly items = signal<InAppNotification[]>([]);
   readonly open = signal(false);
@@ -80,9 +89,11 @@ export class Notification implements OnInit {
     this.#api.markRead(item.id).subscribe({
       next: () => {
         this.apiUnreadCount.update((value) => Math.max(0, (value ?? 0) - 1));
-        this.items.update((items) => items.map((current) =>
-          current.id === item.id ? { ...current, readAt: new Date().toISOString() } : current,
-        ));
+        this.items.update((items) =>
+          items.map((current) =>
+            current.id === item.id ? { ...current, readAt: new Date().toISOString() } : current,
+          ),
+        );
         navigate();
       },
       error: () => {
@@ -111,7 +122,9 @@ export class Notification implements OnInit {
           this.#api.markAllRead().subscribe({
             next: () => {
               const readAt = new Date().toISOString();
-              this.items.update((items) => items.map((item) => item.readAt ? item : { ...item, readAt }));
+              this.items.update((items) =>
+                items.map((item) => (item.readAt ? item : { ...item, readAt })),
+              );
               this.apiUnreadCount.set(0);
             },
             error: () => this.error.set(true),

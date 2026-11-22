@@ -48,7 +48,8 @@ export class ListClientOrdersHandler
       expiresAt: this.expiration.expiresAt({
         ...order,
         acceptedAt:
-          orderTimeline.find(({ event }) => event === 'ACCEPTED')?.createdAt ?? null,
+          orderTimeline.find(({ event }) => event === 'ACCEPTED')?.createdAt ??
+          null,
       }),
     }));
   }

@@ -9,7 +9,7 @@ import { TgToastRegionComponent } from '@shared/design-system/feedback/tg-toast-
   selector: 'app-root',
   imports: [RouterOutlet, TgToastRegionComponent],
   templateUrl: './app.html',
-  styleUrl: './app.scss'
+  styleUrl: './app.scss',
 })
 export class App {
   readonly #theme = inject(Theme);

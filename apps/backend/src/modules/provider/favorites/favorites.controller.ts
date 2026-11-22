@@ -8,6 +8,7 @@ import {
   UseGuards,
   UseInterceptors,
   Param,
+  Query,
   BadRequestException,
 } from '@nestjs/common';
 import { CommandBus, QueryBus } from '@nestjs/cqrs';
@@ -68,10 +69,16 @@ export class FavoritesController {
     );
   }
 
-  private parsePagingValue(value: string | undefined, name: string, fallback: number) {
+  private parsePagingValue(
+    value: string | undefined,
+    name: string,
+    fallback: number,
+  ) {
     if (value === undefined) return fallback;
     if (!/^\d+$/.test(value)) {
-      throw new BadRequestException(`${name} deve ser um número inteiro não negativo`);
+      throw new BadRequestException(
+        `${name} deve ser um número inteiro não negativo`,
+      );
     }
     const parsed = Number(value);
     if (!Number.isSafeInteger(parsed)) {

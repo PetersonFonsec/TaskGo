@@ -20,9 +20,17 @@ export default tseslint.config(
     rules: {
       '@typescript-eslint/no-explicit-any': 'warn',
       '@typescript-eslint/no-unused-vars': [
-        'error',
+        'warn',
         { argsIgnorePattern: '^_', varsIgnorePattern: '^_' },
       ],
+      // Existing Angular code has intentional control-character regexes,
+      // optional empty payload types, and localized whitespace. Keep these visible
+      // without making the initial frontend lint rollout fail on legacy patterns.
+      'no-control-regex': 'off',
+      'no-irregular-whitespace': 'warn',
+      'no-extra-semi': 'warn',
+      'prefer-const': 'warn',
+      '@typescript-eslint/no-empty-object-type': 'warn',
     },
   },
 );

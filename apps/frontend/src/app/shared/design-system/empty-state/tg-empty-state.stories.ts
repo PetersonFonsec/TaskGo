@@ -2,7 +2,8 @@ import { moduleMetadata, type Meta, type StoryObj } from '@storybook/angular';
 import { TgButtonComponent } from '../button/tg-button.component';
 import { TgEmptyStateComponent } from './tg-empty-state.component';
 
-const surface = 'background:var(--tg-bg-surface);border:1px solid var(--tg-border-default);border-radius:20px;max-width:560px';
+const surface =
+  'background:var(--tg-bg-surface);border:1px solid var(--tg-border-default);border-radius:20px;max-width:560px';
 
 const meta: Meta<TgEmptyStateComponent> = {
   title: 'Componentes/Estado vazio',

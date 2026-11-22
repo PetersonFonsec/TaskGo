@@ -43,6 +43,8 @@ export class NotificationsController {
 
   private parsePositiveInteger(value: string | undefined, fallback: number) {
     const parsed = Number(value);
-    return Number.isSafeInteger(parsed) && parsed > 0 ? Math.min(parsed, 100) : fallback;
+    return Number.isSafeInteger(parsed) && parsed > 0
+      ? Math.min(parsed, 100)
+      : fallback;
   }
 }

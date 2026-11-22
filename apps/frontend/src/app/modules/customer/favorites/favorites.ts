@@ -1,5 +1,12 @@
 import { HttpErrorResponse } from '@angular/common/http';
-import { ChangeDetectionStrategy, Component, computed, DestroyRef, inject, signal } from '@angular/core';
+import {
+  ChangeDetectionStrategy,
+  Component,
+  computed,
+  DestroyRef,
+  inject,
+  signal,
+} from '@angular/core';
 import { takeUntilDestroyed, toObservable } from '@angular/core/rxjs-interop';
 import { RouterLink } from '@angular/router';
 import { catchError, EMPTY, map, of, startWith, Subject, type Subscription, switchMap } from 'rxjs';
@@ -14,7 +21,10 @@ import { TgCardComponent } from '@shared/design-system/card/tg-card.component';
 import { TgEmptyStateComponent } from '@shared/design-system/empty-state/tg-empty-state.component';
 import { TgProviderCardComponent } from '@shared/design-system/provider-card/tg-provider-card.component';
 import { type TgProvider, toTgProvider } from '@shared/design-system/provider-card/tg-provider';
-import { TgLoadingComponent, TgLoadingSkeletonDirective } from '@shared/design-system/skeleton/tg-loading.component';
+import {
+  TgLoadingComponent,
+  TgLoadingSkeletonDirective,
+} from '@shared/design-system/skeleton/tg-loading.component';
 import { TgSkeletonComponent } from '@shared/design-system/skeleton/tg-skeleton.component';
 
 /**
@@ -109,10 +119,12 @@ export class Favorites {
             switchMap(() => {
               this.loading.set(true);
               this.error.set(false);
-              return this.#provider.listFavorites(clientId, { skip: 0, take: FAVORITES_PAGE_SIZE }).pipe(
-                map((response: unknown) => ({ ok: true as const, ...parseFavorites(response) })),
-                catchError(() => of({ ok: false as const })),
-              );
+              return this.#provider
+                .listFavorites(clientId, { skip: 0, take: FAVORITES_PAGE_SIZE })
+                .pipe(
+                  map((response: unknown) => ({ ok: true as const, ...parseFavorites(response) })),
+                  catchError(() => of({ ok: false as const })),
+                );
             }),
           );
         }),
@@ -186,22 +198,28 @@ export class Favorites {
     // A resposta só vale para a conta que pediu: com outra na sessão, nada
     // dela (coração, erro ou carregando) chega à tela da conta nova.
     const current = () => this.#clientId() === clientId;
-    const request = (next ? this.#provider.addFavorite(clientId, providerId) : this.#provider.removeFavorite(clientId, providerId))
-      .subscribe({
-        next: () => {
-          if (current()) this.favorite.update((state) => ({ ...state, [providerId]: next }));
-        },
-        error: (error: unknown) => {
-          if (!current()) return;
-          this.#done(providerId);
-          this.actionError.set(
-            apiMessage(error) ?? (next ? 'Não foi possível salvar o favorito. Tente de novo.' : 'Não foi possível tirar dos favoritos. Tente de novo.'),
-          );
-        },
-        complete: () => {
-          if (current()) this.#done(providerId);
-        },
-      });
+    const request = (
+      next
+        ? this.#provider.addFavorite(clientId, providerId)
+        : this.#provider.removeFavorite(clientId, providerId)
+    ).subscribe({
+      next: () => {
+        if (current()) this.favorite.update((state) => ({ ...state, [providerId]: next }));
+      },
+      error: (error: unknown) => {
+        if (!current()) return;
+        this.#done(providerId);
+        this.actionError.set(
+          apiMessage(error) ??
+            (next
+              ? 'Não foi possível salvar o favorito. Tente de novo.'
+              : 'Não foi possível tirar dos favoritos. Tente de novo.'),
+        );
+      },
+      complete: () => {
+        if (current()) this.#done(providerId);
+      },
+    });
     if (!request.closed) this.#requests.set(providerId, request);
   }
 
@@ -242,9 +260,18 @@ export class Favorites {
 /** A lista da API (`{ items: [{ provider }], total }`) em cards; sem id válido, o profissional fica de fora. */
 const FAVORITES_PAGE_SIZE = 20;
 
-function parseFavorites(response: unknown): { providers: TgProvider[]; total: number; count: number } {
-  const body = response && typeof response === 'object' ? (response as Record<string, unknown>) : {};
-  const items = Array.isArray(body['items']) ? body['items'] : Array.isArray(response) ? response : [];
+function parseFavorites(response: unknown): {
+  providers: TgProvider[];
+  total: number;
+  count: number;
+} {
+  const body =
+    response && typeof response === 'object' ? (response as Record<string, unknown>) : {};
+  const items = Array.isArray(body['items'])
+    ? body['items']
+    : Array.isArray(response)
+      ? response
+      : [];
   const seen = new Set<string>();
   const providers: TgProvider[] = [];
   for (const item of items) {
@@ -255,7 +282,10 @@ function parseFavorites(response: unknown): { providers: TgProvider[]; total: nu
       providers.push(card);
     }
   }
-  const total = typeof body['total'] === 'number' && Number.isFinite(body['total']) ? Math.max(body['total'], providers.length) : providers.length;
+  const total =
+    typeof body['total'] === 'number' && Number.isFinite(body['total'])
+      ? Math.max(body['total'], providers.length)
+      : providers.length;
   return { providers, total, count: items.length };
 }
 

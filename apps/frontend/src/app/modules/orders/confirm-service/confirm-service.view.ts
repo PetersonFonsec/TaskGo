@@ -9,9 +9,16 @@ export const AWAITING_CONFIRMATION = 'AGUARDANDO_CONFIRMACAO_CLIENTE';
 
 const TIME_ZONE = 'America/Sao_Paulo';
 const BRL = new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' });
-const ONE_DECIMAL = new Intl.NumberFormat('pt-BR', { minimumFractionDigits: 1, maximumFractionDigits: 1 });
+const ONE_DECIMAL = new Intl.NumberFormat('pt-BR', {
+  minimumFractionDigits: 1,
+  maximumFractionDigits: 1,
+});
 const DATE = new Intl.DateTimeFormat('pt-BR', { dateStyle: 'long', timeZone: TIME_ZONE });
-const TIME = new Intl.DateTimeFormat('pt-BR', { hour: '2-digit', minute: '2-digit', timeZone: TIME_ZONE });
+const TIME = new Intl.DateTimeFormat('pt-BR', {
+  hour: '2-digit',
+  minute: '2-digit',
+  timeZone: TIME_ZONE,
+});
 
 const PHOTO_TYPES: Record<string, string> = {
   BEFORE: 'Antes',
@@ -71,7 +78,10 @@ export function confirmServiceView(order: OrderDetails): ConfirmServiceView {
   if (order.payment) {
     const method = PAYMENT_METHODS[order.payment.method];
     if (method) payment.push({ label: 'Forma de pagamento', value: method });
-    payment.push({ label: 'Situação do pagamento', value: PAYMENT_STATUSES[order.payment.status] ?? 'Em atualização' });
+    payment.push({
+      label: 'Situação do pagamento',
+      value: PAYMENT_STATUSES[order.payment.status] ?? 'Em atualização',
+    });
   }
 
   return {
@@ -115,7 +125,10 @@ export function dateTime(value: string | null | undefined): string | null {
 function address(order: OrderDetails): string | null {
   const a = order.address;
   if (!a) return null;
-  const street = [a.street, a.number, a.complement].map((part) => part?.trim()).filter(Boolean).join(', ');
+  const street = [a.street, a.number, a.complement]
+    .map((part) => part?.trim())
+    .filter(Boolean)
+    .join(', ');
   const city = [a.city?.trim(), a.state?.trim()].filter(Boolean).join(' / ');
   return [street, a.neighborhood?.trim(), city].filter(Boolean).join(' · ') || null;
 }
@@ -125,7 +138,12 @@ function row(label: string, value: string | null): ConfirmServiceRow | null {
 }
 
 function money(value: unknown): number | null {
-  const n = typeof value === 'number' ? value : typeof value === 'string' && value.trim() ? Number(value) : NaN;
+  const n =
+    typeof value === 'number'
+      ? value
+      : typeof value === 'string' && value.trim()
+        ? Number(value)
+        : NaN;
   return Number.isFinite(n) && n >= 0 ? n : null;
 }
 

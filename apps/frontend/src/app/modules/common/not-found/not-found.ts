@@ -43,7 +43,6 @@ export class NotFound {
     return role ? Utils.getRouteByRoleBack(role) : `/${UrlBase.AUTHENTICATE}`;
   });
 
-
   /** Volta para a tela anterior do app; aberta direto pelo endereço, vai ao início. */
   back(): void {
     if (this.#router.lastSuccessfulNavigation()?.previousNavigation) {

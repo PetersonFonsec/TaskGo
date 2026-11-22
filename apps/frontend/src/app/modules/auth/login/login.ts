@@ -1,4 +1,14 @@
-import { ChangeDetectionStrategy, Component, DestroyRef, ElementRef, afterNextRender, computed, inject, signal, viewChild } from '@angular/core';
+import {
+  ChangeDetectionStrategy,
+  Component,
+  DestroyRef,
+  ElementRef,
+  afterNextRender,
+  computed,
+  inject,
+  signal,
+  viewChild,
+} from '@angular/core';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { HttpErrorResponse } from '@angular/common/http';
 import { ActivatedRoute, Router, RouterLink } from '@angular/router';
@@ -30,7 +40,14 @@ export function emailError(value: string): string {
  */
 @Component({
   selector: 'app-login',
-  imports: [RouterLink, TgAlertComponent, TgButtonComponent, TgFieldComponent, TgInputDirective, TgPasswordToggleComponent],
+  imports: [
+    RouterLink,
+    TgAlertComponent,
+    TgButtonComponent,
+    TgFieldComponent,
+    TgInputDirective,
+    TgPasswordToggleComponent,
+  ],
   templateUrl: './login.html',
   styleUrl: './login.scss',
   changeDetection: ChangeDetectionStrategy.OnPush,
@@ -49,7 +66,9 @@ export class Login {
   readonly error = signal('');
 
   readonly emailError = computed(() => (this.submitted() ? emailError(this.email()) : ''));
-  readonly passwordError = computed(() => (this.submitted() && !this.password() ? 'Informe sua senha.' : ''));
+  readonly passwordError = computed(() =>
+    this.submitted() && !this.password() ? 'Informe sua senha.' : '',
+  );
 
   readonly emailInput = viewChild<ElementRef<HTMLInputElement>>('emailInput');
   readonly passwordInput = viewChild<ElementRef<HTMLInputElement>>('passwordInput');
@@ -93,7 +112,8 @@ export class Login {
 }
 
 export function loginErrorMessage(error: HttpErrorResponse): string {
-  if (error.status === 0) return 'Sem conexão com o servidor. Verifique sua internet e tente de novo.';
+  if (error.status === 0)
+    return 'Sem conexão com o servidor. Verifique sua internet e tente de novo.';
   const message: unknown = error.error?.message;
   if (typeof message === 'string' && message.trim()) return message;
   if (Array.isArray(message) && typeof message[0] === 'string') return message[0];

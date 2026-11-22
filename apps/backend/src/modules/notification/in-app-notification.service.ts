@@ -33,7 +33,9 @@ export class InAppNotificationService {
 
   async list(userId: bigint, skip = 0, take = 25) {
     const safeSkip = Number.isSafeInteger(skip) && skip >= 0 ? skip : 0;
-    const safeTake = Number.isSafeInteger(take) ? Math.min(Math.max(take, 1), 100) : 25;
+    const safeTake = Number.isSafeInteger(take)
+      ? Math.min(Math.max(take, 1), 100)
+      : 25;
     const [items, counts] = await Promise.all([
       this.prisma.$queryRaw<InAppNotificationRecord[]>(Prisma.sql`
         SELECT "id", "pedido_id" AS "orderId", "titulo" AS "title",
@@ -44,7 +46,9 @@ export class InAppNotificationService {
         ORDER BY "criada_em" DESC, "id" DESC
         LIMIT ${safeTake} OFFSET ${safeSkip}
       `),
-      this.prisma.$queryRaw<Array<{ total: bigint; unreadCount: bigint }>>(Prisma.sql`
+      this.prisma.$queryRaw<
+        Array<{ total: bigint; unreadCount: bigint }>
+      >(Prisma.sql`
         SELECT COUNT(*) AS "total",
                COUNT(*) FILTER (WHERE "lida_em" IS NULL) AS "unreadCount"
         FROM "notificacoes"
@@ -70,7 +74,9 @@ export class InAppNotificationService {
   }
 
   async markRead(userId: bigint, notificationId: bigint): Promise<boolean> {
-    const updated = await this.prisma.$queryRaw<Array<{ id: bigint }>>(Prisma.sql`
+    const updated = await this.prisma.$queryRaw<
+      Array<{ id: bigint }>
+    >(Prisma.sql`
       UPDATE "notificacoes"
       SET "lida_em" = CURRENT_TIMESTAMP
       WHERE "usuario_id" = ${userId}

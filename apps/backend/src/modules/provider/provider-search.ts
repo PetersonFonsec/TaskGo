@@ -30,7 +30,9 @@ export function filterAndOrderProviders<T extends ProviderSearchRecord>(
     .map((provider, index) => ({
       provider,
       index,
-      distanceKm: origin ? distanceBetween(origin, provider.locations?.[0]) : null,
+      distanceKm: origin
+        ? distanceBetween(origin, provider.locations?.[0])
+        : null,
     }))
     .filter(({ provider, distanceKm }) => {
       if (
@@ -78,7 +80,10 @@ export function filterAndOrderProviders<T extends ProviderSearchRecord>(
       return a.distanceKm - b.distanceKm || a.index - b.index;
     });
 
-  return results.map(({ provider, distanceKm }) => ({ ...provider, distanceKm }));
+  return results.map(({ provider, distanceKm }) => ({
+    ...provider,
+    distanceKm,
+  }));
 }
 
 function distanceBetween(

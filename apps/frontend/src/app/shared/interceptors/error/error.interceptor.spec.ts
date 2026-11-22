@@ -24,15 +24,17 @@ describe('Error Interceptor', () => {
   });
 
   it('does not treat a permission 403 as an expired session', () => {
-    interceptor(new HttpRequest('GET', '/resource'), () => throwError(() => new HttpErrorResponse({ status: 403 })))
-      .subscribe({ error: () => undefined });
+    interceptor(new HttpRequest('GET', '/resource'), () =>
+      throwError(() => new HttpErrorResponse({ status: 403 })),
+    ).subscribe({ error: () => undefined });
     expect(clearToken).not.toHaveBeenCalled();
     expect(navigateByUrl).not.toHaveBeenCalled();
   });
 
   it('clears the session after an authentication 401', () => {
-    interceptor(new HttpRequest('GET', '/resource'), () => throwError(() => new HttpErrorResponse({ status: 401 })))
-      .subscribe({ error: () => undefined });
+    interceptor(new HttpRequest('GET', '/resource'), () =>
+      throwError(() => new HttpErrorResponse({ status: 401 })),
+    ).subscribe({ error: () => undefined });
     expect(clearToken).toHaveBeenCalled();
     expect(navigateByUrl).toHaveBeenCalledWith('/');
   });
