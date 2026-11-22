@@ -40,20 +40,24 @@ export const GeneralRoutes: Routes = [
       },
     ],
   },
+  // Conta também é uma tela própria do shell (destino da aba "Conta"), com as
+  // mesmas regras de sessão de Pedidos.
+  {
+    path: ':userId/home',
+    title: 'Conta',
+    canActivate: [unauthorizedGuard, sessionUserGuard],
+    component: Home,
+  },
+  {
+    path: ':userId',
+    pathMatch: 'full',
+    redirectTo: ':userId/home',
+  },
   {
     path: ':userId',
     title: `Seja bem vindo ao TaskGo`,
     component: Profile,
     children: [
-      {
-        path: '',
-        pathMatch: 'full',
-        redirectTo: 'home',
-      },
-      {
-        path: 'home',
-        component: Home,
-      },
       {
         path: 'addresses',
         component: Address,

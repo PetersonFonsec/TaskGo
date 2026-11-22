@@ -84,8 +84,10 @@ describe('ProfileView (Dados pessoais)', () => {
     const route = GeneralRoutes.find((r) => r.path === ':userId/profile');
     expect(route?.canActivate).toEqual([unauthorizedGuard, sessionUserGuard]);
     expect(route?.children?.map((child) => child.path)).toEqual(['view', 'edit', '']);
-    const container = GeneralRoutes.find((r) => r.path === ':userId');
-    expect(container?.children?.some((child) => child.path === 'profile')).toBeFalse();
+    // `:userId` aparece duas vezes (o redirecionamento para Conta e o contêiner da conta).
+    const containers = GeneralRoutes.filter((r) => r.path === ':userId');
+    expect(containers.length).toBeGreaterThan(0);
+    expect(containers.some((r) => r.children?.some((child) => child.path === 'profile'))).toBeFalse();
   });
 
   it('mostra o skeleton enquanto carrega e um h1 só', async () => {
