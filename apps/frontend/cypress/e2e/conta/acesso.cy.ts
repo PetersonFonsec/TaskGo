@@ -1,10 +1,34 @@
 /// <reference types="cypress" />
 
+import { pedido, prestadorPublico, sessao } from '../../support/api/fabricas';
+import { agenda } from '../../support/api/jornada-cliente';
+import { apiUrl, stubBase } from '../../support/api/stub-base';
+
 /**
- * Acesso à área logada: guardas por papel, entrada sem sessão, as abas de
- * cada papel, o menu da conta, a saída e a página não encontrada.
+ * Acesso à área logada: guardas por papel, entrada sem sessão, a volta ao
+ * destino depois de entrar, as abas de cada papel, o menu da conta, a saída
+ * e a página não encontrada.
  */
 const abas = () => cy.findByRole('navigation', { name: 'Principal' });
+
+/** Uma só aba marcada como atual, e só uma navegação principal na tela. */
+function umaAbaAtual(nome: string) {
+  cy.findAllByRole('navigation', { name: 'Principal' }).should('have.length', 1);
+  abas().within(() => {
+    cy.get('[aria-current="page"]').should('have.length', 1).and('have.text', nome);
+  });
+}
+
+/** Entra pela tela de Entrar com a API respondendo a sessão do papel. */
+function entrarPelaTela(papel: 'CLIENTE' | 'PRESTADOR') {
+  const atual = sessao(papel);
+  stubBase(atual);
+  cy.intercept('POST', `${apiUrl}/auth/login`, atual).as('login');
+  cy.get('#login-email').should('have.focus').type(atual.user.email);
+  cy.get('#login-password').type('senha-de-teste');
+  cy.get('#login-submit').click();
+  cy.wait('@login');
+}
 
 function semRolagemLateral() {
   cy.document().should((doc) => {
@@ -158,6 +182,94 @@ describe('Acesso à área logada', () => {
       semRolagemLateral();
       cy.visit(inicio);
       semRolagemLateral();
+    });
+  });
+
+  it('volta ao pedido que a pessoa tentou abrir depois de entrar', () => {
+    cy.intercept('GET', `${apiUrl}/orders/900`, pedido()).as('pedido');
+    cy.visit('/orders/900');
+    cy.location('pathname').should('eq', '/authenticate/login');
+
+    entrarPelaTela('CLIENTE');
+
+    cy.location('pathname').should('eq', '/orders/900');
+    cy.wait('@pedido');
+    cy.findByRole('heading', { level: 1, name: 'Faxina residencial' }).should('be.visible');
+  });
+
+  ['/provider', '//exemplo.com/roubo', 'https://exemplo.com'].forEach((destino) => {
+    it(`ignora o destino ${destino} depois de entrar e leva ao início do papel`, () => {
+      cy.visit(`/authenticate/login?returnUrl=${encodeURIComponent(destino)}`);
+
+      entrarPelaTela('CLIENTE');
+
+      cy.location('pathname').should('eq', '/customer');
+      cy.location('origin').should('eq', Cypress.config('baseUrl'));
+    });
+  });
+
+  it('leva o prestador de volta ao início dele quando abre o pagamento do cliente', () => {
+    cy.entrarComo('PRESTADOR', '/orders/900/payment');
+    cy.location('pathname').should('eq', '/provider');
+  });
+
+  it('não mostra a navegação da conta sem sessão', () => {
+    cy.visit('/authenticate/login');
+
+    cy.get('#login-email').should('have.focus');
+    cy.findByRole('navigation', { name: 'Principal' }).should('not.exist');
+    cy.findByRole('button', { name: /^Conta de / }).should('not.exist');
+  });
+
+  [
+    {
+      caminho: '/customer/search',
+      aba: 'Buscar',
+      tela: () => cy.findByRole('button', { name: /^Filtros/ }),
+    },
+    {
+      caminho: '/customer/favorites',
+      aba: 'Favoritos',
+      tela: () => cy.findByRole('heading', { level: 1, name: 'Favoritos' }),
+    },
+    { caminho: '/customer/20', aba: null, tela: () => cy.get('#booking-request-button') },
+    {
+      caminho: '/customer/profile/20',
+      aba: null,
+      tela: () => cy.findByRole('heading', { level: 1, name: 'Ana Limpeza' }),
+    },
+  ].forEach(({ caminho, aba, tela }) => {
+    it(`abre ${caminho} direto com um só shell`, () => {
+      cy.entrarComo('CLIENTE', caminho, {}, () => {
+        cy.intercept('GET', `${apiUrl}/provider/20`, prestadorPublico()).as('prestador');
+        cy.intercept('GET', `${apiUrl}/provider/20/availability*`, agenda()).as('agenda');
+      });
+
+      cy.location('pathname').should('eq', caminho);
+      tela().should('exist');
+      cy.get('[data-testid="authenticated-shell"]').should('have.length', 1);
+      cy.findAllByRole('navigation', { name: 'Principal' }).should('have.length', 1);
+      if (aba) umaAbaAtual(aba);
+    });
+  });
+
+  [
+    { largura: 1280, papel: 'CLIENTE' as const, inicio: '/customer', aba: 'Início' },
+    { largura: 360, papel: 'CLIENTE' as const, inicio: '/customer', aba: 'Início' },
+    { largura: 1280, papel: 'PRESTADOR' as const, inicio: '/provider', aba: 'Agenda' },
+    { largura: 360, papel: 'PRESTADOR' as const, inicio: '/provider', aba: 'Agenda' },
+  ].forEach(({ largura, papel, inicio, aba }) => {
+    it(`marca uma só aba atual do ${papel.toLowerCase()} em ${largura}px`, () => {
+      cy.viewport(largura, 800);
+      cy.entrarComo(papel, inicio);
+
+      umaAbaAtual(aba);
+      abas().within(() => {
+        cy.findAllByRole('link').then(($links) => {
+          const nomes = $links.map((_, link) => link.textContent?.trim()).get();
+          expect(new Set(nomes).size, 'sem abas repetidas').to.equal(nomes.length);
+        });
+      });
     });
   });
 });

@@ -188,3 +188,42 @@ export function conferirPedidoCriado(
   cy.contains('Ana Limpeza').should('be.visible');
   cy.get('@criarPedido.all').should('have.length', 1);
 }
+
+/**
+ * Espera a busca pelo endereço principal ter resposta. A tela busca uma vez
+ * ao abrir e outra quando os endereços chegam; depois dessa segunda, só
+ * busca de novo por uma ação da pessoa. Então, registrado um alias novo
+ * depois daqui, a primeira chamada dele é a da ação que o teste fez.
+ */
+export function esperarBuscaInicial(alias = '@prestadores') {
+  cy.get(`${alias}.all`).should((chamadas: any) => {
+    const principal = chamadas.find(
+      (c: any) => c.request.query.lat === String(enderecos[0].lat) && c.response,
+    );
+    expect(principal, 'busca pelo endereço principal respondida').to.exist;
+  });
+}
+
+/**
+ * Uma resposta que só sai quando o teste mandar, para simular a rede
+ * entregando fora de ordem sem esperar tempo fixo. No handler do
+ * `cy.intercept`: `return segurada.pronta.then(() => req.reply(...))`.
+ */
+export function respostaSegurada() {
+  let liberar!: () => void;
+  const pronta = new Promise<void>((resolve) => (liberar = resolve));
+  return { pronta, liberar: () => liberar() };
+}
+
+/**
+ * Espera a chamada que casa com `filtro` terminar: respondida ou cancelada
+ * pela tela (a busca nova cancela a anterior). Só depois disso dá para
+ * afirmar que uma resposta atrasada não mudou a tela.
+ */
+export function esperarEncerrada(alias: string, filtro: (chamada: any) => boolean) {
+  cy.get(`${alias}.all`).should((chamadas: any) => {
+    const chamada = chamadas.find(filtro);
+    expect(chamada, 'chamada atrasada').to.exist;
+    expect(chamada.state).to.be.oneOf(['Complete', 'Errored']);
+  });
+}
