@@ -3,7 +3,7 @@ import { ComponentFixture, TestBed } from '@angular/core/testing';
 import { By } from '@angular/platform-browser';
 import { ActivatedRoute, provideRouter, Router } from '@angular/router';
 import { HttpErrorResponse } from '@angular/common/http';
-import { BehaviorSubject, of, Subject, throwError } from 'rxjs';
+import { BehaviorSubject, config, of, Subject, throwError } from 'rxjs';
 
 import { Address } from '@shared/service/address/address';
 import { Search } from './search';
@@ -495,6 +495,25 @@ describe('Search', () => {
 
     expect(providerMock.listFavorites).toHaveBeenCalledWith('client-1');
     expect(component.isFavorite('101')).toBeTrue();
+  });
+
+  it('keeps the results and the hearts when loading favorites fails', () => {
+    const unhandled = jasmine.createSpy('onUnhandledError');
+    const previous = config.onUnhandledError;
+    config.onUnhandledError = unhandled;
+    providerMock.listFavorites.and.returnValue(
+      throwError(() => new HttpErrorResponse({ status: 500 })),
+    );
+
+    try {
+      fixture.detectChanges();
+
+      expect(unhandled).not.toHaveBeenCalled();
+      expect(component.providers().length).toBeGreaterThan(0);
+      expect(component.isFavorite('101')).toBeFalse();
+    } finally {
+      config.onUnhandledError = previous;
+    }
   });
 
   it('should pass onlyFavorites when the switch is on and the filters are applied', () => {

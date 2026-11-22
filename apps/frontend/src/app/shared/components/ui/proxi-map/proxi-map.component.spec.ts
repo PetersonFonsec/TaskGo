@@ -1,7 +1,12 @@
 import { ComponentFixture, TestBed } from '@angular/core/testing';
 import { PLATFORM_ID } from '@angular/core';
 
-import { LEAFLET_IMPORTER, ProxiMapComponent, ProxiMapProvider } from './proxi-map.component';
+import {
+  LEAFLET_IMPORTER,
+  ProxiMapComponent,
+  ProxiMapProvider,
+  importLeaflet,
+} from './proxi-map.component';
 
 interface LeafletMock {
   map: jasmine.Spy;
@@ -328,5 +333,17 @@ describe('ProxiMapComponent', () => {
 
     expect(leafletMock.layerGroupInstance.clearLayers).toHaveBeenCalled();
     expect(leafletMock.mapInstance.remove).toHaveBeenCalled();
+  });
+});
+
+describe('importLeaflet', () => {
+  const leaflet = { map: () => null };
+
+  it('usa as exportações nomeadas quando o módulo já as traz (ng serve com prebundling)', async () => {
+    expect(await importLeaflet(async () => leaflet)).toBe(leaflet as never);
+  });
+
+  it('usa o default quando o módulo só traz o default (build de produção)', async () => {
+    expect(await importLeaflet(async () => ({ default: leaflet }))).toBe(leaflet as never);
   });
 });

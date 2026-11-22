@@ -19,11 +19,25 @@ import type { DivIcon, LatLngExpression, LayerGroup, Map as LeafletMap, Marker }
 
 type LeafletModule = typeof import('leaflet');
 
+/**
+ * O Leaflet é um pacote UMD. No `ng serve` com prebundling o `import()`
+ * traz as exportações nomeadas; no build de produção (e no `ng serve` sem
+ * cache, como no CI) traz só o `default`. Aceita os dois formatos.
+ */
+export async function importLeaflet(
+  load: () => Promise<unknown> = () => import('leaflet'),
+): Promise<LeafletModule> {
+  const module = (await load()) as Partial<LeafletModule> & { default?: LeafletModule };
+  return typeof module.map === 'function'
+    ? (module as LeafletModule)
+    : (module.default ?? (module as LeafletModule));
+}
+
 export const LEAFLET_IMPORTER = new InjectionToken<() => Promise<LeafletModule>>(
   'LEAFLET_IMPORTER',
   {
     providedIn: 'root',
-    factory: () => () => import('leaflet'),
+    factory: () => () => importLeaflet(),
   },
 );
 

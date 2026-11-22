@@ -785,6 +785,8 @@ export class Search implements OnInit {
         }
         this.favorites.set(favoritesMap);
       },
+      // Sem a lista, a busca segue com os corações como estão; a próxima busca tenta de novo.
+      error: () => undefined,
     });
   }
 
