@@ -9,7 +9,7 @@ import { AuthService } from '@app/core/auth/auth.service';
 import { OrderDetails } from '@app/core/orders/orders.models';
 import { OrdersService } from '@app/core/orders/orders.service';
 import { FakeAuth, otherCustomer } from '../../../testing/fakes';
-import { OrderPage, orderStatusBadgeClass } from './order.page';
+import { OrderPage } from './order.page';
 
 const details: OrderDetails = {
   id: '99',
@@ -96,20 +96,6 @@ describe('OrderPage', () => {
     expect(names.filter((name) => name === 'tg-check').length).toBe(3); // selo + 2 eventos
     expect(names.every((name) => name?.startsWith('tg-'))).toBeTrue();
     expect(el.querySelector('ion-text')).toBeNull();
-  });
-
-  it('maps each order status to the design system badge tone', () => {
-    expect(orderStatusBadgeClass('AGUARDANDO_APROVACAO')).toBe('tg-badge tg-badge--waiting');
-    expect(orderStatusBadgeClass('AGUARDANDO_PAGAMENTO')).toBe('tg-badge tg-badge--waiting');
-    expect(orderStatusBadgeClass('AGUARDANDO_CONFIRMACAO_CLIENTE')).toBe('tg-badge tg-badge--waiting');
-    expect(orderStatusBadgeClass('DISPUTA')).toBe('tg-badge tg-badge--waiting');
-    expect(orderStatusBadgeClass('AGENDADO')).toBe('tg-badge tg-badge--confirmed');
-    expect(orderStatusBadgeClass('EM_DESLOCAMENTO')).toBe('tg-badge tg-badge--progress');
-    expect(orderStatusBadgeClass('EM_ANDAMENTO')).toBe('tg-badge tg-badge--progress');
-    expect(orderStatusBadgeClass('CONCLUIDO')).toBe('tg-badge tg-badge--done');
-    expect(orderStatusBadgeClass('CANCELADO')).toBe('tg-badge tg-badge--cancelled');
-    expect(orderStatusBadgeClass('REJEITADO')).toBe('tg-badge tg-badge--cancelled');
-    expect(orderStatusBadgeClass('NOVO_STATUS')).toBe('tg-badge');
   });
 
   it('shows the final amount and the cancellation reason when there is one', async () => {

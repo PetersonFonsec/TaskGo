@@ -8,7 +8,7 @@ import { AuthService } from '@app/core/auth/auth.service';
 import { OrderListItem } from '@app/core/orders/orders.models';
 import { OrdersService } from '@app/core/orders/orders.service';
 import { FakeAuth, otherCustomer } from '../../../testing/fakes';
-import { orderStatusBadgeClass, OrdersPage } from './orders.page';
+import { OrdersPage } from './orders.page';
 
 const order = (id: string, title: string): OrderListItem => ({
   id,
@@ -77,21 +77,6 @@ describe('OrdersPage', () => {
     const el = fixture.nativeElement as HTMLElement;
     expect(el.querySelector('ion-toolbar')?.hasAttribute('color')).toBeFalse();
     expect(el.querySelector('ion-back-button')?.getAttribute('icon')).toBe('tg-arrow-left');
-  });
-
-  it('maps each status to the badge tone used on the site', () => {
-    expect(orderStatusBadgeClass('AGUARDANDO_APROVACAO')).toBe('tg-badge tg-badge--waiting');
-    expect(orderStatusBadgeClass('AGUARDANDO_PAGAMENTO')).toBe('tg-badge tg-badge--waiting');
-    expect(orderStatusBadgeClass('AGUARDANDO_CONFIRMACAO_CLIENTE')).toBe('tg-badge tg-badge--waiting');
-    expect(orderStatusBadgeClass('DISPUTA')).toBe('tg-badge tg-badge--waiting');
-    expect(orderStatusBadgeClass('AGENDADO')).toBe('tg-badge tg-badge--confirmed');
-    expect(orderStatusBadgeClass('EM_DESLOCAMENTO')).toBe('tg-badge tg-badge--progress');
-    expect(orderStatusBadgeClass('EM_ANDAMENTO')).toBe('tg-badge tg-badge--progress');
-    expect(orderStatusBadgeClass('CONCLUIDO')).toBe('tg-badge tg-badge--done');
-    expect(orderStatusBadgeClass('CANCELADO')).toBe('tg-badge tg-badge--cancelled');
-    expect(orderStatusBadgeClass('REJEITADO')).toBe('tg-badge tg-badge--cancelled');
-    expect(orderStatusBadgeClass('NOVO_STATUS')).toBe('tg-badge');
-    expect(orderStatusBadgeClass('toString')).toBe('tg-badge');
   });
 
   it('says when there are no orders yet', async () => {

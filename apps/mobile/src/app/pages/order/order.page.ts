@@ -19,8 +19,8 @@ import {
   IonToolbar,
   RefresherCustomEvent
 } from '@ionic/angular';
-import { OrderDetails, OrderStatus } from '@app/core/orders/orders.models';
-import { orderStatusLabel, OrdersService } from '@app/core/orders/orders.service';
+import { OrderDetails } from '@app/core/orders/orders.models';
+import { orderStatusBadgeClass, orderStatusLabel, OrdersService } from '@app/core/orders/orders.service';
 import { privateResource } from '@app/core/orders/private-resource';
 import { registerTgIcons } from '@app/core/ui/tg-icons';
 import { formatDateTime } from '../orders/orders.page';
@@ -35,31 +35,6 @@ const NEXT_STEP: Partial<Record<string, string>> = {
   AGUARDANDO_CONFIRMACAO_CLIENTE: 'O profissional finalizou. Confirme a conclusão no site do TaskGo.',
   DISPUTA: 'Recebemos o problema relatado e estamos analisando.'
 };
-
-/** Tom do selo de status, no mesmo mapa do site (tg-order-status do frontend). */
-export type OrderStatusTone = 'waiting' | 'confirmed' | 'progress' | 'done' | 'cancelled';
-
-const STATUS_TONES: Record<OrderStatus, OrderStatusTone> = {
-  AGUARDANDO_APROVACAO: 'waiting',
-  AGUARDANDO_PAGAMENTO: 'waiting',
-  AGENDADO: 'confirmed',
-  EM_DESLOCAMENTO: 'progress',
-  EM_ANDAMENTO: 'progress',
-  AGUARDANDO_CONFIRMACAO_CLIENTE: 'waiting',
-  CONCLUIDO: 'done',
-  DISPUTA: 'waiting',
-  REJEITADO: 'cancelled',
-  CANCELADO: 'cancelled'
-};
-
-/** Classes do ion-badge de status; status desconhecido fica no selo neutro. */
-export function orderStatusBadgeClass(status: string): string {
-  return isOrderStatus(status) ? `tg-badge tg-badge--${STATUS_TONES[status]}` : 'tg-badge';
-}
-
-function isOrderStatus(status: string): status is OrderStatus {
-  return Object.prototype.hasOwnProperty.call(STATUS_TONES, status);
-}
 
 @Component({
   selector: 'app-order',

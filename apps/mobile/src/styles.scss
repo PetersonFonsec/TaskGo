@@ -237,3 +237,15 @@ ion-badge.tg-badge--accent {
 .tg-muted {
   color: var(--tg-text-secondary);
 }
+
+// No Android (modo md) o Ionic põe sombra no cabeçalho e caixa alta no voltar.
+ion-header.header-md {
+  box-shadow: none;
+  border-bottom: 1px solid var(--tg-border-default);
+}
+
+ion-back-button {
+  text-transform: none;
+  font-weight: var(--tg-font-weight-bold);
+  letter-spacing: 0;
+}
