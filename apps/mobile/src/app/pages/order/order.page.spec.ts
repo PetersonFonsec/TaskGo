@@ -9,7 +9,7 @@ import { AuthService } from '@app/core/auth/auth.service';
 import { OrderDetails } from '@app/core/orders/orders.models';
 import { OrdersService } from '@app/core/orders/orders.service';
 import { FakeAuth, otherCustomer } from '../../../testing/fakes';
-import { OrderPage } from './order.page';
+import { OrderPage, orderStatusBadgeClass } from './order.page';
 
 const details: OrderDetails = {
   id: '99',
@@ -70,6 +70,48 @@ describe('OrderPage', () => {
     expect(text()).toContain('Prestador aceitou');
   });
 
+  it('uses the design system header, status badge, verified seal and icons', async () => {
+    await render(of(details));
+    const el: HTMLElement = fixture.nativeElement;
+
+    expect(el.querySelector('ion-toolbar')?.getAttribute('color')).toBeNull();
+    const back = el.querySelector('ion-back-button');
+    expect(back?.getAttribute('icon')).toBe('tg-arrow-left');
+    expect(back?.getAttribute('text')).toBe('Voltar');
+    const status = el.querySelector('[data-testid="status"]');
+    expect(status?.classList).toContain('tg-badge');
+    expect(status?.classList).toContain('tg-badge--waiting');
+    const verified = el.querySelector('[data-testid="verified"]');
+    expect(verified?.classList).toContain('tg-badge--confirmed');
+    expect(verified?.querySelector('ion-icon')?.getAttribute('name')).toBe('tg-check');
+    expect(verified?.textContent).toContain('Verificado');
+    expect(el.querySelector('[data-testid="next-step"]')?.closest('.tg-alert')?.classList).toContain(
+      'tg-alert--info'
+    );
+    // O ion-refresher-content desenha o próprio ícone; os da página são todos tg-*.
+    const names = Array.from(el.querySelectorAll('ion-icon'))
+      .filter((icon) => !icon.closest('ion-refresher-content'))
+      .map((icon) => icon.getAttribute('name'));
+    expect(names).toContain('tg-user-circle');
+    expect(names.filter((name) => name === 'tg-check').length).toBe(3); // selo + 2 eventos
+    expect(names.every((name) => name?.startsWith('tg-'))).toBeTrue();
+    expect(el.querySelector('ion-text')).toBeNull();
+  });
+
+  it('maps each order status to the design system badge tone', () => {
+    expect(orderStatusBadgeClass('AGUARDANDO_APROVACAO')).toBe('tg-badge tg-badge--waiting');
+    expect(orderStatusBadgeClass('AGUARDANDO_PAGAMENTO')).toBe('tg-badge tg-badge--waiting');
+    expect(orderStatusBadgeClass('AGUARDANDO_CONFIRMACAO_CLIENTE')).toBe('tg-badge tg-badge--waiting');
+    expect(orderStatusBadgeClass('DISPUTA')).toBe('tg-badge tg-badge--waiting');
+    expect(orderStatusBadgeClass('AGENDADO')).toBe('tg-badge tg-badge--confirmed');
+    expect(orderStatusBadgeClass('EM_DESLOCAMENTO')).toBe('tg-badge tg-badge--progress');
+    expect(orderStatusBadgeClass('EM_ANDAMENTO')).toBe('tg-badge tg-badge--progress');
+    expect(orderStatusBadgeClass('CONCLUIDO')).toBe('tg-badge tg-badge--done');
+    expect(orderStatusBadgeClass('CANCELADO')).toBe('tg-badge tg-badge--cancelled');
+    expect(orderStatusBadgeClass('REJEITADO')).toBe('tg-badge tg-badge--cancelled');
+    expect(orderStatusBadgeClass('NOVO_STATUS')).toBe('tg-badge');
+  });
+
   it('shows the final amount and the cancellation reason when there is one', async () => {
     await render(
       of({
@@ -82,12 +124,19 @@ describe('OrderPage', () => {
     expect(text()).toContain('Cancelado');
     expect(text()).toContain('R$ 180,00');
     expect(text()).toContain('Motivo: Prestador indisponível · Imprevisto');
+    expect(fixture.nativeElement.querySelector('[data-testid="status"]').classList).toContain(
+      'tg-badge--cancelled'
+    );
     expect(fixture.nativeElement.querySelector('[data-testid="next-step"]')).toBeNull();
   });
 
   it('shows an error when the order cannot be loaded', async () => {
     await render(throwError(() => new Error('403')));
     expect(text()).toContain('Não foi possível carregar este pedido');
+    const alert = fixture.nativeElement.querySelector('.tg-alert');
+    expect(alert.classList).toContain('tg-alert--danger');
+    expect(alert.getAttribute('role')).toBe('alert');
+    expect(alert.querySelector('ion-icon').getAttribute('name')).toBe('tg-warning-circle');
   });
 
   it('K: a page kept in the Ionic stack does not show the old account order when it comes back', async () => {
