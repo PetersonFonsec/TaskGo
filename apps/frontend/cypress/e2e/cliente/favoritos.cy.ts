@@ -5,6 +5,7 @@ import {
   entrarNaJornada,
   esperarBuscaInicial,
   prestadores,
+  respostaDaBusca,
   respostaSegurada,
 } from '../../support/api/jornada-cliente';
 import { apiUrl } from '../../support/api/stub-base';
@@ -17,8 +18,9 @@ interface Segurar {
 }
 
 /**
- * Simula a lista de favoritos no servidor: `GET /favorites` devolve o que os
- * `POST` e `DELETE` deixaram, e a busca com `onlyFavorites=true` só traz eles.
+ * Simula a lista de favoritos no servidor: `GET /favorites` (com ou sem a
+ * paginação na query) devolve o que os `POST` e `DELETE` deixaram, e a busca
+ * com `onlyFavorites=true` só traz eles, com os outros filtros aplicados.
  * `registrarBusca` registra de novo a busca com outro alias, para pegar só as
  * chamadas que vierem depois de uma ação.
  */
@@ -27,7 +29,7 @@ function servidorDeFavoritos(iniciais: Prestador[] = [], segurar: Segurar = {}) 
   const segura = (promessa: Promise<void> | undefined, responder: () => void) =>
     promessa ? promessa.then(responder) : responder();
 
-  cy.intercept('GET', `${apiUrl}/favorites`, (req) =>
+  cy.intercept('GET', `${apiUrl}/favorites*`, (req) =>
     segura(segurar.lista, () =>
       req.reply({
         items: favoritos.map((provider) => ({ providerId: provider.id, provider })),
@@ -49,7 +51,8 @@ function servidorDeFavoritos(iniciais: Prestador[] = [], segurar: Segurar = {}) 
   const registrarBusca = (alias: string) =>
     cy
       .intercept('GET', `${apiUrl}/provider/by-category/limpeza*`, (req) => {
-        req.reply(req.query['onlyFavorites'] === 'true' ? favoritos : prestadores);
+        const lista = req.query['onlyFavorites'] === 'true' ? favoritos : prestadores;
+        req.reply(respostaDaBusca(lista, req.query, 'limpeza'));
       })
       .as(alias);
   registrarBusca('prestadores');
@@ -101,7 +104,7 @@ describe('Favoritos', () => {
       cy.findByRole('button', { name: /^Filtros/ }).click();
       cy.findByRole('dialog', { name: 'Filtros' }).within(() => {
         cy.findByRole('switch', { name: 'Mostrar só meus favoritos' }).check();
-        cy.findByRole('button', { name: 'Ver 2 profissionais' }).click();
+        cy.findByRole('button', { name: 'Ver profissionais' }).click();
       });
 
       cy.location('search').should('include', 'onlyFavorites=true');
@@ -131,13 +134,15 @@ describe('Favoritos', () => {
       mostraOsCards(['Ana Limpeza']);
     });
 
-    it('filtra certo quando os favoritos chegam depois da busca', () => {
+    it('mostra os favoritos que a API filtrou mesmo antes da lista de favoritos chegar', () => {
       const lista = respostaSegurada();
       entrarNaJornada(buscaFavoritos, () => servidorDeFavoritos([bruno], { lista: lista.pronta }));
       esperarBuscaInicial();
 
-      // Sem a lista de favoritos, ninguém passa no filtro.
-      cy.findByRole('heading', { level: 2, name: '0 profissionais' }).should('be.visible');
+      // O filtro é da API: a busca já traz só os favoritos, sem esperar a lista.
+      cy.get('@listarFavoritos.all').should('have.length.at.least', 1);
+      cy.findByRole('heading', { level: 2, name: '1 profissional' }).should('be.visible');
+      mostraOsCards(['Bruno Limpeza']);
       cy.then(() => lista.liberar());
 
       cy.wait('@listarFavoritos');
@@ -171,7 +176,7 @@ describe('Favoritos', () => {
     it('continua mostrando a busca quando a lista de favoritos falha', () => {
       entrarNaJornada('/customer/search?categoria=limpeza', () => {
         servidorDeFavoritos([ana]);
-        cy.intercept('GET', `${apiUrl}/favorites`, { statusCode: 500, body: {} }).as(
+        cy.intercept('GET', `${apiUrl}/favorites*`, { statusCode: 500, body: {} }).as(
           'falhaFavoritos',
         );
       });
@@ -234,7 +239,7 @@ describe('Favoritos', () => {
 
     it('mostra a falha ao carregar e recupera com Tentar de novo', () => {
       cy.entrarComo('CLIENTE', '/customer/favorites', {}, () => {
-        cy.intercept('GET', `${apiUrl}/favorites`, { statusCode: 500, body: {} }).as('falha');
+        cy.intercept('GET', `${apiUrl}/favorites*`, { statusCode: 500, body: {} }).as('falha');
       });
       cy.wait('@falha');
 

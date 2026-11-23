@@ -22,7 +22,8 @@ export function stubBase(sessaoAtual?: Sessao) {
     data: sessaoAtual?.user.addresses ?? [],
     meta: { total: sessaoAtual?.user.addresses.length ?? 0, page: 1, hasNextPage: false },
   }).as('enderecos');
-  cy.intercept('GET', `${apiUrl}/favorites`, { items: [] }).as('favoritos');
+  // `*` cobre a paginação (`?skip=&take=`) que a tela manda.
+  cy.intercept('GET', `${apiUrl}/favorites*`, { items: [], total: 0 }).as('favoritos');
   cy.intercept('GET', `${apiUrl}/order/client/*`, []).as('pedidosDoCliente');
   cy.intercept('GET', `${apiUrl}/order/provider/*`, []).as('pedidosDoPrestador');
   cy.intercept('GET', `${apiUrl}/auth/provider-home`, painelPrestadorVazio()).as(
