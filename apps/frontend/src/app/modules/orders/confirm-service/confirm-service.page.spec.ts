@@ -51,6 +51,7 @@ function details(extra: Partial<OrderDetails> = {}): OrderDetails {
       providerFinishedAt: '2026-10-03T19:30:00.000Z',
       providerNotes: 'Troquei o registro.',
     },
+    priceAdjustmentReason: null,
     photos: [
       { id: '1', url: 'https://example.com/depois.jpg', type: 'AFTER' },
       { id: '2', url: 'https://example.com/nota.jpg', type: 'RECEIPT' },

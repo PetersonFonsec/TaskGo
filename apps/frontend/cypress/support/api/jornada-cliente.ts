@@ -64,6 +64,46 @@ export const prestadores = [
 
 export const prestador = ana;
 
+type Prestador = (typeof prestadores)[number];
+
+const filtroNumerico = (valor: unknown) =>
+  valor === undefined || valor === '' ? undefined : Number(valor);
+
+/**
+ * Responde à busca como a API: corta por nota mínima, distância máxima e faixa
+ * de preço (o menor preço ativo da categoria) e mantém a ordem da lista, que
+ * já vem dos mais próximos para os mais distantes. Sem categoria, valem os
+ * serviços de todas.
+ */
+export function respostaDaBusca<T extends Prestador & { distanceKm?: unknown }>(
+  lista: readonly T[],
+  query: Record<string, unknown>,
+  categoriaDaBusca?: string,
+): T[] {
+  const notaMinima = filtroNumerico(query['minimumRating']);
+  const distanciaMaxima = filtroNumerico(query['maximumDistance']);
+  const precoMinimo = filtroNumerico(query['minimumPrice']);
+  const precoMaximo = filtroNumerico(query['maximumPrice']);
+  return lista.filter((item) => {
+    if (notaMinima !== undefined && Number(item.ratingAvg) < notaMinima) return false;
+    if (distanciaMaxima !== undefined && Number(item.distanceKm) > distanciaMaxima) return false;
+    if (precoMinimo === undefined && precoMaximo === undefined) return true;
+    const precos = item.services
+      .filter(
+        (servico) =>
+          servico.status === 'ATIVO' &&
+          (!categoriaDaBusca || servico.category === categoriaDaBusca),
+      )
+      .map((servico) => Number(servico.basePrice));
+    if (!precos.length) return false;
+    const menorPreco = Math.min(...precos);
+    return (
+      (precoMinimo === undefined || menorPreco >= precoMinimo) &&
+      (precoMaximo === undefined || menorPreco <= precoMaximo)
+    );
+  });
+}
+
 export function agenda(serviceId = '200') {
   return {
     providerId: '20',
@@ -111,12 +151,12 @@ export const primeiroHorario = agenda().days[0].slots[0].startsAt;
 export const ultimoHorario = agenda().days[2].slots[0].startsAt;
 
 /**
- * Entra como cliente com os dois endereços e responde à busca, ao perfil, à
- * agenda e à criação do pedido. Os aliases: `@prestadores` (busca por
- * categoria), `@todos` (busca sem categoria), `@prestador`, `@agenda`,
- * `@criarPedido`. `preparar` roda depois desses stubs e do `stubBase`, antes
- * de abrir a tela, para trocar qualquer resposta (o último `cy.intercept`
- * registrado vence). Para mudar os endereços da sessão, use `enderecosDaSessao`.
+ * Entra como cliente com os dois endereços e responde à busca (filtrada como
+ * a API faz, ver `respostaDaBusca`), ao perfil, à agenda e à criação do
+ * pedido. Os aliases: `@prestadores` (busca por categoria), `@todos` (busca
+ * sem categoria), `@prestador`, `@agenda`, `@criarPedido`. `preparar` roda
+ * depois desses stubs e do `stubBase`, antes de abrir a tela, para trocar
+ * qualquer resposta (o último `cy.intercept` registrado vence). Para mudar os endereços da sessão, use `enderecosDaSessao`.
  */
 export function entrarNaJornada(
   caminho: string,
@@ -125,8 +165,12 @@ export function entrarNaJornada(
 ) {
   cy.clock(agora, ['Date']);
   return cy.entrarComo('CLIENTE', caminho, { addresses: enderecosDaSessao }, () => {
-    cy.intercept('GET', `${apiUrl}/provider/by-category/limpeza*`, prestadores).as('prestadores');
-    cy.intercept({ method: 'GET', pathname: '/provider' }, prestadores).as('todos');
+    cy.intercept('GET', `${apiUrl}/provider/by-category/limpeza*`, (req) => {
+      req.reply(respostaDaBusca(prestadores, req.query, 'limpeza'));
+    }).as('prestadores');
+    cy.intercept({ method: 'GET', pathname: '/provider' }, (req) => {
+      req.reply(respostaDaBusca(prestadores, req.query));
+    }).as('todos');
     cy.intercept('GET', `${apiUrl}/provider/20`, prestador).as('prestador');
     cy.intercept('GET', `${apiUrl}/provider/20/availability*`, (req) => {
       req.reply(agenda(String(req.query['serviceId'])));

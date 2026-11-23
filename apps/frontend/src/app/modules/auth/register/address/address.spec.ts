@@ -143,7 +143,8 @@ describe('Address (register step 3)', () => {
   it('shows the field errors on submit and focuses the CEP', async () => {
     await setup();
     submit();
-    expect(errors()).toEqual(['Informe o CEP.', 'Informe a rua.', 'Informe o número.', 'Informe o bairro.']);
+    // O bairro é opcional ("Bairro (opcional)"): não gera erro.
+    expect(errors()).toEqual(['Informe o CEP.', 'Informe a rua.', 'Informe o número.']);
     expect(document.activeElement).toBe(input('zipcode-input'));
     expect(navigate).not.toHaveBeenCalled();
   });
@@ -325,7 +326,7 @@ describe('Address (register step 3)', () => {
         expect(form()).toEqual(EMPTY);
         expect(input('city-input')).not.toBeNull();
         submit();
-        expect(errors()).toEqual(['Informe a rua.', 'Informe o bairro.', 'Informe a cidade.', 'Informe a UF.']);
+        expect(errors()).toEqual(['Informe a rua.', 'Informe a cidade.', 'Informe a UF.']);
         expect(navigate).not.toHaveBeenCalled();
       });
 

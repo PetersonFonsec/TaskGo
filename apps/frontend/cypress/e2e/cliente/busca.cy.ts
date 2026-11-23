@@ -6,6 +6,7 @@ import {
   esperarBuscaInicial,
   esperarEncerrada,
   prestadores,
+  respostaDaBusca,
   respostaSegurada,
 } from '../../support/api/jornada-cliente';
 import { apiUrl } from '../../support/api/stub-base';
@@ -65,21 +66,30 @@ describe('Busca de profissionais', () => {
   it('combina nota, distância e preço, guarda os filtros na URL e permite limpá-los', () => {
     entrarNaJornada(busca);
     esperarBuscaInicial();
-    cy.intercept('GET', porCategoria, prestadores).as('comFiltros');
+    cy.intercept('GET', porCategoria, (req) => {
+      req.reply(respostaDaBusca(prestadores, req.query, 'limpeza'));
+    }).as('comFiltros');
 
     abrirFiltros().within(() => {
       cy.findByRole('button', { name: '4 estrelas ou mais' }).click();
       cy.findByRole('button', { name: 'Até 10 km' }).click();
       cy.get('#search-price-min').type('100');
-      cy.findByRole('button', { name: 'Ver 1 profissional' }).click();
+      cy.findByRole('button', { name: 'Ver profissionais' }).click();
     });
 
     cy.location('search')
       .should('include', 'minimumRating=4')
       .and('include', 'maximumDistance=10')
       .and('include', 'minimumPrice=100');
-    // Aplicar refaz a busca do mesmo lugar; os filtros cortam na tela.
-    cy.wait('@comFiltros').its('request.query').should('include', origem(enderecos[0]));
+    // Aplicar refaz a busca do mesmo lugar, com os filtros para a API cortar.
+    cy.wait('@comFiltros')
+      .its('request.query')
+      .should('include', {
+        ...origem(enderecos[0]),
+        minimumRating: '4',
+        maximumDistance: '10',
+        minimumPrice: '100',
+      });
     mostraOsCards(['Ana Limpeza']);
     cy.findByRole('button', { name: 'Filtros · 3' }).should('be.visible');
 
@@ -93,7 +103,7 @@ describe('Busca de profissionais', () => {
       );
       cy.get('#search-price-min').should('have.value', '100');
       cy.findByRole('button', { name: 'Limpar' }).click();
-      cy.findByRole('button', { name: 'Ver 3 profissionais' }).click();
+      cy.findByRole('button', { name: 'Ver profissionais' }).click();
     });
 
     cy.location('search').should('eq', '?categoria=limpeza');
@@ -103,12 +113,16 @@ describe('Busca de profissionais', () => {
   it('mostra a busca vazia e volta a listar ao limpar os filtros', () => {
     entrarNaJornada(busca);
     esperarBuscaInicial();
+    cy.intercept('GET', porCategoria, (req) => {
+      req.reply(respostaDaBusca(prestadores, req.query, 'limpeza'));
+    }).as('precoMaximo');
 
     abrirFiltros().within(() => {
       cy.get('#search-price-max').type('50');
-      cy.findByRole('button', { name: 'Ver 0 profissionais' }).click();
+      cy.findByRole('button', { name: 'Ver profissionais' }).click();
     });
 
+    cy.wait('@precoMaximo').its('request.query').should('include', { maximumPrice: '50' });
     cy.findByRole('heading', { name: 'Ninguém com esses filtros' }).should('be.visible');
     cards().should('not.exist');
     cy.findByRole('button', { name: 'Limpar filtros' }).click();
@@ -127,7 +141,7 @@ describe('Busca de profissionais', () => {
       cy.get('#search-price-min').type('200');
       cy.get('#search-price-max').type('100');
       cy.contains('O máximo precisa ser maior que o mínimo.').should('be.visible');
-      cy.findByRole('button', { name: /^Ver \d+ profissiona/ }).should('be.disabled');
+      cy.findByRole('button', { name: 'Ver profissionais' }).should('be.disabled');
     });
   });
 
@@ -260,7 +274,7 @@ describe('Busca de profissionais', () => {
 
       abrirFiltros().within(() => {
         cy.findByRole('button', { name: '4 estrelas ou mais' }).click();
-        cy.findByRole('button', { name: 'Ver 2 profissionais' }).click();
+        cy.findByRole('button', { name: 'Ver profissionais' }).click();
       });
 
       mostraOsCards(['Ana Limpeza', 'Carla Limpeza']);

@@ -803,15 +803,17 @@ describe('Search', () => {
     );
   });
 
-  it('lista dos mais próximos para os mais distantes; sem distância vai para o fim', () => {
+  it('lista na ordem da API: dos mais próximos para os mais distantes, sem distância no fim', () => {
+    // A API ordena por distância (quem não tem distância vai para o fim); a tela mantém essa ordem.
     providersResponse = [
-      { ...validProvider, id: '301', distanceKm: 8, lat: undefined, lng: undefined },
-      { ...validProvider, id: '302', distanceKm: undefined, lat: undefined, lng: undefined },
       { ...validProvider, id: '303', distanceKm: 1.5 },
       { ...validProvider, id: '304', distanceKm: 4 },
+      { ...validProvider, id: '301', distanceKm: 8, lat: undefined, lng: undefined },
+      { ...validProvider, id: '302', distanceKm: undefined, lat: undefined, lng: undefined },
     ];
     fixture.detectChanges();
     expect(component.providers().map((p) => p.id)).toEqual(['303', '304', '301', '302']);
+    expect(component.cards().map((c) => c.id)).toEqual(['303', '304', '301', '302']);
     expect(text(el().querySelector('.search__count-order'))).toBe('Mais próximos primeiro');
   });
 
@@ -990,19 +992,35 @@ describe('Search', () => {
       expect(component.isFavorite('101')).toBeTrue();
     });
 
-    it('"Somente favoritos" continua certo depois de desfavoritar e de uma lista antiga', () => {
-      providersResponse = [validProvider, { ...validProvider, id: '102' }];
+    it('"Somente favoritos" continua certo depois de desfavoritar e de uma busca antiga', () => {
+      // A API filtra os favoritos: com onlyFavorites, só o 101 volta.
+      providerMock.findProvidersByCategorySlug.and.callFake(
+        (_category: string, options?: { onlyFavorites?: boolean }) =>
+          of(
+            options?.onlyFavorites
+              ? [validProvider]
+              : [validProvider, { ...validProvider, id: '102' }],
+          ),
+      );
       fixture.detectChanges();
       component.openFilters();
       component.setDraft('onlyFavorites', true);
       component.applyFilters();
+      // O que a navegação do applyFilters faria com a URL.
+      queryParams.next({ categoria: 'encanadores', onlyFavorites: 'true' });
+      expect(providerMock.findProvidersByCategorySlug).toHaveBeenCalledWith(
+        'encanadores',
+        jasmine.objectContaining({ onlyFavorites: true }),
+      );
       expect(component.providers().map((p) => p.id)).toEqual(['101']);
-      const old = later<List>();
-      providerMock.listFavorites.and.returnValue(old);
+
+      // Uma busca que sai antes de o servidor esquecer o 101 e responde depois do toque.
+      const old = later<unknown[]>();
+      providerMock.findProvidersByCategorySlug.and.returnValue(old);
       component.retrySearch.next();
       component.toggleFavorite('101');
       expect(component.providers()).toEqual([]);
-      old.next({ items: [{ providerId: '101' }] });
+      old.next([validProvider]);
       expect(component.providers()).toEqual([]);
     });
 

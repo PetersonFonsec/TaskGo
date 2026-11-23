@@ -48,7 +48,14 @@ describe('Address (Endereços)', () => {
   let component: Address;
   let el: HTMLElement;
   let http: HttpTestingController;
-  let cepLookup: Subject<{ street?: string; neighborhood?: string; city: string; state: string }>;
+  let cepLookup: Subject<{
+    street?: string;
+    neighborhood?: string;
+    city: string;
+    state: string;
+    latitude?: number;
+    longitude?: number;
+  }>;
 
   beforeEach(async () => {
     cepLookup = new Subject();
@@ -58,7 +65,7 @@ describe('Address (Endereços)', () => {
         provideHttpClient(),
         provideHttpClientTesting(),
         { provide: UserLoggedService, useValue: { user: signal({ user: { id: '42' } }) } },
-        { provide: Geolocalization, useValue: { getAddressByCep: () => cepLookup } },
+        { provide: Geolocalization, useValue: { getLatLngByCep: () => cepLookup } },
       ],
     }).compileComponents();
     fixture = TestBed.createComponent(Address);
@@ -218,13 +225,15 @@ describe('Address (Endereços)', () => {
       neighborhood: 'Bela Vista',
       city: 'São Paulo',
       state: 'SP',
+      latitude: -23.56,
+      longitude: -46.65,
     });
     await render();
     expect(sheet().querySelector<HTMLInputElement>('[name="street"]')!.value).toBe(
       'Avenida Paulista',
     );
     expect(sheet().querySelector<HTMLInputElement>('[name="number"]')!.value).toBe('1000');
-    // O bairro não está no DTO da API: o formulário não o pede.
+    // O bairro é um campo opcional do formulário.
     expect(sheet().querySelector('[name="neighborhood"]')).not.toBeNull();
     sheet().querySelector<HTMLInputElement>('[name="isDefault"]')!.click();
     await render();
@@ -239,8 +248,9 @@ describe('Address (Endereços)', () => {
       city: 'São Paulo',
       state: 'SP',
       cep: '01310100',
-      lat: 0,
-      lng: 0,
+      // As coordenadas vêm da busca do CEP.
+      lat: -23.56,
+      lng: -46.65,
       isDefault: true,
     });
     expect(sheet().getAttribute('aria-busy')).toBe('true');
@@ -255,7 +265,7 @@ describe('Address (Endereços)', () => {
     expect(el.querySelectorAll('.address').length).toBe(3);
   });
 
-  it('CEP não encontrado: avisa e deixa preencher à mão', async () => {
+  it('CEP não encontrado: avisa e não salva um endereço sem localização', async () => {
     await respond();
     button('Adicionar endereço')!.click();
     await render();
@@ -264,6 +274,15 @@ describe('Address (Endereços)', () => {
     await render();
     expect(text(sheet())).toContain('CEP não encontrado');
     expect(sheet().querySelector('tg-alert')?.getAttribute('role')).toBe('status');
+
+    await type('label', 'Casa');
+    await type('street', 'Rua Manual');
+    await type('number', '12');
+    await type('city', 'São Paulo');
+    await type('state', 'SP');
+    await submit();
+    expect(text(sheet())).toContain('Localize o endereço pelo CEP antes de salvar');
+    http.expectNone((req) => req.method === 'POST');
   });
 
   it('edita com os dados do endereço e envia PATCH só com os campos do DTO', async () => {

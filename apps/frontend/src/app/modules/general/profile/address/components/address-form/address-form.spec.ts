@@ -9,7 +9,14 @@ describe('AddressForm', () => {
   let fixture: ComponentFixture<AddressForm>;
 
   let lookup: jasmine.Spy;
-  let response: Subject<{ street?: string; neighborhood?: string; city?: string; state?: string }>;
+  let response: Subject<{
+    street?: string;
+    neighborhood?: string;
+    city?: string;
+    state?: string;
+    latitude?: number;
+    longitude?: number;
+  }>;
 
   beforeEach(async () => {
     response = new Subject();
@@ -187,6 +194,8 @@ describe('AddressForm', () => {
       number: ' 12 ',
       city: 'São Paulo',
       state: 'SP',
+      lat: -23.55,
+      lng: -46.63,
     });
     component.submit();
     expect(submit).toHaveBeenCalledWith(

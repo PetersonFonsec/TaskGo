@@ -58,19 +58,30 @@
       <ul class="account__list">
         @for (item of links(); track item.label) {
           <li>
-            <a tgCard class="account__item" [routerLink]="item.href ? null : item.link" [attr.href]="item.href ?? null">
-              <span class="account__icon"><tg-icon [name]="item.icon" [size]="24" /></span>
-              <span class="account__text">
-                <span class="account__label">{{ item.label }}</span>
-                <span class="account__description">{{ item.description }}</span>
-              </span>
-              <tg-icon class="account__chevron" name="caret-right" [size]="20" />
-            </a>
+            <!-- Link externo (mailto) sem routerLink: o RouterLink reescreve o href. -->
+            @if (item.href) {
+              <a tgCard class="account__item" [href]="item.href">
+                <ng-container [ngTemplateOutlet]="itemBody" [ngTemplateOutletContext]="{ $implicit: item }" />
+              </a>
+            } @else {
+              <a tgCard class="account__item" [routerLink]="item.link">
+                <ng-container [ngTemplateOutlet]="itemBody" [ngTemplateOutletContext]="{ $implicit: item }" />
+              </a>
+            }
           </li>
         }
       </ul>
     </nav>
   }
+
+  <ng-template #itemBody let-item>
+    <span class="account__icon"><tg-icon [name]="item.icon" [size]="24" /></span>
+    <span class="account__text">
+      <span class="account__label">{{ item.label }}</span>
+      <span class="account__description">{{ item.description }}</span>
+    </span>
+    <tg-icon class="account__chevron" name="caret-right" [size]="20" />
+  </ng-template>
 
   <button tgButton type="button" appearance="outline" tone="danger" iconStart="sign-out" (click)="signOut()">
     Sair da conta

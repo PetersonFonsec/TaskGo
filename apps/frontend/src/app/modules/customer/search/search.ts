@@ -185,8 +185,17 @@ export class Search implements OnInit {
     onlyFavorites: this.onlyFavorites(),
   }));
 
-  /** A API já retorna os prestadores filtrados e ordenados por distância. */
-  providers = computed(() => this.allProviders());
+  /**
+   * A API já retorna os prestadores filtrados e ordenados por distância. Com
+   * "Somente favoritos", quem a pessoa tirou dos favoritos nesta visita sai da
+   * lista na hora, sem esperar a próxima busca.
+   */
+  providers = computed(() => {
+    const providers = this.allProviders();
+    if (!this.filters().onlyFavorites) return providers;
+    const favorites = this.favorites();
+    return providers.filter((provider) => favorites[this.providerKey(provider)] !== false);
+  });
   readonly draftPriceError = computed(() => {
     const { minimumPrice, maximumPrice } = this.draft();
     return minimumPrice != null && maximumPrice != null && maximumPrice < minimumPrice
@@ -424,6 +433,11 @@ export class Search implements OnInit {
   private toCard(provider: unknown): TgProvider | null {
     const card = toTgProvider(provider, { category: this.category() || null });
     return card ? { ...card, distanceKm: this.providerDistance(provider) } : null;
+  }
+
+  private providerKey(provider: unknown): string {
+    const record = (provider ?? {}) as { id?: unknown; providerId?: unknown };
+    return String(record.id ?? record.providerId ?? '');
   }
 
   viewProviderProfile(providerId: ProxiMapProvider['id']) {
