@@ -3,7 +3,6 @@ import { TestBed } from '@angular/core/testing';
 import { provideRouter, Router } from '@angular/router';
 import { RouterTestingHarness } from '@angular/router/testing';
 
-import { Roles } from '@shared/enums/roles.enum';
 import { UserLoggedService } from '@shared/service/user-logged/user-logged.service';
 import { InstitutionalPage } from './institutional-page';
 import { InstitutionalRoutes } from './institutional.routes';
@@ -27,7 +26,8 @@ describe('InstitutionalPage', () => {
     return harness.routeNativeElement as HTMLElement;
   }
 
-  afterEach(() => document.documentElement.removeAttribute('data-theme'));
+  // O tema do modo (data-theme) é aplicado pelo App, na raiz, para todas as rotas;
+  // está coberto em app.spec.ts e não é mais responsabilidade desta página.
 
   it('visitante: barra do app com "Entrar", sem destinos nem menu da conta, e o rodapé', async () => {
     const el = await open('/institutional/privacy');
@@ -39,22 +39,19 @@ describe('InstitutionalPage', () => {
     expect(el.querySelector('tg-account-menu')).toBeNull();
     expect(el.querySelector('app-footer')).not.toBeNull();
     expect(el.querySelector('main#conteudo')).not.toBeNull();
-    expect(document.documentElement.getAttribute('data-theme')).toBe(Roles.CUSTOMER);
   });
 
-  it('logado como profissional: "Voltar ao app" leva à home do modo, com o tema escuro', async () => {
+  it('logado como profissional: "Voltar ao app" leva à home do modo', async () => {
     const el = await open('/institutional/terms', { user: { id: '7', type: 'PRESTADOR', name: 'Bruno' } });
     const back = el.querySelector<HTMLAnchorElement>('tg-app-bar a[tgButton]');
     expect(back?.textContent).toContain('Voltar ao app');
     expect(back?.getAttribute('href')).toBe('/provider');
     expect(el.querySelector('tg-account-menu')).toBeNull();
-    expect(document.documentElement.getAttribute('data-theme')).toBe(Roles.PROVIDER);
   });
 
   it('logado como cliente: "Voltar ao app" leva a /customer', async () => {
     const el = await open('/institutional/terms', { user: { id: '3', type: 'CLIENTE' } });
     expect(el.querySelector('tg-app-bar a[tgButton]')?.getAttribute('href')).toBe('/customer');
-    expect(document.documentElement.getAttribute('data-theme')).toBe(Roles.CUSTOMER);
   });
 
   it('sessão encerrada (usuário nulo) é tratada como visitante', async () => {

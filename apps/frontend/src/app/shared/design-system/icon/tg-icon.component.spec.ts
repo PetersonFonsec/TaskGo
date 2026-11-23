@@ -1,4 +1,5 @@
 import { TestBed } from '@angular/core/testing';
+import { TG_ICONS } from '@taskgo/icons';
 import { TgIconComponent } from './tg-icon.component';
 
 describe('TgIconComponent', () => {
@@ -11,7 +12,9 @@ describe('TgIconComponent', () => {
 
   it('desenha o ícone e é decorativo por padrão', () => {
     const svg = render({ name: 'house' });
-    expect(svg.querySelector('path')?.getAttribute('d')).toContain('M128');
+    const d = svg.querySelector('path')?.getAttribute('d') ?? '';
+    expect(d).not.toBe('');
+    expect(TG_ICONS.house.regular).toContain(`d="${d}"`);
     expect(svg.getAttribute('aria-hidden')).toBe('true');
     expect(svg.getAttribute('width')).toBe('20');
   });
