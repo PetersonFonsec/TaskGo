@@ -2,9 +2,9 @@
 
 ## Estado atual
 
-Este é um procedimento inicial para preparar uma publicação. O repositório não identifica o provedor de produção, o mecanismo de entrega ou o domínio em uso. A publicação real e sua validação continuam pendentes dessas informações.
+O [guia da API no Railway](../deployment/railway.md) descreve o build, as migrations de produção, a publicação pelo GitHub e os testes de prontidão. As orientações abaixo também atendem às demais aplicações.
 
-O `docker-compose.yml` atual habilita banco e observabilidade; os serviços backend e backoffice estão comentados. O Dockerfile do backend inicia o modo de desenvolvimento. Portanto, o Compose atual não constitui um procedimento de produção validado.
+O `docker-compose.yml` atual habilita banco e observabilidade; os serviços backend e backoffice estão comentados. O Compose local referencia o Dockerfile de desenvolvimento em `apps/backend`. O Railway usa o Dockerfile da raiz. Portanto, o Compose atual não constitui um procedimento de produção validado.
 
 ## Preparação da versão
 

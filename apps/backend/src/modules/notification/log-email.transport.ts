@@ -15,6 +15,10 @@ export class LogEmailTransport extends EmailTransport {
 
   async send(message: EmailMessage): Promise<void> {
     const header = `E-mail para ${message.to}: ${message.subject}`;
-    this.logger.log(this.includeBody ? `${header}\n${message.text}` : header);
+    this.logger.log(
+      this.includeBody
+        ? `${header}\n${message.text}`
+        : 'E-mail sem transporte SMTP configurado',
+    );
   }
 }

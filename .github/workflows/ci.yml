@@ -20,7 +20,36 @@ env:
   CYPRESS_INSTALL_BINARY: '0'
 
 jobs:
+  scope:
+    runs-on: ubuntu-latest
+    outputs:
+      backend: ${{ steps.paths.outputs.backend }}
+      web: ${{ steps.paths.outputs.web }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - id: paths
+        env:
+          BASE: ${{ github.event.pull_request.base.sha || github.event.before }}
+        run: |
+          backend=true
+          web=true
+          if git cat-file -e "$BASE^{commit}" 2>/dev/null; then
+            # Shared contracts and root dependency changes keep the full regression suite.
+            api=(apps/backend libs/shared package.json package-lock.json tsconfig.base.json .nvmrc Dockerfile .dockerignore scripts/ci/smoke-backend-image.sh .github/workflows/ci.yml)
+            git diff --quiet "$BASE" HEAD -- "${api[@]}" && backend=false
+            if [[ "$backend" == true ]] && git diff --quiet "$BASE" HEAD -- . \
+              ':(exclude)apps/backend/**' ':(exclude)Dockerfile' ':(exclude).dockerignore' \
+              ':(exclude)scripts/ci/smoke-backend-image.sh' ':(exclude)docs/**'; then
+              web=false
+            fi
+          fi
+          echo "backend=$backend" >> "$GITHUB_OUTPUT"
+          echo "web=$web" >> "$GITHUB_OUTPUT"
+
   quality:
+    needs: scope
     name: Quality
     runs-on: ubuntu-latest
     timeout-minutes: 30
@@ -30,16 +59,16 @@ jobs:
         env:
           POSTGRES_USER: taskgo_ci
           POSTGRES_PASSWORD: taskgo_ci
-          POSTGRES_DB: taskgo_test
+          POSTGRES_DB: proxi_verify
         ports:
           - 5432:5432
         options: >-
-          --health-cmd "pg_isready -U taskgo_ci -d taskgo_test"
+          --health-cmd "pg_isready -U taskgo_ci -d proxi_verify"
           --health-interval 10s
           --health-timeout 5s
           --health-retries 5
     env:
-      DATABASE_URL: postgresql://taskgo_ci:taskgo_ci@localhost:5432/taskgo_test?schema=public
+      DATABASE_URL: postgresql://taskgo_ci:taskgo_ci@localhost:5432/proxi_verify?schema=public
       JWT_SECRET: ci-only-not-a-secret
       PAYMENTS_SIMULATION: 'true'
       SALT_ROUNDS: '1'
@@ -56,30 +85,59 @@ jobs:
           node -e 'require("node:fs").writeFileSync("apps/backend/.env.test", ["DATABASE_URL=" + process.env.DATABASE_URL, "JWT_SECRET=" + process.env.JWT_SECRET, "PAYMENTS_SIMULATION=true", "SALT_ROUNDS=1", ""].join(String.fromCharCode(10)))'
           npm exec --workspace apps/backend -- prisma generate
           npm run prisma:deploy --workspace apps/backend
-      - name: Lint backend
+      - name: Lint applications
+        if: needs.scope.outputs.web == 'true'
         run: npm run lint -- --skip-nx-cache
+      - name: Lint backend
+        if: needs.scope.outputs.web == 'false'
+        run: npm run lint --workspace apps/backend
+      - name: Check backend types
+        if: needs.scope.outputs.backend == 'true'
+        run: npm exec --workspace apps/backend -- tsc --noEmit -p tsconfig.build.json
       - name: Check shared types
         run: npx nx run shared:typecheck --skip-nx-cache
       - name: Test shared contracts
         run: npx nx run shared:test --skip-nx-cache
       - name: Check design token test types
+        if: needs.scope.outputs.web == 'true'
         run: npx nx run design-tokens:typecheck --skip-nx-cache
       - name: Test design tokens (contracts, contrast, Sass)
+        if: needs.scope.outputs.web == 'true'
         run: npx nx run design-tokens:test --skip-nx-cache
       - name: Test backend including database integrations
-        run: npm run test:ci --workspace apps/backend
+        run: |
+          export PROXI_TEST_DATABASE_URL="$DATABASE_URL"
+          npm run test:ci --workspace apps/backend
       - name: Test frontend in ChromeHeadless
+        if: needs.scope.outputs.web == 'true'
         run: npm run test:ci --workspace apps/frontend
       - name: Test backoffice in ChromeHeadless
+        if: needs.scope.outputs.web == 'true'
         run: npm run backoffice:test -- --skip-nx-cache
       - name: Test mobile app in ChromeHeadless
+        if: needs.scope.outputs.web == 'true'
         run: npm run mobile:test -- --skip-nx-cache
       - name: Build all applications
+        if: needs.scope.outputs.web == 'true'
         run: npm run build -- --skip-nx-cache --parallel=1
       - name: Build Storybook
+        if: needs.scope.outputs.web == 'true'
         run: npm run build-storybook --workspace apps/frontend
 
+  backend-image:
+    name: Backend image
+    needs: scope
+    if: needs.scope.outputs.backend == 'true'
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+      - run: docker build -t taskgo-api:ci .
+      - run: bash scripts/ci/smoke-backend-image.sh taskgo-api:ci
+
   web-e2e-mocks:
+    needs: scope
+    if: needs.scope.outputs.web == 'true'
     name: E2E (mocks)
     runs-on: ubuntu-latest
     timeout-minutes: 30

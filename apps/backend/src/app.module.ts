@@ -1,4 +1,5 @@
-import { Module } from '@nestjs/common';
+import otelSDK from './tracing';
+import { Module, OnApplicationShutdown } from '@nestjs/common';
 import { APP_GUARD, APP_INTERCEPTOR } from '@nestjs/core';
 
 import { AppService } from './app.service';
@@ -62,4 +63,8 @@ import { PushModule } from './modules/push/push.module';
     },
   ],
 })
-export class AppModule {}
+export class AppModule implements OnApplicationShutdown {
+  async onApplicationShutdown() {
+    await otelSDK.shutdown();
+  }
+}

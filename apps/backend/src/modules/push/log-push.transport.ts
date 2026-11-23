@@ -12,10 +12,10 @@ export class LogPushTransport extends PushTransport {
 
   async send(
     tokens: string[],
-    message: PushMessage,
+    _message: PushMessage,
   ): Promise<PushDeliveryResult> {
     this.logger.log(
-      `Push para ${tokens.length} aparelho(s): ${message.title} - ${message.body}`,
+      `Push para ${tokens.length} aparelho(s) sem transporte FCM`,
     );
     return { invalidTokens: [] };
   }
