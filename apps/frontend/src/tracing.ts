@@ -12,28 +12,30 @@ import { environment } from './environments/environment';
 const escapeRegExp = (value: string) => value.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
 const backendUrlPattern = new RegExp(`^${escapeRegExp(environment.url)}`);
 
-const provider = new WebTracerProvider({
-  resource: resourceFromAttributes({
-    [ATTR_SERVICE_NAME]: 'taskgo-frontend-angular',
-  }),
-  spanProcessors: [
-    new BatchSpanProcessor(
-      new OTLPTraceExporter({
-        url: environment.otelTraceUrl,
-      }),
-    ),
-  ],
-});
-
-provider.register();
-
-registerInstrumentations({
-  instrumentations: [
-    new DocumentLoadInstrumentation(),
-    new FetchInstrumentation({
-      clearTimingResources: true,
-      propagateTraceHeaderCorsUrls: [backendUrlPattern],
-      ignoreUrls: [environment.otelTraceUrl],
+if (environment.otelTraceUrl) {
+  const provider = new WebTracerProvider({
+    resource: resourceFromAttributes({
+      [ATTR_SERVICE_NAME]: 'taskgo-frontend-angular',
     }),
-  ],
-});
+    spanProcessors: [
+      new BatchSpanProcessor(
+        new OTLPTraceExporter({
+          url: environment.otelTraceUrl,
+        }),
+      ),
+    ],
+  });
+
+  provider.register();
+
+  registerInstrumentations({
+    instrumentations: [
+      new DocumentLoadInstrumentation(),
+      new FetchInstrumentation({
+        clearTimingResources: true,
+        propagateTraceHeaderCorsUrls: [backendUrlPattern],
+        ignoreUrls: [environment.otelTraceUrl],
+      }),
+    ],
+  });
+}

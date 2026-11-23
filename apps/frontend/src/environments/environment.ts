@@ -1,11 +1,11 @@
 
 export const environment = {
-  production: false,
-  url: 'http://localhost:3000',
-  otelTraceUrl: 'http://localhost:4318/v1/traces',
+  production: true,
+  url: 'https://taskgo-production.up.railway.app',
+  otelTraceUrl: '',
   token: '@ODIN/TOKEN',
   user: '@ODIN/USER',
-  env: 'dev',
+  env: 'production',
   features: {
     favoritesMvp: true
   }

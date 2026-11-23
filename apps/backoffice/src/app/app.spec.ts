@@ -52,7 +52,7 @@ describe('Backoffice application bootstrap', () => {
 
     expect(fixture.componentInstance).toBeTruthy();
     expect(productionEnvironment.production).toBeTrue();
-    expect(productionEnvironment.apiUrl).toBe('/admin');
+    expect(productionEnvironment.apiUrl).toBe('https://taskgo-production.up.railway.app/admin');
     expect(productionEnvironment.adminTokenStorageKey).toBe('proxi.backoffice.adminToken');
   });
 
