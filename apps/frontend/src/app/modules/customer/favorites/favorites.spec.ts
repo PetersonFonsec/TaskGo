@@ -76,11 +76,9 @@ describe('Favorites', () => {
     expect(el.querySelector('.favorites__lead')?.textContent).toContain('2 profissionais salvos');
   });
 
-  it('com mais favoritos que a API mandou, avisa que mostra só os mais recentes', async () => {
+  it('com mais favoritos que a API mandou, avisa quantos mostra do total', async () => {
     await setup(of({ items: [item('1'), item('2')], total: 25 }));
-    expect(el.querySelector('.favorites__lead')?.textContent).toContain(
-      'mostrando os 2 mais recentes',
-    );
+    expect(el.querySelector('.favorites__lead')?.textContent).toContain('mostrando 2 de 25');
   });
 
   it('ignora itens sem id válido e repetidos', async () => {

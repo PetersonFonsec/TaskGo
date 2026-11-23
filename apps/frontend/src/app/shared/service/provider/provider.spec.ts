@@ -67,7 +67,12 @@ describe('Provider', () => {
         maximumPrice: 250,
       })
       .subscribe();
-    const request = httpMock.expectOne(`${environment.url}/provider/by-category/encanadores`);
+    const request = httpMock.expectOne(
+      (req) => req.url === `${environment.url}/provider/by-category/encanadores`,
+    );
+    expect(request.request.method).toBe('GET');
+    expect(request.request.params.get('lat')).toBe('-23.5');
+    expect(request.request.params.get('lng')).toBe('-46.6');
     expect(request.request.params.get('minimumRating')).toBe('4');
     expect(request.request.params.get('maximumDistance')).toBe('10');
     expect(request.request.params.get('minimumPrice')).toBe('100');
