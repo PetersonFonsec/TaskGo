@@ -1,6 +1,10 @@
 import otelSDK from './tracing';
 import { NestFactory } from '@nestjs/core';
-import { BadRequestException, ValidationPipe } from '@nestjs/common';
+import {
+  BadRequestException,
+  ConsoleLogger,
+  ValidationPipe,
+} from '@nestjs/common';
 import { DocumentBuilder, SwaggerModule } from '@nestjs/swagger';
 import { ConfigService } from '@nestjs/config';
 
@@ -14,7 +18,15 @@ import { requestCorrelationMiddleware } from './shared/http/request-correlation.
 
 async function bootstrap() {
   await otelSDK.start();
-  const app = await NestFactory.create(AppModule, { rawBody: true });
+  const app = await NestFactory.create(AppModule, {
+    rawBody: true,
+    ...(process.env.NODE_ENV === 'production' && {
+      logger: new ConsoleLogger({
+        json: true,
+        logLevels: ['log', 'warn', 'error', 'fatal'],
+      }),
+    }),
+  });
   const configService = app.get(ConfigService);
 
   app.enableCors(
@@ -56,7 +68,8 @@ async function bootstrap() {
   const document = SwaggerModule.createDocument(app, config);
   SwaggerModule.setup('api', app, document);
 
-  await app.listen(configService.getOrThrow<number>('app.port'));
+  app.enableShutdownHooks();
+  await app.listen(configService.getOrThrow<number>('app.port'), '0.0.0.0');
 }
 
 function validationMessage(constraint: string): string {

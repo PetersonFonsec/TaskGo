@@ -371,15 +371,11 @@ export class NotificationService {
    * handlers disparem o aviso após o commit sem aguardar o SMTP.
    */
   private async sendSafely(build: () => EmailMessage): Promise<void> {
-    let subject = 'desconhecida';
     try {
       const message = build();
-      subject = message.subject;
       await this.transport.send(message);
-    } catch (error) {
-      this.logger.error(
-        `Falha ao enviar notificação "${subject}": ${(error as Error).message}`,
-      );
+    } catch {
+      this.logger.error('Falha ao enviar notificação por e-mail');
     }
   }
 

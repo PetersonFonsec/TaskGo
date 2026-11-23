@@ -22,9 +22,9 @@ import { PushService } from './push.service';
           return new FcmPushTransport(
             FcmPushTransport.parseServiceAccount(raw),
           );
-        } catch (error) {
+        } catch {
           new Logger(PushModule.name).error(
-            `FCM_SERVICE_ACCOUNT inválida; push só será registrado em log: ${(error as Error).message}`,
+            'FCM_SERVICE_ACCOUNT inválida. Envio de push indisponível.',
           );
           return new LogPushTransport();
         }
