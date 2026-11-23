@@ -20,12 +20,9 @@ import {
   IonRadioGroup,
   IonSkeletonText,
   IonSpinner,
-  IonText,
   IonTitle,
   IonToolbar,
 } from '@ionic/angular';
-import { addIcons } from 'ionicons';
-import { personCircle, shieldCheckmark, star } from 'ionicons/icons';
 import { catchError, map, Observable, of, startWith, switchMap } from 'rxjs';
 
 import { AuthService } from '@app/core/auth/auth.service';
@@ -34,8 +31,12 @@ import { Availability, ProviderProfile, SavedAddress } from '@app/core/orders/or
 import { OrderSubmission, SubmissionState } from '@app/core/orders/order-submission.service';
 import { OrdersService } from '@app/core/orders/orders.service';
 import { privateResource } from '@app/core/orders/private-resource';
+import { registerTgIcons } from '@app/core/ui/tg-icons';
 
 type Load<T> = { status: 'loading' } | { status: 'error' } | { status: 'ready'; value: T };
+
+/** Tom do aviso de cobertura, nas classes `tg-alert--*`. */
+export type CoverageTone = 'warning' | 'info';
 
 @Component({
   selector: 'app-provider',
@@ -59,12 +60,88 @@ type Load<T> = { status: 'loading' } | { status: 'error' } | { status: 'ready'; 
     IonRadioGroup,
     IonSkeletonText,
     IonSpinner,
-    IonText,
     IonTitle,
     IonToolbar,
   ],
   templateUrl: './provider.page.html',
   styles: `
+    .hero {
+      display: flex;
+      align-items: center;
+      gap: var(--tg-space-4);
+      padding: var(--tg-space-4);
+    }
+    .hero ion-avatar {
+      flex: none;
+      width: 64px;
+      height: 64px;
+    }
+    .hero__placeholder {
+      flex: none;
+      font-size: 64px;
+      color: var(--tg-text-secondary);
+    }
+    .hero__intro {
+      display: flex;
+      flex-direction: column;
+      gap: var(--tg-space-2);
+      min-width: 0;
+    }
+    .hero__name-line {
+      display: flex;
+      flex-wrap: wrap;
+      align-items: center;
+      gap: var(--tg-space-2);
+    }
+    .hero__name {
+      overflow-wrap: anywhere;
+    }
+    .hero__meta {
+      display: flex;
+      align-items: center;
+      gap: var(--tg-space-1);
+      margin: 0;
+      font-size: var(--tg-type-body-sm-size);
+      line-height: var(--tg-type-body-sm-line);
+    }
+    .bio {
+      margin: 0;
+      padding: 0 var(--tg-space-4) var(--tg-space-4);
+      color: var(--tg-text-secondary);
+      white-space: pre-line;
+      overflow-wrap: anywhere;
+    }
+    .star {
+      color: var(--tg-feedback-warning-text);
+      vertical-align: -2px;
+    }
+    .section {
+      padding: 0 var(--tg-space-4);
+    }
+    .section p {
+      margin: var(--tg-space-2) 0;
+    }
+    .section > .tg-alert {
+      margin: var(--tg-space-2) 0;
+    }
+    .actions {
+      display: flex;
+      flex-direction: column;
+      gap: var(--tg-space-3);
+      padding: var(--tg-space-4);
+    }
+    .actions > p {
+      margin: 0;
+      font-size: var(--tg-type-body-sm-size);
+      line-height: var(--tg-type-body-sm-line);
+    }
+    .tg-alert__body {
+      display: flex;
+      flex: 1;
+      flex-direction: column;
+      gap: var(--tg-space-2);
+      min-width: 0;
+    }
     .days {
       display: flex;
       overflow-x: auto;
@@ -197,6 +274,11 @@ export class ProviderPage {
     }
     return null;
   });
+  /** Atenção quando o profissional não atende o endereço; informação enquanto verifica ou se a verificação falhar. */
+  readonly coverageTone = computed<CoverageTone>(() => {
+    const state = this.coverage();
+    return state.status === 'ready' && state.value === false ? 'warning' : 'info';
+  });
   readonly canRetryCoverage = computed(() => {
     const state = this.coverage();
     return state.status === 'error' || (state.status === 'ready' && state.value === null);
@@ -238,7 +320,7 @@ export class ProviderPage {
   );
 
   constructor() {
-    addIcons({ personCircle, shieldCheckmark, star });
+    registerTgIcons();
     // Após login, troca de conta ou reinício: recupera a tentativa pendente desta conta.
     effect(() => {
       if (this.auth.isAuthenticated() && this.auth.session() >= 0) {
