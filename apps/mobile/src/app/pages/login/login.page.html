@@ -1,13 +1,13 @@
 <ion-header>
-  <ion-toolbar color="primary">
-    <ion-buttons slot="start"><ion-back-button defaultHref="/" text="" /></ion-buttons>
+  <ion-toolbar>
+    <ion-buttons slot="start"><ion-back-button defaultHref="/" text="" icon="tg-arrow-left" /></ion-buttons>
     <ion-title>Entrar</ion-title>
   </ion-toolbar>
 </ion-header>
 
 <ion-content class="ion-padding">
-  <form [formGroup]="form" (ngSubmit)="submit()">
-    <ion-list lines="none">
+  <form class="login" [formGroup]="form" (ngSubmit)="submit()">
+    <ion-list class="login__fields" lines="none">
       <ion-input
         formControlName="email"
         type="email"
@@ -18,7 +18,6 @@
         inputmode="email"
         errorText="Informe um e-mail válido."
       />
-      <br />
       <ion-input
         formControlName="password"
         type="password"
@@ -28,12 +27,15 @@
         autocomplete="current-password"
         errorText="Informe sua senha."
       >
-        <ion-input-password-toggle slot="end" />
+        <ion-input-password-toggle slot="end" showIcon="tg-eye" hideIcon="tg-eye-slash" />
       </ion-input>
     </ion-list>
 
     @if (error(); as message) {
-      <ion-text color="danger" role="alert"><p>{{ message }}</p></ion-text>
+      <div class="tg-alert tg-alert--danger" role="alert">
+        <ion-icon name="tg-warning-circle" aria-hidden="true" />
+        <p>{{ message }}</p>
+      </div>
     }
 
     <ion-button type="submit" expand="block" [disabled]="submitting()">
