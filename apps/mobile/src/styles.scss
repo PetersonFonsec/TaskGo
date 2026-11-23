@@ -4,20 +4,236 @@
 @use '@ionic/angular/css/typography.css';
 @use '@ionic/angular/css/padding.css';
 @use '@ionic/angular/css/flex-utils.css';
-@use '@ionic/angular/css/palettes/dark.system.css';
 @use 'taskgo-tokens' as tg;
 
-// Tokens do design system (--tg-*). Ainda não alteram nenhuma tela.
+// O app do cliente segue o tema claro do design system. A paleta escura do
+// Ionic (dark.system.css) saiu: ela trocaria fundo e texto sem passar pelos
+// tokens, e o tema escuro do DS é só do prestador.
 :root {
   @include tg.tg-type-scale-app;
+  @include tg.tg-ionic-theme;
 }
 
-// Mesmo azul do cliente no site.
-:root {
-  --ion-color-primary: #2563eb;
-  --ion-color-primary-rgb: 37, 99, 235;
-  --ion-color-primary-contrast: #ffffff;
-  --ion-color-primary-contrast-rgb: 255, 255, 255;
-  --ion-color-primary-shade: #2c71c8;
-  --ion-color-primary-tint: #478de6;
+body {
+  background: var(--tg-bg-canvas);
+  color: var(--tg-text-primary);
+  font-family: var(--tg-font-sans);
+  font-size: var(--tg-type-body-size);
+  line-height: var(--tg-type-body-line);
+}
+
+// Barra do topo: superfície clara com borda, como o cabeçalho do site.
+ion-toolbar {
+  --background: var(--tg-bg-surface);
+  --color: var(--tg-text-primary);
+  --border-color: var(--tg-border-default);
+  --min-height: 56px;
+}
+
+ion-title {
+  font-size: var(--tg-type-title-3-size);
+  font-weight: var(--tg-font-weight-extrabold);
+  letter-spacing: var(--tg-tracking-title);
+}
+
+ion-content {
+  --background: var(--tg-bg-canvas);
+  --color: var(--tg-text-primary);
+}
+
+// Botões: pílula de 44px, texto em negrito, sem caixa alta.
+ion-button {
+  --border-radius: var(--tg-radius-full);
+  --box-shadow: none;
+  min-height: var(--tg-control-md);
+  font-weight: var(--tg-font-weight-bold);
+  text-transform: none;
+  letter-spacing: 0;
+}
+
+ion-button[size='small'] {
+  min-height: var(--tg-control-sm);
+}
+
+ion-toolbar ion-button {
+  --border-radius: var(--tg-radius-full);
+  min-height: var(--tg-control-sm);
+}
+
+// Botão secundário: fundo suave da marca.
+ion-button.tg-button--secondary {
+  --background: var(--tg-action-subtle);
+  --background-hover: var(--tg-action-subtle-hover);
+  --background-activated: var(--tg-action-subtle-hover);
+  --color: var(--tg-action-subtle-text);
+}
+
+ion-button.tg-button--danger {
+  --background: var(--tg-action-danger);
+  --background-hover: var(--tg-action-danger-hover);
+  --background-activated: var(--tg-action-danger-hover);
+  --color: var(--tg-text-on-danger);
+}
+
+// Cartões: superfície com borda, sem sombra nem margem própria.
+ion-card {
+  --background: var(--tg-bg-surface);
+  --color: var(--tg-text-primary);
+  margin: 0;
+  border: 1px solid var(--tg-border-default);
+  border-radius: var(--tg-radius-lg);
+  box-shadow: none;
+}
+
+ion-card-title {
+  color: var(--tg-text-primary);
+  font-size: var(--tg-type-title-3-size);
+  line-height: var(--tg-type-title-3-line);
+  font-weight: var(--tg-font-weight-bold);
+}
+
+ion-card-subtitle {
+  color: var(--tg-text-secondary);
+  font-size: var(--tg-type-body-sm-size);
+  font-weight: var(--tg-font-weight-medium);
+  text-transform: none;
+  letter-spacing: 0;
+}
+
+// Campos: rótulo em cima, contorno arredondado.
+ion-input,
+ion-textarea,
+ion-select {
+  --border-color: var(--tg-border-default);
+  --highlight-color-focused: var(--tg-focus-ring);
+  --highlight-color-invalid: var(--tg-feedback-danger-text);
+  --highlight-color-valid: var(--tg-focus-ring);
+  --border-radius: var(--tg-radius-md);
+  --color: var(--tg-text-primary);
+  --placeholder-color: var(--tg-text-secondary);
+}
+
+ion-searchbar {
+  --background: var(--tg-bg-surface);
+  --border-radius: var(--tg-radius-full);
+  --box-shadow: 0 0 0 1px var(--tg-border-default);
+  --color: var(--tg-text-primary);
+  --placeholder-color: var(--tg-text-secondary);
+  --icon-color: var(--tg-text-secondary);
+}
+
+ion-list {
+  --ion-item-background: var(--tg-bg-surface);
+  background: transparent;
+}
+
+ion-item {
+  --background: var(--tg-bg-surface);
+  --color: var(--tg-text-primary);
+  --border-color: var(--tg-border-default);
+}
+
+ion-note {
+  color: var(--tg-text-secondary);
+}
+
+ion-spinner {
+  color: var(--tg-action-primary);
+}
+
+// Selos e status, no mesmo mapa de cores do tg-badge do site.
+ion-badge.tg-badge {
+  --padding-top: 0;
+  --padding-bottom: 0;
+  --padding-start: 10px;
+  --padding-end: 10px;
+  display: inline-flex;
+  align-items: center;
+  gap: var(--tg-space-1);
+  height: 24px;
+  border-radius: var(--tg-radius-full);
+  font-size: var(--tg-type-overline-size);
+  line-height: var(--tg-type-overline-line);
+  font-weight: var(--tg-font-weight-bold);
+  --background: var(--tg-bg-subtle);
+  --color: var(--tg-text-secondary);
+}
+
+@each $tone in waiting, confirmed, progress, done, cancelled {
+  ion-badge.tg-badge--#{$tone} {
+    --background: var(--tg-status-#{$tone}-bg);
+    --color: var(--tg-status-#{$tone}-text);
+  }
+}
+
+ion-badge.tg-badge--accent {
+  --background: var(--tg-accent);
+  --color: var(--tg-text-on-accent);
+}
+
+// Avisos (erro, sucesso, atenção, informação), como o tg-alert do site.
+.tg-alert {
+  display: flex;
+  align-items: flex-start;
+  gap: var(--tg-space-3);
+  padding: var(--tg-space-4);
+  border-radius: var(--tg-radius-lg);
+  background: var(--tg-feedback-info-bg);
+  color: var(--tg-text-primary);
+  font-size: var(--tg-type-body-sm-size);
+  line-height: var(--tg-type-body-sm-line);
+
+  > ion-icon {
+    flex: none;
+    font-size: 20px;
+    color: var(--tg-feedback-info-text);
+  }
+
+  p {
+    margin: 0;
+  }
+
+  strong {
+    font-weight: var(--tg-font-weight-bold);
+  }
+}
+
+@each $tone in success, warning, danger, info {
+  .tg-alert--#{$tone} {
+    background: var(--tg-feedback-#{$tone}-bg);
+
+    > ion-icon {
+      color: var(--tg-feedback-#{$tone}-text);
+    }
+  }
+}
+
+// Títulos e textos de apoio usados nas telas.
+.tg-title-2 {
+  margin: 0;
+  font-size: var(--tg-type-title-2-size);
+  line-height: var(--tg-type-title-2-line);
+  font-weight: var(--tg-font-weight-extrabold);
+  letter-spacing: var(--tg-tracking-title);
+}
+
+.tg-title-3 {
+  margin: 0;
+  font-size: var(--tg-type-title-3-size);
+  line-height: var(--tg-type-title-3-line);
+  font-weight: var(--tg-font-weight-bold);
+}
+
+.tg-overline {
+  margin: 0;
+  color: var(--tg-text-secondary);
+  font-size: var(--tg-type-overline-size);
+  line-height: var(--tg-type-overline-line);
+  font-weight: var(--tg-font-weight-bold);
+  letter-spacing: var(--tg-tracking-overline);
+  text-transform: uppercase;
+}
+
+.tg-muted {
+  color: var(--tg-text-secondary);
 }

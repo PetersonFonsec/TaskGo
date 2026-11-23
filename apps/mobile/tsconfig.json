@@ -17,7 +17,8 @@
       "@app/*": ["./app/*"],
       "@environments/*": ["./environments/*"],
       "@taskgo/shared": ["../../../libs/shared/src/index.ts"],
-      "@taskgo/shared/*": ["../../../libs/shared/src/*"]
+      "@taskgo/shared/*": ["../../../libs/shared/src/*"],
+      "@taskgo/icons": ["../../../libs/icons/src/index.ts"]
     }
   },
   "angularCompilerOptions": {
