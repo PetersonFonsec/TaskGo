@@ -6,6 +6,7 @@ import { provideIonicAngular } from '@ionic/angular';
 import { of, Subject, throwError } from 'rxjs';
 
 import { AuthService } from '@app/core/auth/auth.service';
+import { PublicProvider } from '@app/core/catalog/catalog.models';
 import { CatalogService } from '@app/core/catalog/catalog.service';
 import { SECURE_STORE } from '@app/core/auth/session-storage';
 import { Availability, ProviderProfile, SavedAddress } from '@app/core/orders/orders.models';
@@ -148,6 +149,28 @@ describe('ProviderPage', () => {
     expect(page.canSubmit()).toBeFalse();
   });
 
+  it('uses the design system header, icons and badges', async () => {
+    const fixture = await render();
+    const el: HTMLElement = fixture.nativeElement;
+
+    expect(el.querySelector('ion-toolbar')?.getAttribute('color')).toBeNull();
+    const back = el.querySelector('ion-back-button');
+    expect(back?.getAttribute('icon')).toBe('tg-arrow-left');
+    expect(back?.getAttribute('text')).toBe('Voltar');
+    const verified = el.querySelector('[data-testid="verified"]');
+    expect(verified?.classList).toContain('tg-badge');
+    expect(verified?.classList).toContain('tg-badge--confirmed');
+    expect(verified?.querySelector('ion-icon')?.getAttribute('name')).toBe('tg-check');
+    expect(verified?.textContent).toContain('Verificado');
+    expect(el.querySelector('[data-testid="hero"] ion-icon.hero__placeholder')?.getAttribute('name')).toBe(
+      'tg-user-circle',
+    );
+    const names = Array.from(el.querySelectorAll('ion-icon')).map((icon) => icon.getAttribute('name'));
+    expect(names).toContain('tg-star-fill');
+    expect(names.every((name) => name?.startsWith('tg-'))).toBeTrue();
+    expect(el.querySelector('ion-text')).toBeNull();
+  });
+
   it('reloads the agenda and clears the slot when the service changes', async () => {
     const fixture = await render();
     const page = fixture.componentInstance;
@@ -203,6 +226,12 @@ describe('ProviderPage', () => {
     });
     expect(page.canSubmit()).toBeFalse();
     expect(text(fixture)).toContain('Este profissional não atende no endereço escolhido');
+    expect(page.coverageTone()).toBe('warning');
+    const warning = fixture.nativeElement.querySelector('[data-testid="coverage-warning"]');
+    expect(warning.classList).toContain('tg-alert');
+    expect(warning.classList).toContain('tg-alert--warning');
+    expect(warning.classList).not.toContain('tg-alert--info');
+    expect(warning.getAttribute('role')).toBe('status');
   });
 
   it('keeps requests disabled and offers a retry when coverage cannot be checked', async () => {
@@ -216,6 +245,29 @@ describe('ProviderPage', () => {
     expect(
       fixture.nativeElement.querySelector('[data-testid="coverage-warning"] ion-button'),
     ).not.toBeNull();
+    expect(fixture.componentInstance.coverageTone()).toBe('info');
+    const warning = fixture.nativeElement.querySelector('[data-testid="coverage-warning"]');
+    expect(warning.classList).toContain('tg-alert--info');
+    expect(warning.classList).not.toContain('tg-alert--warning');
+  });
+
+  it('shows the coverage check in progress as an info alert', async () => {
+    const fixture = await render();
+    const page = fixture.componentInstance;
+    const answer = new Subject<readonly PublicProvider[]>();
+    catalog.providersByCategory.and.returnValue(answer);
+    page.selectAddress('7');
+    await stable(fixture);
+
+    expect(page.coverage().status).toBe('loading');
+    expect(page.coverageTone()).toBe('info');
+    expect(text(fixture)).toContain('Verificando se este profissional atende');
+
+    // Resposta sem este profissional: o aviso passa a ser de atenção.
+    answer.next([]);
+    answer.complete();
+    await stable(fixture);
+    expect(page.coverageTone()).toBe('warning');
   });
 
   it('never sends the same order twice while the first is on its way', async () => {
@@ -254,6 +306,10 @@ describe('ProviderPage', () => {
     await stable(fixture);
 
     expect(text(fixture)).toContain('Esse horário não está mais disponível');
+    const error = fixture.nativeElement.querySelector('[data-testid="error"]');
+    expect(error.classList).toContain('tg-alert--danger');
+    expect(error.getAttribute('role')).toBe('alert');
+    expect(error.querySelector('ion-icon').getAttribute('name')).toBe('tg-warning-circle');
     expect(page.slot()).toBeNull();
     expect(page.submitting()).toBeFalse();
     expect(navigate).not.toHaveBeenCalled();
@@ -277,6 +333,9 @@ describe('ProviderPage', () => {
     expect(text(fixture)).toContain('Não sabemos se o seu último pedido chegou ao TaskGo');
     expect(text(fixture)).toContain('Troca de chuveiro');
     expect(text(fixture)).toContain('Ver meus pedidos');
+    expect(fixture.nativeElement.querySelector('[data-testid="pending"]').classList).toContain(
+      'tg-alert--warning',
+    );
     expect(page.canSubmit()).toBeFalse();
 
     // Outro horário não libera um novo pedido nem descarta o pendente.
@@ -313,6 +372,9 @@ describe('ProviderPage', () => {
     await stable(fixture);
 
     expect(text(fixture)).toContain('Não conseguimos confirmar esta solicitação');
+    expect(fixture.nativeElement.querySelector('[data-testid="conflict"]').classList).toContain(
+      'tg-alert--danger',
+    );
     expect(page.pending()).toBeNull();
     page.selectSlot('2026-11-15T13:00:00.000Z');
     expect(page.canSubmit()).toBeFalse();
@@ -439,5 +501,8 @@ describe('ProviderPage', () => {
     fixture.componentRef.setInput('id', '10');
     await stable(fixture);
     expect(text(fixture)).toContain('Não foi possível carregar este profissional');
+    const alert = fixture.nativeElement.querySelector('.tg-alert');
+    expect(alert.classList).toContain('tg-alert--danger');
+    expect(alert.getAttribute('role')).toBe('alert');
   });
 });

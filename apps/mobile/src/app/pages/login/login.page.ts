@@ -8,17 +8,18 @@ import {
   IonButtons,
   IonContent,
   IonHeader,
+  IonIcon,
   IonInput,
   IonInputPasswordToggle,
   IonList,
   IonSpinner,
-  IonText,
   IonTitle,
   IonToolbar
 } from '@ionic/angular';
 
 import { AuthService, ProviderAccountError } from '@app/core/auth/auth.service';
 import { PushRegistrationService } from '@app/core/push/push-registration.service';
+import { registerTgIcons } from '@app/core/ui/tg-icons';
 
 @Component({
   selector: 'app-login',
@@ -29,15 +30,16 @@ import { PushRegistrationService } from '@app/core/push/push-registration.servic
     IonButtons,
     IonContent,
     IonHeader,
+    IonIcon,
     IonInput,
     IonInputPasswordToggle,
     IonList,
     IonSpinner,
-    IonText,
     IonTitle,
     IonToolbar
   ],
-  templateUrl: './login.page.html'
+  templateUrl: './login.page.html',
+  styleUrl: './login.page.scss'
 })
 export class LoginPage {
   readonly #auth = inject(AuthService);
@@ -53,6 +55,10 @@ export class LoginPage {
   });
   readonly submitting = signal(false);
   readonly error = signal<string | null>(null);
+
+  constructor() {
+    registerTgIcons();
+  }
 
   async submit(): Promise<void> {
     if (this.form.invalid || this.submitting()) {

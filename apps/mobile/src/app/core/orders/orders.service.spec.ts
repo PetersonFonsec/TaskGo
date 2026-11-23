@@ -10,7 +10,7 @@ import {
   availabilityRange,
   createOrderErrorMessage,
   decimal,
-  orderStatusColor,
+  orderStatusBadgeClass,
   orderStatusLabel,
   OrdersService
 } from './orders.service';
@@ -187,9 +187,20 @@ describe('order helpers', () => {
     expect(orderStatusLabel('AGUARDANDO_APROVACAO')).toBe('Aguardando o profissional');
     expect(orderStatusLabel('EM_DESLOCAMENTO')).toBe('Profissional a caminho');
     expect(orderStatusLabel('NOVO_STATUS')).toBe('Em atualização');
-    expect(orderStatusColor('CONCLUIDO')).toBe('success');
-    expect(orderStatusColor('CANCELADO')).toBe('medium');
-    expect(orderStatusColor('AGUARDANDO_PAGAMENTO')).toBe('warning');
-    expect(orderStatusColor('AGENDADO')).toBe('primary');
+  });
+
+  it('maps each status to the badge tone used on the site', () => {
+    expect(orderStatusBadgeClass('AGUARDANDO_APROVACAO')).toBe('tg-badge tg-badge--waiting');
+    expect(orderStatusBadgeClass('AGUARDANDO_PAGAMENTO')).toBe('tg-badge tg-badge--waiting');
+    expect(orderStatusBadgeClass('AGUARDANDO_CONFIRMACAO_CLIENTE')).toBe('tg-badge tg-badge--waiting');
+    expect(orderStatusBadgeClass('DISPUTA')).toBe('tg-badge tg-badge--waiting');
+    expect(orderStatusBadgeClass('AGENDADO')).toBe('tg-badge tg-badge--confirmed');
+    expect(orderStatusBadgeClass('EM_DESLOCAMENTO')).toBe('tg-badge tg-badge--progress');
+    expect(orderStatusBadgeClass('EM_ANDAMENTO')).toBe('tg-badge tg-badge--progress');
+    expect(orderStatusBadgeClass('CONCLUIDO')).toBe('tg-badge tg-badge--done');
+    expect(orderStatusBadgeClass('CANCELADO')).toBe('tg-badge tg-badge--cancelled');
+    expect(orderStatusBadgeClass('REJEITADO')).toBe('tg-badge tg-badge--cancelled');
+    expect(orderStatusBadgeClass('NOVO_STATUS')).toBe('tg-badge');
+    expect(orderStatusBadgeClass('toString')).toBe('tg-badge');
   });
 });

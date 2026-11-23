@@ -65,11 +65,26 @@ describe('OrdersPage', () => {
     expect(text()).toContain('15 de nov, 10:00');
     const item = fixture.nativeElement.querySelector('ion-item') as HTMLElement;
     expect(item.getAttribute('href')).toBe('/pedidos/99');
+    expect(item.getAttribute('detailIcon')).toBe('tg-caret-right');
+    const badge = item.querySelector('ion-badge') as HTMLElement;
+    expect(badge.classList).toContain('tg-badge');
+    expect(badge.classList).toContain('tg-badge--waiting');
+    expect(badge.hasAttribute('color')).toBeFalse();
+  });
+
+  it('uses the design system header', async () => {
+    await render(of([ofA]));
+    const el = fixture.nativeElement as HTMLElement;
+    expect(el.querySelector('ion-toolbar')?.hasAttribute('color')).toBeFalse();
+    expect(el.querySelector('ion-back-button')?.getAttribute('icon')).toBe('tg-arrow-left');
   });
 
   it('says when there are no orders yet', async () => {
     await render(of([]));
     expect(text()).toContain('Você ainda não fez nenhum pedido');
+    const empty = fixture.nativeElement.querySelector('.orders__empty') as HTMLElement;
+    expect(empty.querySelector('ion-icon')?.getAttribute('name')).toBe('tg-receipt');
+    expect(fixture.nativeElement.querySelector('ion-text')).toBeNull();
   });
 
   it('refreshes when the user comes back to the screen', async () => {
@@ -154,6 +169,10 @@ describe('OrdersPage', () => {
       await stable();
       expect(complete).toHaveBeenCalledTimes(1);
       expect(text()).toContain('Não foi possível carregar seus pedidos');
+      const alert = fixture.nativeElement.querySelector('[role="alert"]') as HTMLElement;
+      expect(alert.classList).toContain('tg-alert');
+      expect(alert.classList).toContain('tg-alert--danger');
+      expect(alert.querySelector('ion-icon')?.getAttribute('name')).toBe('tg-warning-circle');
     });
 
     it('U: two refreshes in a row both finish, and only the latest answer is shown', async () => {

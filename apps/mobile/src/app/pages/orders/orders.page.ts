@@ -6,21 +6,22 @@ import {
   IonButtons,
   IonContent,
   IonHeader,
+  IonIcon,
   IonItem,
   IonLabel,
   IonList,
   IonRefresher,
   IonRefresherContent,
   IonSkeletonText,
-  IonText,
   IonTitle,
   IonToolbar,
   RefresherCustomEvent
 } from '@ionic/angular';
 
 import { OrderListItem } from '@app/core/orders/orders.models';
-import { orderStatusColor, orderStatusLabel, OrdersService } from '@app/core/orders/orders.service';
+import { orderStatusBadgeClass, orderStatusLabel, OrdersService } from '@app/core/orders/orders.service';
 import { privateResource } from '@app/core/orders/private-resource';
+import { registerTgIcons } from '@app/core/ui/tg-icons';
 
 @Component({
   selector: 'app-orders',
@@ -31,17 +32,18 @@ import { privateResource } from '@app/core/orders/private-resource';
     IonButtons,
     IonContent,
     IonHeader,
+    IonIcon,
     IonItem,
     IonLabel,
     IonList,
     IonRefresher,
     IonRefresherContent,
     IonSkeletonText,
-    IonText,
     IonTitle,
     IonToolbar
   ],
-  templateUrl: './orders.page.html'
+  templateUrl: './orders.page.html',
+  styleUrl: './orders.page.scss'
 })
 export class OrdersPage {
   readonly #orders = inject(OrdersService);
@@ -51,7 +53,11 @@ export class OrdersPage {
   readonly state = this.#list.state;
 
   readonly statusLabel = orderStatusLabel;
-  readonly statusColor = orderStatusColor;
+  readonly statusBadgeClass = orderStatusBadgeClass;
+
+  constructor() {
+    registerTgIcons();
+  }
 
   refresh(event: RefresherCustomEvent): void {
     this.#list.refresh(event);

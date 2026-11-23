@@ -14,16 +14,14 @@ import {
   IonList,
   IonNote,
   IonSkeletonText,
-  IonText,
   IonTitle,
   IonToolbar
 } from '@ionic/angular';
-import { addIcons } from 'ionicons';
-import { personCircle, shieldCheckmark, star } from 'ionicons/icons';
 import { catchError, map, of, startWith, switchMap } from 'rxjs';
 
 import { CatalogService } from '@app/core/catalog/catalog.service';
 import { PublicProvider } from '@app/core/catalog/catalog.models';
+import { registerTgIcons } from '@app/core/ui/tg-icons';
 
 type ProvidersState =
   | { status: 'loading' }
@@ -46,11 +44,11 @@ type ProvidersState =
     IonList,
     IonNote,
     IonSkeletonText,
-    IonText,
     IonTitle,
     IonToolbar
   ],
-  templateUrl: './category.page.html'
+  templateUrl: './category.page.html',
+  styleUrl: './category.page.scss'
 })
 export class CategoryPage {
   readonly #catalog = inject(CatalogService);
@@ -74,7 +72,7 @@ export class CategoryPage {
   );
 
   constructor() {
-    addIcons({ personCircle, shieldCheckmark, star });
+    registerTgIcons();
   }
 
   rating(provider: PublicProvider): string | null {

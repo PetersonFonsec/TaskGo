@@ -15,17 +15,14 @@ import {
   IonRefresher,
   IonRefresherContent,
   IonSkeletonText,
-  IonText,
   IonTitle,
   IonToolbar,
   RefresherCustomEvent
 } from '@ionic/angular';
-import { addIcons } from 'ionicons';
-import { checkmarkCircle, personCircle, shieldCheckmark } from 'ionicons/icons';
-
 import { OrderDetails } from '@app/core/orders/orders.models';
-import { orderStatusColor, orderStatusLabel, OrdersService } from '@app/core/orders/orders.service';
+import { orderStatusBadgeClass, orderStatusLabel, OrdersService } from '@app/core/orders/orders.service';
 import { privateResource } from '@app/core/orders/private-resource';
+import { registerTgIcons } from '@app/core/ui/tg-icons';
 import { formatDateTime } from '../orders/orders.page';
 
 /** O que o cliente precisa saber em cada etapa. */
@@ -57,11 +54,38 @@ const NEXT_STEP: Partial<Record<string, string>> = {
     IonRefresher,
     IonRefresherContent,
     IonSkeletonText,
-    IonText,
     IonTitle,
     IonToolbar
   ],
-  templateUrl: './order.page.html'
+  templateUrl: './order.page.html',
+  styles: `
+    .summary {
+      display: flex;
+      flex-direction: column;
+      align-items: flex-start;
+      gap: var(--tg-space-3);
+      padding: var(--tg-space-4);
+    }
+    .summary > p {
+      margin: 0;
+    }
+    .summary > .tg-alert {
+      align-self: stretch;
+    }
+    .person__placeholder {
+      font-size: 40px;
+      color: var(--tg-text-secondary);
+    }
+    .person__name {
+      display: flex;
+      flex-wrap: wrap;
+      align-items: center;
+      gap: var(--tg-space-2);
+    }
+    .timeline__icon {
+      color: var(--tg-feedback-success-text);
+    }
+  `
 })
 export class OrderPage {
   readonly #orders = inject(OrdersService);
@@ -79,11 +103,11 @@ export class OrderPage {
   readonly nextStep = computed(() => NEXT_STEP[this.order()?.status ?? ''] ?? null);
 
   readonly statusLabel = orderStatusLabel;
-  readonly statusColor = orderStatusColor;
+  readonly statusBadgeClass = orderStatusBadgeClass;
   readonly formatDateTime = formatDateTime;
 
   constructor() {
-    addIcons({ checkmarkCircle, personCircle, shieldCheckmark });
+    registerTgIcons();
   }
 
   refresh(event: RefresherCustomEvent): void {

@@ -1,0 +1,26 @@
+// Entrar no visual do design system. Só tokens --tg-*.
+ion-back-button {
+  --color: var(--tg-action-primary);
+}
+
+.login {
+  display: flex;
+  flex-direction: column;
+  gap: var(--tg-space-6);
+}
+
+.login__fields {
+  display: flex;
+  flex-direction: column;
+  gap: var(--tg-space-4);
+  // O rótulo flutuante do campo com contorno sobe acima da borda: sem este
+  // respiro e com o overflow padrão da lista, o "E-mail" saía cortado.
+  padding: var(--tg-space-2) 0 0;
+  overflow: visible;
+  background: transparent;
+}
+
+// O spinner global é da cor da marca; dentro do botão primário ele some.
+ion-button ion-spinner {
+  color: var(--tg-text-on-action);
+}
