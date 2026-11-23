@@ -48,6 +48,16 @@ describe('LoginPage', () => {
     return fixture;
   }
 
+  it('uses the design system header and icons', () => {
+    const el = render().nativeElement as HTMLElement;
+    expect(el.querySelector('ion-toolbar')?.hasAttribute('color')).toBeFalse();
+    expect(el.querySelector('ion-back-button')?.getAttribute('icon')).toBe('tg-arrow-left');
+    const toggle = el.querySelector('ion-input-password-toggle') as HTMLElement;
+    expect(toggle.getAttribute('showIcon')).toBe('tg-eye');
+    expect(toggle.getAttribute('hideIcon')).toBe('tg-eye-slash');
+    expect(el.querySelector('[role="alert"]')).toBeNull();
+  });
+
   it('does not call the API with an invalid form', async () => {
     const page = render().componentInstance;
     await page.submit();
@@ -74,6 +84,12 @@ describe('LoginPage', () => {
     fixture.detectChanges();
 
     expect(fixture.nativeElement.textContent).toContain('E-mail ou senha incorretos.');
+    const alert = fixture.nativeElement.querySelector('[role="alert"]') as HTMLElement;
+    expect(alert.classList).toContain('tg-alert');
+    expect(alert.classList).toContain('tg-alert--danger');
+    expect(alert.textContent).toContain('E-mail ou senha incorretos.');
+    expect(alert.querySelector('ion-icon')?.getAttribute('name')).toBe('tg-warning-circle');
+    expect(fixture.nativeElement.querySelector('ion-text')).toBeNull();
     expect(push.enable).not.toHaveBeenCalled();
     expect(navigate).not.toHaveBeenCalled();
   });

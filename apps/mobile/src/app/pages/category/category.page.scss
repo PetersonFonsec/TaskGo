@@ -1,0 +1,109 @@
+// Profissionais de uma categoria, no visual do tg-provider-card do site. Só tokens --tg-*.
+.category__list {
+  padding: 0;
+}
+
+.category__message {
+  padding: var(--tg-space-4);
+
+  p {
+    margin: 0;
+  }
+}
+
+ion-item {
+  --min-height: 72px;
+  --padding-start: var(--tg-space-4);
+  --inner-padding-end: var(--tg-space-3);
+  --detail-icon-color: var(--tg-text-secondary);
+  --detail-icon-opacity: 1;
+}
+
+// Foto (ou ícone no lugar dela) num quadrado arredondado, como no card do site.
+.category__avatar {
+  --border-radius: var(--tg-radius-lg);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 56px;
+  height: 56px;
+  overflow: hidden;
+  border-radius: var(--tg-radius-lg);
+  background: var(--tg-action-subtle);
+  color: var(--tg-action-subtle-text);
+
+  ion-icon {
+    font-size: 28px;
+  }
+}
+
+.category__title {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--tg-space-1) var(--tg-space-2);
+}
+
+.category__name {
+  margin: 0;
+  color: var(--tg-text-primary);
+  font-size: var(--tg-type-body-size);
+  line-height: var(--tg-type-body-line);
+  font-weight: var(--tg-font-weight-bold);
+  white-space: normal;
+  overflow-wrap: anywhere;
+}
+
+.category__meta {
+  display: flex;
+  align-items: center;
+  gap: var(--tg-space-1);
+  margin: var(--tg-space-1) 0 0;
+  color: var(--tg-text-secondary);
+  font-size: var(--tg-type-body-sm-size);
+  line-height: var(--tg-type-body-sm-line);
+
+  b {
+    color: var(--tg-text-primary);
+    font-weight: var(--tg-font-weight-bold);
+  }
+}
+
+.category__star {
+  color: var(--tg-feedback-warning-text);
+  font-size: 16px;
+}
+
+.category__service {
+  margin: var(--tg-space-1) 0 0;
+  color: var(--tg-text-secondary);
+  font-size: var(--tg-type-body-sm-size);
+  line-height: var(--tg-type-body-sm-line);
+}
+
+.category__price {
+  color: var(--tg-text-secondary);
+  font-size: var(--tg-type-body-sm-size);
+  line-height: var(--tg-type-body-sm-line);
+  text-align: end;
+
+  b {
+    color: var(--tg-text-primary);
+    font-size: var(--tg-type-body-size);
+    font-weight: var(--tg-font-weight-bold);
+  }
+}
+
+// Skeleton como o tg-skeleton do site: cor da borda e cantos arredondados.
+ion-skeleton-text {
+  --background: var(--tg-border-default);
+  border-radius: var(--tg-radius-sm);
+}
+
+ion-avatar ion-skeleton-text {
+  border-radius: var(--tg-radius-lg);
+}
+
+.category__skeleton-line {
+  height: 14px;
+}

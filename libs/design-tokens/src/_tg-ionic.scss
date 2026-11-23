@@ -1,5 +1,4 @@
-// Ponte opcional para o Ionic. Ainda não aplicada no app: será ligada na
-// migração das telas, porque troca o azul atual pelo violeta.
+// Ponte para o Ionic, aplicada no :root do app (apps/mobile/src/styles.scss).
 //
 // Tudo aponta para tokens semânticos, então a ponte acompanha CUSTOMER e
 // PROVIDER sozinha. O Ionic usa os canais RGB como rgba(var(--ion-...-rgb), a);

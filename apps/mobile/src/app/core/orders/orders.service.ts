@@ -96,20 +96,29 @@ export function orderStatusLabel(status: string): string {
   return STATUS_LABELS[status as OrderStatus] ?? 'Em atualização';
 }
 
-export function orderStatusColor(status: string): string {
-  switch (status) {
-    case 'CONCLUIDO':
-      return 'success';
-    case 'CANCELADO':
-    case 'REJEITADO':
-      return 'medium';
-    case 'DISPUTA':
-    case 'AGUARDANDO_PAGAMENTO':
-    case 'AGUARDANDO_CONFIRMACAO_CLIENTE':
-      return 'warning';
-    default:
-      return 'primary';
-  }
+/** Tom do selo de status, no mesmo mapa do site (tg-order-status do frontend). */
+export type OrderStatusTone = 'waiting' | 'confirmed' | 'progress' | 'done' | 'cancelled';
+
+const STATUS_TONES: Record<OrderStatus, OrderStatusTone> = {
+  AGUARDANDO_APROVACAO: 'waiting',
+  AGUARDANDO_PAGAMENTO: 'waiting',
+  AGENDADO: 'confirmed',
+  EM_DESLOCAMENTO: 'progress',
+  EM_ANDAMENTO: 'progress',
+  AGUARDANDO_CONFIRMACAO_CLIENTE: 'waiting',
+  CONCLUIDO: 'done',
+  DISPUTA: 'waiting',
+  REJEITADO: 'cancelled',
+  CANCELADO: 'cancelled'
+};
+
+/** Classes do ion-badge de status; status desconhecido fica no selo neutro. */
+export function orderStatusBadgeClass(status: string): string {
+  return isOrderStatus(status) ? `tg-badge tg-badge--${STATUS_TONES[status]}` : 'tg-badge';
+}
+
+function isOrderStatus(status: string): status is OrderStatus {
+  return Object.prototype.hasOwnProperty.call(STATUS_TONES, status);
 }
 
 /** Traduz as recusas conhecidas de POST /orders para o cliente. */

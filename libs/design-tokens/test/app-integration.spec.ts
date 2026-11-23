@@ -57,7 +57,7 @@ describe.each(['frontend', 'mobile'])('app %s', (app) => {
   });
 });
 
-describe('isolamento da Etapa 6', () => {
+describe('integração com os apps', () => {
   it('o app aplica a escala tipográfica do celular por cima da do web', () => {
     const css = compileAppStyles('mobile');
     expect(css).toContain('--tg-type-display-size: 2.75rem');
@@ -65,10 +65,13 @@ describe('isolamento da Etapa 6', () => {
     expect(lastValue(css, '--tg-type-label-size')).toBe('0.9375rem');
   });
 
-  it('a ponte Ionic continua desligada e o azul atual do app permanece', () => {
+  it('o app liga a ponte Ionic: a cor primária vem do token e o azul antigo saiu', () => {
     const css = compileAppStyles('mobile');
-    expect(css).not.toMatch(/--ion-[\w-]+:\s*var\(--tg-/);
-    expect(lastValue(css, '--ion-color-primary')).toBe('#2563eb');
+    expect(lastValue(css, '--ion-color-primary')).toBe('var(--tg-action-primary)');
+    expect(lastValue(css, '--ion-background-color')).toBe('var(--tg-bg-canvas)');
+    expect(css).not.toContain('#2563eb');
+    // A paleta escura do Ionic trocaria fundo e texto por fora dos tokens.
+    expect(css).not.toMatch(/prefers-color-scheme:\s*dark/);
   });
 
   it('o web mantém os tokens antigos que as telas usam hoje', () => {
