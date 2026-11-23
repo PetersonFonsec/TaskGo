@@ -8,7 +8,7 @@ import { AuthService } from '@app/core/auth/auth.service';
 import { OrderListItem } from '@app/core/orders/orders.models';
 import { OrdersService } from '@app/core/orders/orders.service';
 import { FakeAuth, otherCustomer } from '../../../testing/fakes';
-import { OrdersPage } from './orders.page';
+import { orderStatusBadgeClass, OrdersPage } from './orders.page';
 
 const order = (id: string, title: string): OrderListItem => ({
   id,
@@ -65,11 +65,41 @@ describe('OrdersPage', () => {
     expect(text()).toContain('15 de nov, 10:00');
     const item = fixture.nativeElement.querySelector('ion-item') as HTMLElement;
     expect(item.getAttribute('href')).toBe('/pedidos/99');
+    expect(item.getAttribute('detailIcon')).toBe('tg-caret-right');
+    const badge = item.querySelector('ion-badge') as HTMLElement;
+    expect(badge.classList).toContain('tg-badge');
+    expect(badge.classList).toContain('tg-badge--waiting');
+    expect(badge.hasAttribute('color')).toBeFalse();
+  });
+
+  it('uses the design system header', async () => {
+    await render(of([ofA]));
+    const el = fixture.nativeElement as HTMLElement;
+    expect(el.querySelector('ion-toolbar')?.hasAttribute('color')).toBeFalse();
+    expect(el.querySelector('ion-back-button')?.getAttribute('icon')).toBe('tg-arrow-left');
+  });
+
+  it('maps each status to the badge tone used on the site', () => {
+    expect(orderStatusBadgeClass('AGUARDANDO_APROVACAO')).toBe('tg-badge tg-badge--waiting');
+    expect(orderStatusBadgeClass('AGUARDANDO_PAGAMENTO')).toBe('tg-badge tg-badge--waiting');
+    expect(orderStatusBadgeClass('AGUARDANDO_CONFIRMACAO_CLIENTE')).toBe('tg-badge tg-badge--waiting');
+    expect(orderStatusBadgeClass('DISPUTA')).toBe('tg-badge tg-badge--waiting');
+    expect(orderStatusBadgeClass('AGENDADO')).toBe('tg-badge tg-badge--confirmed');
+    expect(orderStatusBadgeClass('EM_DESLOCAMENTO')).toBe('tg-badge tg-badge--progress');
+    expect(orderStatusBadgeClass('EM_ANDAMENTO')).toBe('tg-badge tg-badge--progress');
+    expect(orderStatusBadgeClass('CONCLUIDO')).toBe('tg-badge tg-badge--done');
+    expect(orderStatusBadgeClass('CANCELADO')).toBe('tg-badge tg-badge--cancelled');
+    expect(orderStatusBadgeClass('REJEITADO')).toBe('tg-badge tg-badge--cancelled');
+    expect(orderStatusBadgeClass('NOVO_STATUS')).toBe('tg-badge');
+    expect(orderStatusBadgeClass('toString')).toBe('tg-badge');
   });
 
   it('says when there are no orders yet', async () => {
     await render(of([]));
     expect(text()).toContain('Você ainda não fez nenhum pedido');
+    const empty = fixture.nativeElement.querySelector('.orders__empty') as HTMLElement;
+    expect(empty.querySelector('ion-icon')?.getAttribute('name')).toBe('tg-receipt');
+    expect(fixture.nativeElement.querySelector('ion-text')).toBeNull();
   });
 
   it('refreshes when the user comes back to the screen', async () => {
@@ -154,6 +184,10 @@ describe('OrdersPage', () => {
       await stable();
       expect(complete).toHaveBeenCalledTimes(1);
       expect(text()).toContain('Não foi possível carregar seus pedidos');
+      const alert = fixture.nativeElement.querySelector('[role="alert"]') as HTMLElement;
+      expect(alert.classList).toContain('tg-alert');
+      expect(alert.classList).toContain('tg-alert--danger');
+      expect(alert.querySelector('ion-icon')?.getAttribute('name')).toBe('tg-warning-circle');
     });
 
     it('U: two refreshes in a row both finish, and only the latest answer is shown', async () => {

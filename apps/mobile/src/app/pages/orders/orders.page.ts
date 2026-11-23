@@ -6,21 +6,22 @@ import {
   IonButtons,
   IonContent,
   IonHeader,
+  IonIcon,
   IonItem,
   IonLabel,
   IonList,
   IonRefresher,
   IonRefresherContent,
   IonSkeletonText,
-  IonText,
   IonTitle,
   IonToolbar,
   RefresherCustomEvent
 } from '@ionic/angular';
 
-import { OrderListItem } from '@app/core/orders/orders.models';
-import { orderStatusColor, orderStatusLabel, OrdersService } from '@app/core/orders/orders.service';
+import { OrderListItem, OrderStatus } from '@app/core/orders/orders.models';
+import { orderStatusLabel, OrdersService } from '@app/core/orders/orders.service';
 import { privateResource } from '@app/core/orders/private-resource';
+import { registerTgIcons } from '@app/core/ui/tg-icons';
 
 @Component({
   selector: 'app-orders',
@@ -31,17 +32,18 @@ import { privateResource } from '@app/core/orders/private-resource';
     IonButtons,
     IonContent,
     IonHeader,
+    IonIcon,
     IonItem,
     IonLabel,
     IonList,
     IonRefresher,
     IonRefresherContent,
     IonSkeletonText,
-    IonText,
     IonTitle,
     IonToolbar
   ],
-  templateUrl: './orders.page.html'
+  templateUrl: './orders.page.html',
+  styleUrl: './orders.page.scss'
 })
 export class OrdersPage {
   readonly #orders = inject(OrdersService);
@@ -51,7 +53,11 @@ export class OrdersPage {
   readonly state = this.#list.state;
 
   readonly statusLabel = orderStatusLabel;
-  readonly statusColor = orderStatusColor;
+  readonly statusBadgeClass = orderStatusBadgeClass;
+
+  constructor() {
+    registerTgIcons();
+  }
 
   refresh(event: RefresherCustomEvent): void {
     this.#list.refresh(event);
@@ -74,6 +80,30 @@ export class OrdersPage {
   when(order: OrderListItem): string {
     return order.scheduledFor ? formatDateTime(order.scheduledFor) : 'Data a combinar';
   }
+}
+
+/** Tom do selo de status, no mesmo mapa do site (tg-order-status do frontend). */
+type OrderStatusTone = 'waiting' | 'confirmed' | 'progress' | 'done' | 'cancelled';
+
+const STATUS_TONES: Record<OrderStatus, OrderStatusTone> = {
+  AGUARDANDO_APROVACAO: 'waiting',
+  AGUARDANDO_PAGAMENTO: 'waiting',
+  AGENDADO: 'confirmed',
+  EM_DESLOCAMENTO: 'progress',
+  EM_ANDAMENTO: 'progress',
+  AGUARDANDO_CONFIRMACAO_CLIENTE: 'waiting',
+  CONCLUIDO: 'done',
+  DISPUTA: 'waiting',
+  REJEITADO: 'cancelled',
+  CANCELADO: 'cancelled'
+};
+
+/** Classes do ion-badge do status. Status desconhecido fica com o selo neutro. */
+export function orderStatusBadgeClass(status: string): string {
+  const tone = Object.prototype.hasOwnProperty.call(STATUS_TONES, status)
+    ? STATUS_TONES[status as OrderStatus]
+    : null;
+  return tone ? `tg-badge tg-badge--${tone}` : 'tg-badge';
 }
 
 export function formatDateTime(value: string): string {
