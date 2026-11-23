@@ -15,6 +15,12 @@ const categories: Category[] = [
   { id: 2, name: 'Pintura', slug: 'pintura' }
 ];
 
+function iconNames(root: HTMLElement): string[] {
+  return Array.from(root.querySelectorAll('ion-header ion-button ion-icon')).map(
+    (icon) => icon.getAttribute('name') ?? ''
+  );
+}
+
 describe('HomePage', () => {
   const user = signal<typeof customer | null>(null);
   const auth = {
@@ -47,6 +53,10 @@ describe('HomePage', () => {
     expect(text).toContain('Elétrica');
     expect(text).toContain('Pintura');
     expect(text).toContain('Entrar');
+    // Visual do DS: barra clara e ícones tg-*.
+    const toolbar = fixture.nativeElement.querySelector('ion-toolbar') as HTMLElement;
+    expect(toolbar.hasAttribute('color')).toBeFalse();
+    expect(iconNames(fixture.nativeElement)).toEqual(['tg-user-circle']);
   });
 
   it('filters categories as the customer types', () => {
@@ -66,13 +76,20 @@ describe('HomePage', () => {
 
   it('shows a clear message when categories fail to load', () => {
     const fixture = render({ categories: () => throwError(() => new Error('offline')) });
-    expect(fixture.nativeElement.textContent).toContain('Não foi possível carregar as categorias');
+    const alert = fixture.nativeElement.querySelector('.tg-alert') as HTMLElement;
+    expect(alert.classList).toContain('tg-alert--danger');
+    expect(alert.getAttribute('role')).toBe('alert');
+    expect(alert.textContent).toContain('Não foi possível carregar as categorias');
+    expect(alert.querySelector('ion-icon')?.getAttribute('name')).toBe('tg-warning-circle');
   });
 
   it('greets a logged-in customer and lets them log out', () => {
     user.set(customer);
     const fixture = render({ categories: () => of(categories) });
     expect(fixture.nativeElement.textContent).toContain('Olá, Ana!');
+    expect(iconNames(fixture.nativeElement)).toEqual(['tg-receipt', 'tg-sign-out']);
+    const logoutButton = fixture.nativeElement.querySelector('ion-button[aria-label="Sair"]') as HTMLElement;
+    expect(logoutButton.textContent?.trim()).toBe('Sair');
     fixture.componentInstance.logout();
     expect(auth.logout).toHaveBeenCalled();
   });

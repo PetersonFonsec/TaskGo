@@ -12,18 +12,16 @@ import {
   IonList,
   IonSearchbar,
   IonSkeletonText,
-  IonText,
   IonThumbnail,
   IonTitle,
   IonToolbar
 } from '@ionic/angular';
-import { addIcons } from 'ionicons';
-import { logOutOutline, personCircleOutline, receiptOutline } from 'ionicons/icons';
 import { catchError, map, of, startWith } from 'rxjs';
 
 import { AuthService } from '@app/core/auth/auth.service';
 import { CatalogService, matchesSearch } from '@app/core/catalog/catalog.service';
 import { Category } from '@app/core/catalog/catalog.models';
+import { registerTgIcons } from '@app/core/ui/tg-icons';
 
 type CategoriesState =
   | { status: 'loading' }
@@ -44,12 +42,12 @@ type CategoriesState =
     IonList,
     IonSearchbar,
     IonSkeletonText,
-    IonText,
     IonThumbnail,
     IonTitle,
     IonToolbar
   ],
-  templateUrl: './home.page.html'
+  templateUrl: './home.page.html',
+  styleUrl: './home.page.scss'
 })
 export class HomePage {
   readonly #catalog = inject(CatalogService);
@@ -77,7 +75,7 @@ export class HomePage {
   readonly firstName = computed(() => this.auth.user()?.name.split(' ')[0] ?? null);
 
   constructor() {
-    addIcons({ logOutOutline, personCircleOutline, receiptOutline });
+    registerTgIcons();
   }
 
   onSearch(event: CustomEvent<{ value?: string | null }>): void {
