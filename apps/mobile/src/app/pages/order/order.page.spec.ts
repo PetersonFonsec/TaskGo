@@ -62,12 +62,21 @@ describe('OrderPage', () => {
     await render(of(details));
     expect(detailsSpy).toHaveBeenCalledWith('99');
     expect(text()).toContain('Aguardando pagamento');
+    const badge: HTMLElement = fixture.nativeElement.querySelector('[data-testid="status"]');
+    expect(badge.classList).toContain('tg-status');
+    expect(badge.classList).toContain('tg-status--waiting');
+    expect(badge.hasAttribute('color')).toBeFalse();
     expect(text()).toContain('faça o pagamento por PIX no site');
     expect(text()).toContain('Carlos Lima');
     expect(text()).toContain('Rua A, 10 · Centro · Diadema/SP');
     expect(text()).toContain('R$ 150,00');
     expect(text()).toContain('Solicitação enviada');
     expect(text()).toContain('Prestador aceitou');
+  });
+
+  it('hides the timeline section when the order has no events', async () => {
+    await render(of({ ...details, timeline: [] }));
+    expect(text()).not.toContain('Acompanhamento');
   });
 
   it('shows the final amount and the cancellation reason when there is one', async () => {
@@ -80,6 +89,7 @@ describe('OrderPage', () => {
       })
     );
     expect(text()).toContain('Cancelado');
+    expect(fixture.nativeElement.querySelector('[data-testid="status"]').classList).toContain('tg-status--cancelled');
     expect(text()).toContain('R$ 180,00');
     expect(text()).toContain('Motivo: Prestador indisponível · Imprevisto');
     expect(fixture.nativeElement.querySelector('[data-testid="next-step"]')).toBeNull();
@@ -88,6 +98,7 @@ describe('OrderPage', () => {
   it('shows an error when the order cannot be loaded', async () => {
     await render(throwError(() => new Error('403')));
     expect(text()).toContain('Não foi possível carregar este pedido');
+    expect(fixture.nativeElement.querySelector('.tg-alert--danger[role="alert"]')).not.toBeNull();
   });
 
   it('K: a page kept in the Ionic stack does not show the old account order when it comes back', async () => {

@@ -1,9 +1,8 @@
 import { Component, inject, signal } from '@angular/core';
 import { RouterLink } from '@angular/router';
 import {
-  IonBackButton,
   IonBadge,
-  IonButtons,
+  IonButton,
   IonContent,
   IonHeader,
   IonItem,
@@ -12,23 +11,22 @@ import {
   IonRefresher,
   IonRefresherContent,
   IonSkeletonText,
-  IonText,
   IonTitle,
   IonToolbar,
   RefresherCustomEvent
 } from '@ionic/angular';
 
 import { OrderListItem } from '@app/core/orders/orders.models';
-import { orderStatusColor, orderStatusLabel, OrdersService } from '@app/core/orders/orders.service';
+import { orderStatusLabel, orderStatusTone, OrdersService } from '@app/core/orders/orders.service';
 import { privateResource } from '@app/core/orders/private-resource';
+import { TgIconComponent } from '@app/shared/ui/tg-icon.component';
 
 @Component({
   selector: 'app-orders',
   imports: [
     RouterLink,
-    IonBackButton,
     IonBadge,
-    IonButtons,
+    IonButton,
     IonContent,
     IonHeader,
     IonItem,
@@ -37,11 +35,12 @@ import { privateResource } from '@app/core/orders/private-resource';
     IonRefresher,
     IonRefresherContent,
     IonSkeletonText,
-    IonText,
     IonTitle,
-    IonToolbar
+    IonToolbar,
+    TgIconComponent
   ],
-  templateUrl: './orders.page.html'
+  templateUrl: './orders.page.html',
+  styleUrl: './orders.page.scss'
 })
 export class OrdersPage {
   readonly #orders = inject(OrdersService);
@@ -51,7 +50,7 @@ export class OrdersPage {
   readonly state = this.#list.state;
 
   readonly statusLabel = orderStatusLabel;
-  readonly statusColor = orderStatusColor;
+  readonly statusTone = orderStatusTone;
 
   refresh(event: RefresherCustomEvent): void {
     this.#list.refresh(event);

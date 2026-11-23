@@ -65,6 +65,8 @@ describe('OrdersPage', () => {
     expect(text()).toContain('15 de nov, 10:00');
     const item = fixture.nativeElement.querySelector('ion-item') as HTMLElement;
     expect(item.getAttribute('href')).toBe('/pedidos/99');
+    // Badge com o tom do Design System (Aguardando o profissional = waiting).
+    expect(item.querySelector('ion-badge')?.classList).toContain('tg-status--waiting');
   });
 
   it('says when there are no orders yet', async () => {

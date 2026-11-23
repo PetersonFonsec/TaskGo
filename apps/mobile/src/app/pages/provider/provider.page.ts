@@ -2,7 +2,6 @@ import { Component, computed, effect, inject, input, signal, untracked } from '@
 import { toObservable, toSignal } from '@angular/core/rxjs-interop';
 import { Router, RouterLink } from '@angular/router';
 import {
-  IonAvatar,
   IonBackButton,
   IonBadge,
   IonButton,
@@ -10,22 +9,17 @@ import {
   IonChip,
   IonContent,
   IonHeader,
-  IonIcon,
   IonItem,
   IonLabel,
   IonList,
-  IonListHeader,
   IonNote,
   IonRadio,
   IonRadioGroup,
   IonSkeletonText,
   IonSpinner,
-  IonText,
   IonTitle,
   IonToolbar,
 } from '@ionic/angular';
-import { addIcons } from 'ionicons';
-import { personCircle, shieldCheckmark, star } from 'ionicons/icons';
 import { catchError, map, Observable, of, startWith, switchMap } from 'rxjs';
 
 import { AuthService } from '@app/core/auth/auth.service';
@@ -34,6 +28,7 @@ import { Availability, ProviderProfile, SavedAddress } from '@app/core/orders/or
 import { OrderSubmission, SubmissionState } from '@app/core/orders/order-submission.service';
 import { OrdersService } from '@app/core/orders/orders.service';
 import { privateResource } from '@app/core/orders/private-resource';
+import { TgIconComponent } from '@app/shared/ui/tg-icon.component';
 
 type Load<T> = { status: 'loading' } | { status: 'error' } | { status: 'ready'; value: T };
 
@@ -41,7 +36,6 @@ type Load<T> = { status: 'loading' } | { status: 'error' } | { status: 'ready'; 
   selector: 'app-provider',
   imports: [
     RouterLink,
-    IonAvatar,
     IonBackButton,
     IonBadge,
     IonButton,
@@ -49,31 +43,20 @@ type Load<T> = { status: 'loading' } | { status: 'error' } | { status: 'ready'; 
     IonChip,
     IonContent,
     IonHeader,
-    IonIcon,
     IonItem,
     IonLabel,
     IonList,
-    IonListHeader,
     IonNote,
     IonRadio,
     IonRadioGroup,
     IonSkeletonText,
     IonSpinner,
-    IonText,
     IonTitle,
     IonToolbar,
+    TgIconComponent,
   ],
   templateUrl: './provider.page.html',
-  styles: `
-    .days {
-      display: flex;
-      overflow-x: auto;
-      white-space: nowrap;
-    }
-    .days ion-chip {
-      flex: none;
-    }
-  `,
+  styleUrl: './provider.page.scss',
 })
 export class ProviderPage {
   readonly #orders = inject(OrdersService);
@@ -197,6 +180,11 @@ export class ProviderPage {
     }
     return null;
   });
+  /** O aviso de cobertura vira atenção só quando a API diz que não atende. */
+  readonly notCovered = computed(() => {
+    const state = this.coverage();
+    return state.status === 'ready' && state.value === false;
+  });
   readonly canRetryCoverage = computed(() => {
     const state = this.coverage();
     return state.status === 'error' || (state.status === 'ready' && state.value === null);
@@ -238,7 +226,6 @@ export class ProviderPage {
   );
 
   constructor() {
-    addIcons({ personCircle, shieldCheckmark, star });
     // Após login, troca de conta ou reinício: recupera a tentativa pendente desta conta.
     effect(() => {
       if (this.auth.isAuthenticated() && this.auth.session() >= 0) {
@@ -334,6 +321,15 @@ export class ProviderPage {
     const provider = this.provider();
     const value = Number(provider?.ratingAvg ?? 0);
     return provider?.ratingCount && value > 0 ? value.toFixed(1).replace('.', ',') : null;
+  }
+
+  /** Iniciais do primeiro e do último nome, para o avatar sem foto. */
+  initials(name: string): string {
+    const parts = name.trim().split(/\s+/).filter(Boolean);
+    if (!parts.length) return '';
+    const first = parts[0][0];
+    const last = parts.length > 1 ? parts[parts.length - 1][0] : '';
+    return (first + last).toUpperCase();
   }
 
   dayLabel(date: string): string {

@@ -1,0 +1,27 @@
+// Meus pedidos. Só tokens --tg-*.
+.order-row {
+  display: flex !important;
+  flex-direction: column;
+  gap: var(--tg-space-1);
+  margin: var(--tg-space-3) 0;
+  white-space: normal;
+}
+
+.order-row__top {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--tg-space-2);
+}
+
+.order-row__title {
+  font-size: var(--tg-type-body-size);
+  line-height: var(--tg-type-body-line);
+  font-weight: var(--tg-font-weight-bold);
+}
+
+.order-row__meta {
+  color: var(--tg-text-secondary);
+  font-size: var(--tg-type-body-sm-size);
+  line-height: var(--tg-type-body-sm-line);
+}

@@ -1,6 +1,12 @@
 import { HttpErrorResponse } from '@angular/common/http';
 import { Component, inject, input, signal } from '@angular/core';
-import { AbstractControl, FormBuilder, ReactiveFormsModule, ValidationErrors, Validators } from '@angular/forms';
+import {
+  AbstractControl,
+  FormBuilder,
+  ReactiveFormsModule,
+  ValidationErrors,
+  Validators
+} from '@angular/forms';
 import { Router } from '@angular/router';
 import {
   IonBackButton,
@@ -10,15 +16,14 @@ import {
   IonHeader,
   IonInput,
   IonInputPasswordToggle,
-  IonList,
   IonSpinner,
-  IonText,
   IonTitle,
   IonToolbar
 } from '@ionic/angular';
 
 import { AuthService, ProviderAccountError } from '@app/core/auth/auth.service';
 import { PushRegistrationService } from '@app/core/push/push-registration.service';
+import { TgIconComponent } from '@app/shared/ui/tg-icon.component';
 
 @Component({
   selector: 'app-login',
@@ -31,13 +36,13 @@ import { PushRegistrationService } from '@app/core/push/push-registration.servic
     IonHeader,
     IonInput,
     IonInputPasswordToggle,
-    IonList,
     IonSpinner,
-    IonText,
     IonTitle,
-    IonToolbar
+    IonToolbar,
+    TgIconComponent
   ],
-  templateUrl: './login.page.html'
+  templateUrl: './login.page.html',
+  styleUrl: './login.page.scss'
 })
 export class LoginPage {
   readonly #auth = inject(AuthService);

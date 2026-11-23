@@ -1,0 +1,81 @@
+// Detalhe do pedido no app: tokens do DS, sem cor fixa.
+
+.summary {
+  align-items: flex-start;
+}
+
+.tg-section > .tg-list {
+  margin: 0;
+}
+
+.tg-alert.inline {
+  margin: 0;
+}
+
+// Avatar: a foto cobre as iniciais; se falhar, some e as iniciais aparecem.
+.avatar {
+  position: relative;
+  margin-inline-end: var(--tg-space-3);
+
+  img {
+    position: absolute;
+    inset: 0;
+  }
+}
+
+.person {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--tg-space-1);
+}
+
+.verified {
+  color: var(--tg-action-subtle-text);
+}
+
+.detail-icon {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 44px;
+  margin-inline-end: var(--tg-space-3);
+  color: var(--tg-text-secondary);
+}
+
+// Linha do tempo: cartão com marcos de check, como o app-order-timeline do web.
+.timeline {
+  display: flex;
+  flex-direction: column;
+  gap: var(--tg-space-4);
+  margin: 0;
+  padding: var(--tg-space-4);
+  border: 1px solid var(--tg-border-default);
+  border-radius: var(--tg-radius-lg);
+  background: var(--tg-bg-surface);
+  list-style: none;
+}
+
+.timeline__item {
+  display: flex;
+  gap: var(--tg-space-3);
+  align-items: flex-start;
+}
+
+.timeline__mark {
+  display: inline-flex;
+  color: var(--tg-feedback-success-text);
+}
+
+.timeline__body {
+  display: flex;
+  flex-direction: column;
+  gap: var(--tg-space-1);
+  min-width: 0;
+
+  p {
+    margin: 0;
+    color: var(--tg-text-secondary);
+    font-size: var(--tg-type-body-sm-size);
+    line-height: var(--tg-type-body-sm-line);
+  }
+}

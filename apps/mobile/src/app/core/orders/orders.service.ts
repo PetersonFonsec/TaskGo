@@ -96,20 +96,25 @@ export function orderStatusLabel(status: string): string {
   return STATUS_LABELS[status as OrderStatus] ?? 'Em atualização';
 }
 
-export function orderStatusColor(status: string): string {
-  switch (status) {
-    case 'CONCLUIDO':
-      return 'success';
-    case 'CANCELADO':
-    case 'REJEITADO':
-      return 'medium';
-    case 'DISPUTA':
-    case 'AGUARDANDO_PAGAMENTO':
-    case 'AGUARDANDO_CONFIRMACAO_CLIENTE':
-      return 'warning';
-    default:
-      return 'primary';
-  }
+/** Tom do badge de status (mapa aprovado do Design System, igual ao web). */
+export type OrderStatusTone = 'waiting' | 'confirmed' | 'progress' | 'done' | 'cancelled' | 'neutral';
+
+const STATUS_TONES: Record<OrderStatus, OrderStatusTone> = {
+  AGUARDANDO_APROVACAO: 'waiting',
+  AGUARDANDO_PAGAMENTO: 'waiting',
+  AGENDADO: 'confirmed',
+  EM_DESLOCAMENTO: 'progress',
+  EM_ANDAMENTO: 'progress',
+  AGUARDANDO_CONFIRMACAO_CLIENTE: 'waiting',
+  CONCLUIDO: 'done',
+  DISPUTA: 'waiting',
+  REJEITADO: 'cancelled',
+  CANCELADO: 'cancelled'
+};
+
+/** Status desconhecido fica no neutro, como o rótulo "Em atualização". */
+export function orderStatusTone(status: string): OrderStatusTone {
+  return STATUS_TONES[status as OrderStatus] ?? 'neutral';
 }
 
 /** Traduz as recusas conhecidas de POST /orders para o cliente. */

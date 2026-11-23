@@ -1,0 +1,142 @@
+// Perfil do profissional no app: tokens do DS, sem cor fixa.
+
+.tg-section > .tg-list {
+  margin: 0;
+}
+
+// Alertas e vazios dentro de uma seção já ganham o respiro dela.
+.tg-alert.inline {
+  margin: 0;
+}
+
+.tg-alert tg-icon {
+  margin-top: 2px;
+}
+
+.alert__body {
+  display: flex;
+  flex: 1;
+  flex-direction: column;
+  gap: var(--tg-space-2);
+  min-width: 0;
+
+  ion-button {
+    margin: 0;
+  }
+}
+
+.tg-empty.compact {
+  padding: var(--tg-space-6) var(--tg-space-4);
+  border: 1px solid var(--tg-border-default);
+  border-radius: var(--tg-radius-lg);
+  background: var(--tg-bg-surface);
+}
+
+// Resumo: avatar (foto ou iniciais), nome com selo, nota ou "Novo no TaskGo".
+.profile__head {
+  display: flex;
+  gap: var(--tg-space-4);
+  align-items: center;
+}
+
+.profile__avatar {
+  position: relative;
+  width: 64px;
+  height: 64px;
+  font-size: var(--tg-type-title-3-size);
+
+  // A foto cobre as iniciais; se falhar, some e as iniciais aparecem.
+  img {
+    position: absolute;
+    inset: 0;
+  }
+}
+
+.profile__id {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: var(--tg-space-1);
+  min-width: 0;
+}
+
+.profile__name {
+  display: inline-flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--tg-space-2);
+}
+
+.profile__verified {
+  color: var(--tg-action-subtle-text);
+}
+
+.profile__rating,
+.review__head {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--tg-space-1);
+}
+
+.profile__rating {
+  margin: 0;
+  color: var(--tg-text-secondary);
+  font-size: var(--tg-type-body-sm-size);
+  line-height: var(--tg-type-body-sm-line);
+}
+
+.star {
+  color: var(--tg-accent);
+}
+
+.price {
+  color: var(--tg-text-primary);
+  font-weight: var(--tg-font-weight-bold);
+}
+
+// Dias e horários: pílulas; a escolhida é a cor de ação.
+.chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--tg-space-2);
+}
+
+.days {
+  flex-wrap: nowrap;
+  overflow-x: auto;
+  white-space: nowrap;
+}
+
+.chips ion-chip {
+  --background: var(--tg-action-primary);
+  --color: var(--tg-text-on-action);
+  flex: none;
+  min-height: var(--tg-control-sm);
+  margin: 0;
+  padding-inline: var(--tg-space-4);
+  border-radius: var(--tg-radius-full);
+  font-size: var(--tg-type-label-size);
+  font-weight: var(--tg-font-weight-bold);
+}
+
+.chips ion-chip.chip-outline {
+  --color: var(--tg-text-primary);
+  background: var(--tg-bg-surface);
+  border-color: var(--tg-border-default);
+}
+
+.actions {
+  gap: var(--tg-space-3);
+
+  ion-button {
+    margin: 0;
+  }
+}
+
+.hint {
+  margin: 0;
+  color: var(--tg-text-secondary);
+  font-size: var(--tg-type-body-sm-size);
+  line-height: var(--tg-type-body-sm-line);
+  text-align: center;
+}

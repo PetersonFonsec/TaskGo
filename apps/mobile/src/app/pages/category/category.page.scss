@@ -1,0 +1,82 @@
+// Profissionais da categoria. Só tokens --tg-*.
+.providers {
+  display: flex;
+  flex-direction: column;
+  gap: var(--tg-space-3);
+  margin: 0;
+  padding: var(--tg-space-2) var(--tg-space-4) var(--tg-space-8);
+  list-style: none;
+}
+
+.provider-card {
+  display: flex;
+  align-items: flex-start;
+  gap: var(--tg-space-3);
+  padding: var(--tg-space-4);
+  border: 1px solid var(--tg-border-default);
+  border-radius: var(--tg-radius-lg);
+  background: var(--tg-bg-surface);
+  color: var(--tg-text-primary);
+  text-decoration: none;
+
+  &:focus-visible {
+    outline: 2px solid var(--tg-focus-ring);
+    outline-offset: 2px;
+  }
+}
+
+.provider-card__body {
+  display: flex;
+  flex: 1;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: var(--tg-space-1);
+  min-width: 0;
+}
+
+.provider-card__name {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--tg-space-1);
+  font-size: var(--tg-type-body-size);
+  line-height: var(--tg-type-body-line);
+  font-weight: var(--tg-font-weight-bold);
+}
+
+.provider-card__verified {
+  color: var(--tg-action-primary);
+}
+
+.provider-card__rating {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--tg-space-1);
+  font-size: var(--tg-type-body-sm-size);
+  font-weight: var(--tg-font-weight-bold);
+
+  tg-icon {
+    color: var(--tg-accent);
+  }
+}
+
+.provider-card__service {
+  color: var(--tg-text-secondary);
+  font-size: var(--tg-type-body-sm-size);
+  line-height: var(--tg-type-body-sm-line);
+}
+
+.provider-card__price {
+  display: flex;
+  flex: none;
+  flex-direction: column;
+  align-items: flex-end;
+  color: var(--tg-text-secondary);
+  font-size: 13px;
+  line-height: 16px;
+
+  strong {
+    color: var(--tg-text-primary);
+    font-size: var(--tg-type-body-size);
+    line-height: var(--tg-type-body-line);
+  }
+}

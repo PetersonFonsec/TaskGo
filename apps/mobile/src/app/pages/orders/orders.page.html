@@ -1,7 +1,6 @@
-<ion-header>
-  <ion-toolbar color="primary">
-    <ion-buttons slot="start"><ion-back-button defaultHref="/" text="" /></ion-buttons>
-    <ion-title>Meus pedidos</ion-title>
+<ion-header class="ion-no-border">
+  <ion-toolbar>
+    <ion-title>Pedidos</ion-title>
   </ion-toolbar>
 </ion-header>
 
@@ -10,9 +9,14 @@
     <ion-refresher-content />
   </ion-refresher>
 
+  <section class="tg-section">
+    <h1 class="tg-title-2">Meus pedidos</h1>
+    <p class="tg-lead">Acompanhe seus serviços, do pedido à avaliação.</p>
+  </section>
+
   @switch (state().status) {
     @case ('loading') {
-      <ion-list>
+      <ion-list class="tg-list" aria-hidden="true">
         @for (i of [1, 2, 3]; track i) {
           <ion-item>
             <ion-label>
@@ -24,29 +28,44 @@
       </ion-list>
     }
     @case ('error') {
-      <div class="ion-padding">
-        <ion-text color="danger"><p>Não foi possível carregar seus pedidos. Puxe para tentar de novo.</p></ion-text>
+      <div class="tg-alert tg-alert--danger" role="alert">
+        <tg-icon name="warning-circle" [size]="20" />
+        <div>
+          <strong>Não foi possível carregar seus pedidos.</strong>
+          <p>Puxe para tentar de novo.</p>
+        </div>
       </div>
     }
     @default {
       @if (state(); as current) {
         @if (current.status === 'ready') {
-          <ion-list>
-            @for (order of current.value; track order.id) {
-              <ion-item [routerLink]="['/pedidos', order.id]" [detail]="true">
-                <ion-label>
-                  <h2>{{ order.service.title }}</h2>
-                  <p>{{ providerName(order) }}</p>
-                  <p>{{ when(order) }}</p>
-                </ion-label>
-                <ion-badge slot="end" [color]="statusColor(order.status)">{{ statusLabel(order.status) }}</ion-badge>
-              </ion-item>
-            } @empty {
-              <div class="ion-padding">
-                <ion-text color="medium"><p>Você ainda não fez nenhum pedido.</p></ion-text>
-              </div>
-            }
-          </ion-list>
+          @if (current.value.length) {
+            <!-- Linha de pedido: serviço e status; profissional e data embaixo. -->
+            <ion-list class="tg-list">
+              @for (order of current.value; track order.id) {
+                <ion-item [routerLink]="['/pedidos', order.id]" [detail]="true">
+                  <ion-label class="order-row">
+                    <span class="order-row__top">
+                      <strong class="order-row__title">{{ order.service.title }}</strong>
+                      <ion-badge class="tg-status" [class]="'tg-status tg-status--' + statusTone(order.status)">
+                        {{ statusLabel(order.status) }}
+                      </ion-badge>
+                    </span>
+                    <span class="order-row__meta">
+                      {{ providerName(order) }} · <span class="tg-num">{{ when(order) }}</span>
+                    </span>
+                  </ion-label>
+                </ion-item>
+              }
+            </ion-list>
+          } @else {
+            <div class="tg-empty">
+              <span class="tg-empty__icon"><tg-icon name="receipt" [size]="24" /></span>
+              <strong>Você ainda não fez nenhum pedido</strong>
+              <p>Quando você pedir um serviço, ele aparece aqui com o status de cada etapa.</p>
+              <ion-button fill="outline" routerLink="/">Buscar serviço</ion-button>
+            </div>
+          }
         }
       }
     }

@@ -81,20 +81,16 @@ describe('App', () => {
 
   it('lazy-loads every screen and protects the order screens', async () => {
     const paths = routes.map((route) => route.path);
-    expect(paths).toEqual([
-      '',
-      'categorias/:slug',
-      'entrar',
-      'prestadores/:id',
-      'pedidos',
+    expect(paths).toEqual(['', 'categorias/:slug', 'entrar', 'prestadores/:id', 'pedidos/:id', '**']);
+    // Início e Pedidos ficam dentro das abas; "/" leva ao início.
+    const tabs = routes[0].children ?? [];
+    expect(tabs.map((r) => r.path)).toEqual(['', 'inicio', 'pedidos']);
+    const all = [...routes, ...tabs];
+    expect(all.filter((r) => r.canActivate?.length).map((r) => r.path)).toEqual([
       'pedidos/:id',
-      '**'
+      'pedidos'
     ]);
-    expect(routes.filter((r) => r.canActivate?.length).map((r) => r.path)).toEqual([
-      'pedidos',
-      'pedidos/:id'
-    ]);
-    for (const route of routes.filter((r) => r.loadComponent)) {
+    for (const route of all.filter((r) => r.loadComponent)) {
       expect(await route.loadComponent!()).toBeDefined();
     }
   });

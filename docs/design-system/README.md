@@ -9,8 +9,9 @@ Storybook do web, em **Fundamentos**.
 Os tokens existem e são carregados pelos dois apps. As primeiras telas
 migradas são os inícios do cliente e do prestador no web (Etapa 9, telas
 piloto), os detalhes e o pagamento do pedido e a busca de profissionais (Etapa 10). Nas demais, os tokens
-antigos (`--color-*`, `--proxi-*`, `--space-*`, `--font-size-*` e o azul do
-Ionic) continuam valendo até a migração tela a tela.
+antigos (`--color-*`, `--proxi-*`, `--space-*` e `--font-size-*`) continuam
+valendo até a migração tela a tela. No app (Ionic), as seis telas já usam os
+tokens (veja "Migração do app").
 
 | Etapa | Tema | Situação |
 | --- | --- | --- |
@@ -56,6 +57,7 @@ Ionic) continuam valendo até a migração tela a tela.
 | 10 | Perfil do profissional (web) | Concluído (PR #85) |
 | 10 | Institucionais (web) | Concluído (PR #86) |
 | 10 | Página não encontrada (web) | Concluído (PR #87) |
+| 10 | App (Ionic): base, abas e as seis telas | Este PR |
 
 Atributos de marca: próximo, confiável, direto e caloroso sem ser infantil.
 
@@ -230,9 +232,32 @@ próprios (`--tg-action-primary-rgb`, `--tg-text-on-action-rgb`,
 `rgba(var(--ion-color-primary-rgb), alfa)`. Os testes conferem se cada
 token RGB bate com a cor correspondente.
 
-A ponte **não está aplicada** no app: ela troca o azul atual pelo violeta e
-entra só na migração das telas. As cores de sucesso, aviso e perigo do Ionic
-ficam de fora até lá.
+A ponte **está aplicada** no app (`apps/mobile/src/styles.scss`), junto com a
+escala de tipo do app. O app é só do cliente: vale o tema claro, e a paleta
+escura do Ionic saiu (o modo escuro do aparelho brigaria com os tokens). As
+cores de sucesso, aviso e perigo do Ionic não são usadas pelas telas: alertas
+e badges usam as classes do app abaixo.
+
+#### Migração do app (Etapa 10)
+
+- Componentes do Ionic com a aparência dos tokens no `styles.scss` global
+  (`ion-toolbar` na superfície, `ion-button` de 44 px sem caixa alta,
+  `ion-input` com rótulo acima, `ion-card`, `ion-item`, `ion-searchbar`,
+  `ion-segment`, `ion-skeleton-text`, `ion-tab-bar`).
+- Classes compartilhadas, equivalentes aos componentes do web: `.tg-alert`
+  (`--danger`, `--info`, `--success`, `--warning`), `.tg-empty`,
+  `ion-badge.tg-status--<tom>` (mesmo mapa de status, por
+  `orderStatusTone()`), `.tg-avatar` (foto ou iniciais), `.tg-list`,
+  `.tg-section`, `.tg-overline`, `.tg-title-1/2/3`, `.tg-lead`,
+  `.tg-signature` e `.tg-num`.
+- Ícones Phosphor com o mesmo `tg-icon` do web
+  (`apps/mobile/src/app/shared/ui`); o Ionicons saiu das telas.
+- Navegação: `ion-tabs` com Início (`/inicio`, e `/` leva até lá) e Pedidos
+  (`/pedidos`, com login). Buscar, Favoritos e Conta entram quando essas
+  telas existirem no app; nenhuma aba leva a lugar nenhum. Categoria,
+  profissional, pedido e login ficam fora das abas, com voltar.
+- As fontes (Manrope e Instrument Serif) ainda não são empacotadas no app:
+  como no web, valem as fontes de sistema da pilha de `--tg-font-sans`.
 
 ## Componentes
 

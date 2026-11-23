@@ -4,20 +4,364 @@
 @use '@ionic/angular/css/typography.css';
 @use '@ionic/angular/css/padding.css';
 @use '@ionic/angular/css/flex-utils.css';
-@use '@ionic/angular/css/palettes/dark.system.css';
 @use 'taskgo-tokens' as tg;
 
-// Tokens do design system (--tg-*). Ainda não alteram nenhuma tela.
+// Design System TaskGo no app (Etapa 10). O app é só do cliente, então vale o
+// tema claro dos tokens. Sem a paleta escura do Ionic: o modo escuro do
+// aparelho trocaria o fundo dos componentes e brigaria com os tokens.
 :root {
   @include tg.tg-type-scale-app;
+  @include tg.tg-ionic-theme;
+
+  --ion-toolbar-background: var(--tg-bg-surface);
+  --ion-toolbar-color: var(--tg-text-primary);
+  --ion-toolbar-border-color: var(--tg-border-default);
+  --ion-item-background: var(--tg-bg-surface);
+  --ion-item-border-color: var(--tg-border-default);
+  --ion-tab-bar-background: var(--tg-bg-surface);
+  --ion-tab-bar-border-color: var(--tg-border-default);
+  --ion-tab-bar-color: var(--tg-text-secondary);
+  --ion-tab-bar-color-selected: var(--tg-action-subtle-text);
 }
 
-// Mesmo azul do cliente no site.
-:root {
-  --ion-color-primary: #2563eb;
-  --ion-color-primary-rgb: 37, 99, 235;
-  --ion-color-primary-contrast: #ffffff;
-  --ion-color-primary-contrast-rgb: 255, 255, 255;
-  --ion-color-primary-shade: #2c71c8;
-  --ion-color-primary-tint: #478de6;
+body {
+  font-family: var(--tg-font-sans);
+  color: var(--tg-text-primary);
+  -webkit-font-smoothing: antialiased;
+}
+
+// Componentes do Ionic com a aparência dos tokens.
+
+ion-content {
+  --background: var(--tg-bg-canvas);
+}
+
+// Topo plano com borda (Design System): sem a sombra do modo md.
+ion-header.header-md {
+  box-shadow: none;
+  border-bottom: 1px solid var(--tg-border-default);
+}
+
+ion-toolbar {
+  --min-height: 56px;
+  --padding-start: var(--tg-space-2);
+  --padding-end: var(--tg-space-2);
+}
+
+ion-title {
+  font-size: var(--tg-type-title-3-size);
+  font-weight: var(--tg-font-weight-extrabold);
+  letter-spacing: -0.02em;
+}
+
+ion-back-button {
+  --color: var(--tg-text-primary);
+}
+
+ion-button {
+  --border-radius: var(--tg-radius-md);
+  --box-shadow: none;
+  min-height: var(--tg-control-md);
+  font-size: var(--tg-type-label-size);
+  font-weight: var(--tg-font-weight-bold);
+  letter-spacing: 0;
+  text-transform: none;
+}
+
+ion-button[fill='clear'] {
+  --color: var(--tg-text-primary);
+}
+
+ion-searchbar {
+  --background: var(--tg-bg-subtle);
+  --border-radius: var(--tg-radius-md);
+  --box-shadow: none;
+  --color: var(--tg-text-primary);
+  --placeholder-color: var(--tg-text-secondary);
+  --placeholder-opacity: 1;
+}
+
+ion-input[fill='outline'] {
+  --border-radius: var(--tg-radius-md);
+  --border-color: var(--tg-border-strong);
+  --highlight-color-focused: var(--tg-action-primary);
+  // Campo válido não fica verde: o foco é sempre o violeta da marca.
+  --highlight-color-valid: var(--tg-action-primary);
+  --highlight-color-invalid: var(--tg-feedback-danger-text);
+  min-height: var(--tg-control-lg);
+}
+
+ion-card {
+  margin: 0;
+  --background: var(--tg-bg-surface);
+  --color: var(--tg-text-primary);
+  border: 1px solid var(--tg-border-default);
+  border-radius: var(--tg-radius-lg);
+  box-shadow: none;
+}
+
+ion-list {
+  background: transparent;
+}
+
+ion-item {
+  --color: var(--tg-text-primary);
+  --min-height: 64px;
+}
+
+ion-label p,
+ion-note {
+  color: var(--tg-text-secondary);
+}
+
+ion-skeleton-text {
+  --background-rgb: var(--tg-text-primary-rgb);
+  border-radius: var(--tg-radius-sm);
+}
+
+ion-segment {
+  --background: transparent;
+}
+
+ion-segment-button {
+  --color: var(--tg-text-secondary);
+  --color-checked: var(--tg-action-subtle-text);
+  --indicator-color: var(--tg-action-primary);
+  --indicator-height: 3px;
+  min-height: var(--tg-control-md);
+  font-weight: var(--tg-font-weight-bold);
+  letter-spacing: 0;
+  text-transform: none;
+}
+
+ion-tab-button {
+  font-size: 13px;
+  font-weight: var(--tg-font-weight-bold);
+  letter-spacing: 0;
+}
+
+// Classes de tela compartilhadas.
+
+// Lista agrupada num cartão: itens com borda e cantos do card.
+// ion-list.tg-list vence o .list-md do Ionic, que zera a margem.
+ion-list.tg-list,
+.tg-list {
+  margin: 0 var(--tg-space-4);
+  padding: 0;
+  border: 1px solid var(--tg-border-default);
+  border-radius: var(--tg-radius-lg);
+  overflow: hidden;
+
+  // A borda do card já fecha a lista: sem a linha do último item.
+  ion-item:last-of-type {
+    --inner-border-width: 0;
+    --border-width: 0;
+  }
+}
+
+.tg-section {
+  display: flex;
+  flex-direction: column;
+  gap: var(--tg-space-3);
+  padding: var(--tg-space-6) var(--tg-space-4) var(--tg-space-2);
+}
+
+.tg-overline {
+  margin: 0;
+  color: var(--tg-action-subtle-text);
+  font-size: var(--tg-type-overline-size);
+  line-height: var(--tg-type-overline-line);
+  font-weight: var(--tg-font-weight-bold);
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.tg-title-1 {
+  margin: 0;
+  font-size: var(--tg-type-title-1-size);
+  line-height: var(--tg-type-title-1-line);
+  font-weight: var(--tg-font-weight-extrabold);
+  letter-spacing: -0.03em;
+}
+
+.tg-title-2 {
+  margin: 0;
+  font-size: var(--tg-type-title-2-size);
+  line-height: var(--tg-type-title-2-line);
+  font-weight: var(--tg-font-weight-extrabold);
+  letter-spacing: -0.02em;
+}
+
+.tg-title-3 {
+  margin: 0;
+  font-size: var(--tg-type-title-3-size);
+  line-height: var(--tg-type-title-3-line);
+  font-weight: var(--tg-font-weight-bold);
+}
+
+.tg-lead {
+  margin: 0;
+  color: var(--tg-text-secondary);
+  font-size: var(--tg-type-body-size);
+  line-height: var(--tg-type-body-line);
+}
+
+.tg-signature {
+  font-family: var(--tg-font-signature);
+  font-style: italic;
+  font-weight: 400;
+  letter-spacing: 0;
+}
+
+// Alerta (tg-alert do web): tom de feedback, raio de 16 px, ícone por tom.
+.tg-alert {
+  display: flex;
+  gap: var(--tg-space-3);
+  align-items: flex-start;
+  margin: var(--tg-space-4);
+  padding: var(--tg-space-4);
+  border-radius: var(--tg-radius-lg);
+  font-size: var(--tg-type-body-sm-size);
+  line-height: var(--tg-type-body-sm-line);
+
+  p {
+    margin: 0;
+  }
+
+  strong {
+    display: block;
+    font-weight: var(--tg-font-weight-bold);
+  }
+
+  &--danger {
+    background: var(--tg-feedback-danger-bg);
+    color: var(--tg-feedback-danger-text);
+  }
+
+  &--info {
+    background: var(--tg-feedback-info-bg);
+    color: var(--tg-feedback-info-text);
+  }
+
+  &--success {
+    background: var(--tg-feedback-success-bg);
+    color: var(--tg-feedback-success-text);
+  }
+
+  &--warning {
+    background: var(--tg-feedback-warning-bg);
+    color: var(--tg-feedback-warning-text);
+  }
+}
+
+// Estado vazio (tg-empty-state do web).
+.tg-empty {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: var(--tg-space-2);
+  padding: var(--tg-space-10) var(--tg-space-6);
+  color: var(--tg-text-secondary);
+  text-align: center;
+
+  &__icon {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 56px;
+    height: 56px;
+    border-radius: var(--tg-radius-full);
+    background: var(--tg-action-subtle);
+    color: var(--tg-action-subtle-text);
+  }
+
+  strong {
+    color: var(--tg-text-primary);
+    font-size: var(--tg-type-title-3-size);
+    line-height: var(--tg-type-title-3-line);
+  }
+
+  p {
+    max-width: 320px;
+    margin: 0;
+  }
+}
+
+// Badge de status (tg-badge do web): mesmo mapa de tons.
+ion-badge.tg-status {
+  --padding-top: 0;
+  --padding-bottom: 0;
+  --padding-start: 10px;
+  --padding-end: 10px;
+  display: inline-flex;
+  align-items: center;
+  flex: none;
+  height: 24px;
+  border-radius: var(--tg-radius-full);
+  font-size: 13px;
+  font-weight: var(--tg-font-weight-bold);
+  letter-spacing: 0;
+  text-transform: none;
+  white-space: nowrap;
+
+  &.tg-status--waiting {
+    --background: var(--tg-status-waiting-bg);
+    --color: var(--tg-status-waiting-text);
+  }
+
+  &.tg-status--confirmed {
+    --background: var(--tg-status-confirmed-bg);
+    --color: var(--tg-status-confirmed-text);
+  }
+
+  &.tg-status--progress {
+    --background: var(--tg-status-progress-bg);
+    --color: var(--tg-status-progress-text);
+  }
+
+  &.tg-status--done {
+    --background: var(--tg-status-done-bg);
+    --color: var(--tg-status-done-text);
+  }
+
+  &.tg-status--cancelled {
+    --background: var(--tg-status-cancelled-bg);
+    --color: var(--tg-status-cancelled-text);
+  }
+
+  &.tg-status--neutral {
+    --background: var(--tg-bg-subtle);
+    --color: var(--tg-text-secondary);
+  }
+
+  &.tg-status--accent {
+    --background: var(--tg-action-subtle);
+    --color: var(--tg-action-subtle-text);
+  }
+}
+
+// Avatar: a foto sempre vence; sem foto, iniciais.
+.tg-avatar {
+  display: inline-flex;
+  flex: none;
+  align-items: center;
+  justify-content: center;
+  width: 44px;
+  height: 44px;
+  border-radius: var(--tg-radius-full);
+  background: var(--tg-action-subtle);
+  color: var(--tg-action-subtle-text);
+  font-size: var(--tg-type-body-sm-size);
+  font-weight: var(--tg-font-weight-extrabold);
+  overflow: hidden;
+
+  img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+  }
+}
+
+.tg-num {
+  font-variant-numeric: tabular-nums;
 }

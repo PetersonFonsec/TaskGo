@@ -1,47 +1,57 @@
-<ion-header>
-  <ion-toolbar color="primary">
+<ion-header class="ion-no-border">
+  <ion-toolbar>
     <ion-buttons slot="start"><ion-back-button defaultHref="/" text="" /></ion-buttons>
     <ion-title>Entrar</ion-title>
   </ion-toolbar>
 </ion-header>
 
-<ion-content class="ion-padding">
-  <form [formGroup]="form" (ngSubmit)="submit()">
-    <ion-list lines="none">
+<ion-content>
+  <div class="login">
+    <header class="login__intro">
+      <p class="tg-overline">TaskGo</p>
+      <h1 class="tg-title-1">Que bom ver você <span class="tg-signature">de novo</span></h1>
+      <p class="tg-lead">Entre para pedir serviços e acompanhar seus pedidos.</p>
+    </header>
+
+    <form class="login__form" [formGroup]="form" (ngSubmit)="submit()">
+      <!-- Rótulo sempre visível e acima do campo (Design System, "Campo de texto"). -->
       <ion-input
         formControlName="email"
         type="email"
         label="E-mail"
-        labelPlacement="floating"
+        labelPlacement="stacked"
         fill="outline"
+        placeholder="nome@email.com"
         autocomplete="email"
         inputmode="email"
         errorText="Informe um e-mail válido."
       />
-      <br />
       <ion-input
         formControlName="password"
         type="password"
         label="Senha"
-        labelPlacement="floating"
+        labelPlacement="stacked"
         fill="outline"
         autocomplete="current-password"
         errorText="Informe sua senha."
       >
         <ion-input-password-toggle slot="end" />
       </ion-input>
-    </ion-list>
 
-    @if (error(); as message) {
-      <ion-text color="danger" role="alert"><p>{{ message }}</p></ion-text>
-    }
-
-    <ion-button type="submit" expand="block" [disabled]="submitting()">
-      @if (submitting()) {
-        <ion-spinner name="crescent" />
-      } @else {
-        Entrar
+      @if (error(); as message) {
+        <div class="tg-alert tg-alert--danger login__error" role="alert">
+          <tg-icon name="warning-circle" [size]="20" />
+          <p>{{ message }}</p>
+        </div>
       }
-    </ion-button>
-  </form>
+
+      <ion-button type="submit" expand="block" [disabled]="submitting()">
+        @if (submitting()) {
+          <ion-spinner name="crescent" aria-label="Entrando" />
+        } @else {
+          Entrar
+        }
+      </ion-button>
+    </form>
+  </div>
 </ion-content>

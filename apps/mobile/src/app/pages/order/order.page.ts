@@ -1,31 +1,26 @@
 import { Component, computed, inject, input } from '@angular/core';
 import {
-  IonAvatar,
   IonBackButton,
   IonBadge,
   IonButtons,
   IonContent,
   IonHeader,
-  IonIcon,
   IonItem,
   IonLabel,
   IonList,
-  IonListHeader,
   IonNote,
   IonRefresher,
   IonRefresherContent,
   IonSkeletonText,
-  IonText,
   IonTitle,
   IonToolbar,
   RefresherCustomEvent
 } from '@ionic/angular';
-import { addIcons } from 'ionicons';
-import { checkmarkCircle, personCircle, shieldCheckmark } from 'ionicons/icons';
 
 import { OrderDetails } from '@app/core/orders/orders.models';
-import { orderStatusColor, orderStatusLabel, OrdersService } from '@app/core/orders/orders.service';
+import { orderStatusLabel, orderStatusTone, OrdersService } from '@app/core/orders/orders.service';
 import { privateResource } from '@app/core/orders/private-resource';
+import { TgIconComponent } from '@app/shared/ui/tg-icon.component';
 import { formatDateTime } from '../orders/orders.page';
 
 /** O que o cliente precisa saber em cada etapa. */
@@ -42,26 +37,24 @@ const NEXT_STEP: Partial<Record<string, string>> = {
 @Component({
   selector: 'app-order',
   imports: [
-    IonAvatar,
     IonBackButton,
     IonBadge,
     IonButtons,
     IonContent,
     IonHeader,
-    IonIcon,
     IonItem,
     IonLabel,
     IonList,
-    IonListHeader,
     IonNote,
     IonRefresher,
     IonRefresherContent,
     IonSkeletonText,
-    IonText,
     IonTitle,
-    IonToolbar
+    IonToolbar,
+    TgIconComponent
   ],
-  templateUrl: './order.page.html'
+  templateUrl: './order.page.html',
+  styleUrl: './order.page.scss'
 })
 export class OrderPage {
   readonly #orders = inject(OrdersService);
@@ -79,12 +72,8 @@ export class OrderPage {
   readonly nextStep = computed(() => NEXT_STEP[this.order()?.status ?? ''] ?? null);
 
   readonly statusLabel = orderStatusLabel;
-  readonly statusColor = orderStatusColor;
+  readonly statusTone = orderStatusTone;
   readonly formatDateTime = formatDateTime;
-
-  constructor() {
-    addIcons({ checkmarkCircle, personCircle, shieldCheckmark });
-  }
 
   refresh(event: RefresherCustomEvent): void {
     this.#details.refresh(event);
@@ -102,6 +91,15 @@ export class OrderPage {
   amount(order: OrderDetails): string {
     const value = order.payment?.finalAmount ?? order.payment?.estimatedAmount ?? order.service.estimatedPrice;
     return Number(value).toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
+  }
+
+  /** Iniciais do primeiro e do último nome, para o avatar sem foto. */
+  initials(name: string): string {
+    const parts = name.trim().split(/\s+/).filter(Boolean);
+    if (!parts.length) return '';
+    const first = parts[0][0];
+    const last = parts.length > 1 ? parts[parts.length - 1][0] : '';
+    return (first + last).toUpperCase();
   }
 
   address(order: OrderDetails): string | null {

@@ -138,6 +138,10 @@ describe('ProviderPage', () => {
     expect(text(fixture)).toContain('4,8 (12 avaliações)');
     expect(text(fixture)).toContain('R$ 90,00');
     expect(text(fixture)).toContain('Muito pontual');
+    // Sem foto: iniciais no avatar; o selo de verificado tem nome acessível.
+    expect(fixture.nativeElement.querySelector('.tg-avatar').textContent.trim()).toBe('CL');
+    expect(fixture.nativeElement.querySelector('[aria-label="Verificado"]')).not.toBeNull();
+    expect(fixture.nativeElement.querySelector('ion-icon')).toBeNull();
     // Dia sem vaga e horário ocupado não aparecem; o primeiro dia livre já vem escolhido.
     expect(page.days().map((d) => d.date)).toEqual(['2026-11-15']);
     expect(page.date()).toBe('2026-11-15');

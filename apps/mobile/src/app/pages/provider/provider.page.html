@@ -1,5 +1,5 @@
 <ion-header>
-  <ion-toolbar color="primary">
+  <ion-toolbar>
     <ion-buttons slot="start"><ion-back-button defaultHref="/" text="" /></ion-buttons>
     <ion-title>{{ provider()?.user?.name ?? 'Profissional' }}</ion-title>
   </ion-toolbar>
@@ -8,193 +8,212 @@
 <ion-content>
   @switch (profile().status) {
     @case ('loading') {
-      <div class="ion-padding">
+      <div class="tg-section">
         <ion-skeleton-text [animated]="true" style="width: 60%; height: 24px" />
         <ion-skeleton-text [animated]="true" style="width: 40%" />
       </div>
     }
     @case ('error') {
-      <div class="ion-padding">
-        <ion-text color="danger"><p>Não foi possível carregar este profissional. Tente de novo.</p></ion-text>
+      <div class="tg-alert tg-alert--danger" role="alert">
+        <tg-icon name="warning-circle" />
+        <p>Não foi possível carregar este profissional. Tente de novo.</p>
       </div>
     }
     @default {
       @if (provider(); as p) {
-        <ion-item lines="none" class="ion-padding-top">
-          @if (p.user.photoUrl) {
-            <ion-avatar slot="start">
-              <img [src]="p.user.photoUrl" alt="" (error)="$any($event.target).hidden = true" />
-            </ion-avatar>
-          } @else {
-            <ion-icon slot="start" name="person-circle" color="medium" size="large" />
-          }
-          <ion-label>
-            <h1>
-              {{ p.user.name }}
-              @if (p.verified) {
-                <ion-icon name="shield-checkmark" color="primary" aria-label="Verificado" />
+        <section class="tg-section profile">
+          <div class="profile__head">
+            <span class="tg-avatar profile__avatar" aria-hidden="true">
+              {{ initials(p.user.name) }}
+              @if (p.user.photoUrl) {
+                <img [src]="p.user.photoUrl" alt="" (error)="$any($event.target).hidden = true" />
               }
-            </h1>
-            @if (rating(); as r) {
-              <p><ion-icon name="star" color="warning" /> {{ r }} ({{ p.ratingCount }} avaliações)</p>
-            } @else {
-              <p><ion-badge color="light">Novo no TaskGo</ion-badge></p>
-            }
-          </ion-label>
-        </ion-item>
-        @if (p.bio) {
-          <div class="ion-padding-horizontal"><ion-text color="medium"><p>{{ p.bio }}</p></ion-text></div>
-        }
+            </span>
+            <div class="profile__id">
+              <h1 class="tg-title-2 profile__name">
+                {{ p.user.name }}
+                @if (p.verified) {
+                  <tg-icon class="profile__verified" name="seal-check" weight="fill" label="Verificado" />
+                }
+              </h1>
+              @if (rating(); as r) {
+                <p class="profile__rating tg-num">
+                  <tg-icon class="star" name="star" weight="fill" [size]="16" /> {{ r }} ({{ p.ratingCount }} avaliações)
+                </p>
+              } @else {
+                <ion-badge class="tg-status tg-status--accent">Novo no TaskGo</ion-badge>
+              }
+            </div>
+          </div>
+          @if (p.bio) {
+            <p class="tg-lead">{{ p.bio }}</p>
+          }
+        </section>
 
-        <ion-list>
-          <ion-list-header><ion-label>Serviço</ion-label></ion-list-header>
-          <ion-radio-group [value]="serviceId()" (ionChange)="selectService($event.detail.value)">
-            @for (s of p.services; track s.id) {
-              <ion-item>
-                <ion-radio [value]="'' + s.id" justify="space-between">
-                  <ion-label class="ion-text-wrap">
-                    <h3>{{ s.title }}</h3>
-                    @if (s.description) {
-                      <p>{{ s.description }}</p>
-                    }
-                  </ion-label>
-                </ion-radio>
-                <ion-note slot="end">{{ formatPrice(s.basePrice) }}</ion-note>
-              </ion-item>
-            }
-          </ion-radio-group>
-        </ion-list>
+        <section class="tg-section">
+          <h2 class="tg-overline">Serviço</h2>
+          <ion-list class="tg-list">
+            <ion-radio-group [value]="serviceId()" (ionChange)="selectService($event.detail.value)">
+              @for (s of p.services; track s.id) {
+                <ion-item>
+                  <ion-radio [value]="'' + s.id" justify="space-between">
+                    <ion-label class="ion-text-wrap">
+                      <h3>{{ s.title }}</h3>
+                      @if (s.description) {
+                        <p>{{ s.description }}</p>
+                      }
+                    </ion-label>
+                  </ion-radio>
+                  <ion-note slot="end" class="price tg-num">{{ formatPrice(s.basePrice) }}</ion-note>
+                </ion-item>
+              }
+            </ion-radio-group>
+          </ion-list>
+        </section>
 
-        <ion-list>
-          <ion-list-header><ion-label>Data e horário</ion-label></ion-list-header>
+        <section class="tg-section">
+          <h2 class="tg-overline">Data e horário</h2>
           @switch (agenda().status) {
             @case ('loading') {
-              <div class="ion-padding-horizontal"><ion-skeleton-text [animated]="true" style="width: 80%" /></div>
+              <ion-skeleton-text [animated]="true" style="width: 80%" />
             }
             @case ('error') {
-              <div class="ion-padding-horizontal">
-                <ion-text color="danger"><p>Não foi possível carregar os horários.</p></ion-text>
+              <div class="tg-alert tg-alert--danger inline" role="alert">
+                <tg-icon name="warning-circle" />
+                <p>Não foi possível carregar os horários.</p>
               </div>
             }
             @default {
               @if (days().length) {
-                <div class="ion-padding-horizontal days" data-testid="days">
+                <div class="chips days" data-testid="days">
                   @for (day of days(); track day.date) {
-                    <ion-chip [outline]="day.date !== date()" color="primary" (click)="selectDate(day.date)">
+                    <ion-chip [outline]="day.date !== date()" (click)="selectDate(day.date)">
                       {{ dayLabel(day.date) }}
                     </ion-chip>
                   }
                 </div>
-                <div class="ion-padding-horizontal" data-testid="slots">
+                <div class="chips" data-testid="slots">
                   @for (s of slots(); track s.startsAt) {
-                    <ion-chip
-                      [outline]="s.startsAt !== slot()?.startsAt"
-                      color="secondary"
-                      (click)="selectSlot(s.startsAt)"
-                    >
+                    <ion-chip class="tg-num" [outline]="s.startsAt !== slot()?.startsAt" (click)="selectSlot(s.startsAt)">
                       {{ timeLabel(s.startsAt) }}
                     </ion-chip>
                   }
                 </div>
               } @else {
-                <div class="ion-padding-horizontal">
-                  <ion-text color="medium"><p>Sem horários livres nos próximos 14 dias.</p></ion-text>
+                <div class="tg-empty compact">
+                  <span class="tg-empty__icon"><tg-icon name="calendar-blank" [size]="24" /></span>
+                  <p>Sem horários livres nos próximos 14 dias.</p>
                 </div>
               }
             }
           }
-        </ion-list>
+        </section>
 
         @if (auth.isAuthenticated()) {
-          <ion-list>
-            <ion-list-header><ion-label>Endereço do atendimento</ion-label></ion-list-header>
+          <section class="tg-section">
+            <h2 class="tg-overline">Endereço do atendimento</h2>
             @if (addresses(); as state) {
               @switch (state.status) {
                 @case ('loading') {
-                  <div class="ion-padding-horizontal"><ion-skeleton-text [animated]="true" style="width: 70%" /></div>
+                  <ion-skeleton-text [animated]="true" style="width: 70%" />
                 }
                 @case ('error') {
-                  <div class="ion-padding-horizontal">
-                    <ion-text color="danger"><p>Não foi possível carregar seus endereços.</p></ion-text>
+                  <div class="tg-alert tg-alert--danger inline" role="alert">
+                    <tg-icon name="warning-circle" />
+                    <p>Não foi possível carregar seus endereços.</p>
                   </div>
                 }
                 @default {
                   @if (state.status === 'ready' && state.value.length) {
-                    <ion-radio-group [value]="addressId()" (ionChange)="selectAddress($event.detail.value)">
-                      @for (a of state.value; track a.id) {
-                        <ion-item>
-                          <ion-radio [value]="a.id" justify="space-between">
-                            <ion-label class="ion-text-wrap">{{ addressLabel(a) }}</ion-label>
-                          </ion-radio>
-                        </ion-item>
-                      }
-                    </ion-radio-group>
+                    <ion-list class="tg-list">
+                      <ion-radio-group [value]="addressId()" (ionChange)="selectAddress($event.detail.value)">
+                        @for (a of state.value; track a.id) {
+                          <ion-item>
+                            <ion-radio [value]="a.id" justify="space-between">
+                              <ion-label class="ion-text-wrap">{{ addressLabel(a) }}</ion-label>
+                            </ion-radio>
+                          </ion-item>
+                        }
+                      </ion-radio-group>
+                    </ion-list>
                   } @else {
-                    <div class="ion-padding-horizontal">
-                      <ion-text color="medium">
-                        <p>Você ainda não tem um endereço com localização. Cadastre um no site do TaskGo para pedir pelo app.</p>
-                      </ion-text>
+                    <div class="tg-empty compact">
+                      <span class="tg-empty__icon"><tg-icon name="map-pin" [size]="24" /></span>
+                      <p>Você ainda não tem um endereço com localização. Cadastre um no site do TaskGo para pedir pelo app.</p>
                     </div>
                   }
                 }
               }
             }
-          </ion-list>
-          @if (coverageMessage(); as message) {
-            <div class="ion-padding-horizontal" role="status" data-testid="coverage-warning">
-              <ion-text [color]="coverage().status === 'ready' && coverage().value === false ? 'warning' : 'medium'">
-                <p>{{ message }}</p>
-              </ion-text>
-              @if (canRetryCoverage()) {
-                <ion-button fill="clear" size="small" (click)="retryCoverage()">Tentar novamente</ion-button>
-              }
-            </div>
-          }
+            @if (coverageMessage(); as message) {
+              <div
+                class="tg-alert inline"
+                [class.tg-alert--warning]="notCovered()"
+                [class.tg-alert--info]="!notCovered()"
+                role="status"
+                data-testid="coverage-warning"
+              >
+                <tg-icon [name]="coverage().status === 'loading' ? 'hourglass' : 'warning-circle'" />
+                <div class="alert__body">
+                  <p>{{ message }}</p>
+                  @if (canRetryCoverage()) {
+                    <ion-button fill="clear" size="small" (click)="retryCoverage()">Tentar novamente</ion-button>
+                  }
+                </div>
+              </div>
+            }
+          </section>
         }
 
-        <div class="ion-padding">
+        <section class="tg-section actions">
           @if (pending(); as p) {
-            <div role="alert" data-testid="pending">
-              <ion-text color="warning">
+            <div class="tg-alert tg-alert--warning inline" role="alert" data-testid="pending">
+              <tg-icon name="warning-circle" />
+              <div class="alert__body">
+                <strong>Não sabemos se o seu último pedido chegou ao TaskGo.</strong>
                 <p>
-                  <strong>Não sabemos se o seu último pedido chegou ao TaskGo.</strong>
                   @if (p.intent.summary) {
                     ({{ p.intent.summary }})
                   }
                   Tente de novo: se ele já foi criado, o TaskGo devolve o mesmo pedido, sem duplicar.
                 </p>
-              </ion-text>
-              <ion-button expand="block" fill="outline" [disabled]="submitting()" (click)="retry()">
-                @if (submitting()) {
-                  <ion-spinner name="crescent" />
-                } @else {
-                  Tentar de novo
-                }
-              </ion-button>
-              <ion-button expand="block" fill="clear" routerLink="/pedidos">Ver meus pedidos</ion-button>
+                <ion-button expand="block" fill="outline" [disabled]="submitting()" (click)="retry()">
+                  @if (submitting()) {
+                    <ion-spinner name="crescent" />
+                  } @else {
+                    Tentar de novo
+                  }
+                </ion-button>
+                <ion-button expand="block" fill="clear" routerLink="/pedidos">Ver meus pedidos</ion-button>
+              </div>
             </div>
           }
           @if (conflict(); as c) {
-            <div role="alert" data-testid="conflict">
-              <ion-text color="danger">
-                <p>
-                  <strong>{{ c.message }}</strong>
-                  @if (c.intent.summary) {
-                    ({{ c.intent.summary }})
-                  }
-                </p>
-              </ion-text>
-              <ion-button expand="block" fill="outline" (click)="reviewOrders()">Ver meus pedidos</ion-button>
+            <div class="tg-alert tg-alert--danger inline" role="alert" data-testid="conflict">
+              <tg-icon name="warning-circle" />
+              <div class="alert__body">
+                <strong>{{ c.message }}</strong>
+                @if (c.intent.summary) {
+                  <p>({{ c.intent.summary }})</p>
+                }
+                <ion-button expand="block" fill="outline" (click)="reviewOrders()">Ver meus pedidos</ion-button>
+              </div>
             </div>
           }
           @if (found(); as f) {
-            <ion-text color="success" data-testid="found">
-              <p>Seu pedido #{{ f.orderId }} foi registrado.</p>
-            </ion-text>
-            <ion-button expand="block" fill="outline" (click)="openFound()">Ver pedido</ion-button>
+            <div class="tg-alert tg-alert--success inline" data-testid="found">
+              <tg-icon name="check-circle" />
+              <div class="alert__body">
+                <p>Seu pedido <span class="tg-num">#{{ f.orderId }}</span> foi registrado.</p>
+                <ion-button expand="block" fill="outline" (click)="openFound()">Ver pedido</ion-button>
+              </div>
+            </div>
           }
           @if (error(); as message) {
-            <ion-text color="danger"><p role="alert">{{ message }}</p></ion-text>
+            <div class="tg-alert tg-alert--danger inline">
+              <tg-icon name="warning-circle" />
+              <p role="alert">{{ message }}</p>
+            </div>
           }
           <ion-button expand="block" [disabled]="!canSubmit()" (click)="submit()">
             @if (submitting()) {
@@ -205,29 +224,32 @@
               Entrar para solicitar
             }
           </ion-button>
-          <ion-text color="medium">
-            <p><small>O profissional confirma o pedido antes do pagamento.</small></p>
-          </ion-text>
-        </div>
+          <p class="hint">O profissional confirma o pedido antes do pagamento.</p>
+        </section>
 
         @if (p.reviews?.length) {
-          <ion-list>
-            <ion-list-header><ion-label>Avaliações</ion-label></ion-list-header>
-            @for (r of p.reviews; track r.id) {
-              <ion-item>
-                <ion-label class="ion-text-wrap">
-                  <h3><ion-icon name="star" color="warning" /> {{ r.rating }} · {{ reviewDate(r.reviewedAt) }}</h3>
-                  @if (r.comment) {
-                    <p>{{ r.comment }}</p>
-                  }
-                </ion-label>
-              </ion-item>
-            }
-          </ion-list>
+          <section class="tg-section">
+            <h2 class="tg-overline">Avaliações</h2>
+            <ion-list class="tg-list">
+              @for (r of p.reviews; track r.id) {
+                <ion-item>
+                  <ion-label class="ion-text-wrap">
+                    <h3 class="review__head tg-num">
+                      <tg-icon class="star" name="star" weight="fill" [size]="16" /> {{ r.rating }} · {{ reviewDate(r.reviewedAt) }}
+                    </h3>
+                    @if (r.comment) {
+                      <p>{{ r.comment }}</p>
+                    }
+                  </ion-label>
+                </ion-item>
+              }
+            </ion-list>
+          </section>
         }
       } @else {
-        <div class="ion-padding">
-          <ion-text color="medium"><p>Este profissional não está disponível no momento.</p></ion-text>
+        <div class="tg-empty">
+          <span class="tg-empty__icon"><tg-icon name="user" [size]="24" /></span>
+          <p>Este profissional não está disponível no momento.</p>
         </div>
       }
     }

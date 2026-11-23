@@ -10,8 +10,8 @@ import {
   availabilityRange,
   createOrderErrorMessage,
   decimal,
-  orderStatusColor,
   orderStatusLabel,
+  orderStatusTone,
   OrdersService
 } from './orders.service';
 
@@ -187,9 +187,19 @@ describe('order helpers', () => {
     expect(orderStatusLabel('AGUARDANDO_APROVACAO')).toBe('Aguardando o profissional');
     expect(orderStatusLabel('EM_DESLOCAMENTO')).toBe('Profissional a caminho');
     expect(orderStatusLabel('NOVO_STATUS')).toBe('Em atualização');
-    expect(orderStatusColor('CONCLUIDO')).toBe('success');
-    expect(orderStatusColor('CANCELADO')).toBe('medium');
-    expect(orderStatusColor('AGUARDANDO_PAGAMENTO')).toBe('warning');
-    expect(orderStatusColor('AGENDADO')).toBe('primary');
+  });
+
+  it('maps every status to the Design System tone, unknown to neutral', () => {
+    expect(orderStatusTone('AGUARDANDO_APROVACAO')).toBe('waiting');
+    expect(orderStatusTone('AGUARDANDO_PAGAMENTO')).toBe('waiting');
+    expect(orderStatusTone('AGENDADO')).toBe('confirmed');
+    expect(orderStatusTone('EM_DESLOCAMENTO')).toBe('progress');
+    expect(orderStatusTone('EM_ANDAMENTO')).toBe('progress');
+    expect(orderStatusTone('AGUARDANDO_CONFIRMACAO_CLIENTE')).toBe('waiting');
+    expect(orderStatusTone('CONCLUIDO')).toBe('done');
+    expect(orderStatusTone('DISPUTA')).toBe('waiting');
+    expect(orderStatusTone('REJEITADO')).toBe('cancelled');
+    expect(orderStatusTone('CANCELADO')).toBe('cancelled');
+    expect(orderStatusTone('NOVO_STATUS')).toBe('neutral');
   });
 });

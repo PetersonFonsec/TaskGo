@@ -1,0 +1,25 @@
+// Entrar no app. Só tokens --tg-*.
+.login {
+  display: flex;
+  flex-direction: column;
+  gap: var(--tg-space-8);
+  max-width: 480px;
+  margin: 0 auto;
+  padding: var(--tg-space-8) var(--tg-space-4);
+}
+
+.login__intro {
+  display: flex;
+  flex-direction: column;
+  gap: var(--tg-space-2);
+}
+
+.login__form {
+  display: flex;
+  flex-direction: column;
+  gap: var(--tg-space-5);
+}
+
+.login__error {
+  margin: 0;
+}

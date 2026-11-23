@@ -59,8 +59,10 @@ describe('CategoryPage', () => {
     expect(text).toContain('R$ 90,00');
     expect(text).toContain('Bia Rocha');
     expect(text).toContain('Novo no TaskGo');
-    const item = fixture.nativeElement.querySelector('ion-item') as HTMLElement;
+    const item = fixture.nativeElement.querySelector('a.provider-card') as HTMLElement;
     expect(item.getAttribute('href')).toBe('/prestadores/10');
+    // Sem foto, o avatar mostra as iniciais.
+    expect(fixture.componentInstance.initials('Carlos Lima')).toBe('CL');
   });
 
   it('says when nobody serves the category yet', async () => {

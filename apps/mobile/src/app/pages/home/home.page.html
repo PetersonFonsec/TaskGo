@@ -1,84 +1,97 @@
-<ion-header>
-  <ion-toolbar color="primary">
-    <ion-title>TaskGo</ion-title>
+<ion-header class="ion-no-border">
+  <ion-toolbar>
+    <span slot="start" class="brand">
+      <span class="brand__mark" aria-hidden="true">T</span>
+      <ion-title class="brand__name">TaskGo</ion-title>
+    </span>
     <ion-buttons slot="end">
       @if (auth.isAuthenticated()) {
-        <ion-button routerLink="/pedidos">
-          <ion-icon slot="start" name="receipt-outline" />
-          Pedidos
-        </ion-button>
-        <ion-button (click)="logout()" aria-label="Sair">
-          <ion-icon slot="icon-only" name="log-out-outline" />
+        <ion-button fill="clear" (click)="logout()">
+          <tg-icon slot="start" name="sign-out" [size]="20" />
+          Sair
         </ion-button>
       } @else {
-        <ion-button routerLink="/entrar">
-          <ion-icon slot="start" name="person-circle-outline" />
+        <ion-button fill="clear" routerLink="/entrar">
+          <tg-icon slot="start" name="user-circle" [size]="20" />
           Entrar
         </ion-button>
       }
     </ion-buttons>
   </ion-toolbar>
-  <ion-toolbar>
+</ion-header>
+
+<ion-content>
+  <section class="hero">
+    <p class="tg-overline">Início</p>
+    <h1 class="tg-title-1">
+      @if (firstName(); as name) {
+        Olá, <span class="tg-signature">{{ name }}</span>!
+      } @else {
+        Encontre um <span class="tg-signature">profissional</span>
+      }
+    </h1>
+    <p class="tg-lead">Escolha uma categoria para ver quem atende perto de você.</p>
     <ion-searchbar
+      class="hero__search"
       placeholder="Do que você precisa?"
       [debounce]="150"
       (ionInput)="onSearch($event)"
     />
-  </ion-toolbar>
-</ion-header>
+  </section>
 
-<ion-content>
-  <div class="ion-padding-horizontal ion-padding-top">
-    <h2>{{ firstName() ? 'Olá, ' + firstName() + '!' : 'Encontre um profissional' }}</h2>
-    <ion-text color="medium"><p>Escolha uma categoria para ver quem atende perto de você.</p></ion-text>
-  </div>
+  <section class="tg-section" aria-labelledby="categories-title">
+    <p class="tg-overline">Explore</p>
+    <h2 id="categories-title" class="tg-title-2">Categorias</h2>
+  </section>
 
   @switch (state().status) {
     @case ('loading') {
-      <ion-list>
+      <ul class="categories" aria-hidden="true">
         @for (i of [1, 2, 3, 4]; track i) {
-          <ion-item>
-            <ion-thumbnail slot="start"><ion-skeleton-text [animated]="true" /></ion-thumbnail>
-            <ion-label><ion-skeleton-text [animated]="true" style="width: 60%" /></ion-label>
-          </ion-item>
+          <li class="category category--loading">
+            <ion-skeleton-text class="category__art" [animated]="true" />
+            <ion-skeleton-text [animated]="true" style="width: 60%" />
+          </li>
         }
-      </ion-list>
+      </ul>
     }
     @case ('error') {
-      <div class="ion-padding">
-        <ion-text color="danger"><p>Não foi possível carregar as categorias. Verifique sua conexão.</p></ion-text>
+      <div class="tg-alert tg-alert--danger" role="alert">
+        <tg-icon name="warning-circle" [size]="20" />
+        <div>
+          <strong>Não foi possível carregar as categorias.</strong>
+          <p>Verifique sua conexão.</p>
+        </div>
       </div>
     }
     @default {
-      <ion-list>
+      <ul class="categories">
         @for (category of visible(); track category.slug) {
-          <ion-item
-            [routerLink]="['/categorias', category.slug]"
-            [queryParams]="{ nome: category.name }"
-            [detail]="true"
-          >
-            @if (category.thumb) {
-              <ion-thumbnail slot="start">
-                <img [src]="category.thumb" alt="" (error)="$any($event.target).hidden = true" />
-              </ion-thumbnail>
-            }
-            <ion-label>
-              <h3>{{ category.name }}</h3>
-              @if (category.description) {
-                <p>{{ category.description }}</p>
-              }
-            </ion-label>
-          </ion-item>
+          <li>
+            <a
+              class="category"
+              [routerLink]="['/categorias', category.slug]"
+              [queryParams]="{ nome: category.name }"
+            >
+              <span class="category__art">
+                @if (category.thumb) {
+                  <img [src]="category.thumb" alt="" (error)="$any($event.target).hidden = true" />
+                }
+              </span>
+              <span class="category__name">{{ category.name }}</span>
+            </a>
+          </li>
         } @empty {
-          <div class="ion-padding">
-            <ion-text color="medium">
+          <li class="categories__empty">
+            <div class="tg-empty">
+              <span class="tg-empty__icon"><tg-icon name="magnifying-glass" [size]="24" /></span>
               <p>
                 {{ term() ? 'Nenhuma categoria com "' + term() + '".' : 'Ainda não há categorias ativas.' }}
               </p>
-            </ion-text>
-          </div>
+            </div>
+          </li>
         }
-      </ion-list>
+      </ul>
     }
   }
 </ion-content>

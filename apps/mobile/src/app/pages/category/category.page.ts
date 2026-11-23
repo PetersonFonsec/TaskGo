@@ -2,28 +2,20 @@ import { Component, computed, inject, input } from '@angular/core';
 import { toObservable, toSignal } from '@angular/core/rxjs-interop';
 import { RouterLink } from '@angular/router';
 import {
-  IonAvatar,
   IonBackButton,
   IonBadge,
   IonButtons,
   IonContent,
   IonHeader,
-  IonIcon,
-  IonItem,
-  IonLabel,
-  IonList,
-  IonNote,
   IonSkeletonText,
-  IonText,
   IonTitle,
   IonToolbar
 } from '@ionic/angular';
-import { addIcons } from 'ionicons';
-import { personCircle, shieldCheckmark, star } from 'ionicons/icons';
 import { catchError, map, of, startWith, switchMap } from 'rxjs';
 
 import { CatalogService } from '@app/core/catalog/catalog.service';
 import { PublicProvider } from '@app/core/catalog/catalog.models';
+import { TgIconComponent } from '@app/shared/ui/tg-icon.component';
 
 type ProvidersState =
   | { status: 'loading' }
@@ -34,23 +26,18 @@ type ProvidersState =
   selector: 'app-category',
   imports: [
     RouterLink,
-    IonAvatar,
     IonBackButton,
     IonBadge,
     IonButtons,
     IonContent,
     IonHeader,
-    IonIcon,
-    IonItem,
-    IonLabel,
-    IonList,
-    IonNote,
     IonSkeletonText,
-    IonText,
     IonTitle,
-    IonToolbar
+    IonToolbar,
+    TgIconComponent
   ],
-  templateUrl: './category.page.html'
+  templateUrl: './category.page.html',
+  styleUrl: './category.page.scss'
 })
 export class CategoryPage {
   readonly #catalog = inject(CatalogService);
@@ -73,10 +60,6 @@ export class CategoryPage {
     { initialValue: { status: 'loading' } as ProvidersState }
   );
 
-  constructor() {
-    addIcons({ personCircle, shieldCheckmark, star });
-  }
-
   rating(provider: PublicProvider): string | null {
     const value = Number(provider.ratingAvg ?? 0);
     return provider.ratingCount && value > 0 ? value.toFixed(1).replace('.', ',') : null;
@@ -85,6 +68,14 @@ export class CategoryPage {
   startingPrice(provider: PublicProvider): number | null {
     const prices = provider.services.map((s) => Number(s.basePrice)).filter((p) => p > 0);
     return prices.length ? Math.min(...prices) : null;
+  }
+
+  /** Sem foto, o avatar mostra as iniciais (a foto sempre vence). */
+  initials(name: string): string {
+    const parts = name.trim().split(/\s+/).filter(Boolean);
+    const letters =
+      parts.length > 1 ? parts[0][0] + parts[parts.length - 1][0] : (parts[0] ?? '').slice(0, 2);
+    return letters.toUpperCase();
   }
 
   formatPrice(value: number): string {

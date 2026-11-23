@@ -1,7 +1,7 @@
 <ion-header>
-  <ion-toolbar color="primary">
+  <ion-toolbar>
     <ion-buttons slot="start"><ion-back-button defaultHref="/pedidos" text="" /></ion-buttons>
-    <ion-title>Pedido #{{ id() }}</ion-title>
+    <ion-title>Pedido <span class="tg-num">#{{ id() }}</span></ion-title>
   </ion-toolbar>
 </ion-header>
 
@@ -12,81 +12,95 @@
 
   @switch (state().status) {
     @case ('loading') {
-      <div class="ion-padding">
+      <div class="tg-section">
         <ion-skeleton-text [animated]="true" style="width: 50%; height: 24px" />
         <ion-skeleton-text [animated]="true" style="width: 70%" />
       </div>
     }
     @case ('error') {
-      <div class="ion-padding">
-        <ion-text color="danger"><p>Não foi possível carregar este pedido. Puxe para tentar de novo.</p></ion-text>
+      <div class="tg-alert tg-alert--danger" role="alert">
+        <tg-icon name="warning-circle" />
+        <p>Não foi possível carregar este pedido. Puxe para tentar de novo.</p>
       </div>
     }
     @default {
       @if (order(); as o) {
-        <div class="ion-padding">
-          <ion-badge [color]="statusColor(o.status)">{{ statusLabel(o.status) }}</ion-badge>
-          <h2>{{ o.service.title }}</h2>
+        <section class="tg-section summary">
+          <ion-badge [class]="'tg-status tg-status--' + statusTone(o.status)" data-testid="status">
+            {{ statusLabel(o.status) }}
+          </ion-badge>
+          <h1 class="tg-title-2">{{ o.service.title }}</h1>
           @if (nextStep(); as step) {
-            <ion-text color="medium"><p data-testid="next-step">{{ step }}</p></ion-text>
+            <p class="tg-lead" data-testid="next-step">{{ step }}</p>
           }
           @if (o.cancellation; as c) {
-            <ion-text color="medium">
+            <div class="tg-alert tg-alert--danger inline">
+              <tg-icon name="x" />
               <p>Motivo: {{ c.label }}@if (c.note) { · {{ c.note }} }</p>
-            </ion-text>
+            </div>
           }
-        </div>
+        </section>
 
-        <ion-list>
-          <ion-item>
-            @if (o.provider.photoUrl) {
-              <ion-avatar slot="start">
-                <img [src]="o.provider.photoUrl" alt="" (error)="$any($event.target).hidden = true" />
-              </ion-avatar>
-            } @else {
-              <ion-icon slot="start" name="person-circle" color="medium" size="large" />
-            }
-            <ion-label>
-              <h3>
-                {{ o.provider.name }}
-                @if (o.provider.verified) {
-                  <ion-icon name="shield-checkmark" color="primary" aria-label="Verificado" />
-                }
-              </h3>
-              <p>Profissional</p>
-            </ion-label>
-          </ion-item>
-          @if (o.schedule.scheduledFor) {
+        <section class="tg-section">
+          <h2 class="tg-overline">Detalhes</h2>
+          <ion-list class="tg-list">
             <ion-item>
-              <ion-label><p>Quando</p><h3>{{ formatDateTime(o.schedule.scheduledFor) }}</h3></ion-label>
-            </ion-item>
-          }
-          @if (address(o); as where) {
-            <ion-item>
-              <ion-label class="ion-text-wrap"><p>Onde</p><h3>{{ where }}</h3></ion-label>
-            </ion-item>
-          }
-          <ion-item>
-            <ion-label><p>Valor</p><h3>{{ amount(o) }}</h3></ion-label>
-            <ion-note slot="end">PIX</ion-note>
-          </ion-item>
-        </ion-list>
-
-        <ion-list>
-          <ion-list-header><ion-label>Acompanhamento</ion-label></ion-list-header>
-          @for (event of o.timeline; track $index) {
-            <ion-item lines="none">
-              <ion-icon slot="start" name="checkmark-circle" color="success" />
-              <ion-label class="ion-text-wrap">
-                <h3>{{ event.title }}</h3>
-                @if (event.description) {
-                  <p>{{ event.description }}</p>
+              <span slot="start" class="tg-avatar avatar" aria-hidden="true">
+                {{ initials(o.provider.name) }}
+                @if (o.provider.photoUrl) {
+                  <img [src]="o.provider.photoUrl" alt="" (error)="$any($event.target).hidden = true" />
                 }
-                <p><small>{{ formatDateTime(event.date) }}</small></p>
+              </span>
+              <ion-label>
+                <h3 class="person">
+                  {{ o.provider.name }}
+                  @if (o.provider.verified) {
+                    <tg-icon class="verified" name="seal-check" weight="fill" [size]="16" label="Verificado" />
+                  }
+                </h3>
+                <p>Profissional</p>
               </ion-label>
             </ion-item>
-          }
-        </ion-list>
+            @if (o.schedule.scheduledFor) {
+              <ion-item>
+                <span slot="start" class="detail-icon"><tg-icon name="calendar-blank" /></span>
+                <ion-label><p>Quando</p><h3 class="tg-num">{{ formatDateTime(o.schedule.scheduledFor) }}</h3></ion-label>
+              </ion-item>
+            }
+            @if (address(o); as where) {
+              <ion-item>
+                <span slot="start" class="detail-icon"><tg-icon name="map-pin" /></span>
+                <ion-label class="ion-text-wrap"><p>Onde</p><h3>{{ where }}</h3></ion-label>
+              </ion-item>
+            }
+            <ion-item>
+              <span slot="start" class="detail-icon"><tg-icon name="wallet" /></span>
+              <ion-label><p>Valor</p><h3 class="tg-num">{{ amount(o) }}</h3></ion-label>
+              <ion-note slot="end">PIX</ion-note>
+            </ion-item>
+          </ion-list>
+        </section>
+
+        <!-- Sem eventos, a seção some (nada de card vazio). -->
+        @if (o.timeline.length) {
+          <section class="tg-section">
+            <h2 class="tg-overline">Acompanhamento</h2>
+            <ol class="timeline">
+              @for (event of o.timeline; track $index) {
+                <li class="timeline__item">
+                  <span class="timeline__mark"><tg-icon name="check-circle" weight="fill" /></span>
+                  <div class="timeline__body">
+                    <h3 class="tg-title-3">{{ event.title }}</h3>
+                    @if (event.description) {
+                      <p>{{ event.description }}</p>
+                    }
+                    <p class="timeline__date tg-num">{{ formatDateTime(event.date) }}</p>
+                  </div>
+                </li>
+              }
+            </ol>
+          </section>
+        }
       }
     }
   }
