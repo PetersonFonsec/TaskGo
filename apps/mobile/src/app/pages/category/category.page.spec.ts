@@ -61,6 +61,19 @@ describe('CategoryPage', () => {
     expect(text).toContain('Novo no TaskGo');
     const item = fixture.nativeElement.querySelector('ion-item') as HTMLElement;
     expect(item.getAttribute('href')).toBe('/prestadores/10');
+
+    // Visual do DS: selo de verificado, estrela e "Novo" como tg-badge, ícones tg-*.
+    const [first, second] = Array.from(fixture.nativeElement.querySelectorAll('ion-item')) as HTMLElement[];
+    const verified = first.querySelector('ion-badge.tg-badge--confirmed') as HTMLElement;
+    expect(verified.textContent?.trim()).toBe('Verificado');
+    expect(verified.querySelector('ion-icon')?.getAttribute('name')).toBe('tg-check');
+    expect(first.querySelector('ion-icon[name="tg-star-fill"]')).not.toBeNull();
+    expect(first.querySelector('ion-icon[name="tg-user"]')).not.toBeNull();
+    expect(second.querySelector('ion-badge.tg-badge--confirmed')).toBeNull();
+    expect(second.querySelector('ion-badge.tg-badge--accent')?.textContent).toContain('Novo no TaskGo');
+    const toolbar = fixture.nativeElement.querySelector('ion-toolbar') as HTMLElement;
+    expect(toolbar.hasAttribute('color')).toBeFalse();
+    expect(fixture.nativeElement.querySelector('ion-back-button')?.getAttribute('icon')).toBe('tg-arrow-left');
   });
 
   it('says when nobody serves the category yet', async () => {
@@ -70,6 +83,10 @@ describe('CategoryPage', () => {
 
   it('shows an error when the search fails', async () => {
     const fixture = await render({ providersByCategory: () => throwError(() => new Error('x')) });
-    expect(fixture.nativeElement.textContent).toContain('Não foi possível carregar os profissionais');
+    const alert = fixture.nativeElement.querySelector('.tg-alert') as HTMLElement;
+    expect(alert.classList).toContain('tg-alert--danger');
+    expect(alert.getAttribute('role')).toBe('alert');
+    expect(alert.textContent).toContain('Não foi possível carregar os profissionais');
+    expect(alert.querySelector('ion-icon')?.getAttribute('name')).toBe('tg-warning-circle');
   });
 });

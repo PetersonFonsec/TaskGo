@@ -1,6 +1,8 @@
 <ion-header>
-  <ion-toolbar color="primary">
-    <ion-buttons slot="start"><ion-back-button defaultHref="/" text="" /></ion-buttons>
+  <ion-toolbar>
+    <ion-buttons slot="start">
+      <ion-back-button defaultHref="/" color="primary" icon="tg-arrow-left" text="Voltar" />
+    </ion-buttons>
     <ion-title>{{ title() }}</ion-title>
   </ion-toolbar>
 </ion-header>
@@ -8,64 +10,75 @@
 <ion-content>
   @switch (state().status) {
     @case ('loading') {
-      <ion-list>
+      <ion-list class="category__list" aria-busy="true">
         @for (i of [1, 2, 3]; track i) {
           <ion-item>
             <ion-avatar slot="start"><ion-skeleton-text [animated]="true" /></ion-avatar>
             <ion-label>
-              <ion-skeleton-text [animated]="true" style="width: 50%" />
-              <ion-skeleton-text [animated]="true" style="width: 30%" />
+              <ion-skeleton-text class="category__skeleton-line" [animated]="true" style="width: 50%" />
+              <ion-skeleton-text class="category__skeleton-line" [animated]="true" style="width: 30%" />
             </ion-label>
           </ion-item>
         }
       </ion-list>
     }
     @case ('error') {
-      <div class="ion-padding">
-        <ion-text color="danger"><p>Não foi possível carregar os profissionais. Tente de novo.</p></ion-text>
+      <div class="category__message">
+        <div class="tg-alert tg-alert--danger" role="alert">
+          <ion-icon name="tg-warning-circle" aria-hidden="true" />
+          <p>Não foi possível carregar os profissionais. Tente de novo.</p>
+        </div>
       </div>
     }
     @default {
       @if (state(); as current) {
         @if (current.status === 'ready') {
-          <ion-list>
+          <ion-list class="category__list">
             @for (provider of current.providers; track provider.id) {
-              <ion-item lines="full" [routerLink]="['/prestadores', provider.id]" [detail]="true">
-                @if (provider.user.photoUrl) {
-                  <ion-avatar slot="start">
+              <ion-item
+                lines="full"
+                [routerLink]="['/prestadores', provider.id]"
+                [detail]="true"
+                detailIcon="tg-caret-right"
+              >
+                <ion-avatar slot="start" class="category__avatar">
+                  @if (provider.user.photoUrl) {
                     <img [src]="provider.user.photoUrl" alt="" (error)="$any($event.target).hidden = true" />
-                  </ion-avatar>
-                } @else {
-                  <ion-icon slot="start" name="person-circle" color="medium" size="large" />
-                }
+                  } @else {
+                    <ion-icon name="tg-user" aria-hidden="true" />
+                  }
+                </ion-avatar>
                 <ion-label>
-                  <h2>
-                    {{ provider.user.name }}
+                  <div class="category__title">
+                    <h2 class="category__name">{{ provider.user.name }}</h2>
                     @if (provider.verified) {
-                      <ion-icon name="shield-checkmark" color="primary" aria-label="Verificado" />
+                      <ion-badge class="tg-badge tg-badge--confirmed">
+                        <ion-icon name="tg-check" aria-hidden="true" />
+                        Verificado
+                      </ion-badge>
                     }
-                  </h2>
+                  </div>
                   @if (rating(provider); as r) {
-                    <p>
-                      <ion-icon name="star" color="warning" />
-                      {{ r }} ({{ provider.ratingCount }})
+                    <p class="category__meta">
+                      <ion-icon class="category__star" name="tg-star-fill" aria-hidden="true" />
+                      <b>{{ r }}</b> ({{ provider.ratingCount }})
                     </p>
                   } @else {
-                    <p><ion-badge color="light">Novo no TaskGo</ion-badge></p>
+                    <p class="category__meta"><ion-badge class="tg-badge tg-badge--accent">Novo no TaskGo</ion-badge></p>
                   }
                   @if (provider.services[0]; as service) {
-                    <p>{{ service.title }}</p>
+                    <p class="category__service">{{ service.title }}</p>
                   }
                 </ion-label>
                 @if (startingPrice(provider); as price) {
-                  <ion-note slot="end">a partir de<br />{{ formatPrice(price) }}</ion-note>
+                  <ion-note slot="end" class="category__price">
+                    a partir de<br /><b>{{ formatPrice(price) }}</b>
+                  </ion-note>
                 }
               </ion-item>
             } @empty {
-              <div class="ion-padding">
-                <ion-text color="medium">
-                  <p>Ainda não há profissionais nesta categoria na sua região.</p>
-                </ion-text>
+              <div class="category__message">
+                <p class="tg-muted">Ainda não há profissionais nesta categoria na sua região.</p>
               </div>
             }
           </ion-list>
