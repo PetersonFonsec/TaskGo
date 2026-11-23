@@ -65,10 +65,14 @@ describe('isolamento da Etapa 6', () => {
     expect(lastValue(css, '--tg-type-label-size')).toBe('0.9375rem');
   });
 
-  it('a ponte Ionic continua desligada e o azul atual do app permanece', () => {
+  // Etapa 10: a migração do app liga a ponte Ionic e tira o azul antigo.
+  it('o app liga a ponte Ionic aos tokens e não mantém o azul antigo', () => {
     const css = compileAppStyles('mobile');
-    expect(css).not.toMatch(/--ion-[\w-]+:\s*var\(--tg-/);
-    expect(lastValue(css, '--ion-color-primary')).toBe('#2563eb');
+    expect(lastValue(css, '--ion-color-primary')).toBe('var(--tg-action-primary)');
+    expect(lastValue(css, '--ion-color-primary-rgb')).toBe('var(--tg-action-primary-rgb)');
+    expect(lastValue(css, '--ion-background-color')).toBe('var(--tg-bg-canvas)');
+    expect(lastValue(css, '--ion-text-color')).toBe('var(--tg-text-primary)');
+    expect(css).not.toContain('#2563eb');
   });
 
   it('o web mantém os tokens antigos que as telas usam hoje', () => {
