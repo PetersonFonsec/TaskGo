@@ -1,8 +1,10 @@
+import { signal } from '@angular/core';
 import { TestBed } from '@angular/core/testing';
 import { ActivatedRoute, convertToParamMap, provideRouter } from '@angular/router';
 import { of, throwError } from 'rxjs';
 import { User } from '@shared/service/users/user';
 import { TokenService } from '@shared/service/token/token.service';
+import { UserLoggedService } from '@shared/service/user-logged/user-logged.service';
 import { Router } from '@angular/router';
 import { Profile } from './profile';
 
@@ -23,15 +25,17 @@ describe('Profile database header', () => {
         provideRouter([]),
         { provide: TokenService, useValue: { clearToken: jasmine.createSpy('clearToken') } },
         { provide: User, useValue: { getUser } },
+        // O perfil vem da sessão; o id da URL (aqui diferente) não é usado.
+        { provide: UserLoggedService, useValue: { user: signal({ user: { id: '14' } }) } },
         {
           provide: ActivatedRoute,
-          useValue: { paramMap: of(convertToParamMap({ userId: '14' })) },
+          useValue: { paramMap: of(convertToParamMap({ userId: '99' })) },
         },
       ],
     });
   });
 
-  it('loads the route user and renders the returned identity without sample specialties', () => {
+  it('loads the session user (not the URL one) and renders the returned identity without sample specialties', () => {
     const fixture = TestBed.createComponent(Profile);
     fixture.detectChanges();
     expect(getUser).toHaveBeenCalledWith('14');

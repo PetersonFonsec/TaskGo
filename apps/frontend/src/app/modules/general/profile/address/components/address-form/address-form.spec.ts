@@ -194,6 +194,8 @@ describe('AddressForm', () => {
       number: ' 12 ',
       city: 'São Paulo',
       state: 'SP',
+      lat: -23.55,
+      lng: -46.63,
     });
     component.submit();
     expect(submit).toHaveBeenCalledWith(
