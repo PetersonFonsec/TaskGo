@@ -57,7 +57,10 @@ export class CategoriesService extends PaginationService<Category> {
     return this.prismaService.category.findFirst({
       where: { id, isActive: true },
       include: {
-        subcategories: { where: { isActive: true } },
+        subcategories: {
+          where: { isActive: true },
+          orderBy: [{ sortOrder: 'asc' }, { name: 'asc' }],
+        },
       },
     });
   }

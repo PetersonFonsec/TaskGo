@@ -1,6 +1,7 @@
 import { provideHttpClient } from '@angular/common/http';
 import { HttpTestingController, provideHttpClientTesting } from '@angular/common/http/testing';
 import { TestBed } from '@angular/core/testing';
+import { provideRouter } from '@angular/router';
 import { BACKOFFICE_ENVIRONMENT } from '@app/core/config/backoffice-environment.token';
 import { CategoriesPage } from './categories.page';
 
@@ -11,6 +12,7 @@ describe('CategoriesPage', () => {
   beforeEach(() => {
     TestBed.configureTestingModule({
       providers: [
+        provideRouter([]),
         provideHttpClient(),
         provideHttpClientTesting(),
         { provide: BACKOFFICE_ENVIRONMENT, useValue: { apiUrl: '/admin' } },

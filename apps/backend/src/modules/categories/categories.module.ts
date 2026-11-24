@@ -3,6 +3,7 @@ import { CategoryImagesController } from './category-images.controller';
 import { Module } from '@nestjs/common';
 import { CategoriesService } from './categories.service';
 import { AdminCategoriesController } from './admin-categories.controller';
+import { AdminCategoryServicesController } from './admin-category-services.controller';
 import { CategoriesController } from './categories.controller';
 
 @Module({
@@ -10,6 +11,7 @@ import { CategoriesController } from './categories.controller';
   controllers: [
     CategoriesController,
     AdminCategoriesController,
+    AdminCategoryServicesController,
     CategoryImagesController,
   ],
   providers: [CategoriesService],

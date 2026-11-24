@@ -17,6 +17,7 @@ import { ProviderQueuePage } from './features/providers/provider-queue.page';
 import { AdminShellComponent } from './layout/admin-shell/admin-shell.component';
 
 import { CategoriesPage } from './features/categories/categories.page';
+import { CategoryServicesPage } from './features/categories/category-services.page';
 
 import { FeatureFlagsPage } from './features/feature-flags/feature-flags.page';
 
@@ -69,6 +70,12 @@ export const routes: Routes = [
         path: 'categories',
         title: 'Categorias de serviços',
         component: CategoriesPage,
+        canActivate: [requireAdminRoleGuard(['ADMINISTRATOR'])],
+      },
+      {
+        path: 'categories/:id/services',
+        title: 'Serviços da categoria',
+        component: CategoryServicesPage,
         canActivate: [requireAdminRoleGuard(['ADMINISTRATOR'])],
       },
       {
