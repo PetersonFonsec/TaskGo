@@ -5,7 +5,7 @@
     "ng": "ng",
     "start": "ng serve",
     "build": "ng build",
-    "build:staging": "ng build --configuration production,staging",
+    "build:staging": "node ../../scripts/configure-web-origins.mjs --staging frontend && ng build --configuration production,staging",
     "watch": "ng build --watch --configuration development",
     "test": "ng test",
     "lint": "cross-env ESLINT_USE_FLAT_CONFIG=true eslint \"src/**/*.ts\"",

@@ -18,11 +18,20 @@ O `docker-compose.yml` atual habilita banco e observabilidade; os serviços back
 
 ### Domínios de compartilhamento e busca
 
-As três aplicações usam as origens de desenvolvimento por padrão. Antes do build de publicação, defina `LANDING_PUBLIC_ORIGIN`, `FRONTEND_PUBLIC_ORIGIN` e `BACKOFFICE_PUBLIC_ORIGIN` no ambiente do pipeline com os endereços HTTPS reais. Cada valor deve conter apenas o protocolo, o domínio e a porta, se houver. As aplicações usam a raiz de seus respectivos domínios.
+O frontend e o backoffice usam origens de desenvolvimento nos arquivos-fonte; a landing page usa `https://taskgo-landing.vercel.app`. Antes do build de publicação, defina `LANDING_PUBLIC_ORIGIN`, `FRONTEND_PUBLIC_ORIGIN` e `BACKOFFICE_PUBLIC_ORIGIN` no ambiente do pipeline com os endereços HTTPS reais. Cada valor deve conter apenas o protocolo, o domínio e a porta, se houver. As aplicações usam a raiz de seus respectivos domínios.
 
 Na raiz do checkout de publicação, execute `node scripts/configure-web-origins.mjs` antes de gerar os artefatos. O comando atualiza os arquivos-fonte de metadados, sitemap e robots das aplicações cujas variáveis foram definidas. O Angular usa esses valores durante a pré-renderização.
 
 Após publicar, abra `/robots.txt`, `/sitemap.xml` e `/share.png` em cada domínio. O mapa da landing page aponta para a página inicial. O da plataforma inclui a entrada, o login e o cadastro. O mapa do backoffice contém apenas o login e todas as telas administrativas declaram `noindex`. O rastreamento do HTML é permitido para que os buscadores leiam essa diretiva.
+
+### Metadados de staging
+
+Os comandos `npm run build:staging --workspace apps/frontend` e `npm run build:staging --workspace apps/backoffice`, já selecionados pela configuração Vercel de staging/preview, configuram os metadados antes da pré-renderização com estas origens:
+
+- Frontend: `https://taskgo-frontend-git-staging-peterson-fonseca-simios-projects.vercel.app`
+- Backoffice: `https://taskgo-backoffice-git-staging-peterson-fonseca-simios-projects.vercel.app`
+
+`FRONTEND_PUBLIC_ORIGIN` e `BACKOFFICE_PUBLIC_ORIGIN` podem sobrescrever os respectivos padrões. Cada comando altera apenas os metadados da própria aplicação; a landing page mantém sua origem atual. O script modifica arquivos-fonte no checkout de build, portanto use um checkout isolado e limpo para cada ambiente. O build de produção continua exigindo a configuração explícita descrita acima.
 
 ### Entrega dos artefatos
 
