@@ -211,12 +211,23 @@ export class CreateOrderPaymentHandler
       }
       return saved;
     });
-    if (scheduled)
-      void this.notifications.notifyClientPaymentConfirmed(order.client, {
+    if (scheduled) {
+      const summary = {
         id: orderId,
         serviceTitle: order.service.title,
         scheduledFor: order.scheduledFor,
-      });
+      };
+      void this.notifications.notifyClientPaymentConfirmed(
+        order.client,
+        summary,
+      );
+      const provider = order.service.provider.user;
+      if (provider)
+        void this.notifications.notifyProviderBookingConfirmed(
+          provider,
+          summary,
+        );
+    }
     return toPaymentResponse(payment);
   }
 
@@ -244,7 +255,12 @@ export class CreateOrderPaymentHandler
             basePrice: true,
             platformFeePct: true,
             category: true,
-            provider: { select: { payoutProfile: true } },
+            provider: {
+              select: {
+                payoutProfile: true,
+                user: { select: { id: true, name: true, email: true } },
+              },
+            },
           },
         },
       },

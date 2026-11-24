@@ -1,9 +1,6 @@
 import { Logger } from '@nestjs/common';
-import * as nodemailer from 'nodemailer';
 import { NotificationEmailService } from './notification-email.service';
 import { WelcomeEmailHandler } from './notifications.module';
-
-jest.mock('nodemailer', () => ({ createTransport: jest.fn() }));
 
 describe('Transactional notification emails', () => {
   let service: NotificationEmailService;
@@ -12,12 +9,9 @@ describe('Transactional notification emails', () => {
   let config: Record<string, string>;
   beforeEach(() => {
     config = {
-      SMTP_URL: 'smtp://localhost:1025',
-      MAIL_FROM: 'Proxi <noreply@example.com>',
       NOTIFICATION_FRONTEND_URL: 'https://app.example.com',
     };
-    mail = { sendMail: jest.fn().mockResolvedValue({}), close: jest.fn() };
-    (nodemailer.createTransport as jest.Mock).mockReturnValue(mail);
+    mail = { configured: true, send: jest.fn().mockResolvedValue(undefined) };
     prisma = {
       user: {
         findUniqueOrThrow: jest
@@ -35,9 +29,11 @@ describe('Transactional notification emails', () => {
         }),
       },
     };
-    service = new NotificationEmailService(prisma, {
-      get: (key: string) => config[key],
-    } as any);
+    service = new NotificationEmailService(
+      prisma,
+      { get: (key: string) => config[key] } as any,
+      mail,
+    );
     jest.spyOn(Logger.prototype, 'error').mockImplementation(() => {});
   });
   afterEach(() => jest.restoreAllMocks());
@@ -47,13 +43,15 @@ describe('Transactional notification emails', () => {
     expect(prisma.user.findUniqueOrThrow).toHaveBeenCalledWith(
       expect.objectContaining({ where: { id: 7n } }),
     );
-    expect(mail.sendMail).toHaveBeenCalledWith(
+    expect(mail.send).toHaveBeenCalledWith(
       expect.objectContaining({
         to: 'ana@example.com',
         subject: 'Boas-vindas à Proxi!',
+        category: 'welcome',
+        idempotencyKey: 'welcome/7',
+        html: expect.stringContaining('Acessar minha conta'),
       }),
     );
-    expect(mail.close).toHaveBeenCalled();
   });
 
   it.each([
@@ -65,34 +63,33 @@ describe('Transactional notification emails', () => {
     'sends %s to the correct recipient and action',
     async (kind, to, path) => {
       await service.order(kind, 42n);
-      expect(mail.sendMail).toHaveBeenCalledTimes(1);
-      expect(mail.sendMail).toHaveBeenCalledWith(
+      expect(mail.send).toHaveBeenCalledTimes(1);
+      expect(mail.send).toHaveBeenCalledWith(
         expect.objectContaining({
           to,
-          from: config.MAIL_FROM,
+          category: kind,
+          idempotencyKey: `order-${kind}/42`,
           text: expect.stringContaining(`https://app.example.com${path}`),
         }),
       );
-      expect(mail.sendMail.mock.calls[0][0].text).toContain('Limpeza');
+      expect(mail.send.mock.calls[0][0].text).toContain('Limpeza');
       if (kind === 'requested' || kind === 'accepted') {
-        expect(mail.sendMail.mock.calls[0][0].text).toContain('12:00');
+        expect(mail.send.mock.calls[0][0].text).toContain('12:00');
       }
     },
   );
 
-  it('does not fail an already committed action or leak SMTP errors', async () => {
-    mail.sendMail.mockRejectedValue(new Error('secret SMTP credential'));
+  it('does not fail an already committed action or leak provider errors', async () => {
+    mail.send.mockRejectedValue(new Error('secret provider credential'));
     await expect(service.order('accepted', 42n)).resolves.toBeUndefined();
-    expect(mail.close).toHaveBeenCalled();
     expect(Logger.prototype.error).toHaveBeenCalledWith(
       'Notification email delivery failed (accepted)',
     );
   });
 
-  it.each(['missing', 'insecure', 'invalid'])(
+  it.each(['insecure', 'invalid'])(
     'does not send with %s configuration',
     async (scenario) => {
-      if (scenario === 'missing') delete config.SMTP_URL;
       if (scenario === 'insecure') {
         config.NODE_ENV = 'production';
         config.NOTIFICATION_FRONTEND_URL = 'http://app.example.com';
@@ -100,7 +97,7 @@ describe('Transactional notification emails', () => {
       if (scenario === 'invalid')
         config.NOTIFICATION_FRONTEND_URL = 'javascript:alert(1)';
       await expect(service.welcome('7')).resolves.toBeUndefined();
-      expect(mail.sendMail).not.toHaveBeenCalled();
+      expect(mail.send).not.toHaveBeenCalled();
     },
   );
 });

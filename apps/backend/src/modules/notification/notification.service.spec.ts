@@ -136,6 +136,32 @@ describe('NotificationService', () => {
       expect(sent().text).toContain('agendado para 22/06/2026');
     });
 
+    it('confirma o agendamento ao prestador quando o pagamento é aprovado', async () => {
+      await service.notifyProviderBookingConfirmed(provider, order);
+
+      expect(sent()).toEqual(
+        expect.objectContaining({
+          to: provider.email,
+          subject: 'Agendamento confirmado: pagamento recebido',
+          category: 'booking-confirmed',
+          idempotencyKey: 'payment-confirmed/provider/42',
+        }),
+      );
+      expect(sent().text).toContain('confirmado para 22/06/2026');
+      expect(sent().text).toContain('https://app.proxi.test/orders/42');
+    });
+
+    it('envia versão HTML com botão de ação e chave de idempotência por evento', async () => {
+      await service.notifyClientOrderAccepted(client, order);
+
+      expect(sent().category).toBe('order-accepted');
+      expect(sent().idempotencyKey).toBe('order-accepted/42');
+      expect(sent().html).toContain(
+        'href="https://app.proxi.test/orders/42/payment"',
+      );
+      expect(sent().html).toContain('Pagar e garantir o horário');
+    });
+
     it('avisa que o prestador está a caminho', async () => {
       await service.notifyClientProviderOnTheWay(client, order);
 

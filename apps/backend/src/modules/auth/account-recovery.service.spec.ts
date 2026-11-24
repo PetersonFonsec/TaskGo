@@ -1,8 +1,6 @@
 import { AccountRecoveryService } from './account-recovery.service';
 import { createHash } from 'node:crypto';
 import * as bcrypt from 'bcrypt';
-import * as nodemailer from 'nodemailer';
-jest.mock('nodemailer', () => ({ createTransport: jest.fn() }));
 
 describe('AccountRecoveryService', () => {
   const token = 'a'.repeat(64);
@@ -27,19 +25,16 @@ describe('AccountRecoveryService', () => {
     };
     prisma.$transaction = jest.fn((callback) => callback(prisma));
     const values: Record<string, string> = {
-      SMTP_URL: 'smtp://localhost:1025',
-      MAIL_FROM: 'Proxi <noreply@example.invalid>',
       PASSWORD_RESET_FRONTEND_URL:
         'https://proxi.example/authenticate/reset-password',
     };
     const config: any = { get: jest.fn((key) => values[key]) };
-    const mail = {
-      sendMail: jest.fn().mockResolvedValue({}),
-      close: jest.fn(),
+    const mail: any = {
+      configured: true,
+      send: jest.fn().mockResolvedValue(undefined),
     };
-    (nodemailer.createTransport as jest.Mock).mockReturnValue(mail);
     return {
-      service: new AccountRecoveryService(prisma, config),
+      service: new AccountRecoveryService(prisma, config, mail),
       prisma,
       config,
       mail,
@@ -51,7 +46,7 @@ describe('AccountRecoveryService', () => {
       message: expect.stringContaining('Se houver'),
     });
     expect(prisma.passwordResetToken.create).not.toHaveBeenCalled();
-    expect(mail.sendMail).not.toHaveBeenCalled();
+    expect(mail.send).not.toHaveBeenCalled();
   });
   it('stores only a hash and delivers a separate expiring reset token in URL fragment', async () => {
     const { service, prisma, mail } = setup();
@@ -61,7 +56,7 @@ describe('AccountRecoveryService', () => {
     });
     await service.request('user@example.invalid');
     const data = prisma.passwordResetToken.create.mock.calls[0][0].data;
-    const text = mail.sendMail.mock.calls[0][0].text;
+    const text = mail.send.mock.calls[0][0].text;
     const sentToken = text.match(/#token=([a-f0-9]{64})/)[1];
     expect(data.tokenHash).toBe(
       createHash('sha256').update(sentToken).digest('hex'),
@@ -77,7 +72,37 @@ describe('AccountRecoveryService', () => {
     });
     prisma.passwordResetToken.findFirst.mockResolvedValue({});
     await service.request('user@example.invalid');
-    expect(mail.sendMail).not.toHaveBeenCalled();
+    expect(mail.send).not.toHaveBeenCalled();
+  });
+  it('is unavailable when no email provider is configured', async () => {
+    const { service, prisma, mail } = setup();
+    mail.configured = false;
+    await expect(service.request('user@example.invalid')).rejects.toThrow(
+      'indisponível',
+    );
+    expect(prisma.user.findUnique).not.toHaveBeenCalled();
+  });
+  it('sends an HTML email with the reset button and drops the token if delivery fails', async () => {
+    const { service, prisma, mail } = setup();
+    prisma.user.findUnique.mockResolvedValue({
+      id: 1n,
+      email: 'user@example.invalid',
+    });
+    mail.send.mockRejectedValue(new Error('provider down'));
+    await service.request('user@example.invalid');
+    const message = mail.send.mock.calls[0][0];
+    expect(message).toEqual(
+      expect.objectContaining({
+        to: 'user@example.invalid',
+        category: 'password-reset',
+        idempotencyKey: expect.stringMatching(/^password-reset\/[a-f0-9]{64}$/),
+        html: expect.stringContaining('Criar nova senha'),
+      }),
+    );
+    const sentHash = message.idempotencyKey.split('/')[1];
+    expect(prisma.passwordResetToken.deleteMany).toHaveBeenLastCalledWith({
+      where: { tokenHash: sentHash },
+    });
   });
   it('rejects expired tokens without changing a password', async () => {
     const { service, prisma } = setup();

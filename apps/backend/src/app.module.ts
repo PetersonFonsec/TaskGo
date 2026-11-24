@@ -23,10 +23,12 @@ import { AdminTelemetryInterceptor } from './observability/admin-telemetry.inter
 import { RolesGuard } from './shared/guards/roles/roles.guard';
 import { ConfigModule } from './config/config.module';
 import { PushModule } from './modules/push/push.module';
+import { EmailModule } from './modules/notification/email.module';
 
 @Module({
   imports: [
     ConfigModule,
+    EmailModule,
     PrismaModule,
     UserModule,
     AuthModule,

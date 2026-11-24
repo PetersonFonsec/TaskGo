@@ -8,7 +8,10 @@ describe('CreateOrderPaymentHandler with durable creation claim', () => {
     prisma: any,
     gateway: any,
     handler: CreateOrderPaymentHandler,
-    notifications: { notifyClientPaymentConfirmed: jest.Mock },
+    notifications: {
+      notifyClientPaymentConfirmed: jest.Mock;
+      notifyProviderBookingConfirmed: jest.Mock;
+    },
     attempt: any;
   beforeEach(() => {
     attempt = undefined;
@@ -82,7 +85,10 @@ describe('CreateOrderPaymentHandler with durable creation claim', () => {
       }),
       findPixPayment: jest.fn().mockResolvedValue(null),
     };
-    notifications = { notifyClientPaymentConfirmed: jest.fn() };
+    notifications = {
+      notifyClientPaymentConfirmed: jest.fn(),
+      notifyProviderBookingConfirmed: jest.fn(),
+    };
     handler = new CreateOrderPaymentHandler(
       prisma,
       gateway,
