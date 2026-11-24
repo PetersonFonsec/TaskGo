@@ -1,0 +1,140 @@
+<a class="back" routerLink="/categories">← Categorias</a>
+<header>
+  <div>
+    <h1>Serviços{{ categoryName() ? ' de ' + categoryName() : '' }}</h1>
+    <p>
+      Defina quais serviços o prestador pode escolher nesta categoria ao se cadastrar. Só os
+      serviços habilitados aparecem no cadastro.
+    </p>
+  </div>
+  <button type="button" (click)="edit()" [disabled]="busy() || !loaded()">Novo serviço</button>
+</header>
+@if (loaded() && !categoryActive()) {
+  <p role="note" class="warning">
+    Esta categoria está desabilitada. Os serviços dela só aparecem no cadastro quando a categoria
+    for habilitada.
+  </p>
+}
+@if (error()) {
+  <p role="alert" class="error">{{ error() }}</p>
+}
+@if (success()) {
+  <p role="status" class="success">{{ success() }}</p>
+}
+@if (editing()) {
+  <section aria-label="Formulário do serviço">
+    <h2>{{ id ? 'Editar serviço' : 'Novo serviço' }}</h2>
+    <form #form="ngForm" (ngSubmit)="save()">
+      <label
+        >Nome <input name="name" [(ngModel)]="name" required maxlength="120" [disabled]="busy()"
+      /></label>
+      <label
+        >Descrição (opcional)
+        <textarea
+          name="description"
+          rows="3"
+          [(ngModel)]="description"
+          maxlength="500"
+          [disabled]="busy()"
+        ></textarea>
+      </label>
+      <label
+        >Ordem de exibição
+        <input
+          name="sortOrder"
+          type="number"
+          min="0"
+          max="9999"
+          step="1"
+          [(ngModel)]="sortOrder"
+          [disabled]="busy()"
+      /></label>
+      <small>Números menores aparecem primeiro. Empates seguem a ordem alfabética.</small>
+      @if (!validSortOrder()) {
+        <p class="error">Informe um número inteiro entre 0 e 9999.</p>
+      }
+      <label class="checkbox"
+        ><input type="checkbox" name="isActive" [(ngModel)]="isActive" [disabled]="busy()" />
+        Habilitado</label
+      >
+      <div class="actions">
+        <button
+          type="submit"
+          [disabled]="busy() || form.invalid || !name.trim() || !validSortOrder()"
+        >
+          Salvar</button
+        ><button type="button" (click)="editing.set(false)" [disabled]="busy()">Cancelar</button>
+      </div>
+    </form>
+  </section>
+}
+@if (deleting(); as service) {
+  <section role="alertdialog" aria-modal="false" aria-labelledby="delete-title">
+    <h2 id="delete-title">Excluir {{ service.name }}?</h2>
+    <p>
+      O serviço deixa de aparecer no cadastro. Prestadores que já o oferecem não são afetados. Para
+      ocultar temporariamente, use Desabilitar.
+    </p>
+    <div class="actions">
+      <button type="button" class="danger" (click)="remove()" [disabled]="busy()">
+        Confirmar exclusão</button
+      ><button type="button" (click)="deleting.set(null)" [disabled]="busy()">Cancelar</button>
+    </div>
+  </section>
+}
+<section aria-label="Lista de serviços" [attr.aria-busy]="busy()">
+  <div class="actions">
+    <span>{{ services().length }} serviço(s)</span
+    ><button type="button" (click)="load()" [disabled]="busy()">Atualizar</button>
+  </div>
+  @if (busy()) {
+    <p role="status">Carregando…</p>
+  }
+  <div class="table-scroll">
+    <table>
+      <thead>
+        <tr>
+          <th>Ordem</th>
+          <th>Nome</th>
+          <th>Descrição</th>
+          <th>Status</th>
+          <th>Ações</th>
+        </tr>
+      </thead>
+      <tbody>
+        @for (service of services(); track service.id) {
+          <tr>
+            <td>{{ service.sortOrder }}</td>
+            <td>{{ service.name }}</td>
+            <td>{{ service.description || '—' }}</td>
+            <td>{{ service.isActive ? 'Habilitado' : 'Desabilitado' }}</td>
+            <td>
+              <div class="actions">
+                <button type="button" (click)="edit(service)" [disabled]="busy()">Editar</button
+                ><button type="button" (click)="toggle(service)" [disabled]="busy()">
+                  {{ service.isActive ? 'Desabilitar' : 'Habilitar' }}</button
+                ><button
+                  type="button"
+                  class="danger"
+                  (click)="deleting.set(service); editing.set(false)"
+                  [disabled]="busy()"
+                >
+                  Excluir
+                </button>
+              </div>
+            </td>
+          </tr>
+        } @empty {
+          @if (loaded() && !busy()) {
+            <tr>
+              <td colspan="5">
+                Nenhum serviço cadastrado. Sem serviços habilitados, prestadores não conseguem
+                concluir o cadastro nesta categoria.
+              </td>
+            </tr>
+          }
+        }
+      </tbody>
+    </table>
+  </div>
+</section>

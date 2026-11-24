@@ -1,7 +1,10 @@
 <header>
   <div>
     <h1>Categorias de serviços</h1>
-    <p>Gerencie os nomes, thumbnails e a disponibilidade das categorias.</p>
+    <p>
+      Gerencie os nomes, thumbnails e a disponibilidade das categorias. Em Serviços, defina o que o
+      prestador pode oferecer em cada uma.
+    </p>
   </div>
   <button type="button" (click)="edit()" [disabled]="busy()">Nova categoria</button>
 </header>
@@ -105,7 +108,9 @@
             <td>{{ category.isActive ? 'Habilitada' : 'Desabilitada' }}</td>
             <td>
               <div class="actions">
-                <button type="button" (click)="edit(category)" [disabled]="busy()">Editar</button
+                <a class="button-link" [routerLink]="['/categories', category.id, 'services']"
+                  >Serviços</a
+                ><button type="button" (click)="edit(category)" [disabled]="busy()">Editar</button
                 ><button type="button" (click)="toggle(category)" [disabled]="busy()">
                   {{ category.isActive ? 'Desabilitar' : 'Habilitar' }}</button
                 ><button
