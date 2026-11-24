@@ -63,8 +63,35 @@ export class AdminCategoriesController {
   constructor(private readonly categories: CategoriesService) {}
 
   @Get()
-  list(@Query() query: PaginationQuery) {
-    return this.categories.listPaginated(query);
+  async list(@Query() query: PaginationQuery) {
+    const page = await this.categories.listPaginated(query);
+    const ids = page.data.map((category) => category.id);
+    const groups = ids.length
+      ? await this.categories.prismaService.subcategory.groupBy({
+          by: ['categoryId', 'isActive'],
+          where: { categoryId: { in: ids } },
+          _count: { _all: true },
+        })
+      : [];
+    const counts = new Map<string, { total: number; active: number }>();
+    for (const group of groups) {
+      const key = group.categoryId.toString();
+      const current = counts.get(key) ?? { total: 0, active: 0 };
+      current.total += group._count._all;
+      if (group.isActive) current.active += group._count._all;
+      counts.set(key, current);
+    }
+    return {
+      ...page,
+      data: page.data.map((category) => {
+        const count = counts.get(category.id.toString());
+        return {
+          ...category,
+          servicesCount: count?.total ?? 0,
+          activeServicesCount: count?.active ?? 0,
+        };
+      }),
+    };
   }
 
   @Post()
