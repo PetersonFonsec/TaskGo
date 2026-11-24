@@ -107,6 +107,7 @@ describeDatabase('AbacatePay concurrency with PostgreSQL', () => {
     serviceId = service.id;
     const payments = new PaymentService(gateway, db as any, strategies, {
       notifyClientPaymentConfirmed: jest.fn(),
+      notifyProviderBookingConfirmed: jest.fn(),
     } as any);
     await db.$transaction((tx) => payments.enqueueSettlement(tx, payment));
   });
@@ -182,6 +183,7 @@ describeDatabase('AbacatePay concurrency with PostgreSQL', () => {
     });
     const payments = new PaymentService(gateway, db as any, strategies, {
       notifyClientPaymentConfirmed: jest.fn(),
+      notifyProviderBookingConfirmed: jest.fn(),
     } as any);
     await expect(
       db.$transaction(async (tx) => {
@@ -220,7 +222,10 @@ describeDatabase('AbacatePay concurrency with PostgreSQL', () => {
       gateway,
       { getOrThrow: () => 0.12 } as any,
       strategies,
-      { notifyClientPaymentConfirmed: jest.fn() } as any,
+      {
+        notifyClientPaymentConfirmed: jest.fn(),
+        notifyProviderBookingConfirmed: jest.fn(),
+      } as any,
     );
     const results = await Promise.allSettled([
       handler.execute({ orderId, clientId, payload: { method: 'PIX' } as any }),

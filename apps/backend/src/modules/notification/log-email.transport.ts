@@ -3,10 +3,11 @@ import { Logger } from '@nestjs/common';
 import { EmailMessage, EmailTransport } from './email-transport';
 
 /**
- * Transporte usado quando não há SMTP configurado. Fora de produção o corpo
+ * Transporte usado quando não há provedor configurado. Fora de produção o corpo
  * é registrado para permitir testar fluxos locais (códigos, links de convite).
  */
 export class LogEmailTransport extends EmailTransport {
+  readonly configured = false;
   private readonly logger = new Logger(LogEmailTransport.name);
 
   constructor(private readonly includeBody: boolean) {
@@ -18,7 +19,7 @@ export class LogEmailTransport extends EmailTransport {
     this.logger.log(
       this.includeBody
         ? `${header}\n${message.text}`
-        : 'E-mail sem transporte SMTP configurado',
+        : 'E-mail sem provedor configurado (RESEND_API_KEY ou SMTP_URL)',
     );
   }
 }

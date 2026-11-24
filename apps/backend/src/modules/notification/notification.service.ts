@@ -4,6 +4,7 @@ import { ConfigService } from '@nestjs/config';
 import { PushMessage } from '../push/push-transport';
 import { PushService } from '../push/push.service';
 import { EmailMessage, EmailTransport } from './email-transport';
+import { EmailContent, renderEmail } from './email-template';
 import { InAppNotificationService } from './in-app-notification.service';
 
 export interface Recipient {
@@ -42,23 +43,32 @@ export class NotificationService {
     activationUrl: string,
     expiresAt: Date,
   ): Promise<void> {
-    await this.transport.send({
-      to: recipient.email,
-      subject: 'Convite para o backoffice Proxi',
-      text:
-        `Olá, ${recipient.name}.\n\n` +
-        `Você foi convidado para acessar o backoffice Proxi. ` +
-        `Ative sua conta em ${activationUrl}\n` +
-        `O convite expira em ${this.formatDate(expiresAt)}.`,
-    });
+    await this.transport.send(
+      this.compose(recipient.email, 'admin-invitation', {
+        subject: 'Convite para o backoffice Proxi',
+        preheader: 'Ative sua conta para acessar o backoffice.',
+        greeting: `Olá, ${recipient.name}.`,
+        paragraphs: [
+          'Você foi convidado para acessar o backoffice Proxi. Ative sua conta e crie sua senha pelo botão abaixo.',
+        ],
+        cta: { label: 'Ativar minha conta', url: activationUrl },
+        footnote: `O convite expira em ${this.formatDate(expiresAt)}. Se você não esperava este convite, ignore esta mensagem.`,
+      }),
+    );
   }
 
   async sendEmailVerificationCode(email: string, code: string): Promise<void> {
-    await this.transport.send({
-      to: email,
-      subject: 'Seu código de verificação Proxi',
-      text: `Seu código de verificação é ${code}. Se você não solicitou, ignore esta mensagem.`,
-    });
+    await this.transport.send(
+      this.compose(email, 'email-verification', {
+        subject: 'Seu código de verificação Proxi',
+        preheader: `Seu código de verificação é ${code}.`,
+        paragraphs: [
+          `Seu código de verificação é ${code}. Digite-o no app para confirmar seu e-mail.`,
+        ],
+        code,
+        footnote: 'Se você não solicitou, ignore esta mensagem.',
+      }),
+    );
   }
 
   /** Eventos do atendimento: a falha na entrega não interrompe o fluxo do pedido. */
@@ -67,13 +77,24 @@ export class NotificationService {
     orderId: bigint,
     rating: number,
   ): Promise<void> {
-    await this.sendSafely(() => ({
-      to: provider.email,
-      subject: 'Você recebeu uma nova avaliação',
-      text:
-        `Olá, ${provider.name}.\n\n` +
-        `O cliente do pedido #${orderId.toString()} avaliou seu atendimento com nota ${rating} de 5.`,
-    }));
+    await this.sendSafely(() =>
+      this.compose(
+        provider.email,
+        'review-received',
+        {
+          subject: 'Você recebeu uma nova avaliação',
+          greeting: `Olá, ${provider.name}.`,
+          paragraphs: [
+            `O cliente do pedido #${orderId.toString()} avaliou seu atendimento com nota ${rating} de 5.`,
+          ],
+          cta: {
+            label: 'Ver o pedido',
+            url: this.link(`/orders/${orderId.toString()}`),
+          },
+        },
+        `review-received/${orderId.toString()}`,
+      ),
+    );
     await this.pushTo(provider, () => ({
       title: 'Nova avaliação',
       body: `Você recebeu nota ${rating} de 5 no pedido #${orderId.toString()}.`,
@@ -92,13 +113,24 @@ export class NotificationService {
     provider: Recipient,
     orderId: bigint,
   ): Promise<void> {
-    await this.sendSafely(() => ({
-      to: provider.email,
-      subject: 'Cliente confirmou a conclusão do serviço',
-      text:
-        `Olá, ${provider.name}.\n\n` +
-        `O cliente confirmou a conclusão do pedido #${orderId.toString()} e o pagamento foi registrado.`,
-    }));
+    await this.sendSafely(() =>
+      this.compose(
+        provider.email,
+        'completion-confirmed',
+        {
+          subject: 'Cliente confirmou a conclusão do serviço',
+          greeting: `Olá, ${provider.name}.`,
+          paragraphs: [
+            `O cliente confirmou a conclusão do pedido #${orderId.toString()} e o pagamento foi registrado.`,
+          ],
+          cta: {
+            label: 'Ver meus recebimentos',
+            url: this.link('/provider/recebimentos'),
+          },
+        },
+        `completion-confirmed/${orderId.toString()}`,
+      ),
+    );
     await this.pushTo(provider, () => ({
       title: 'Serviço confirmado',
       body: `O cliente confirmou a conclusão do pedido #${orderId.toString()}.`,
@@ -117,15 +149,27 @@ export class NotificationService {
     provider: Recipient,
     order: OrderNotification,
   ): Promise<void> {
-    await this.sendSafely(() => ({
-      to: provider.email,
-      subject: 'Nova solicitação de serviço',
-      text:
-        `Olá, ${provider.name}.\n\n` +
-        `Você recebeu a solicitação #${order.id.toString()} para "${order.serviceTitle}"` +
-        `${this.describeSchedule(order)}.\n` +
-        `Aceite ou recuse em ${this.link(`/provider/${order.id.toString()}/aprovacao`)}`,
-    }));
+    await this.sendSafely(() =>
+      this.compose(
+        provider.email,
+        'order-requested',
+        {
+          subject: 'Nova solicitação de serviço',
+          preheader: `"${order.serviceTitle}"${this.describeSchedule(order)}. Aceite ou recuse.`,
+          greeting: `Olá, ${provider.name}.`,
+          paragraphs: [
+            `Você recebeu a solicitação #${order.id.toString()} para "${order.serviceTitle}"` +
+              `${this.describeSchedule(order)}.`,
+            'Responda o quanto antes: sem resposta, a solicitação expira e o horário volta para a sua agenda.',
+          ],
+          cta: {
+            label: 'Aceitar ou recusar',
+            url: this.link(`/provider/${order.id.toString()}/aprovacao`),
+          },
+        },
+        `order-requested/${order.id.toString()}`,
+      ),
+    );
     await this.pushTo(provider, () => ({
       title: 'Nova solicitação',
       body: `"${order.serviceTitle}"${this.describeSchedule(order)}. Aceite ou recuse.`,
@@ -151,26 +195,43 @@ export class NotificationService {
       waitingFor === 'PROVIDER'
         ? 'o prestador não respondeu a tempo'
         : 'o pagamento não foi concluído a tempo';
-    await this.sendSafely(() => ({
-      to: client.email,
-      subject: 'Seu pedido expirou',
-      text:
-        `Olá, ${client.name}.\n\n` +
-        `O pedido #${id} para "${order.serviceTitle}" expirou porque ${clientReason}. ` +
-        'O horário foi liberado e nenhum valor foi cobrado.\n' +
-        `Encontre outro profissional em ${this.link('/customer/search')}`,
-    }));
-    await this.sendSafely(() => ({
-      to: provider.email,
-      subject: 'Uma solicitação expirou',
-      text:
-        `Olá, ${provider.name}.\n\n` +
-        `A solicitação #${id} para "${order.serviceTitle}" expirou` +
-        (waitingFor === 'PROVIDER'
-          ? ' sem resposta e o horário voltou para a sua agenda.\n'
-          : ' porque o cliente não concluiu o pagamento. O horário voltou para a sua agenda.\n') +
-        `Veja seus pedidos em ${this.link('/provider')}`,
-    }));
+    await this.sendSafely(() =>
+      this.compose(
+        client.email,
+        'order-expired',
+        {
+          subject: 'Seu pedido expirou',
+          greeting: `Olá, ${client.name}.`,
+          paragraphs: [
+            `O pedido #${id} para "${order.serviceTitle}" expirou porque ${clientReason}. ` +
+              'O horário foi liberado e nenhum valor foi cobrado.',
+          ],
+          cta: {
+            label: 'Encontrar outro profissional',
+            url: this.link('/customer/search'),
+          },
+        },
+        `order-expired/client/${id}`,
+      ),
+    );
+    await this.sendSafely(() =>
+      this.compose(
+        provider.email,
+        'order-expired',
+        {
+          subject: 'Uma solicitação expirou',
+          greeting: `Olá, ${provider.name}.`,
+          paragraphs: [
+            `A solicitação #${id} para "${order.serviceTitle}" expirou` +
+              (waitingFor === 'PROVIDER'
+                ? ' sem resposta e o horário voltou para a sua agenda.'
+                : ' porque o cliente não concluiu o pagamento. O horário voltou para a sua agenda.'),
+          ],
+          cta: { label: 'Ver meus pedidos', url: this.link('/provider') },
+        },
+        `order-expired/provider/${id}`,
+      ),
+    );
     await this.pushTo(client, () => ({
       title: 'Seu pedido expirou',
       body: `O pedido de "${order.serviceTitle}" expirou porque ${clientReason}. Nenhum valor foi cobrado.`,
@@ -201,16 +262,27 @@ export class NotificationService {
     client: Recipient,
     order: OrderNotification,
   ): Promise<void> {
-    await this.sendSafely(() => ({
-      to: client.email,
-      subject: 'Seu pedido foi aceito',
-      text:
-        `Olá, ${client.name}.\n\n` +
-        `O prestador aceitou o pedido #${order.id.toString()} para "${order.serviceTitle}"` +
-        `${this.describeSchedule(order)}.\n` +
-        `Conclua o pagamento para garantir o agendamento: ` +
-        this.link(`/orders/${order.id.toString()}/payment`),
-    }));
+    await this.sendSafely(() =>
+      this.compose(
+        client.email,
+        'order-accepted',
+        {
+          subject: 'Seu pedido foi aceito',
+          preheader: 'Pague o PIX para garantir o horário.',
+          greeting: `Olá, ${client.name}.`,
+          paragraphs: [
+            `O prestador aceitou o pedido #${order.id.toString()} para "${order.serviceTitle}"` +
+              `${this.describeSchedule(order)}.`,
+            'Conclua o pagamento para garantir o agendamento.',
+          ],
+          cta: {
+            label: 'Pagar e garantir o horário',
+            url: this.link(`/orders/${order.id.toString()}/payment`),
+          },
+        },
+        `order-accepted/${order.id.toString()}`,
+      ),
+    );
     await this.pushTo(client, () => ({
       title: 'Pedido aceito',
       body: `O prestador aceitou "${order.serviceTitle}". Pague o PIX para garantir o horário.`,
@@ -231,19 +303,29 @@ export class NotificationService {
     outcome: { refused: boolean; refunded: boolean },
   ): Promise<void> {
     const action = outcome.refused ? 'recusou' : 'cancelou';
-    await this.sendSafely(() => ({
-      to: client.email,
-      subject: outcome.refused
-        ? 'Seu pedido foi recusado'
-        : 'Seu pedido foi cancelado',
-      text:
-        `Olá, ${client.name}.\n\n` +
-        `O prestador ${action} o pedido #${order.id.toString()} para "${order.serviceTitle}".\n` +
-        (outcome.refunded
-          ? 'O valor pago será estornado pelo mesmo meio de pagamento.\n'
-          : '') +
-        `Veja os detalhes em ${this.link(`/orders/${order.id.toString()}`)}`,
-    }));
+    await this.sendSafely(() =>
+      this.compose(
+        client.email,
+        outcome.refused ? 'order-refused' : 'order-canceled',
+        {
+          subject: outcome.refused
+            ? 'Seu pedido foi recusado'
+            : 'Seu pedido foi cancelado',
+          greeting: `Olá, ${client.name}.`,
+          paragraphs: [
+            `O prestador ${action} o pedido #${order.id.toString()} para "${order.serviceTitle}".`,
+            ...(outcome.refunded
+              ? ['O valor pago será estornado pelo mesmo meio de pagamento.']
+              : []),
+          ],
+          cta: {
+            label: 'Ver detalhes do pedido',
+            url: this.link(`/orders/${order.id.toString()}`),
+          },
+        },
+        `order-canceled/${order.id.toString()}`,
+      ),
+    );
     await this.pushTo(client, () => ({
       title: outcome.refused ? 'Pedido recusado' : 'Pedido cancelado',
       body:
@@ -267,15 +349,27 @@ export class NotificationService {
     client: Recipient,
     order: OrderNotification,
   ): Promise<void> {
-    await this.sendSafely(() => ({
-      to: client.email,
-      subject: 'Pagamento confirmado: serviço agendado',
-      text:
-        `Olá, ${client.name}.\n\n` +
-        `Recebemos o pagamento do pedido #${order.id.toString()} para "${order.serviceTitle}". ` +
-        `O serviço está agendado${this.describeSchedule(order, 'para')}.\n` +
-        `Acompanhe em ${this.link(`/orders/${order.id.toString()}`)}`,
-    }));
+    await this.sendSafely(() =>
+      this.compose(
+        client.email,
+        'payment-confirmed',
+        {
+          subject: 'Pagamento confirmado: serviço agendado',
+          preheader: `"${order.serviceTitle}" está agendado${this.describeSchedule(order, 'para')}.`,
+          greeting: `Olá, ${client.name}.`,
+          paragraphs: [
+            `Recebemos o pagamento do pedido #${order.id.toString()} para "${order.serviceTitle}". ` +
+              `O serviço está agendado${this.describeSchedule(order, 'para')}.`,
+            'O valor fica retido com a Proxi e só é repassado ao prestador depois que você confirmar a conclusão do serviço.',
+          ],
+          cta: {
+            label: 'Acompanhar pedido',
+            url: this.link(`/orders/${order.id.toString()}`),
+          },
+        },
+        `payment-confirmed/client/${order.id.toString()}`,
+      ),
+    );
     await this.pushTo(client, () => ({
       title: 'Pagamento confirmado',
       body: `"${order.serviceTitle}" está agendado${this.describeSchedule(order, 'para')}.`,
@@ -290,18 +384,67 @@ export class NotificationService {
     );
   }
 
+  /** Pagamento aprovado: o horário está garantido também para o prestador. */
+  async notifyProviderBookingConfirmed(
+    provider: Recipient,
+    order: OrderNotification,
+  ): Promise<void> {
+    const id = order.id.toString();
+    const body = `O cliente pagou "${order.serviceTitle}". O agendamento está confirmado${this.describeSchedule(order, 'para')}.`;
+    await this.sendSafely(() =>
+      this.compose(
+        provider.email,
+        'booking-confirmed',
+        {
+          subject: 'Agendamento confirmado: pagamento recebido',
+          preheader: body,
+          greeting: `Olá, ${provider.name}.`,
+          paragraphs: [
+            `O cliente pagou o pedido #${id} para "${order.serviceTitle}". ` +
+              `O agendamento está confirmado${this.describeSchedule(order, 'para')}.`,
+            'O valor fica retido com a Proxi e é repassado a você depois que o cliente confirmar a conclusão do serviço.',
+          ],
+          cta: { label: 'Ver o pedido', url: this.link(`/orders/${id}`) },
+        },
+        `payment-confirmed/provider/${id}`,
+      ),
+    );
+    await this.pushTo(provider, () => ({
+      title: 'Agendamento confirmado',
+      body,
+      data: this.orderData('BOOKING_CONFIRMED', order.id),
+    }));
+    await this.notifyInApp(
+      provider,
+      'Agendamento confirmado',
+      body,
+      'BOOKING_CONFIRMED',
+      order.id,
+    );
+  }
+
   async notifyClientProviderOnTheWay(
     client: Recipient,
     order: OrderNotification,
   ): Promise<void> {
-    await this.sendSafely(() => ({
-      to: client.email,
-      subject: 'O prestador está a caminho',
-      text:
-        `Olá, ${client.name}.\n\n` +
-        `O prestador do pedido #${order.id.toString()} ("${order.serviceTitle}") está a caminho.\n` +
-        `Acompanhe em ${this.link(`/orders/${order.id.toString()}`)}`,
-    }));
+    await this.sendSafely(() =>
+      this.compose(
+        client.email,
+        'provider-on-the-way',
+        {
+          subject: 'O prestador está a caminho',
+          greeting: `Olá, ${client.name}.`,
+          paragraphs: [
+            `O prestador do pedido #${order.id.toString()} ("${order.serviceTitle}") está a caminho.`,
+          ],
+          cta: {
+            label: 'Acompanhar pedido',
+            url: this.link(`/orders/${order.id.toString()}`),
+          },
+        },
+        `provider-on-the-way/${order.id.toString()}`,
+      ),
+    );
     await this.pushTo(client, () => ({
       title: 'Prestador a caminho',
       body: `O prestador de "${order.serviceTitle}" está indo até você.`,
@@ -320,15 +463,25 @@ export class NotificationService {
     client: Recipient,
     order: OrderNotification,
   ): Promise<void> {
-    await this.sendSafely(() => ({
-      to: client.email,
-      subject: 'Serviço finalizado: confirme a conclusão',
-      text:
-        `Olá, ${client.name}.\n\n` +
-        `O prestador informou a conclusão do pedido #${order.id.toString()} ("${order.serviceTitle}").\n` +
-        `Confirme a conclusão ou reporte um problema em ` +
-        this.link(`/orders/${order.id.toString()}/confirm`),
-    }));
+    await this.sendSafely(() =>
+      this.compose(
+        client.email,
+        'service-finished',
+        {
+          subject: 'Serviço finalizado: confirme a conclusão',
+          greeting: `Olá, ${client.name}.`,
+          paragraphs: [
+            `O prestador informou a conclusão do pedido #${order.id.toString()} ("${order.serviceTitle}").`,
+            'Confirme a conclusão ou, se algo deu errado, reporte um problema pelo pedido.',
+          ],
+          cta: {
+            label: 'Confirmar conclusão',
+            url: this.link(`/orders/${order.id.toString()}/confirm`),
+          },
+        },
+        `service-finished/${order.id.toString()}`,
+      ),
+    );
     await this.pushTo(client, () => ({
       title: 'Serviço finalizado',
       body: `Confirme a conclusão de "${order.serviceTitle}" ou reporte um problema.`,
@@ -387,6 +540,20 @@ export class NotificationService {
     } catch (error) {
       this.logger.error(`Falha ao montar o push: ${(error as Error).message}`);
     }
+  }
+
+  private compose(
+    to: string,
+    category: string,
+    content: EmailContent,
+    idempotencyKey?: string,
+  ): EmailMessage {
+    return {
+      to,
+      category,
+      idempotencyKey,
+      ...renderEmail(content),
+    };
   }
 
   private orderData(type: string, orderId: bigint): Record<string, string> {

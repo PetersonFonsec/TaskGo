@@ -268,15 +268,34 @@ export class PaymentService {
         select: {
           scheduledFor: true,
           client: { select: { id: true, email: true, name: true } },
-          service: { select: { title: true } },
+          service: {
+            select: {
+              title: true,
+              provider: {
+                select: {
+                  user: { select: { id: true, email: true, name: true } },
+                },
+              },
+            },
+          },
         },
       });
       if (!order) return;
-      await this.notifications.notifyClientPaymentConfirmed(order.client, {
+      const summary = {
         id: orderId,
         serviceTitle: order.service.title,
         scheduledFor: order.scheduledFor,
-      });
+      };
+      await this.notifications.notifyClientPaymentConfirmed(
+        order.client,
+        summary,
+      );
+      const provider = order.service.provider?.user;
+      if (provider)
+        await this.notifications.notifyProviderBookingConfirmed(
+          provider,
+          summary,
+        );
     } catch (error) {
       this.logger.error(
         `Falha ao preparar aviso de pagamento do pedido ${orderId.toString()}: ${(error as Error).message}`,

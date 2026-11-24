@@ -39,7 +39,9 @@ Os exemplos com `.invalid` ilustram o formato. Use as origens HTTPS reais que vo
 | EXPIRES_IN / REFRESH_TOKEN_TTL_DAYS | Opcionais | Duração do JWT e do refresh token | `1d` / `60` |
 | SALT_ROUNDS | Opcional | Custo bcrypt para cadastro | Padrão do código `8` |
 | ADMIN_INVITATION_TTL_HOURS / ADMIN_INVITATION_URL | Para convites | Validade e URL da interface de ativação | `24` e URL HTTPS do backoffice. Alias da URL: `BACKOFFICE_INVITATION_URL` |
-| SMTP_URL / MAIL_FROM | Para e-mail | Transporte SMTP (segredo) e remetente autorizado | URL do provedor e endereço verificado |
+| RESEND_API_KEY / MAIL_FROM | Para e-mail | Chave da API do Resend (segredo) e remetente num domínio verificado no Resend | `re_...` e `Proxi <nao-responda@seu-dominio>` |
+| MAIL_REPLY_TO | Opcional | Endereço que recebe respostas aos e-mails | Caixa de suporte |
+| SMTP_URL | Opcional | Alternativa ao Resend para testes locais; ignorado quando RESEND_API_KEY existe | `smtp://localhost:1025` |
 | PASSWORD_RESET_FRONTEND_URL | Para recuperação | Destino HTTPS do link de redefinição | `https://app.example.invalid/authenticate/reset-password` |
 | FRONTEND_URL / NOTIFICATION_FRONTEND_URL | Para notificações com links | Base dos avisos do pedido / base HTTPS das notificações transacionais | Origem pública da plataforma. Para FRONTEND_URL há fallback na primeira origem pública |
 | FCM_SERVICE_ACCOUNT | Para push, segredo | Conta de serviço Firebase | JSON ou base64 fornecido pelo Firebase |

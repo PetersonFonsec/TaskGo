@@ -2,7 +2,10 @@ import { PaymentService } from './payment.service';
 
 describe('PaymentService financial integrity', () => {
   let payment: any, charge: any, tx: any, gateway: any, service: PaymentService;
-  let notifications: { notifyClientPaymentConfirmed: jest.Mock };
+  let notifications: {
+    notifyClientPaymentConfirmed: jest.Mock;
+    notifyProviderBookingConfirmed: jest.Mock;
+  };
   let db: any;
   beforeEach(() => {
     payment = {
@@ -49,7 +52,10 @@ describe('PaymentService financial integrity', () => {
       getCharge: jest.fn(async () => charge),
       refundPayment: jest.fn(),
     };
-    notifications = { notifyClientPaymentConfirmed: jest.fn() };
+    notifications = {
+      notifyClientPaymentConfirmed: jest.fn(),
+      notifyProviderBookingConfirmed: jest.fn(),
+    };
     db = {
       $transaction: async (cb: any) => cb(tx),
       order: {

@@ -50,7 +50,7 @@ PIX, preço fixo contratado e ofertas com agenda semanal. Cartão, reajuste de p
 
 1. Aplicar migrations pelo fluxo normal de deploy, após backup e revisão. Nesta execução somente o PostgreSQL temporário de testes recebeu as migrations.
 2. Novas migrations: `202609130002_payment_integrity`, `20260913001000_order_interval`, `202609140030_account_recovery`, `202609140040_order_disputes`.
-3. Recuperação: `SMTP_URL`, `MAIL_FROM`, `PASSWORD_RESET_FRONTEND_URL`. O último deve apontar para `/authenticate/reset-password`, com HTTPS em produção. Token vai no fragmento do link e somente o hash é persistido. Nenhum e-mail real foi enviado durante os testes.
+3. Recuperação: `RESEND_API_KEY` (ou `SMTP_URL` localmente), `MAIL_FROM`, `PASSWORD_RESET_FRONTEND_URL`. O último deve apontar para `/authenticate/reset-password`, com HTTPS em produção. Token vai no fragmento do link e somente o hash é persistido. Nenhum e-mail real foi enviado durante os testes.
 4. Limite de recuperação: 5 solicitações por IP/minuto e 1 entrega por conta/minuto. O limite de IP é local à instância; ao escalar, configurar limite compartilhado no proxy. Senhas de recuperação exigem 10 caracteres e no máximo 72 bytes para evitar truncamento bcrypt.
 5. Suporte: `POST/GET /orders/:id/disputes`; operação administrativa `GET /admin/disputes` e `POST /admin/disputes/:id/resolve`, com `status` RESOLVED/REJECTED e `resolution`. Administrador e suporte têm capability. Resolver um caso não movimenta dinheiro.
 6. Financeiro: homologar recipient, conta, split, PIX pago/expirado, cancelamento, retorno perdido e webhook adiantado. A simulação local não comprova integração e não permite dinheiro fictício em produção.

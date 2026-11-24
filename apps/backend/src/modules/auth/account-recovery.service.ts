@@ -7,8 +7,9 @@ import {
 import { ConfigService } from '@nestjs/config';
 import { createHash, randomBytes } from 'node:crypto';
 import * as bcrypt from 'bcrypt';
-import * as nodemailer from 'nodemailer';
 import { PrismaService } from '../../prisma/prisma.service';
+import { EmailTransport } from '../notification/email-transport';
+import { renderEmail } from '../notification/email-template';
 
 @Injectable()
 export class AccountRecoveryService {
@@ -16,14 +17,13 @@ export class AccountRecoveryService {
   constructor(
     private readonly prisma: PrismaService,
     private readonly config: ConfigService,
+    private readonly email: EmailTransport,
   ) {}
 
   async request(email: string) {
     // Validate delivery configuration before looking up an account: no existence leak.
-    const smtpUrl = this.config.get<string>('SMTP_URL');
-    const from = this.config.get<string>('MAIL_FROM');
     const frontend = this.config.get<string>('PASSWORD_RESET_FRONTEND_URL');
-    if (!smtpUrl || !from || !frontend)
+    if (!this.email.configured || !frontend)
       throw new ServiceUnavailableException(
         'Recuperação de acesso temporariamente indisponível',
       );
@@ -69,19 +69,26 @@ export class AccountRecoveryService {
     if (!created) return response;
     // Fragment avoids tokens in reverse-proxy access logs and referrer headers.
     resetUrl.hash = `token=${token}`;
-    const transport = nodemailer.createTransport(smtpUrl);
     try {
-      await transport.sendMail({
-        from,
+      await this.email.send({
         to: user.email,
-        subject: 'Recuperação de acesso Proxi',
-        text: `Para criar uma nova senha, abra ${resetUrl.toString()}\nO link expira em 30 minutos. Se você não solicitou, ignore esta mensagem.`,
+        category: 'password-reset',
+        // Um token por envio: a chave evita duplicar o e-mail numa retentativa.
+        idempotencyKey: `password-reset/${tokenHash}`,
+        ...renderEmail({
+          subject: 'Recuperação de acesso Proxi',
+          preheader: 'Crie uma nova senha para sua conta.',
+          paragraphs: [
+            'Recebemos um pedido para criar uma nova senha para sua conta na Proxi.',
+          ],
+          cta: { label: 'Criar nova senha', url: resetUrl.toString() },
+          footnote:
+            'O link expira em 30 minutos. Se você não solicitou, ignore esta mensagem: sua senha continua a mesma.',
+        }),
       });
     } catch {
       await this.prisma.passwordResetToken.deleteMany({ where: { tokenHash } });
       this.logger.error('Password recovery email delivery failed');
-    } finally {
-      transport.close();
     }
     return response;
   }

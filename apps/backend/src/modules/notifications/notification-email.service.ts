@@ -1,7 +1,8 @@
 import { Injectable, Logger } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
-import * as nodemailer from 'nodemailer';
 import { PrismaService } from '../../prisma/prisma.service';
+import { EmailContent, renderEmail } from '../notification/email-template';
+import { EmailTransport } from '../notification/email-transport';
 
 export type OrderEmail = 'requested' | 'accepted' | 'finished' | 'review';
 
@@ -12,71 +13,126 @@ export class NotificationEmailService {
   constructor(
     private readonly prisma: PrismaService,
     private readonly config: ConfigService,
+    private readonly transport: EmailTransport,
   ) {}
 
   async welcome(userId: string) {
-    await this.deliver('welcome', async () => {
+    await this.deliver('welcome', `welcome/${userId}`, async () => {
       const user = await this.prisma.user.findUniqueOrThrow({
         where: { id: BigInt(userId) },
         select: { name: true, email: true },
       });
       return {
         to: user.email,
-        subject: 'Boas-vindas à Proxi!',
-        text: `Olá, ${user.name}!\n\nSeu cadastro na Proxi foi realizado com sucesso. Estamos felizes em ter você por aqui!\n\nAcesse sua conta: ${this.link('/')}`,
+        content: {
+          subject: 'Boas-vindas à Proxi!',
+          preheader: 'Seu cadastro foi realizado com sucesso.',
+          greeting: `Olá, ${user.name}!`,
+          paragraphs: [
+            'Seu cadastro na Proxi foi realizado com sucesso. Estamos felizes em ter você por aqui!',
+          ],
+          cta: { label: 'Acessar minha conta', url: this.link('/') },
+        },
       };
     });
   }
 
   async order(kind: OrderEmail, orderId: bigint) {
-    await this.deliver(kind, async () => {
-      const order = await this.prisma.order.findUniqueOrThrow({
-        where: { id: orderId },
-        select: {
-          scheduledFor: true,
-          client: { select: { name: true, email: true } },
-          service: {
-            select: {
-              title: true,
-              provider: {
-                select: { user: { select: { name: true, email: true } } },
+    await this.deliver(
+      kind,
+      `order-${kind}/${orderId.toString()}`,
+      async () => {
+        const order = await this.prisma.order.findUniqueOrThrow({
+          where: { id: orderId },
+          select: {
+            scheduledFor: true,
+            client: { select: { name: true, email: true } },
+            service: {
+              select: {
+                title: true,
+                provider: {
+                  select: { user: { select: { name: true, email: true } } },
+                },
               },
             },
           },
-        },
-      });
-      const provider = order.service.provider.user;
-      const date = order.scheduledFor
-        ? new Intl.DateTimeFormat('pt-BR', {
-            dateStyle: 'long',
-            timeStyle: 'short',
-            timeZone: 'America/Sao_Paulo',
-          }).format(order.scheduledFor) + ' (horário de Brasília)'
-        : 'Consulte o horário no pedido';
-      const messages = {
-        requested: {
-          to: provider.email,
-          subject: 'Você recebeu uma solicitação de agendamento',
-          text: `Olá, ${provider.name}!\n\n${order.client.name} solicitou o serviço ${order.service.title}.\nAgendamento: ${date}.\n\nConfira e responda à solicitação: ${this.link(`/orders/${orderId}`)}`,
-        },
-        accepted: {
-          to: order.client.email,
-          subject: 'Seu agendamento foi aceito',
-          text: `Olá, ${order.client.name}!\n\n${provider.name} aceitou seu agendamento de ${order.service.title}.\nAgendamento: ${date}.\n\nAcesse o pedido para conferir os detalhes e realizar o pagamento: ${this.link(`/orders/${orderId}`)}`,
-        },
-        finished: {
-          to: order.client.email,
-          subject: 'Serviço finalizado: confirme e avalie o atendimento',
-          text: `Olá, ${order.client.name}!\n\n${provider.name} informou a finalização de ${order.service.title}.\n\nConfirme a conclusão para avaliar o serviço e o prestador: ${this.link(`/orders/${orderId}/confirm`)}\nSe houver algum problema, você também pode reportá-lo pelo pedido.`,
-        },
-        review: {
-          to: order.client.email,
-          subject: 'Como foi seu atendimento? Avalie na Proxi',
-          text: `Olá, ${order.client.name}!\n\nA conclusão de ${order.service.title}, realizado por ${provider.name}, foi confirmada. Sua opinião ajuda outros clientes!\n\nAvalie o serviço e o prestador: ${this.link(`/orders/${orderId}/review`)}`,
-        },
-      };
-      return messages[kind];
-    });
+        });
+        const provider = order.service.provider.user;
+        const date = order.scheduledFor
+          ? new Intl.DateTimeFormat('pt-BR', {
+              dateStyle: 'long',
+              timeStyle: 'short',
+              timeZone: 'America/Sao_Paulo',
+            }).format(order.scheduledFor) + ' (horário de Brasília)'
+          : 'Consulte o horário no pedido';
+        const messages: Record<
+          OrderEmail,
+          { to: string; content: EmailContent }
+        > = {
+          requested: {
+            to: provider.email,
+            content: {
+              subject: 'Você recebeu uma solicitação de agendamento',
+              greeting: `Olá, ${provider.name}!`,
+              paragraphs: [
+                `${order.client.name} solicitou o serviço ${order.service.title}.`,
+                `Agendamento: ${date}.`,
+              ],
+              cta: {
+                label: 'Responder à solicitação',
+                url: this.link(`/orders/${orderId}`),
+              },
+            },
+          },
+          accepted: {
+            to: order.client.email,
+            content: {
+              subject: 'Seu agendamento foi aceito',
+              greeting: `Olá, ${order.client.name}!`,
+              paragraphs: [
+                `${provider.name} aceitou seu agendamento de ${order.service.title}.`,
+                `Agendamento: ${date}.`,
+                'Acesse o pedido para conferir os detalhes e realizar o pagamento.',
+              ],
+              cta: {
+                label: 'Ver pedido e pagar',
+                url: this.link(`/orders/${orderId}`),
+              },
+            },
+          },
+          finished: {
+            to: order.client.email,
+            content: {
+              subject: 'Serviço finalizado: confirme e avalie o atendimento',
+              greeting: `Olá, ${order.client.name}!`,
+              paragraphs: [
+                `${provider.name} informou a finalização de ${order.service.title}.`,
+                'Confirme a conclusão para avaliar o serviço e o prestador. Se houver algum problema, você também pode reportá-lo pelo pedido.',
+              ],
+              cta: {
+                label: 'Confirmar conclusão',
+                url: this.link(`/orders/${orderId}/confirm`),
+              },
+            },
+          },
+          review: {
+            to: order.client.email,
+            content: {
+              subject: 'Como foi seu atendimento? Avalie na Proxi',
+              greeting: `Olá, ${order.client.name}!`,
+              paragraphs: [
+                `A conclusão de ${order.service.title}, realizado por ${provider.name}, foi confirmada. Sua opinião ajuda outros clientes!`,
+              ],
+              cta: {
+                label: 'Avaliar o serviço e o prestador',
+                url: this.link(`/orders/${orderId}/review`),
+              },
+            },
+          },
+        };
+        return messages[kind];
+      },
+    );
   }
 
   private link(path: string) {
@@ -96,26 +152,20 @@ export class NotificationEmailService {
   // Delivery failures must not turn an already committed action into an API failure.
   private async deliver(
     kind: string,
-    build: () => Promise<{ to: string; subject: string; text: string }>,
+    idempotencyKey: string,
+    build: () => Promise<{ to: string; content: EmailContent }>,
   ) {
-    let transport: nodemailer.Transporter | undefined;
     try {
-      const smtp = this.config.get<string>('SMTP_URL');
-      const from = this.config.get<string>('MAIL_FROM');
-      if (!smtp || !from) throw new Error('Missing SMTP configuration');
-      const message = await build();
-      transport = nodemailer.createTransport({
-        url: smtp,
-        connectionTimeout: 5000,
-        greetingTimeout: 5000,
-        socketTimeout: 10000,
+      const { to, content } = await build();
+      await this.transport.send({
+        to,
+        category: kind,
+        idempotencyKey,
+        ...renderEmail(content),
       });
-      await transport.sendMail({ from, ...message });
     } catch {
-      // Never log recipient addresses, message bodies or SMTP credentials.
+      // Never log recipient addresses, message bodies or provider credentials.
       this.logger.error(`Notification email delivery failed (${kind})`);
-    } finally {
-      transport?.close();
     }
   }
 }
