@@ -29,7 +29,7 @@ describe('Backoffice authentication shell', () => {
 
     cy.visit('/unknown-route', { failOnStatusCode: false });
 
-    cy.findByRole('heading', { name: 'Sign in to Proxi Backoffice' }).should('be.visible');
+    cy.findByRole('heading', { name: 'Sign in to TaskGo Backoffice' }).should('be.visible');
     cy.findByLabelText('Email').type('admin@example.com');
     cy.findByLabelText('Password').type('admin-password-123');
     cy.findByRole('button', { name: 'Sign in' }).click();

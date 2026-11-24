@@ -127,7 +127,7 @@ describe('Backoffice application bootstrap', () => {
     const harness = await RouterTestingHarness.create();
     await harness.navigateByUrl('/', LoginPage);
 
-    expect(harness.routeNativeElement?.textContent).toContain('Sign in to Proxi Backoffice');
+    expect(harness.routeNativeElement?.textContent).toContain('Sign in to TaskGo Backoffice');
   });
 });
 

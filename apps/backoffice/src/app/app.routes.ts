@@ -23,7 +23,7 @@ import { FeatureFlagsPage } from './features/feature-flags/feature-flags.page';
 export const routes: Routes = [
   {
     path: 'login',
-    title: 'Backoffice login',
+    title: 'TaskGo Backoffice | Login',
     component: LoginPage,
     canActivate: [requireAnonymousAdminGuard],
   },
@@ -34,7 +34,7 @@ export const routes: Routes = [
     children: [
       {
         path: '',
-        title: 'Proxi Backoffice',
+        title: 'TaskGo Backoffice',
         component: DashboardPage,
       },
       {
