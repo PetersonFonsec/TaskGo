@@ -85,6 +85,7 @@
         <tr>
           <th>Thumbnail</th>
           <th>Nome</th>
+          <th>Serviços</th>
           <th>Status</th>
           <th>Ações</th>
         </tr>
@@ -105,6 +106,12 @@
               }
             </td>
             <td>{{ category.name }}</td>
+            <td class="services-count">
+              {{ category.servicesCount ?? 0 }}
+              @if ((category.activeServicesCount ?? 0) !== (category.servicesCount ?? 0)) {
+                <small>({{ category.activeServicesCount ?? 0 }} ativos)</small>
+              }
+            </td>
             <td>{{ category.isActive ? 'Habilitada' : 'Desabilitada' }}</td>
             <td>
               <div class="actions">
@@ -127,7 +134,7 @@
         } @empty {
           @if (!busy()) {
             <tr>
-              <td colspan="4">Nenhuma categoria cadastrada.</td>
+              <td colspan="5">Nenhuma categoria cadastrada.</td>
             </tr>
           }
         }

@@ -10,6 +10,8 @@ interface Category {
   name: string;
   thumb: string | null;
   isActive: boolean;
+  servicesCount?: number;
+  activeServicesCount?: number;
 }
 interface CategoryPage {
   data: Category[];

@@ -16,9 +16,11 @@ describe('AdminCategoriesController', () => {
     findUnique: jest.fn(),
   };
   const listPaginated = jest.fn();
+  const subcategory = { groupBy: jest.fn() };
   const controller = new AdminCategoriesController({
     prismaService: {
       category,
+      subcategory,
       service: { findFirst: jest.fn().mockResolvedValue(null) },
     },
     listPaginated,
@@ -28,9 +30,48 @@ describe('AdminCategoriesController', () => {
     category.delete.mockReset();
     category.findUnique.mockResolvedValue({ id: 12n, slug: 'limpeza' });
   });
-  it('lists inactive categories as well as active categories', () => {
-    controller.list({ page: 2 });
+  it('lists inactive categories as well as active categories', async () => {
+    listPaginated.mockResolvedValue({ data: [], meta: { total: 0 } });
+    await controller.list({ page: 2 });
     expect(listPaginated).toHaveBeenCalledWith({ page: 2 });
+    expect(subcategory.groupBy).not.toHaveBeenCalled();
+  });
+  it('counts total and active services of each listed category', async () => {
+    const meta = { total: 2, page: 1 };
+    listPaginated.mockResolvedValue({
+      data: [
+        { id: 1n, name: 'Limpeza' },
+        { id: 2n, name: 'Mecânica' },
+      ],
+      meta,
+    });
+    subcategory.groupBy.mockResolvedValue([
+      { categoryId: 1n, isActive: true, _count: { _all: 3 } },
+      { categoryId: 1n, isActive: false, _count: { _all: 2 } },
+    ]);
+    const result = await controller.list({});
+    expect(subcategory.groupBy).toHaveBeenCalledWith({
+      by: ['categoryId', 'isActive'],
+      where: { categoryId: { in: [1n, 2n] } },
+      _count: { _all: true },
+    });
+    expect(result).toEqual({
+      meta,
+      data: [
+        {
+          id: 1n,
+          name: 'Limpeza',
+          servicesCount: 5,
+          activeServicesCount: 3,
+        },
+        {
+          id: 2n,
+          name: 'Mecânica',
+          servicesCount: 0,
+          activeServicesCount: 0,
+        },
+      ],
+    });
   });
   it('creates categories with a thumbnail and chosen status', async () => {
     await controller.create({

@@ -28,6 +28,30 @@ describe('CategoriesPage', () => {
       .expectOne((request) => request.method === 'GET' && request.url === '/admin/categories')
       .flush({ data: [category], meta: { total: 1, totalPages: 1 } });
   }
+  it('shows how many services each category has', () => {
+    const fixture = TestBed.createComponent(CategoriesPage);
+    http
+      .expectOne((request) => request.method === 'GET' && request.url === '/admin/categories')
+      .flush({
+        data: [
+          { ...category, servicesCount: 5, activeServicesCount: 3 },
+          {
+            id: '2',
+            name: 'Mecânica',
+            thumb: null,
+            isActive: true,
+            servicesCount: 2,
+            activeServicesCount: 2,
+          },
+        ],
+        meta: { total: 2, totalPages: 1 },
+      });
+    fixture.detectChanges();
+    const cells = Array.from(
+      fixture.nativeElement.querySelectorAll('td.services-count') as NodeListOf<HTMLElement>,
+    ).map((cell) => cell.textContent?.replace(/\s+/g, ' ').trim());
+    expect(cells).toEqual(['5 (3 ativos)', '2']);
+  });
   it('uploads the thumbnail and includes the delivery URL when saving', () => {
     page.edit(category);
     const file = new File(['image'], 'thumb.png', { type: 'image/png' });
