@@ -6,9 +6,19 @@ const apps = {
   frontend: 'FRONTEND_PUBLIC_ORIGIN',
   backoffice: 'BACKOFFICE_PUBLIC_ORIGIN',
 };
+const stagingOrigins = {
+  frontend: 'https://taskgo-frontend-git-staging-peterson-fonseca-simios-projects.vercel.app',
+  backoffice: 'https://taskgo-backoffice-git-staging-peterson-fonseca-simios-projects.vercel.app',
+};
+const args = process.argv.slice(2);
+const stagingApp = args[0] === '--staging' ? args[1] : undefined;
+if (args.length && (args.length !== 2 || !Object.hasOwn(stagingOrigins, stagingApp))) {
+  throw new Error('Uso: configure-web-origins.mjs [--staging frontend|backoffice]');
+}
 const changes = [];
 for (const [app, variable] of Object.entries(apps)) {
-  const value = process.env[variable];
+  if (stagingApp && app !== stagingApp) continue;
+  const value = process.env[variable] || (stagingApp ? stagingOrigins[app] : undefined);
   if (!value) continue;
   const url = new URL(value);
   if (!['https:', 'http:'].includes(url.protocol) || ![url.origin, url.origin + '/'].includes(value)) {
@@ -26,7 +36,7 @@ for (const [app, variable] of Object.entries(apps)) {
     if (result !== source) changes.push([file, result]);
   }
 }
-if (!Object.values(apps).some((key) => process.env[key])) {
+if (!stagingApp && !Object.values(apps).some((key) => process.env[key])) {
   throw new Error(`Informe ao menos uma origem: ${Object.values(apps).join(', ')}.`);
 }
 for (const [file, content] of changes) await writeFile(file, content);
