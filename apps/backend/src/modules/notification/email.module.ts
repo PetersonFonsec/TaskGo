@@ -1,7 +1,6 @@
 import { Global, Logger, Module } from '@nestjs/common';
-import { ConfigService } from '@nestjs/config';
+import { ConfigModule, ConfigService } from '@nestjs/config';
 
-import { ConfigModule } from '../../config/config.module';
 import { EmailTransport } from './email-transport';
 import { LogEmailTransport } from './log-email.transport';
 import { ResendEmailTransport } from './resend-email.transport';
