@@ -2,6 +2,7 @@ import { Module } from '@nestjs/common';
 import { EventsHandler, IEventHandler } from '@nestjs/cqrs';
 import { UserCreatedEvent } from '../user/events/user-created.event';
 import { NotificationEmailService } from './notification-email.service';
+import { EmailModule } from '../notification/email.module';
 
 @EventsHandler(UserCreatedEvent)
 export class WelcomeEmailHandler implements IEventHandler<UserCreatedEvent> {
@@ -13,6 +14,7 @@ export class WelcomeEmailHandler implements IEventHandler<UserCreatedEvent> {
 }
 
 @Module({
+  imports: [EmailModule],
   providers: [NotificationEmailService, WelcomeEmailHandler],
   exports: [NotificationEmailService],
 })

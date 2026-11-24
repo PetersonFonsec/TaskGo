@@ -1,6 +1,7 @@
 import { Global, Logger, Module } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 
+import { ConfigModule } from '../../config/config.module';
 import { EmailTransport } from './email-transport';
 import { LogEmailTransport } from './log-email.transport';
 import { ResendEmailTransport } from './resend-email.transport';
@@ -34,8 +35,13 @@ export function createEmailTransport(config: ConfigService): EmailTransport {
   return new LogEmailTransport(config.get('NODE_ENV') !== 'production');
 }
 
+/**
+ * Global para o AppModule, mas também importado pelos módulos que enviam
+ * e-mail, para que montagens parciais (testes de integração) resolvam o transporte.
+ */
 @Global()
 @Module({
+  imports: [ConfigModule],
   providers: [
     {
       provide: EmailTransport,

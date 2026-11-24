@@ -17,6 +17,7 @@ import { ProviderHomeService } from './provider-home.service';
 import { RefreshTokenService } from './refresh-token.service';
 import { ConfigModule } from '../../config/config.module';
 
+import { EmailModule } from '../notification/email.module';
 @Module({
   controllers: [AuthController, AccountRecoveryController],
   providers: [
@@ -30,6 +31,7 @@ import { ConfigModule } from '../../config/config.module';
   ],
   imports: [
     ConfigModule,
+    EmailModule,
     forwardRef(() => UserModule),
     PrismaModule,
     CqrsModule,
